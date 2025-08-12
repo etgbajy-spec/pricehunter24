@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>결제 완료 | PriceHunter</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+      body { font-family: 'Noto Sans KR', 'Inter', sans-serif; }
+      .fade-in { animation: fadeIn 0.7s; }
+      @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+      .success-bg { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
+      .card-shadow { box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); }
+      .checkmark { animation: checkmark 0.5s ease-in-out; }
+      @keyframes checkmark { 0% { transform: scale(0); } 50% { transform: scale(1.2); } 100% { transform: scale(1); } }
+    </style>
+  </head>
+  <body class="success-bg min-h-screen py-8 px-4">
+    <div class="max-w-2xl mx-auto">
+      <!-- 성공 메시지 -->
+      <div class="bg-white rounded-3xl card-shadow p-8 text-center fade-in mb-6">
+        <div class="text-6xl mb-4 checkmark">✅</div>
+        <h1 class="text-3xl font-bold text-gray-800 mb-2">결제가 완료되었습니다!</h1>
+        <p class="text-gray-600 mb-6">안전한 구매를 도와드려서 감사합니다.</p>
+        
+        <!-- 주문 번호 -->
+        <div class="bg-gradient-to-r from-emerald-50 to-blue-50 rounded-xl p-4 mb-6">
+          <div class="text-sm text-gray-600 mb-1">주문 번호</div>
+          <div id="order-number" class="text-xl font-bold text-emerald-600"></div>
+        </div>
+
+        <!-- 주문 정보 -->
+        <div class="text-left">
+          <h2 class="text-lg font-bold text-gray-800 mb-4">📦 주문 정보</h2>
+          <div class="space-y-3 mb-6">
+            <div class="flex justify-between">
+              <span class="text-gray-600">상품명</span>
+              <span id="product-name" class="font-semibold text-gray-800"></span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-600">결제 금액</span>
+              <span id="payment-amount" class="font-bold text-emerald-600"></span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-600">결제 방법</span>
+              <span id="payment-method" class="font-semibold text-gray-800"></span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-600">주문 일시</span>
+              <span id="order-date" class="font-semibold text-gray-800"></span>
+            </div>
+          </div>
+
+          <!-- 배송 정보 -->
+          <h3 class="text-lg font-bold text-gray-800 mb-4">🚚 배송 정보</h3>
+          <div class="bg-gray-50 rounded-xl p-4 mb-6">
+            <div class="mb-2">
+              <span class="text-gray-600">수령인:</span>
+              <span id="recipient-name" class="font-semibold text-gray-800 ml-2"></span>
+            </div>
+            <div class="mb-2">
+              <span class="text-gray-600">연락처:</span>
+              <span id="recipient-phone" class="font-semibold text-gray-800 ml-2"></span>
+            </div>
+            <div>
+              <span class="text-gray-600">배송지:</span>
+              <span id="shipping-address" class="font-semibold text-gray-800 ml-2"></span>
+            </div>
+          </div>
+
+          <!-- 배송 상태 -->
+          <div class="bg-blue-50 rounded-xl p-4 mb-6">
+            <div class="flex items-center mb-2">
+              <div class="w-3 h-3 bg-blue-500 rounded-full mr-3"></div>
+              <span class="font-semibold text-blue-800">배송 준비 중</span>
+            </div>
+            <div class="text-sm text-blue-600">
+              주문 확인 후 1-2일 내에 배송됩니다.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 추가 기능 -->
+      <div class="bg-white rounded-2xl card-shadow p-6 fade-in">
+        <h3 class="text-lg font-bold text-gray-800 mb-4">📋 추가 기능</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <button onclick="downloadReceipt()" class="flex items-center justify-center p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition">
+            <div class="text-2xl mr-3">📄</div>
+            <div class="text-left">
+              <div class="font-semibold text-gray-800">영수증 다운로드</div>
+              <div class="text-sm text-gray-500">주문 내역 확인</div>
+            </div>
+          </button>
+          <button onclick="goToOrderHistory()" class="flex items-center justify-center p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition">
+            <div class="text-2xl mr-3">📋</div>
+            <div class="text-left">
+              <div class="font-semibold text-gray-800">주문 내역</div>
+              <div class="text-sm text-gray-500">전체 주문 확인</div>
+            </div>
+          </button>
+          <button onclick="contactSupport()" class="flex items-center justify-center p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition">
+            <div class="text-2xl mr-3">💬</div>
+            <div class="text-left">
+              <div class="font-semibold text-gray-800">고객 지원</div>
+              <div class="text-sm text-gray-500">문의사항 도움</div>
+            </div>
+          </button>
+          <button onclick="goToHome()" class="flex items-center justify-center p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition">
+            <div class="text-2xl mr-3">🏠</div>
+            <div class="text-left">
+              <div class="font-semibold text-gray-800">홈으로</div>
+              <div class="text-sm text-gray-500">메인 페이지</div>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <!-- 안내 메시지 -->
+      <div class="bg-white rounded-2xl card-shadow p-6 mt-6 fade-in">
+        <h3 class="text-lg font-bold text-gray-800 mb-4">ℹ️ 안내사항</h3>
+        <div class="space-y-3 text-sm text-gray-600">
+          <div class="flex items-start">
+            <div class="text-blue-500 mr-2 mt-1">•</div>
+            <div>주문 확인 이메일이 발송되었습니다.</div>
+          </div>
+          <div class="flex items-start">
+            <div class="text-blue-500 mr-2 mt-1">•</div>
+            <div>배송 시작 시 SMS로 알림을 드립니다.</div>
+          </div>
+          <div class="flex items-start">
+            <div class="text-blue-500 mr-2 mt-1">•</div>
+            <div>문의사항이 있으시면 고객 지원을 이용해주세요.</div>
+          </div>
+          <div class="flex items-start">
+            <div class="text-blue-500 mr-2 mt-1">•</div>
+            <div>주문 번호를 기억해두시면 주문 조회가 편리합니다.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // URL 파라미터에서 주문 번호 가져오기
+      function getOrderInfo() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const orderNumber = urlParams.get('order');
+
+        if (!orderNumber) {
+          alert('주문 정보를 찾을 수 없습니다.');
+          window.location.href = 'index.html';
+          return;
+        }
+
+        // 주문 정보 가져오기
+        const orderData = localStorage.getItem('order-' + orderNumber);
+        if (!orderData) {
+          alert('주문 정보를 불러올 수 없습니다.');
+          window.location.href = 'index.html';
+          return;
+        }
+
+        const order = JSON.parse(orderData);
+
+        // 주문 정보 표시
+        document.getElementById('order-number').textContent = order.orderNumber;
+        document.getElementById('product-name').textContent = order.productName;
+        document.getElementById('payment-amount').textContent = order.price;
+        document.getElementById('payment-method').textContent = getPaymentMethodText(order.paymentMethod);
+        document.getElementById('order-date').textContent = new Date(order.orderDate).toLocaleString();
+        
+        document.getElementById('recipient-name').textContent = order.recipient.name;
+        document.getElementById('recipient-phone').textContent = order.recipient.phone;
+        document.getElementById('shipping-address').textContent = order.recipient.address;
+      }
+
+      // 결제 방법 텍스트 변환
+      function getPaymentMethodText(method) {
+        const methods = {
+          'card': '💳 신용카드',
+          'bank': '🏦 계좌이체',
+          'kakao': '💛 카카오페이',
+          'naver': '🟢 네이버페이'
+        };
+        return methods[method] || method;
+      }
+
+      // 영수증 다운로드
+      function downloadReceipt() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const orderNumber = urlParams.get('order');
+        const orderData = localStorage.getItem('order-' + orderNumber);
+        
+        if (orderData) {
+          const order = JSON.parse(orderData);
+          
+          // 영수증 내용 생성
+          const receipt = `
+PriceHunter 영수증
+==================
+주문번호: ${order.orderNumber}
+주문일시: ${new Date(order.orderDate).toLocaleString()}
+상품명: ${order.productName}
+결제금액: ${order.price}
+결제방법: ${getPaymentMethodText(order.paymentMethod)}
+
+배송정보:
+수령인: ${order.recipient.name}
+연락처: ${order.recipient.phone}
+주소: ${order.recipient.address}
+
+감사합니다!
+          `;
+          
+          // 다운로드 (실제로는 PDF 생성)
+          const blob = new Blob([receipt], { type: 'text/plain' });
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `receipt-${orderNumber}.txt`;
+          a.click();
+          window.URL.revokeObjectURL(url);
+        }
+      }
+
+      // 주문 내역 페이지로 이동
+      function goToOrderHistory() {
+        alert('주문 내역 페이지로 이동합니다.');
+        // 실제로는 주문 내역 페이지로 이동
+        // window.location.href = 'order-history.html';
+      }
+
+      // 고객 지원 페이지로 이동
+      function contactSupport() {
+        alert('고객 지원 페이지로 이동합니다.');
+        // 실제로는 고객 지원 페이지로 이동
+        // window.location.href = 'contact.html';
+      }
+
+      // 홈으로 이동
+      function goToHome() {
+        window.location.href = 'index.html';
+      }
+
+      // 페이지 로드 시 주문 정보 설정
+      window.addEventListener('DOMContentLoaded', function() {
+        getOrderInfo();
+      });
+    </script>
+  </body>
+</html> 

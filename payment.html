@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PriceHunter 결제 | 안전한 구매</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+      body { font-family: 'Noto Sans KR', 'Inter', sans-serif; }
+      .fade-in { animation: fadeIn 0.7s; }
+      @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+      .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+      .card-shadow { box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); }
+      .input-focus:focus { box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1); }
+    </style>
+  </head>
+  <body class="gradient-bg min-h-screen py-8 px-4">
+    <div class="max-w-4xl mx-auto">
+      <!-- 헤더 -->
+      <div class="text-center mb-8">
+        <h1 class="text-3xl font-bold text-white mb-2">🛒 PriceHunter 결제</h1>
+        <p class="text-white/80">안전하고 빠른 구매를 도와드립니다</p>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- 왼쪽: 상품 정보 -->
+        <div class="lg:col-span-2">
+          <div class="bg-white rounded-2xl card-shadow p-6 mb-6 fade-in">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">📦 상품 정보</h2>
+            <div class="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-4 mb-4">
+              <div class="flex items-center justify-between mb-2">
+                <span class="font-semibold text-gray-700">상품명</span>
+                <span id="product-name" class="text-gray-800 font-bold"></span>
+              </div>
+              <div class="flex items-center justify-between mb-2">
+                <span class="font-semibold text-gray-700">원산지</span>
+                <span id="product-origin" class="text-gray-600"></span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="font-semibold text-gray-700">판매가</span>
+                <span id="product-price" class="text-2xl font-bold text-emerald-600"></span>
+              </div>
+            </div>
+            
+            <!-- 배송 정보 -->
+            <h3 class="text-lg font-bold text-gray-800 mb-4">🚚 배송 정보</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">수령인 *</label>
+                <input type="text" id="recipient-name" class="w-full px-4 py-3 rounded-lg border border-gray-300 input-focus focus:outline-none transition" placeholder="홍길동" required>
+              </div>
+              <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">연락처 *</label>
+                <input type="tel" id="recipient-phone" class="w-full px-4 py-3 rounded-lg border border-gray-300 input-focus focus:outline-none transition" placeholder="010-1234-5678" required>
+              </div>
+            </div>
+            <div class="mb-4">
+              <label class="block text-sm font-semibold text-gray-700 mb-2">배송지 주소 *</label>
+              <input type="text" id="shipping-address" class="w-full px-4 py-3 rounded-lg border border-gray-300 input-focus focus:outline-none transition" placeholder="서울시 강남구 테헤란로 123" required>
+            </div>
+            <div class="mb-4">
+              <label class="block text-sm font-semibold text-gray-700 mb-2">배송 요청사항</label>
+              <textarea id="shipping-note" rows="3" class="w-full px-4 py-3 rounded-lg border border-gray-300 input-focus focus:outline-none transition" placeholder="배송 시 요청사항이 있으시면 입력해주세요"></textarea>
+            </div>
+          </div>
+
+          <!-- 결제 정보 -->
+          <div class="bg-white rounded-2xl card-shadow p-6 fade-in">
+            <h3 class="text-lg font-bold text-gray-800 mb-4">💳 결제 정보</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">결제자명 *</label>
+                <input type="text" id="payer-name" class="w-full px-4 py-3 rounded-lg border border-gray-300 input-focus focus:outline-none transition" placeholder="홍길동" required>
+              </div>
+              <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">결제자 연락처 *</label>
+                <input type="tel" id="payer-phone" class="w-full px-4 py-3 rounded-lg border border-gray-300 input-focus focus:outline-none transition" placeholder="010-1234-5678" required>
+              </div>
+            </div>
+            <div class="mb-4">
+              <label class="block text-sm font-semibold text-gray-700 mb-2">결제자 이메일 *</label>
+              <input type="email" id="payer-email" class="w-full px-4 py-3 rounded-lg border border-gray-300 input-focus focus:outline-none transition" placeholder="example@email.com" required>
+            </div>
+            
+            <!-- 결제 방법 선택 -->
+            <div class="mb-4">
+              <label class="block text-sm font-semibold text-gray-700 mb-3">결제 방법 *</label>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <label class="flex items-center p-4 border border-gray-300 rounded-lg cursor-pointer hover:bg-blue-50 transition">
+                  <input type="radio" name="payment-method" value="card" class="mr-3" checked>
+                  <div>
+                    <div class="font-semibold">💳 신용카드</div>
+                    <div class="text-sm text-gray-500">모든 카드 결제 가능</div>
+                  </div>
+                </label>
+                <label class="flex items-center p-4 border border-gray-300 rounded-lg cursor-pointer hover:bg-blue-50 transition">
+                  <input type="radio" name="payment-method" value="bank" class="mr-3">
+                  <div>
+                    <div class="font-semibold">🏦 계좌이체</div>
+                    <div class="text-sm text-gray-500">실시간 계좌이체</div>
+                  </div>
+                </label>
+                <label class="flex items-center p-4 border border-gray-300 rounded-lg cursor-pointer hover:bg-blue-50 transition">
+                  <input type="radio" name="payment-method" value="kakao" class="mr-3">
+                  <div>
+                    <div class="font-semibold">💛 카카오페이</div>
+                    <div class="text-sm text-gray-500">간편 결제</div>
+                  </div>
+                </label>
+                <label class="flex items-center p-4 border border-gray-300 rounded-lg cursor-pointer hover:bg-blue-50 transition">
+                  <input type="radio" name="payment-method" value="naver" class="mr-3">
+                  <div>
+                    <div class="font-semibold">🟢 네이버페이</div>
+                    <div class="text-sm text-gray-500">간편 결제</div>
+                  </div>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 오른쪽: 주문 요약 -->
+        <div class="lg:col-span-1">
+          <div class="bg-white rounded-2xl card-shadow p-6 sticky top-8 fade-in">
+            <h3 class="text-lg font-bold text-gray-800 mb-4">📋 주문 요약</h3>
+            
+            <div class="space-y-3 mb-6">
+              <div class="flex justify-between">
+                <span class="text-gray-600">상품 금액</span>
+                <span id="subtotal" class="font-semibold"></span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-600">배송비</span>
+                <span class="font-semibold text-emerald-600">무료</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-600">할인</span>
+                <span class="font-semibold text-red-600">-₩0</span>
+              </div>
+              <hr class="my-3">
+              <div class="flex justify-between text-lg font-bold">
+                <span>총 결제금액</span>
+                <span id="total-amount" class="text-emerald-600"></span>
+              </div>
+            </div>
+
+            <!-- 약관 동의 -->
+            <div class="mb-6">
+              <label class="flex items-start cursor-pointer">
+                <input type="checkbox" id="agree-terms" class="mt-1 mr-3" required>
+                <span class="text-sm text-gray-600">
+                  <span class="font-semibold text-gray-800">구매조건 및 개인정보처리방침</span>에 동의합니다.
+                  <a href="#" class="text-blue-600 underline">자세히 보기</a>
+                </span>
+              </label>
+            </div>
+
+            <!-- 결제 버튼 -->
+            <button id="payment-btn" onclick="processPayment()" class="w-full py-4 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-bold rounded-lg shadow-lg hover:scale-105 transition-all duration-300 text-lg disabled:opacity-50 disabled:cursor-not-allowed">
+              💳 결제하기
+            </button>
+
+            <!-- 보안 안내 -->
+            <div class="mt-4 text-center">
+              <div class="text-xs text-gray-500 mb-2">🔒 SSL 보안 연결</div>
+              <div class="text-xs text-gray-500">결제 정보는 암호화되어 안전하게 처리됩니다</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // URL 파라미터에서 상품 정보 가져오기
+      function getProductInfo() {
+        console.log('=== getProductInfo 호출 ===');
+        console.log('현재 URL:', window.location.href);
+        
+        // URL에서 직접 파라미터 추출 (URLSearchParams 대신)
+        const url = window.location.href;
+        const queryString = url.split('?')[1];
+        
+        console.log('Query string:', queryString);
+        
+        if (!queryString) {
+          console.error('쿼리 스트링이 없습니다.');
+          alert('상품 정보를 불러올 수 없습니다.');
+          return;
+        }
+        
+        // 파라미터 파싱
+        const params = {};
+        const pairs = queryString.split('&');
+        
+        pairs.forEach(pair => {
+          const [key, value] = pair.split('=');
+          if (key && value) {
+            params[key] = decodeURIComponent(value);
+          }
+        });
+        
+        console.log('파싱된 파라미터:', params);
+        
+        const reqKey = params.req;
+        const price = params.price;
+        const name = params.name;
+        const origin = params.origin;
+
+        console.log('추출된 값:', { reqKey, price, name, origin });
+
+        if (!reqKey || !price || !name) {
+          console.error('필수 파라미터 누락:', { reqKey, price, name });
+          alert('상품 정보를 불러올 수 없습니다.\n\nreqKey: ' + reqKey + '\nprice: ' + price + '\nname: ' + name);
+          return;
+        }
+
+        // 상품 정보 표시
+        const productNameElement = document.getElementById('product-name');
+        const productOriginElement = document.getElementById('product-origin');
+        const productPriceElement = document.getElementById('product-price');
+        const subtotalElement = document.getElementById('subtotal');
+        const totalAmountElement = document.getElementById('total-amount');
+
+        if (productNameElement) productNameElement.textContent = decodeURIComponent(name);
+        if (productOriginElement) productOriginElement.textContent = decodeURIComponent(origin) || '정보 없음';
+        if (productPriceElement) productPriceElement.textContent = `₩${Number(price).toLocaleString()}`;
+        if (subtotalElement) subtotalElement.textContent = `₩${Number(price).toLocaleString()}`;
+        if (totalAmountElement) totalAmountElement.textContent = `₩${Number(price).toLocaleString()}`;
+
+        console.log('상품 정보 설정 완료');
+
+        // 배송 정보 자동 입력 (기존 의뢰 정보가 있다면)
+        const requestKey = 'request-' + reqKey;
+        const requestData = localStorage.getItem(requestKey);
+        console.log('요청 데이터 키:', requestKey);
+        console.log('요청 데이터:', requestData);
+        
+        if (requestData) {
+          const request = JSON.parse(requestData);
+          const recipientNameElement = document.getElementById('recipient-name');
+          const payerNameElement = document.getElementById('payer-name');
+          const recipientPhoneElement = document.getElementById('recipient-phone');
+          const payerPhoneElement = document.getElementById('payer-phone');
+          const payerEmailElement = document.getElementById('payer-email');
+          
+          if (request.userName && recipientNameElement) {
+            recipientNameElement.value = request.userName;
+          }
+          if (request.userName && payerNameElement) {
+            payerNameElement.value = request.userName;
+          }
+          if (request.phone && recipientPhoneElement) {
+            recipientPhoneElement.value = request.phone;
+          }
+          if (request.phone && payerPhoneElement) {
+            payerPhoneElement.value = request.phone;
+          }
+          if (request.email && payerEmailElement) {
+            payerEmailElement.value = request.email;
+          }
+          
+          console.log('배송 정보 자동 입력 완료');
+        }
+      }
+
+      // 결제 처리
+      function processPayment() {
+        // 필수 입력 검증
+        const requiredFields = [
+          'recipient-name', 'recipient-phone', 'shipping-address',
+          'payer-name', 'payer-phone', 'payer-email'
+        ];
+
+        for (const fieldId of requiredFields) {
+          const field = document.getElementById(fieldId);
+          if (!field.value.trim()) {
+            alert('필수 입력 항목을 모두 입력해주세요.');
+            field.focus();
+            return;
+          }
+        }
+
+        if (!document.getElementById('agree-terms').checked) {
+          alert('구매조건 및 개인정보처리방침에 동의해주세요.');
+          return;
+        }
+
+        // 결제 방법 확인
+        const paymentMethod = document.querySelector('input[name="payment-method"]:checked');
+        if (!paymentMethod) {
+          alert('결제 방법을 선택해주세요.');
+          return;
+        }
+
+        // 결제 버튼 비활성화
+        const paymentBtn = document.getElementById('payment-btn');
+        paymentBtn.disabled = true;
+        paymentBtn.textContent = '결제 처리 중...';
+
+        // 결제 시뮬레이션
+        setTimeout(() => {
+          // 결제 성공 시뮬레이션
+          const orderNumber = 'PH-' + Date.now();
+          
+          // 주문 정보 저장 (실제로는 서버에 저장)
+          const orderInfo = {
+            orderNumber: orderNumber,
+            productName: document.getElementById('product-name').textContent,
+            price: document.getElementById('product-price').textContent,
+            recipient: {
+              name: document.getElementById('recipient-name').value,
+              phone: document.getElementById('recipient-phone').value,
+              address: document.getElementById('shipping-address').value,
+              note: document.getElementById('shipping-note').value
+            },
+            payer: {
+              name: document.getElementById('payer-name').value,
+              phone: document.getElementById('payer-phone').value,
+              email: document.getElementById('payer-email').value
+            },
+            paymentMethod: paymentMethod.value,
+            orderDate: new Date().toISOString()
+          };
+
+          // 주문 정보를 localStorage에 저장 (실제로는 서버에 저장)
+          localStorage.setItem('order-' + orderNumber, JSON.stringify(orderInfo));
+          
+          // 구매 정보를 의뢰와 연결하여 저장
+          const urlParams = new URLSearchParams(window.location.search);
+          const reqKey = urlParams.get('req');
+          if (reqKey) {
+            const purchaseInfo = {
+              method: 'direct',
+              status: 'ordered',
+              orderNumber: orderNumber,
+              orderDate: new Date().toISOString(),
+              productName: document.getElementById('product-name').textContent,
+              price: document.getElementById('product-price').textContent,
+              paymentMethod: paymentMethod.value,
+              recipient: {
+                name: document.getElementById('recipient-name').value,
+                phone: document.getElementById('recipient-phone').value,
+                address: document.getElementById('shipping-address').value
+              },
+              payer: {
+                name: document.getElementById('payer-name').value,
+                phone: document.getElementById('payer-phone').value,
+                email: document.getElementById('payer-email').value
+              }
+            };
+            localStorage.setItem('order-' + reqKey, JSON.stringify(purchaseInfo));
+          }
+
+          // 결제 완료 페이지로 이동
+          const successUrl = `payment-success.html?order=${orderNumber}`;
+          window.location.href = successUrl;
+        }, 2000);
+      }
+
+      // 페이지 로드 시 상품 정보 설정
+      window.addEventListener('DOMContentLoaded', function() {
+        console.log('=== DOMContentLoaded 이벤트 발생 ===');
+        setTimeout(() => {
+          getProductInfo();
+        }, 100);
+      });
+      
+      // 추가로 load 이벤트도 등록
+      window.addEventListener('load', function() {
+        console.log('=== load 이벤트 발생 ===');
+        setTimeout(() => {
+          if (!document.getElementById('product-name').textContent) {
+            console.log('상품 정보가 설정되지 않았습니다. 다시 시도합니다.');
+            getProductInfo();
+          }
+        }, 200);
+      });
+      
+      // 즉시 실행 (페이지 로드 전에도)
+      console.log('=== payment.html 스크립트 로드됨 ===');
+      console.log('현재 페이지 URL:', window.location.href);
+      console.log('현재 페이지 search:', window.location.search);
+      
+      setTimeout(() => {
+        console.log('=== 즉시 실행 시도 ===');
+        getProductInfo();
+      }, 500);
+    </script>
+  </body>
+</html> 

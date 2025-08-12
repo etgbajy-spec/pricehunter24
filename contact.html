@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>1:1 문의하기 - PriceHunter</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-br from-pink-50 via-blue-50 to-emerald-50 min-h-screen flex flex-col items-center justify-center py-12">
+  <div class="w-full max-w-lg bg-white/90 rounded-2xl shadow-2xl p-8 md:p-10 backdrop-blur-md">
+    <h2 class="text-3xl md:text-4xl font-bold text-pink-700 mb-6 text-center">1:1 문의하기</h2>
+    <form class="space-y-6" id="contact-form">
+      <div>
+        <label class="block text-gray-700 font-semibold mb-2" for="contact-subject">문의 제목</label>
+        <input type="text" id="contact-subject" name="contact-subject" required maxlength="60" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-pink-400 focus:outline-none transition" placeholder="예: 배송 문의, 결제 오류 등" />
+      </div>
+      <div>
+        <label class="block text-gray-700 font-semibold mb-2" for="contact-message">문의 내용</label>
+        <textarea id="contact-message" name="contact-message" rows="5" required class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-pink-400 focus:outline-none transition" placeholder="문의하실 내용을 자세히 입력해 주세요."></textarea>
+      </div>
+      <div>
+        <label class="block text-gray-700 font-semibold mb-2" for="contact-file">첨부파일 (선택, 이미지/문서 등)</label>
+        <input type="file" id="contact-file" name="contact-file" class="w-full" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt" />
+        <div id="filePreview" class="mt-2"></div>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-gray-700 font-semibold mb-2" for="contact-name">이름</label>
+          <input type="text" id="contact-name" name="contact-name" readonly class="w-full px-4 py-3 rounded-lg border border-gray-200 bg-gray-100 text-gray-500" />
+        </div>
+        <div>
+          <label class="block text-gray-700 font-semibold mb-2" for="contact-email">이메일</label>
+          <input type="email" id="contact-email" name="contact-email" readonly class="w-full px-4 py-3 rounded-lg border border-gray-200 bg-gray-100 text-gray-500" />
+        </div>
+      </div>
+      <button type="submit" class="w-full py-3 bg-gradient-to-r from-pink-400 to-amber-400 text-white font-bold rounded-lg shadow-lg hover:scale-105 hover:from-amber-400 hover:to-pink-400 transition-all duration-300 text-lg">문의 제출하기</button>
+    </form>
+    <div id="contact-success" class="hidden mt-6 p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-700 text-center font-bold">문의가 정상적으로 접수되었습니다!</div>
+    <div class="mt-10">
+      <h3 class="text-lg font-bold text-blue-700 mb-2">이전 문의 내역</h3>
+      <ul id="contact-history" class="space-y-3 text-left text-sm"></ul>
+    </div>
+  </div>
+  <script>
+    // 로그인 정보 자동 입력
+    const user = JSON.parse(localStorage.getItem('user') || 'null');
+    if (user) {
+      document.getElementById('contact-name').value = user.name || '';
+      document.getElementById('contact-email').value = user.email || '';
+    }
+    // 파일 미리보기
+    const fileInput = document.getElementById('contact-file');
+    const filePreview = document.getElementById('filePreview');
+    let fileData = '';
+    if (fileInput) {
+      fileInput.addEventListener('change', function(event) {
+        filePreview.innerHTML = '';
+        const file = event.target.files[0];
+        if (file) {
+          if (file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+              filePreview.innerHTML = `<img src="${e.target.result}" alt="첨부 이미지" class="max-h-32 rounded-xl shadow-md border border-gray-200" />`;
+              fileData = e.target.result;
+            };
+            reader.readAsDataURL(file);
+          } else {
+            filePreview.innerHTML = `<span class='text-gray-600'>${file.name}</span>`;
+            fileData = '';
+          }
+        }
+      });
+    }
+    // 문의 제출
+    document.getElementById('contact-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const subject = document.getElementById('contact-subject').value.trim();
+      const message = document.getElementById('contact-message').value.trim();
+      const name = document.getElementById('contact-name').value;
+      const email = document.getElementById('contact-email').value;
+      const file = fileData;
+      if (!subject || !message) {
+        alert('제목과 내용을 모두 입력해 주세요.');
+        return;
+      }
+      // 문의 내역 저장 (localStorage, 최신순)
+      const inquiry = { subject, message, name, email, file, date: new Date().toLocaleString() };
+      let history = JSON.parse(localStorage.getItem('contact-history') || '[]');
+      history.unshift(inquiry);
+      if (history.length > 20) history = history.slice(0, 20);
+      localStorage.setItem('contact-history', JSON.stringify(history));
+      // inquiry-로도 저장 (관리자페이지용)
+      const inquiryKey = 'inquiry-' + Date.now();
+      localStorage.setItem(inquiryKey, JSON.stringify(inquiry));
+      document.getElementById('contact-success').classList.remove('hidden');
+      this.reset();
+      filePreview.innerHTML = '';
+      fileData = '';
+      renderHistory();
+    });
+    // 문의/답변 내용 안전하게 렌더링
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+    // 댓글 렌더링 함수
+    function renderComments(comments) {
+      if (!comments || !comments.length) return '';
+      
+      let html = '<ul class="mb-2 space-y-2">';
+      comments.forEach((c, index) => {
+        const isAdmin = c.author === '관리자';
+        const isUserComment = !isAdmin;
+        
+        // 답변 정보 표시
+        let replyInfoHtml = '';
+        if (c.replyInfo && isAdmin) {
+          replyInfoHtml = `
+            <div class="mt-1 p-2 bg-blue-50 border-l-4 border-blue-400 rounded text-xs">
+              <div class="text-blue-700 font-semibold">↳ 내 댓글에 답변</div>
+              <div class="text-blue-600 mt-1">"${escapeHtml(c.replyInfo.replyToText.substring(0, 50))}${c.replyInfo.replyToText.length > 50 ? '...' : ''}"</div>
+            </div>
+          `;
+        }
+        
+        html += `
+          <li class='text-sm p-3 rounded ${isAdmin ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-700'}'>
+            <div class="font-semibold text-xs ${isAdmin ? 'text-blue-600' : 'text-gray-600'}">${escapeHtml(c.author||'익명')}</div>
+            ${replyInfoHtml}
+            <div class="mt-1">${escapeHtml(c.text)}</div>
+            <div class="text-xs text-gray-400 mt-1">${formatDateTime(c.date)}</div>
+          </li>
+        `;
+      });
+      html += '</ul>';
+      return html;
+    }
+    
+    // 실시간 댓글 업데이트를 위한 함수
+    function updateCommentsInRealTime() {
+      const commentForms = document.querySelectorAll('.comment-form');
+      commentForms.forEach(form => {
+        const subject = form.getAttribute('data-subject');
+        const date = form.getAttribute('data-date');
+        
+        // inquiry-에서 최신 댓글 정보 가져오기
+        let inquiryKey = null;
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key.startsWith('inquiry-')) {
+            const obj = JSON.parse(localStorage.getItem(key));
+            if (obj && obj.subject === subject && obj.date === date) {
+              inquiryKey = key;
+              break;
+            }
+          }
+        }
+        
+        if (inquiryKey) {
+          const inquiry = JSON.parse(localStorage.getItem(inquiryKey));
+          const commentsHtml = renderComments(inquiry.comments || []);
+          const commentsContainer = form.previousElementSibling;
+          if (commentsContainer && commentsContainer.classList.contains('comments-list')) {
+            commentsContainer.innerHTML = commentsHtml;
+          }
+        }
+      });
+    }
+    
+    // 문의 삭제 함수
+    function deleteInquiry(subject, date) {
+      if (!confirm('정말 이 문의를 삭제하시겠습니까?')) {
+        return;
+      }
+      
+      // contact-history에서 삭제
+      let history = JSON.parse(localStorage.getItem('contact-history') || '[]');
+      history = history.filter(inq => !(inq.subject === subject && inq.date === date));
+      localStorage.setItem('contact-history', JSON.stringify(history));
+      
+      // inquiry-에서도 동기화하여 삭제
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key.startsWith('inquiry-')) {
+          const obj = JSON.parse(localStorage.getItem(key));
+          if (obj && obj.subject === subject && obj.date === date) {
+            localStorage.removeItem(key);
+            break;
+          }
+        }
+      }
+      
+      // 화면 새로고침
+      renderHistory();
+    }
+    // 문의 내역 렌더링
+    function formatDateTime(dt) {
+      if (!dt) return '';
+      const d = new Date(dt);
+      if (isNaN(d.getTime())) return dt;
+      const y = d.getFullYear();
+      const m = String(d.getMonth()+1).padStart(2,'0');
+      const day = String(d.getDate()).padStart(2,'0');
+      const h = String(d.getHours()).padStart(2,'0');
+      const min = String(d.getMinutes()).padStart(2,'0');
+      return `${y}-${m}-${day} ${h}:${min}`;
+    }
+    function renderHistory() {
+      const history = JSON.parse(localStorage.getItem('contact-history') || '[]');
+      const ul = document.getElementById('contact-history');
+      ul.innerHTML = '';
+      if (history.length === 0) {
+        ul.innerHTML = '<li class="text-gray-400">문의 내역이 없습니다.</li>';
+        return;
+      }
+      history.forEach(inq => {
+        // 답변 불러오기 (inquiry-...에서 answer 필드)
+        let answer = '';
+        // inquiry-로 저장된 것과 매칭 (subject+date로 찾기)
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key.startsWith('inquiry-')) {
+            const obj = JSON.parse(localStorage.getItem(key));
+            if (obj && obj.subject === inq.subject && obj.date === inq.date) {
+              answer = obj.answer || '';
+              break;
+            }
+          }
+        }
+        let fileHtml = '';
+        if (inq.file) {
+          if (inq.file.startsWith('data:image/')) {
+            fileHtml = `<div class='mb-2'><img src='${inq.file}' alt='첨부 이미지' class='max-h-32 rounded-xl border shadow w-full object-contain' /></div>`;
+          } else {
+            const fileName = inq.fileName || '첨부파일';
+            fileHtml = `<div class='mb-2 text-gray-600'>첨부파일: <a href='${inq.file}' download='${fileName}' class='text-blue-600 underline'>${fileName}</a></div>`;
+          }
+        }
+        ul.innerHTML += `
+          <li class='p-4 bg-blue-50 rounded-xl shadow mb-2 min-w-0'>
+            <div class='font-bold text-blue-700 mb-1'>${escapeHtml(inq.subject)}</div>
+            <div class='text-gray-700 mb-1 whitespace-pre-line'>${escapeHtml(inq.message || inq.content || '')}</div>
+            ${fileHtml}
+            <div class='text-xs text-gray-400 mb-2'>문의일시: ${formatDateTime(inq.date)}</div>
+            <div class='mt-2 p-3 rounded bg-white border'>
+              <span class='font-bold text-blue-700'>답변</span><br>
+              <span class='text-gray-800'>${answer ? escapeHtml(answer) : '<span class="text-gray-400">답변 대기중</span>'}</span>
+            </div>
+            <div class='mt-4'>
+              <div class='font-bold text-blue-700 mb-2'>추가 댓글</div>
+              <div class='comments-list'>${renderComments((inq.comments||[]))}</div>
+              <form class='comment-form' data-subject="${escapeHtml(inq.subject)}" data-date="${escapeHtml(inq.date)}">
+                <div class='flex gap-2'>
+                  <input type='text' name='comment' class='flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none' placeholder='댓글을 입력하세요' aria-label='댓글 입력' />
+                  <button type='submit' class='px-4 py-2 bg-emerald-500 text-white rounded-lg font-bold hover:bg-emerald-600 transition' aria-label='댓글 추가'>등록</button>
+                </div>
+              </form>
+            </div>
+            <button class='mt-2 py-1 px-3 bg-red-500 text-white rounded font-bold hover:bg-red-600 transition' aria-label='문의 삭제' onclick='deleteInquiry(${JSON.stringify(inq.subject)}, ${JSON.stringify(inq.date)})'>삭제</button>
+          </li>
+        `;
+      });
+    }
+    renderHistory();
+    
+    // 실시간 댓글 업데이트 타이머 (3초마다)
+    setInterval(updateCommentsInRealTime, 3000);
+    
+    document.addEventListener('submit', function(e) {
+      if (e.target.classList.contains('comment-form')) {
+        e.preventDefault();
+        const subject = e.target.getAttribute('data-subject');
+        const date = e.target.getAttribute('data-date');
+        const input = e.target.querySelector('input[name="comment"]');
+        const text = input.value.trim();
+        if (!text) return false;
+        let history = JSON.parse(localStorage.getItem('contact-history') || '[]');
+        let found = null, foundIdx = -1;
+        for (let i = 0; i < history.length; i++) {
+          if (history[i].subject === subject && history[i].date === date) {
+            found = history[i];
+            foundIdx = i;
+            break;
+          }
+        }
+        if (!found) return false;
+        // inquiry-에서 comments 동기화
+        let inquiryKey = null;
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key.startsWith('inquiry-')) {
+            const obj = JSON.parse(localStorage.getItem(key));
+            if (obj && obj.subject === subject && obj.date === date) {
+              inquiryKey = key;
+              break;
+            }
+          }
+        }
+        if (!inquiryKey) return false;
+        const author = (JSON.parse(localStorage.getItem('user')||'{}').name) || '회원';
+        const inquiry = JSON.parse(localStorage.getItem(inquiryKey));
+        const comments = (inquiry.comments||[]).concat({author, text, date: Date.now()});
+        inquiry.comments = comments;
+        localStorage.setItem(inquiryKey, JSON.stringify(inquiry));
+        found.comments = comments;
+        history[foundIdx] = found;
+        localStorage.setItem('contact-history', JSON.stringify(history));
+        // 즉시 렌더링 갱신
+        renderHistory();
+        // 입력 필드 초기화
+        input.value = '';
+        return false;
+      }
+    });
+  </script>
+</body>
+</html> 

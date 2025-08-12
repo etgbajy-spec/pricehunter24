@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>제품 의뢰하기 - PriceHunter</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-br from-gray-100 via-blue-50 to-emerald-50 min-h-screen flex flex-col items-center justify-center py-12">
+  <div class="w-full max-w-lg bg-white/90 rounded-2xl shadow-2xl p-8 md:p-10 backdrop-blur-md">
+    <h2 class="text-3xl md:text-4xl font-bold text-gray-800 mb-6 text-center">제품 의뢰 신청서</h2>
+    <form class="space-y-6" id="product-form">
+      <div>
+        <label class="block text-gray-700 font-semibold mb-2" for="productName">제품명</label>
+        <input type="text" id="productName" name="productName" required class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-amber-400 focus:outline-none transition" placeholder="예: 무선 이어폰" />
+      </div>
+      <div>
+        <label class="block text-gray-700 font-semibold mb-2" for="productPrice">가격</label>
+        <input type="number" id="productPrice" name="productPrice" min="10000" step="1" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-amber-400 focus:outline-none transition" placeholder="예: 10000 (원)" />
+        <div class="text-xs text-pink-600 mt-1">※ 최소 의뢰 금액은 <span class="font-bold">10,000원</span> 이상입니다.</div>
+      </div>
+      <div>
+        <label class="block text-gray-700 font-semibold mb-2" for="productDesc">제품설명</label>
+        <textarea id="productDesc" name="productDesc" rows="4" required class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-amber-400 focus:outline-none transition" placeholder="예: 색상, 크기, 재질 등 제품의 특징을 잘 알 수 있도록 기입해주세요"></textarea>
+      </div>
+      <div>
+        <label class="block text-gray-700 font-semibold mb-2" for="productUrl">참고사이트(링크 1개)</label>
+        <input type="text" id="productUrl" name="productUrl" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-amber-400 focus:outline-none transition" placeholder="예: https://example.com 또는 www.example.com" />
+      </div>
+      <div>
+        <label class="block text-gray-700 font-semibold mb-2" for="productImage">제품 이미지 업로드 (최대 5장)</label>
+        <input type="file" id="productImage" name="productImage" accept="image/*" class="w-full" multiple />
+        <div id="imagePreview" class="mt-2 flex flex-wrap gap-2"></div>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-gray-700 font-semibold mb-2" for="userName">이름</label>
+          <input type="text" id="userName" name="userName" required class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-pink-400 focus:outline-none transition" placeholder="홍길동" />
+        </div>
+        <div>
+          <label class="block text-gray-700 font-semibold mb-2" for="userPhone">전화번호</label>
+          <input type="tel" id="userPhone" name="userPhone" required pattern="[0-9]{11}" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-pink-400 focus:outline-none transition" placeholder="01012345678" />
+        </div>
+        <div class="md:col-span-2 col-span-1">
+          <div class="flex items-center justify-between mb-2">
+            <label class="block text-gray-700 font-semibold" for="userCustoms">통관번호</label>
+            <a href="https://unipass.customs.go.kr/csp/persIndex.do" target="_blank" rel="noopener" class="px-2 py-1 bg-blue-100 text-blue-700 font-semibold rounded-md shadow hover:bg-blue-200 transition text-sm whitespace-nowrap ml-2">조회하기</a>
+          </div>
+          <input type="text" id="userCustoms" name="userCustoms" required pattern="[Pp][0-9]{12}" maxlength="13" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-pink-400 focus:outline-none transition" placeholder="P로 시작하는 번호" />
+          <div class="md:col-span-2 col-span-1 my-3">
+            <div class="p-4 bg-blue-50 border border-blue-200 rounded-xl flex flex-col md:flex-row items-start md:items-center gap-3 text-blue-800 text-sm font-semibold">
+              <svg class="w-6 h-6 text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor"/><path d="M12 8v4m0 4h.01" stroke-linecap="round"/></svg>
+              <span>통관번호는 해외 구매대행 시 세관 신고 및 수입 통관을 위해 반드시 필요합니다.<br class="hidden md:block"/> 고객님의 개인정보는 안전하게 보호되며, 통관 목적 외에는 절대 사용되지 않습니다.</span>
+            </div>
+          </div>
+        </div>
+        <div class="md:col-span-2 col-span-1">
+          <label class="block text-gray-700 font-semibold mb-2" for="userEmail">이메일</label>
+          <input type="email" id="userEmail" name="userEmail" required class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-pink-400 focus:outline-none transition" placeholder="example@email.com" />
+        </div>
+      </div>
+      <div class="flex items-start mt-2">
+        <input type="checkbox" id="privacyAgree" name="privacyAgree" required class="mt-1 mr-2 w-5 h-5 text-pink-500 border-gray-300 rounded focus:ring-pink-400" />
+        <label for="privacyAgree" class="text-gray-700 text-sm select-none">[필수] 개인정보 수집 및 이용에 동의합니다.</label>
+      </div>
+      <button type="submit" class="w-full py-3 bg-gradient-to-r from-amber-400 to-pink-500 text-white font-bold rounded-lg shadow-lg hover:scale-105 hover:from-pink-500 hover:to-amber-400 transition-all duration-300 text-lg">의뢰 제출하기</button>
+    </form>
+  </div>
+  <script>
+    // 이미지 미리보기 및 최대 5장 제한
+    const imageInput = document.getElementById('productImage');
+    const imagePreview = document.getElementById('imagePreview');
+    let imageFiles = [];
+    if (imageInput) {
+      imageInput.addEventListener('change', function(event) {
+        const files = Array.from(event.target.files);
+        if (files.length + imageFiles.length > 5) {
+          alert('이미지는 최대 5장까지 첨부할 수 있습니다.');
+          imageInput.value = '';
+          return;
+        }
+        files.forEach(file => {
+          if (imageFiles.length < 5) {
+            imageFiles.push(file);
+          }
+        });
+        renderImagePreview();
+        imageInput.value = '';
+      });
+    }
+    function renderImagePreview() {
+      imagePreview.innerHTML = '';
+      imageFiles.forEach((file, idx) => {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const wrapper = document.createElement('div');
+          wrapper.className = 'relative';
+          wrapper.innerHTML = `<img src="${e.target.result}" alt="미리보기" class="max-h-32 rounded-xl shadow-md border border-gray-200" />` +
+            `<button type="button" class="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs" data-idx="${idx}">&times;</button>`;
+          imagePreview.appendChild(wrapper);
+          wrapper.querySelector('button').onclick = function() {
+            imageFiles.splice(idx, 1);
+            renderImagePreview();
+          };
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+    // 폼 제출 이벤트(데모용)
+    document.getElementById('product-form').addEventListener('submit', function(e) {
+      if (!document.getElementById('privacyAgree').checked) {
+        e.preventDefault();
+        alert('개인정보 수집 및 이용에 동의하셔야 제출이 가능합니다.');
+        return;
+      }
+      e.preventDefault();
+      // 이름 일치 검증
+      const user = JSON.parse(localStorage.getItem('user') || 'null');
+      const userName = document.getElementById('userName').value.trim();
+      if (!user || !user.name || user.name.trim() !== userName) {
+        alert('회원가입 시 입력한 이름과 동일하게 입력해야 합니다.');
+        return;
+      }
+      // 하루 2건 제한
+      const today = new Date().toISOString().slice(0,10);
+      const userId = user && user.email ? user.email : userName;
+      const reqCountKey = `requestCount-${today}-${userId}`;
+      const reqCount = Number(localStorage.getItem(reqCountKey) || '0');
+      if (reqCount >= 2) {
+        alert('하루 최대 2건까지만 의뢰할 수 있습니다. 내일 다시 이용해 주세요!');
+        return;
+      }
+      // 가격 1만원 이상 제한
+      const price = Number(document.getElementById('productPrice').value);
+      if (isNaN(price) || price < 10000) {
+        alert('최소 의뢰 금액은 10,000원 이상입니다. 더 저렴한 제품은 의뢰가 어렵습니다.');
+        return;
+      }
+      // 참고사이트 단일 링크 유효성 검사
+      const url = document.getElementById('productUrl').value.trim();
+      const urlPattern = /^(https?:\/\/)?(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)$/;
+      if (!urlPattern.test(url)) {
+        alert('참고사이트는 http://, https://, 또는 www.로 시작하는 올바른 링크를 입력해 주세요.');
+        return;
+      }
+      // 이미지 총 용량 체크 (5MB 제한)
+      function getTotalImageSize(files) {
+        return files.reduce((sum, file) => sum + file.size, 0);
+      }
+      if (getTotalImageSize(imageFiles) > 5 * 1024 * 1024) {
+        alert('첨부한 이미지의 총 용량이 5MB를 초과합니다. 더 작은 이미지로 첨부해 주세요.');
+        return;
+      }
+      // 입력값 수집
+      const name = document.getElementById('productName').value;
+      const desc = document.getElementById('productDesc').value;
+      const urls = [url]; // 단일 링크로 변경
+      const email = user && user.email ? user.email : document.getElementById('userEmail').value;
+      const phone = document.getElementById('userPhone').value;
+      const kakao = '';
+      const customs = document.getElementById('userCustoms').value;
+      const userEmail = document.getElementById('userEmail').value;
+      const userPhone = document.getElementById('userPhone').value;
+      const userCustoms = document.getElementById('userCustoms').value;
+      const userNameInput = document.getElementById('userName').value;
+      // 고유 의뢰번호 생성
+      function generateReqNum() {
+        const now = new Date();
+        const y = now.getFullYear();
+        const m = String(now.getMonth()+1).padStart(2,'0');
+        const d = String(now.getDate()).padStart(2,'0');
+        const rand = String(Math.floor(Math.random()*900)+100);
+        return `#PH-${y}${m}${d}${rand}`;
+      }
+      const reqNum = generateReqNum();
+      // 이미지 base64 배열 저장
+      if (imageFiles.length > 0) {
+        const imgArr = [];
+        let loaded = 0;
+        imageFiles.forEach((file, idx) => {
+          const reader = new FileReader();
+          reader.onload = function(e2) {
+            imgArr[idx] = e2.target.result;
+            loaded++;
+            if (loaded === imageFiles.length) {
+              saveRequest(imgArr);
+            }
+          };
+          reader.readAsDataURL(file);
+        });
+      } else {
+        saveRequest([]);
+      }
+      function saveRequest(imgArr) {
+        const reqData = {name, desc, urls, images: imgArr, email, phone, kakao, customs, price, userName, date: Date.now()};
+        localStorage.setItem('request-' + reqNum, JSON.stringify(reqData));
+        sessionStorage.setItem('request', JSON.stringify({...reqData, reqNum}));
+        // 하루 의뢰 카운트 증가
+        localStorage.setItem(reqCountKey, String(reqCount + 1));
+        window.location.href = 'request-complete.html';
+      }
+    });
+  </script>
+</body>
+</html> 

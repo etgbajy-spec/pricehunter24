@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>최저가 요청하기 (스텝별 폼) - PriceHunter</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .fadein-step {
+      animation: fadein-step 0.7s cubic-bezier(.4,0,.2,1) both;
+    }
+    @keyframes fadein-step {
+      0% { opacity: 0; transform: translateY(40px) scale(0.98); }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .slidein-step {
+      animation: slidein-step 0.7s cubic-bezier(.4,0,.2,1) both;
+    }
+    @keyframes slidein-step {
+      0% { opacity: 0; transform: translateX(60px) scale(0.98); }
+      100% { opacity: 1; transform: translateX(0) scale(1); }
+    }
+    .stepper-dot-animate {
+      transition: background 0.4s, box-shadow 0.4s, transform 0.4s;
+    }
+    .stepper-dot-active {
+      background: linear-gradient(90deg, #f472b6 0%, #fbbf24 100%);
+      box-shadow: 0 4px 16px 0 rgba(255, 99, 132, 0.15);
+      transform: scale(1.15);
+    }
+    .stepper-dot {
+      background: #d1d5db;
+    }
+    .input-animate:focus {
+      box-shadow: 0 0 0 3px #fbbf24aa;
+      transition: box-shadow 0.3s;
+    }
+    .btn-animate {
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .btn-animate:hover {
+      transform: translateY(-2px) scale(1.04);
+      box-shadow: 0 8px 32px 0 rgba(236, 72, 153, 0.12);
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-gray-100 via-blue-50 to-emerald-50 min-h-screen flex flex-col items-center justify-center py-12">
+  <div class="w-full max-w-lg bg-white/90 rounded-2xl shadow-2xl p-8 md:p-10 backdrop-blur-md">
+    <h2 class="text-3xl md:text-4xl font-bold text-blue-800 mb-6 text-center">최저가 요청하기 <span class="text-pink-500">(스텝별)</span></h2>
+    <div id="stepper" class="flex justify-between items-center mb-8">
+      <div class="flex-1 flex flex-col items-center">
+        <div class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-white stepper-dot stepper-dot-animate" id="step-1-dot">1</div>
+        <div class="text-xs mt-1">제품정보</div>
+      </div>
+      <div class="flex-1 h-1 bg-gradient-to-r from-blue-300 to-pink-300 mx-1"></div>
+      <div class="flex-1 flex flex-col items-center">
+        <div class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-white stepper-dot stepper-dot-animate" id="step-2-dot">2</div>
+        <div class="text-xs mt-1">참고/이미지</div>
+      </div>
+      <div class="flex-1 h-1 bg-gradient-to-r from-blue-300 to-pink-300 mx-1"></div>
+      <div class="flex-1 flex flex-col items-center">
+        <div class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-white stepper-dot stepper-dot-animate" id="step-3-dot">3</div>
+        <div class="text-xs mt-1">연락처</div>
+      </div>
+      <div class="flex-1 h-1 bg-gradient-to-r from-blue-300 to-pink-300 mx-1"></div>
+      <div class="flex-1 flex flex-col items-center">
+        <div class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-white stepper-dot stepper-dot-animate" id="step-4-dot">4</div>
+        <div class="text-xs mt-1">확인/제출</div>
+      </div>
+    </div>
+    <form id="step-form">
+      <!-- Step 1: 제품정보 -->
+      <div class="step" id="step-1">
+        <div class="mb-4 p-3 rounded-xl bg-blue-50 border border-blue-200 text-blue-800 text-base font-semibold text-center shadow-sm animate-fadein-up">
+          📝 <span class="font-bold">어떤 제품을 찾으시나요?</span><br>
+          제품의 종류, 모델명, 색상, 원하는 특징을 구체적으로 적어주시면<br>
+          더 빠르고 정확하게 최저가를 찾아드릴 수 있어요!<br>
+          <span class="text-pink-600 font-bold">⚠️ “브랜드 제품”(예: 나이키, 샤넬, 야마하 등)은 의뢰받지 않습니다.</span><br>
+          <span class="text-xs text-gray-500">(정품 거래 원칙, 위조품/이미테이션 방지, 브랜드 정책 준수 등으로 인해<br>브랜드가 명확한 제품은 중개해드릴 수 없습니다.)</span><br>
+          <span class="block mt-2 text-blue-700">예시: “무선 이어폰, 2세대, 화이트, 노이즈캔슬링 지원”</span>
+        </div>
+        <label class="block text-gray-700 font-semibold mb-2" for="productName">제품명</label>
+        <input type="text" id="productName" required class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none transition mb-4 input-animate" placeholder="예: 무선 이어폰" />
+        <div class="text-xs text-blue-500 mt-1">💡 브랜드가 없는 제품, 또는 브랜드가 중요하지 않은 제품 위주로 의뢰해 주세요!</div>
+        <label class="block text-gray-700 font-semibold mb-2" for="productDesc">제품 설명</label>
+        <textarea id="productDesc" required class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none transition mb-4 input-animate" rows="3" placeholder="예: 브랜드, 모델명, 색상, 원하는 특징 등"></textarea>
+        <label class="block text-gray-700 font-semibold mb-2" for="productPrice">예상 가격(원)</label>
+        <input type="number" id="productPrice" min="10000" step="1" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none transition mb-2 input-animate" placeholder="예: 10000 (원)" />
+        <div class="text-xs text-pink-600 mb-4">※ 최소 의뢰 금액은 <span class="font-bold">10,000원</span> 이상입니다.</div>
+        <button type="button" class="w-full mt-8 py-3 bg-blue-500 text-white font-bold rounded-lg shadow btn-animate" id="to-step-2">다음</button>
+      </div>
+      <!-- Step 2: 참고/이미지 -->
+      <div class="step hidden" id="step-2">
+        <div class="mb-4 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-base font-semibold text-center shadow-sm animate-fadein-up">
+          🔗 <span class="font-bold">참고할 만한 사이트(쇼핑몰, 블로그 등) 링크를 남겨주시면<br>더 정확하게 원하는 제품을 파악할 수 있어요!</span><br>
+          공식 쇼핑몰, 가격비교 사이트, 블로그 후기 등 어떤 링크든 괜찮아요.<br>
+          <span class="text-pink-600 font-bold">링크는 1개만 입력해 주세요.</span><br>
+          <span class="text-xs text-gray-500">💡 이미지는 최대 5장까지 첨부할 수 있습니다.<br>제품의 실제 사진, 캡처, 설명서 등 어떤 이미지든 도움이 됩니다!</span>
+        </div>
+        <label class="block text-gray-700 font-semibold mb-2" for="productUrl">참고사이트(링크 1개)</label>
+        <input type="text" id="productUrl" name="productUrl" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-amber-400 focus:outline-none transition" placeholder="예: https://example.com 또는 www.example.com" />
+        <div class="text-xs text-emerald-500 mt-1">💡 http://, https://, www.로 시작하는 링크만 입력해 주세요.</div>
+        <label class="block text-gray-700 font-semibold mb-2 mt-6" for="productImage">제품 이미지 업로드 (최대 5장)</label>
+        <input type="file" id="productImage" name="productImage" accept="image/*" class="w-full" multiple />
+        <div id="imagePreview" class="mt-2 flex flex-wrap gap-2"></div>
+        <div class="text-xs text-emerald-500 mt-1">💡 여러 장 첨부 시, 첫 번째 이미지를 대표 이미지로 사용합니다.</div>
+        <button type="button" class="w-full mt-8 py-3 bg-blue-500 text-white font-bold rounded-lg shadow btn-animate" id="to-step-3">다음</button>
+        <button type="button" class="w-full mt-2 py-2 bg-gray-200 text-gray-700 rounded-lg shadow btn-animate" id="back-step-1">이전</button>
+      </div>
+      <!-- Step 3: 연락처/이름/통관번호 -->
+      <div class="step hidden" id="step-3">
+        <div class="mb-4 p-3 rounded-xl bg-yellow-50 border border-yellow-200 text-yellow-800 text-base font-semibold text-center shadow-sm animate-fadein-up">
+          📞 <span class="font-bold">연락 가능한 정보를 정확히 입력해 주세요!</span><br>
+          입력하신 정보로 최저가 안내 및 추가 문의를 드릴 수 있습니다.<br>
+          <span class="text-pink-600 font-bold">이름은 “회원가입 시 입력한 이름”과 반드시 일치해야 합니다.</span><br>
+          전화번호, 이메일, 통관고유부호(필요시) 등은 실제로 연락 가능한 정보로 입력해 주세요.<br>
+          <span class="text-xs text-gray-500">입력하신 정보는 오직 의뢰 처리와 안내를 위해서만 사용됩니다.</span>
+        </div>
+        <label class="block text-gray-700 font-semibold mb-2" for="userName">이름</label>
+        <input type="text" id="userName" required class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-yellow-400 focus:outline-none transition mb-2 input-animate" placeholder="회원가입 시 입력한 이름" />
+        <div class="text-xs text-yellow-600 mt-1">💡 회원가입 시 입력한 이름과 다르면 의뢰가 접수되지 않습니다.</div>
+        <label class="block text-gray-700 font-semibold mb-2 mt-4" for="userPhone">전화번호</label>
+        <input type="tel" id="userPhone" required class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-yellow-400 focus:outline-none transition mb-2 input-animate" placeholder="예: 01012345678" />
+        <div class="text-xs text-yellow-600 mt-1">�� 정확한 연락처를 입력해 주세요. 안내 및 문의에 꼭 필요합니다.</div>
+        <label class="block text-gray-700 font-semibold mb-2 mt-4" for="userCustoms">통관고유부호
+          <a href="https://unipass.customs.go.kr/csp/persIndex.do" target="_blank" rel="noopener" class="ml-2 inline-block px-3 py-1 bg-emerald-100 text-emerald-700 rounded-lg shadow hover:bg-emerald-200 transition text-xs font-semibold align-middle">통관번호 조회</a>
+        </label>
+        <input type="text" id="userCustoms" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-yellow-400 focus:outline-none transition mb-2 input-animate" placeholder="해외직구 등 통관이 필요한 경우에만 입력" />
+        <div class="text-xs text-yellow-600 mt-1">💡 해외직구 시 꼭 필요하니, 빠짐없이 입력해 주세요!</div>
+        <label class="block text-gray-700 font-semibold mb-2 mt-4" for="userEmail">이메일</label>
+        <input type="email" id="userEmail" required class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-yellow-400 focus:outline-none transition mb-2 input-animate" placeholder="예: user@email.com" />
+        <div class="text-xs text-yellow-600 mt-1">�� 정확한 이메일을 입력해 주세요. 안내 및 문의에 꼭 필요합니다.</div>
+        <button type="button" class="w-full mt-8 py-3 bg-blue-500 text-white font-bold rounded-lg shadow btn-animate" id="to-step-4">다음</button>
+        <button type="button" class="w-full mt-2 py-2 bg-gray-200 text-gray-700 rounded-lg shadow btn-animate" id="back-step-2">이전</button>
+      </div>
+      <!-- Step 4: 확인 및 제출 -->
+      <div class="step hidden" id="step-4">
+        <div class="mb-4 p-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-800 text-base font-semibold text-center shadow-sm animate-fadein-up">
+          ✅ <span class="font-bold">입력하신 내용을 다시 한 번 확인해 주세요!</span><br>
+          제출 후에는 수정이 어려우니, 모든 정보가 정확한지 꼭 확인해 주세요.<br>
+          <span class="text-pink-600 font-bold">개인정보 수집 및 이용에 동의하셔야 의뢰가 완료됩니다.</span><br>
+          <span class="text-xs text-gray-500">입력하신 정보는 오직 의뢰 처리와 안내를 위해서만 안전하게 사용됩니다.<br>
+          의뢰가 접수되면, 입력하신 연락처로 안내를 드립니다.</span>
+        </div>
+        <div class="bg-blue-50 rounded-xl p-4 mb-4 text-sm text-gray-700" id="confirm-summary"></div>
+        <div class="flex items-start mt-2 mb-4">
+          <input type="checkbox" id="privacyAgree" required class="mt-1 mr-2 w-5 h-5 text-pink-500 border-gray-300 rounded focus:ring-pink-400" />
+          <label for="privacyAgree" class="text-gray-700 text-sm select-none">[필수] 개인정보 수집 및 이용에 동의합니다.</label>
+        </div>
+        <div class="text-xs text-pink-600 mb-4">💡 동의하지 않으시면 의뢰가 접수되지 않습니다.</div>
+        <button type="submit" class="w-full py-3 bg-gradient-to-r from-amber-400 to-pink-500 text-white font-bold rounded-lg shadow-lg btn-animate text-lg" id="submit-btn">최저가 의뢰 제출하기</button>
+        <button type="button" class="w-full mt-2 py-2 bg-gray-200 text-gray-700 rounded-lg shadow btn-animate" id="back-step-3">이전</button>
+      </div>
+    </form>
+    <div id="submit-success" class="hidden mt-6 p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-700 text-center font-bold">의뢰가 정상적으로 접수되었습니다!</div>
+  </div>
+  <script>
+    // 스텝 관리
+    let currentStep = 1;
+    const steps = [1,2,3,4];
+    function showStep(n) {
+      steps.forEach(s => {
+        const el = document.getElementById(`step-${s}`);
+        el.classList.toggle('hidden', s !== n);
+        const dot = document.getElementById(`step-${s}-dot`);
+        dot.className = `w-10 h-10 rounded-full flex items-center justify-center font-bold text-white stepper-dot stepper-dot-animate${s === n ? ' stepper-dot-active' : ''}`;
+        if (s === n) {
+          el.classList.remove('slidein-step','fadein-step');
+          el.classList.add('fadein-step');
+        } else {
+          el.classList.remove('fadein-step');
+        }
+      });
+      currentStep = n;
+    }
+    showStep(1);
+    // 스텝 이동 버튼
+    document.getElementById('to-step-2').onclick = function() {
+      // Step 1 유효성
+      if (!document.getElementById('productName').value.trim() || !document.getElementById('productDesc').value.trim()) {
+        alert('제품명과 설명을 모두 입력해 주세요.');
+        return;
+      }
+      const price = Number(document.getElementById('productPrice').value);
+      if (isNaN(price) || price < 10000) {
+        alert('최소 의뢰 금액은 10,000원 이상입니다. 더 저렴한 제품은 의뢰가 어렵습니다.');
+        return;
+      }
+      showStep(2);
+    };
+    document.getElementById('to-step-3').onclick = function() {
+      // Step 2 유효성: 참고사이트 단일 링크
+      const url = document.getElementById('productUrl').value.trim();
+      const urlPattern = /^(https?:\/\/)?(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)$/;
+      if (!urlPattern.test(url)) {
+        alert('참고사이트는 http://, https://, 또는 www.로 시작하는 올바른 링크를 입력해 주세요.');
+        return;
+      }
+      showStep(3);
+    };
+    document.getElementById('to-step-4').onclick = function() {
+      // Step 3 유효성
+      if (!document.getElementById('userName').value.trim() || !document.getElementById('userPhone').value.trim() || !document.getElementById('userCustoms').value.trim() || !document.getElementById('userEmail').value.trim()) {
+        alert('연락처 정보를 모두 입력해 주세요.');
+        return;
+      }
+      // 이름 일치 검증 (스텝 이동 시에도)
+      const user = JSON.parse(localStorage.getItem('user') || 'null');
+      const userName = document.getElementById('userName').value.trim();
+      if (!user || !user.name || user.name.trim() !== userName) {
+        alert('회원가입 시 입력한 이름과 동일하게 입력해야 합니다.');
+        return;
+      }
+      renderConfirmSummary();
+      showStep(4);
+    };
+    document.getElementById('back-step-1').onclick = function() { showStep(1); };
+    document.getElementById('back-step-2').onclick = function() { showStep(2); };
+    document.getElementById('back-step-3').onclick = function() { showStep(3); };
+    // 이미지 미리보기 및 최대 5장 제한
+    const imageInput = document.getElementById('productImage');
+    const imagePreview = document.getElementById('imagePreview');
+    let imageFiles = [];
+    if (imageInput) {
+      imageInput.addEventListener('change', function(event) {
+        const files = Array.from(event.target.files);
+        if (files.length + imageFiles.length > 5) {
+          alert('이미지는 최대 5장까지 첨부할 수 있습니다.');
+          imageInput.value = '';
+          return;
+        }
+        files.forEach(file => {
+          if (imageFiles.length < 5) {
+            imageFiles.push(file);
+          }
+        });
+        renderImagePreview();
+        imageInput.value = '';
+      });
+    }
+    function renderImagePreview() {
+      imagePreview.innerHTML = '';
+      imageFiles.forEach((file, idx) => {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const wrapper = document.createElement('div');
+          wrapper.className = 'relative';
+          wrapper.innerHTML = `<img src="${e.target.result}" alt="미리보기" class="max-h-32 rounded-xl shadow-md border border-gray-200" />` +
+            `<button type="button" class="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs" data-idx="${idx}">&times;</button>`;
+          imagePreview.appendChild(wrapper);
+          wrapper.querySelector('button').onclick = function() {
+            imageFiles.splice(idx, 1);
+            renderImagePreview();
+          };
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+    // Step 4: 확인 요약 렌더링
+    function renderConfirmSummary() {
+      const productName = document.getElementById('productName').value;
+      const productDesc = document.getElementById('productDesc').value;
+      const productUrl = document.getElementById('productUrl').value.trim();
+      const price = document.getElementById('productPrice').value;
+      const summary = `
+        <div><span class="font-bold">제품명:</span> ${productName}</div>
+        <div><span class="font-bold">제품 설명:</span> ${productDesc}</div>
+        <div><span class="font-bold">예상 가격:</span> ${price ? price + '원' : '(미입력)'}</div>
+        <div><span class="font-bold">참고사이트:</span> ${productUrl ? (/^https?:\/\//.test(productUrl) || /^www\./.test(productUrl) ? `<a href='${productUrl}' target='_blank' class='text-blue-600 underline'>${productUrl}</a>` : `<span class='bg-gray-100 rounded px-2 py-1'>${productUrl}</span>`) : '<span class=\'text-gray-400\'>(없음)</span>'}</div>
+        <div><span class="font-bold">이름:</span> ${document.getElementById('userName').value}</div>
+        <div><span class="font-bold">전화번호:</span> ${document.getElementById('userPhone').value}</div>
+        <div><span class="font-bold">통관번호:</span> ${document.getElementById('userCustoms').value}</div>
+        <div><span class="font-bold">이메일:</span> ${document.getElementById('userEmail').value}</div>
+        <div><span class="font-bold">이미지:</span> <span id='confirm-images'></span></div>
+      `;
+      document.getElementById('confirm-summary').innerHTML = summary;
+      // 이미지 썸네일 렌더링
+      const imgWrap = document.getElementById('confirm-images');
+      if (imageFiles.length > 0) {
+        imageFiles.forEach(file => {
+          const reader = new FileReader();
+          reader.onload = function(e) {
+            const img = document.createElement('img');
+            img.src = e.target.result;
+            img.className = 'inline-block h-12 w-auto rounded-xl border border-gray-200 shadow-sm align-middle mr-2 mb-1';
+            imgWrap.appendChild(img);
+          };
+          reader.readAsDataURL(file);
+        });
+      } else {
+        imgWrap.innerHTML = '<span class="text-gray-400">(없음)</span>';
+      }
+    }
+    // 제출
+    document.getElementById('step-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      if (!document.getElementById('privacyAgree').checked) {
+        alert('개인정보 수집 및 이용에 동의하셔야 제출이 가능합니다.');
+        return;
+      }
+      // 이름 일치 검증 (스텝 이동 시에도)
+      const user = JSON.parse(localStorage.getItem('user') || 'null');
+      const userName = document.getElementById('userName').value.trim();
+      if (!user || !user.name || user.name.trim() !== userName) {
+        alert('회원가입 시 입력한 이름과 동일하게 입력해야 합니다.');
+        return;
+      }
+      // 참고사이트 단일 링크 유효성 검사 (최종 제출 시에도)
+      const url = document.getElementById('productUrl').value.trim();
+      const urlPattern = /^(https?:\/\/)?(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)$/;
+      if (!urlPattern.test(url)) {
+        alert('참고사이트는 http://, https://, 또는 www.로 시작하는 올바른 링크를 입력해 주세요.');
+        return;
+      }
+      // 이미지 총 용량 체크 (5MB 제한)
+      function getTotalImageSize(files) {
+        return files.reduce((sum, file) => sum + file.size, 0);
+      }
+      if (getTotalImageSize(imageFiles) > 5 * 1024 * 1024) {
+        alert('첨부한 이미지의 총 용량이 5MB를 초과합니다. 더 작은 이미지로 첨부해 주세요.');
+        return;
+      }
+      // 하루 2건 제한
+      const today = new Date().toISOString().slice(0,10);
+      const userId = user && user.email ? user.email : userName;
+      const reqCountKey = `requestCount-${today}-${userId}`;
+      const reqCount = Number(localStorage.getItem(reqCountKey) || '0');
+      if (reqCount >= 2) {
+        alert('하루 최대 2건까지만 의뢰할 수 있습니다. 내일 다시 이용해 주세요!');
+        return;
+      }
+      // 입력값 수집
+      const name = document.getElementById('productName').value;
+      const desc = document.getElementById('productDesc').value;
+      const urls = [url]; // 단일 링크로 저장
+      const email = document.getElementById('userEmail').value;
+      const phone = document.getElementById('userPhone').value;
+      const kakao = '';
+      const customs = document.getElementById('userCustoms').value;
+      const price = Number(document.getElementById('productPrice').value);
+      // 고유 의뢰번호 생성
+      function generateReqNum() {
+        const now = new Date();
+        const y = now.getFullYear();
+        const m = String(now.getMonth()+1).padStart(2,'0');
+        const d = String(now.getDate()).padStart(2,'0');
+        const rand = String(Math.floor(Math.random()*900)+100);
+        return `#PH-${y}${m}${d}${rand}`;
+      }
+      const reqNum = generateReqNum();
+      // 이미지 base64 배열 저장
+      if (imageFiles.length > 0) {
+        const imgArr = [];
+        let loaded = 0;
+        imageFiles.forEach((file, idx) => {
+          const reader = new FileReader();
+          reader.onload = function(e2) {
+            imgArr[idx] = e2.target.result;
+            loaded++;
+            if (loaded === imageFiles.length) {
+              saveRequest(imgArr);
+            }
+          };
+          reader.readAsDataURL(file);
+        });
+      } else {
+        saveRequest([]);
+      }
+      function saveRequest(imgArr) {
+        const reqData = {name, desc, urls, images: imgArr, email, phone, kakao, customs, price, userName, date: Date.now()};
+        localStorage.setItem('request-' + reqNum, JSON.stringify(reqData));
+        sessionStorage.setItem('request', JSON.stringify({...reqData, reqNum}));
+        document.getElementById('submit-success').classList.remove('hidden');
+        setTimeout(() => { window.location.href = 'request-complete.html'; }, 1200);
+        // 하루 의뢰 카운트 증가
+        localStorage.setItem(reqCountKey, String(reqCount + 1));
+      }
+    });
+    // 이메일 입력란 자동 채우기 및 읽기전용 처리
+    window.addEventListener('DOMContentLoaded', function() {
+      var user = JSON.parse(localStorage.getItem('user') || 'null');
+      var loggedIn = localStorage.getItem('loggedIn') === 'true';
+      var emailInput = document.getElementById('userEmail');
+      if (emailInput && user && user.email && loggedIn) {
+        emailInput.value = user.email;
+        emailInput.readOnly = true;
+        emailInput.classList.add('bg-gray-100','cursor-not-allowed');
+      }
+    });
+  </script>
+</body>
+</html> 

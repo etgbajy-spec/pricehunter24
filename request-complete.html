@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>의뢰 완료 | PriceHunter</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+      body { font-family: 'Inter', 'Noto Sans KR', sans-serif; }
+      .animate-pulse-bar {
+        animation: pulse-bar 2s infinite linear;
+      }
+      @keyframes pulse-bar {
+        0% { width: 0; }
+        100% { width: 100%; }
+      }
+    </style>
+  </head>
+  <body class="bg-gradient-to-br from-emerald-50 via-blue-50 to-pink-50 min-h-screen flex items-center justify-center px-2">
+    <main class="w-full max-w-lg bg-white/90 rounded-3xl shadow-2xl p-8 md:p-12 flex flex-col items-center text-center backdrop-blur-md mt-8 mb-8">
+      <!-- Success Icon -->
+      <div class="mb-6 flex flex-col items-center">
+        <div class="bg-emerald-100 rounded-full p-4 mb-3 shadow-lg">
+          <svg class="w-16 h-16 text-emerald-500" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="11" stroke="currentColor" stroke-width="2.5" fill="white"/>
+            <path stroke-linecap="round" stroke-linejoin="round" d="M7 13l3 3 7-7" />
+          </svg>
+        </div>
+        <h1 class="text-2xl md:text-3xl font-extrabold text-emerald-600 mb-2">의뢰가 정상적으로 접수되었습니다!</h1>
+        <div class="text-gray-500 text-base mb-2">Request No. <span id="req-num" class="font-bold text-gray-700">#PH-20250717001</span></div>
+      </div>
+      <!-- Progress Bar -->
+      <div class="w-full mb-6">
+        <div class="h-2 bg-gray-200 rounded-full overflow-hidden">
+          <div class="h-2 bg-gradient-to-r from-emerald-400 to-blue-400 animate-pulse-bar" style="width: 100%"></div>
+        </div>
+        <div class="flex justify-between text-xs text-gray-400 mt-1">
+          <span>접수</span>
+          <span>2~3 영업일 내 결과 안내</span>
+        </div>
+      </div>
+      <!-- Request Summary -->
+      <div class="w-full bg-gray-50 rounded-2xl p-5 mb-6 shadow-inner text-left">
+        <div class="mb-3">
+          <span class="font-semibold text-gray-700">제품명:</span>
+          <span id="summary-name" class="ml-2 text-gray-900">샘플 제품명</span>
+        </div>
+        <div class="mb-3">
+          <span class="font-semibold text-gray-700">제품설명:</span>
+          <span id="summary-desc" class="ml-2 text-gray-900">샘플 제품 상세설명</span>
+        </div>
+        <div class="mb-3">
+          <span class="font-semibold text-gray-700">참고사이트:</span>
+          <span id="summary-urls" class="ml-2"></span>
+        </div>
+        <div class="mb-3">
+          <span class="font-semibold text-gray-700">업로드 이미지:</span>
+          <span id="summary-images"></span>
+        </div>
+      </div>
+      <!-- Contact Info -->
+      <div class="w-full mb-6 text-left">
+        <div class="mb-1 text-gray-700 font-semibold">결과 안내 연락처</div>
+        <div class="flex flex-col gap-1 text-gray-600 text-sm pl-1">
+          <span id="summary-email">이메일: sample@email.com</span>
+          <span id="summary-phone">전화번호: 010-1234-5678</span>
+          <span id="summary-kakao">카카오: pricehunter_kakao</span>
+        </div>
+      </div>
+      <!-- Friendly Message -->
+      <div class="text-lg text-pink-500 font-bold mb-8">최저가 결과로 곧 찾아뵐게요 :)</div>
+      <!-- CTA Buttons -->
+      <div class="flex flex-col md:flex-row gap-4 w-full">
+        <a href="index.html" class="flex-1 py-3 rounded-xl bg-gradient-to-r from-blue-400 to-emerald-400 text-white font-bold text-lg shadow hover:scale-105 transition text-center">홈으로 돌아가기</a>
+        <a href="result-search.html" class="flex-1 py-3 rounded-xl bg-gradient-to-r from-pink-400 to-amber-400 text-white font-bold text-lg shadow hover:scale-105 transition text-center">의뢰결과조회</a>
+      </div>
+    </main>
+    <script>
+      // Generate unique request number (e.g. #PH-20250717001)
+      function generateReqNum() {
+        const now = new Date();
+        const y = now.getFullYear();
+        const m = String(now.getMonth()+1).padStart(2,'0');
+        const d = String(now.getDate()).padStart(2,'0');
+        const rand = String(Math.floor(Math.random()*900)+100);
+        return `#PH-${y}${m}${d}${rand}`;
+      }
+      document.getElementById('req-num').textContent = generateReqNum();
+      // (Optional) Fill summary from localStorage/sessionStorage or query params
+      // Example: sessionStorage.setItem('request', JSON.stringify({name,desc,url,img,email,phone,kakao}))
+      try {
+        const req = JSON.parse(sessionStorage.getItem('request'));
+        if (req) {
+          document.getElementById('summary-name').textContent = req.name || '';
+          document.getElementById('summary-desc').textContent = req.desc || '';
+          // 참고사이트 여러 개
+          const urlsEl = document.getElementById('summary-urls');
+          if (req.urls && Array.isArray(req.urls)) {
+            urlsEl.innerHTML = req.urls.map(u => {
+              if (/^https?:\/\//.test(u)) {
+                return `<a href="${u}" target="_blank" class="text-blue-600 underline break-all mr-2">${u}</a>`;
+              } else {
+                return `<span class="text-gray-700 bg-gray-100 rounded px-2 py-1 mr-2">${u}</span>`;
+              }
+            }).join('');
+          } else if (req.url) {
+            urlsEl.innerHTML = `<a href="${req.url}" target="_blank" class="text-blue-600 underline break-all">${req.url}</a>`;
+          }
+          // 이미지 여러 장
+          const imgsEl = document.getElementById('summary-images');
+          if (req.images && Array.isArray(req.images)) {
+            imgsEl.innerHTML = req.images.map(img => `<img src="${img}" alt="업로드 이미지" class="inline-block h-20 w-auto rounded-xl border border-gray-200 shadow-sm align-middle mr-2 mb-2" />`).join('');
+          } else if (req.img) {
+            imgsEl.innerHTML = `<img src="${req.img}" alt="업로드 이미지" class="inline-block h-20 w-auto rounded-xl border border-gray-200 shadow-sm align-middle" />`;
+          } else {
+            imgsEl.innerHTML = '<span class="text-gray-400">(없음)</span>';
+          }
+          if (req.email) document.getElementById('summary-email').textContent = '이메일: ' + req.email;
+          if (req.phone) document.getElementById('summary-phone').textContent = '전화번호: ' + req.phone;
+          if (req.kakao) document.getElementById('summary-kakao').textContent = '카카오: ' + req.kakao;
+        }
+      } catch(e) {}
+    </script>
+  </body>
+</html> 

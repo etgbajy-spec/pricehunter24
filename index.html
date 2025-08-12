@@ -1,0 +1,1689 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PriceHunter</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-700 min-h-screen">
+    <section class="relative w-full min-h-[70vh] flex flex-col items-center justify-center text-center px-4 py-20 bg-gradient-to-br from-gray-900 to-gray-700 overflow-hidden">
+      <!-- 배경 그래픽/블러 효과 -->
+      <div class="absolute inset-0 pointer-events-none z-0">
+        <div class="absolute -top-32 -left-32 w-96 h-96 bg-yellow-400 opacity-20 rounded-full blur-3xl"></div>
+        <div class="absolute bottom-0 right-0 w-80 h-80 bg-pink-400 opacity-20 rounded-full blur-2xl"></div>
+      </div>
+      <!-- Hero 콘텐츠 -->
+      <div class="relative z-10 max-w-7xl mx-auto flex flex-col items-center animate-fadein-up w-full">
+        <!-- 아이콘/일러스트 -->
+        <div class="mb-10 animate-bounce-slow w-full flex justify-center items-center gap-4">
+          <span class="text-3xl md:text-5xl font-extrabold text-blue-400 drop-shadow-lg">PriceHunter</span>
+          <svg class="w-24 h-24 md:w-40 md:h-40 text-yellow-300 drop-shadow-xl" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 48 48" aria-hidden="true">
+            <circle cx="22" cy="22" r="12" stroke="currentColor" />
+            <line x1="34" y1="34" x2="44" y2="44" stroke="currentColor" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="flex flex-col items-center w-full max-w-5xl mx-auto">
+          <h1 class="text-3xl sm:text-4xl md:text-6xl font-extrabold text-white mb-8 md:mb-12 drop-shadow-lg tracking-tight leading-[1.5] md:leading-[1.15] text-center w-full">
+            인터넷에서 본 가격<span id="admin-hero-trigger">,</span><br class="hidden md:inline" />
+            정말 <span class="text-yellow-300">최저가</span>일까?
+      </h1>
+          <p class="text-lg sm:text-xl md:text-3xl text-gray-200 mb-8 md:mb-12 font-medium leading-relaxed whitespace-pre-line text-center w-full">
+            내가 찾은 제품, 더 싸게 살 수 있었는데...<br />
+            💸 직접 가격 찾는 시간 낭비는 그만!<br />
+            <span class="text-yellow-200 font-bold">고객님이 본 가격보다 더 저렴한 가격을 우리가 찾아드립니다.</span>
+          </p>
+          <div class="flex flex-col items-center w-full gap-4">
+            <button id="request-v2-btn"
+              class="inline-block px-12 md:px-20 py-6 md:py-8 bg-pink-500 text-white text-2xl md:text-4xl font-extrabold rounded-full shadow-2xl hover:bg-pink-600 hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-pink-300 animate-fadein-up text-center mb-2"
+              style="box-shadow:0 8px 32px 0 rgba(0,0,0,0.18);"
+                      aria-label="최저가 요청하기">
+        🚀 최저가 요청하기
+            </button>
+            <a href="support.html"
+              class="inline-block px-8 md:px-12 py-4 md:py-6 bg-yellow-200 text-pink-700 text-lg md:text-2xl font-bold rounded-full shadow-xl hover:bg-yellow-300 hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-yellow-300 animate-fadein-up text-center border-2 border-pink-300"
+              aria-label="구매 전 필독사항 읽기">
+              📢 구매 전 <span class="underline">필독사항</span> 읽기
+            </a>
+            <a href="notice.html"
+              class="inline-block px-8 md:px-12 py-4 md:py-6 bg-blue-100 text-blue-800 text-lg md:text-2xl font-bold rounded-full shadow-xl hover:bg-blue-200 hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-blue-300 animate-fadein-up text-center border-2 border-blue-300 mt-2"
+              aria-label="가격 안내 및 유의사항 전체보기">
+              📝 가격 안내 및 유의사항 전체보기
+            </a>
+            <div class="text-pink-200 text-base md:text-xl mt-2 animate-fadein-up text-center">구매 전 <span class="underline">필독사항</span>을 꼭 확인해 주세요!</div>
+          </div>
+          <div class="mt-8 md:mt-12 animate-fadein-up-slow w-full flex justify-center">
+            <span class="text-gray-300 text-base md:text-2xl flex items-center gap-2">
+              <svg class="w-6 h-6 md:w-8 md:h-8 animate-bounce" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14M19 12l-7 7-7-7"/></svg>
+              스크롤해서 더 알아보기
+            </span>
+          </div>
+        </div>
+      </div>
+      <style>
+        @keyframes fadein-up { 0% { opacity: 0; transform: translateY(40px);} 100% { opacity: 1; transform: translateY(0);} }
+        .animate-fadein-up { animation: fadein-up 1.2s cubic-bezier(.4,0,.2,1) both; }
+        @keyframes fadein-up-slow { 0% { opacity: 0; transform: translateY(60px);} 100% { opacity: 1; transform: translateY(0);} }
+        .animate-fadein-up-slow { animation: fadein-up-slow 2.2s cubic-bezier(.4,0,.2,1) both; }
+        @keyframes bounce-slow { 0%, 100% { transform: translateY(0);} 50% { transform: translateY(-18px);} }
+        .animate-bounce-slow { animation: bounce-slow 2.2s infinite; }
+      </style>
+    </section>
+      <!-- 고객의 진짜 고민, 우리가 해결합니다 섹션 -->
+      <section class="w-full py-20 px-4 bg-gradient-to-b from-white/80 to-blue-50 relative">
+        <div class="max-w-4xl mx-auto flex flex-col items-center">
+          <h2 class="text-2xl md:text-4xl font-extrabold text-blue-800 text-center mb-10 drop-shadow-lg animate-fadein-up">고객의 진짜 고민, <span class="text-pink-500">우리가 해결합니다</span></h2>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-8 w-full">
+            <!-- 스토리 카드 1 -->
+            <div class="bg-white rounded-2xl shadow-xl p-8 flex flex-col items-center text-center animate-fadein-up" style="animation-delay:0.1s;">
+              <div class="mb-4">
+                <svg class="w-14 h-14 text-blue-400 mx-auto" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 32 32"><path d="M16 4a12 12 0 1 0 0 24A12 12 0 0 0 16 4Zm0 0v8m0 8h.01" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+              <div class="font-bold text-lg text-gray-800 mb-2">"인터넷 최저가라 샀는데, 며칠 뒤 더 싸게 파는 곳을 발견..."</div>
+              <div class="text-gray-500 text-base mb-3">- 김OO, 30대 직장인</div>
+              <div class="text-gray-700 text-sm">직접 가격 비교에 지쳐 결국 샀지만, 나중에 더 저렴한 곳을 알게 되어 속상했어요. PriceHunter 덕분에 진짜 최저가를 놓치지 않게 됐습니다!</div>
+            </div>
+            <!-- 스토리 카드 2 -->
+            <div class="bg-white rounded-2xl shadow-xl p-8 flex flex-col items-center text-center animate-fadein-up" style="animation-delay:0.3s;">
+              <div class="mb-4">
+                <svg class="w-14 h-14 text-emerald-400 mx-auto" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 32 32"><path d="M8 16h16M8 16l6-6m-6 6l6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+              <div class="font-bold text-lg text-gray-800 mb-2">"해외직구가 더 싸다길래 시도했다가, 복잡한 통관·배송에 포기..."</div>
+              <div class="text-gray-500 text-base mb-3">- 이OO, 20대 대학생</div>
+              <div class="text-gray-700 text-sm">직구 정보 찾고, 배송대행 신청까지 너무 복잡했어요. PriceHunter가 대신 알아봐주니 쉽고 빠르게 최저가로 살 수 있었어요!</div>
+            </div>
+            <!-- 스토리 카드 3 -->
+            <div class="bg-white rounded-2xl shadow-xl p-8 flex flex-col items-center text-center animate-fadein-up" style="animation-delay:0.5s;">
+              <div class="mb-4">
+                <svg class="w-14 h-14 text-pink-400 mx-auto" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 32 32"><circle cx="16" cy="16" r="12" stroke="currentColor"/><path d="M12 20c1.5-2 6.5-2 8 0" stroke-linecap="round"/><circle cx="12" cy="14" r="1.5" fill="currentColor"/><circle cx="20" cy="14" r="1.5" fill="currentColor"/></svg>
+              </div>
+              <div class="font-bold text-lg text-gray-800 mb-2">"비브랜드 제품, 정보도 없고 후기 찾기도 힘들었는데..."</div>
+              <div class="text-gray-500 text-base mb-3">- 박OO, 40대 주부</div>
+              <div class="text-gray-700 text-sm">검색해도 정보가 부족해 망설였는데, PriceHunter가 상세 비교와 후기까지 안내해줘서 안심하고 구매했어요.</div>
+            </div>
+          </div>
+          <div class="mt-12 text-xl text-blue-700 font-bold animate-fadein-up" style="animation-delay:0.7s;">
+            <span class="bg-yellow-100 px-4 py-2 rounded-full shadow">고객의 고민, PriceHunter가 직접 해결해드립니다!</span>
+          </div>
+        </div>
+        <style>
+          .animate-fadein-up { animation: fadein-up 1.2s cubic-bezier(.4,0,.2,1) both; }
+          @keyframes fadein-up { 0% { opacity: 0; transform: translateY(40px);} 100% { opacity: 1; transform: translateY(0);} }
+        </style>
+      </section>
+    <div id="request-form-area"></div>
+    <!-- 관리자 모드 버튼 (숨김) -->
+    <div class="fixed top-4 right-4 z-50">
+    </div>
+    <!-- 관리자 모드에서만 보이는 의뢰 결과 입력 버튼 -->
+    <button id="admin-result-btn" class="fixed top-20 right-4 z-50 px-4 py-2 bg-pink-600 text-white rounded-lg shadow hover:bg-pink-700 transition hidden" aria-label="의뢰 결과 입력" title="의뢰 결과 입력">의뢰 결과 입력</button>
+    <!-- 관리자 모드에서만 보이는 1:1 문의 확인 버튼 -->
+    <button id="admin-inquiry-btn" class="fixed top-32 right-4 z-50 px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition hidden" aria-label="1:1 문의 확인" title="1:1 문의 확인">1:1 문의 확인</button>
+    <!-- 관리자 해제 버튼 (관리자 모드에서만 노출) -->
+    <button id="admin-logout-btn" class="fixed top-4 right-4 z-50 px-4 py-2 bg-gray-800 text-white rounded-lg shadow hover:bg-amber-500 transition hidden" aria-label="관리자 해제" title="관리자 해제">관리자 해제</button>
+    <!-- 저렴하게 구입한 사례 섹션: main 바깥, 전체 폭 -->
+    <section class="mt-24 mb-10 max-w-7xl mx-auto px-2">
+      <div class="flex flex-col items-center mb-12">
+        <h2 class="relative text-3xl md:text-4xl font-extrabold text-blue-800 text-center tracking-tight drop-shadow-lg mb-3">
+          <span class="px-6 py-2 bg-gradient-to-r from-blue-100 via-white to-emerald-100 rounded-2xl shadow-md inline-block">
+            저렴하게 구입한 사례
+          </span>
+          <span class="block w-24 h-1 bg-gradient-to-r from-blue-400 via-emerald-400 to-pink-300 rounded-full mx-auto mt-4"></span>
+        </h2>
+        <p class="text-lg md:text-xl text-gray-500 font-medium mt-2 text-center">실제 구매자들의 생생한 후기와 최저가 구매 성공 스토리</p>
+      </div>
+      <div id="case-slider-wrapper" class="relative w-full max-w-7xl mx-auto">
+        <div id="case-slider" class="flex overflow-x-auto no-scrollbar snap-x snap-mandatory gap-2 sm:gap-8 py-2 sm:py-4 transition-all duration-500">
+          <!-- 슬라이드 아이템이 JS로 렌더링됨 -->
+        </div>
+        <!-- 좌우 네비게이션 버튼 -->
+        <button id="case-prev" class="absolute left-0 top-1/2 -translate-y-1/2 bg-white/80 rounded-full shadow p-2 z-10 hidden md:block" aria-label="이전 사례 보기" title="이전 사례 보기"><svg class="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <button id="case-next" class="absolute right-0 top-1/2 -translate-y-1/2 bg-white/80 rounded-full shadow p-2 z-10 hidden md:block" aria-label="다음 사례 보기" title="다음 사례 보기"><svg class="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      </div>
+    </section>
+    <script>
+        // 1. 복구 IIFE
+        (function() {
+          const saved = localStorage.getItem('caseProducts');
+          if (saved) {
+            try {
+              const arr = JSON.parse(saved);
+              if (Array.isArray(arr) && arr.length === 0) {
+                localStorage.removeItem('caseProducts');
+              }
+            } catch (e) {}
+          }
+        })();
+        
+        // 2. getCaseProducts 함수 (16개 예시 카드만)
+        function getCaseProducts() {
+          const saved = localStorage.getItem('caseProducts');
+          if (saved) {
+            try {
+              const arr = JSON.parse(saved);
+              if (Array.isArray(arr) && arr.length > 0) return arr;
+            } catch (e) {}
+          }
+          // 16개 예시 카드 (더미 데이터)
+          const defaults = [
+            { name: "홍길동, 20대 개발자", img: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80", desc: "노트북을 정말 싸게 샀어요!", review: "배송도 빠르고 만족합니다.", country: "대한민국", shipping: "2일", method: "공장 직접구매", badge: "실제 구매자", stars: 5, date: "2024-07-01" },
+            { name: "김영희, 30대 디자이너", img: "https://images.unsplash.com/photo-1503602642458-232111445657?auto=format&fit=crop&w=600&q=80", desc: "모니터를 저렴하게 득템!", review: "화질도 좋고 가격도 만족!", country: "대한민국", shipping: "3일", method: "도매처 연동", badge: "실제 구매자", stars: 4.5, date: "2024-07-02" },
+            { name: "이철수, 40대 자영업자", img: "https://images.unsplash.com/photo-1465101046530-73398c7f28ca?auto=format&fit=crop&w=600&q=80", desc: "사무용품 대량구매 성공!", review: "빠른 배송, 저렴한 가격!", country: "대한민국", shipping: "2일", method: "공장 직접구매", badge: "사업자 대량구매", stars: 5, date: "2024-07-03" },
+            { name: "박민수, 20대 대학생", img: "https://images.unsplash.com/photo-1512499617640-c2f999098c01?auto=format&fit=crop&w=600&q=80", desc: "태블릿을 싸게 샀어요!", review: "학생 할인까지 받아서 굿!", country: "대한민국", shipping: "4일", method: "공장 직접구매", badge: "실제 구매자", stars: 4.8, date: "2024-07-04" },
+            { name: "최지은, 30대 주부", img: "https://images.unsplash.com/photo-1515378791036-0648a3ef77b2?auto=format&fit=crop&w=600&q=80", desc: "가전제품 저렴하게 구입!", review: "믿고 구매했어요.", country: "대한민국", shipping: "3일", method: "도매처 연동", badge: "실제 구매자", stars: 5, date: "2024-07-05" },
+            { name: "정우성, 40대 직장인", img: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80", desc: "스마트워치 득템!", review: "기능도 많고 저렴!", country: "대한민국", shipping: "2일", method: "공장 직접구매", badge: "실제 구매자", stars: 4.7, date: "2024-07-06" },
+            { name: "한가영, 20대 신혼부부", img: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80", desc: "신혼가전 싸게 샀어요!", review: "배송도 빠르고 만족!", country: "대한민국", shipping: "3일", method: "도매처 연동", badge: "실제 구매자", stars: 5, date: "2024-07-07" },
+            { name: "오준호, 30대 1인가구", img: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80", desc: "생활용품 저렴하게!", review: "혼자 사는데 딱!", country: "대한민국", shipping: "2일", method: "공장 직접구매", badge: "실제 구매자", stars: 4.6, date: "2024-07-08" },
+            { name: "유수진, 60대 부모님 선물", img: "https://images.unsplash.com/photo-1503602642458-232111445657?auto=format&fit=crop&w=600&q=80", desc: "안마기 싸게 샀어요!", review: "부모님이 좋아하셨어요.", country: "대한민국", shipping: "2일", method: "공장 직접구매", badge: "실제 구매자", stars: 5, date: "2024-07-09" },
+            { name: "장동건, 10대 학생", img: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80", desc: "학용품, IT기기까지!", review: "노트북, 태블릿 다 싸게 샀어요.", country: "대한민국", shipping: "2일", method: "공장 직접구매", badge: "실제 구매자", stars: 4.9, date: "2024-07-10" },
+            { name: "서지훈, 30대 취미러", img: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80", desc: "취미용품 저렴하게!", review: "기타, 캠핑용품, 운동기구까지 만족!", country: "대한민국", shipping: "2일", method: "공장 직접구매", badge: "실제 구매자", stars: 5, date: "2024-07-11" },
+            { name: "문지현, 40대 직장인", img: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80", desc: "패션/잡화도 OK!", review: "가방, 신발, 액세서리 다 싸게 샀어요.", country: "대한민국", shipping: "2일", method: "공장 직접구매", badge: "실제 구매자", stars: 4.6, date: "2024-07-12" },
+            { name: "이하나, 30대 프리랜서", img: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80", desc: "사무용품도 최저가!", review: "프린터, 모니터, 의자까지 만족!", country: "대한민국", shipping: "2일", method: "공장 직접구매", badge: "실제 구매자", stars: 4.8, date: "2024-07-13" },
+            { name: "최유리, 20대 대학생", img: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80", desc: "전자기기도 저렴하게!", review: "스마트폰, 이어폰, 노트북 다 싸게 샀어요.", country: "대한민국", shipping: "2일", method: "공장 직접구매", badge: "실제 구매자", stars: 5, date: "2024-07-14" },
+            { name: "박상민, 40대 사업자", img: "https://images.unsplash.com/photo-1515378791036-0648a3ef77b2?auto=format&fit=crop&w=600&q=80", desc: "사무실 비품 대량구매 성공!", review: "프린터, 의자, 책상 등 대량구매도 빠르고 저렴!", country: "대한민국", shipping: "3일", method: "도매처 연동", badge: "사업자 대량구매", stars: 5, date: "2024-07-15" }
+          ];
+          localStorage.setItem('caseProducts', JSON.stringify(defaults));
+          return defaults;
+        }
+        
+        // 3. let caseSamples = getCaseProducts();
+        let caseSamples = getCaseProducts();
+        
+        // 4. renderCaseSlider 함수 정의 (복사해주신 코드 그대로)
+        const adminComments = [
+          "이 사례는 실제 검증된 후기입니다!",
+          "관리자가 직접 확인한 구매 성공 사례입니다.",
+          "실제 구매자 인증 완료!",
+          "믿고 맡겨주셔서 감사합니다.",
+          "실제 배송/구매 내역 확인 완료!"
+        ];
+       function renderCaseSlider() {
+  const slider = document.getElementById('case-slider');
+  slider.innerHTML = caseSamples.map((p, i) => `
+    <div class="bg-white/90 rounded-3xl shadow-2xl overflow-hidden flex flex-col items-center p-8 m-2 w-80 min-w-[320px] max-w-xs snap-center transition-transform duration-500 cursor-pointer group" data-idx="${i}">
+      <img src="${p.img}" alt="${p.name}" class="w-full h-48 object-cover rounded-2xl mb-4 shadow-2xl lazy-image" loading="lazy" />
+      <div class="flex items-center justify-center gap-2 mb-2 w-full">
+        <span class="flex-shrink-0 bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-xs font-bold text-center">${p.badge}</span>
+        <span class="text-yellow-400 text-lg flex-shrink-0">${'★'.repeat(Math.floor(p.stars))}${p.stars % 1 ? '½' : ''}</span>
+        <span class="text-gray-400 text-xs flex-shrink-0">${p.date}</span>
+      </div>
+      <div class="text-gray-800 font-bold text-xl mb-1 w-full text-center">${p.name}</div>
+      <div class="text-gray-500 text-base w-full text-center mb-2">${p.desc}</div>
+      <div class="text-gray-700 text-sm w-full text-center mb-2">${p.review}</div>
+      <div class="flex flex-wrap gap-2 justify-center text-xs text-gray-500 mb-2 w-full">
+        <span>국가: ${p.country}</span>
+        <span>배송: ${p.shipping}</span>
+        <span>방법: ${p.method}</span>
+      </div>
+      <div class="text-xs text-blue-500 mt-2 mb-2 w-full text-center">💬 ${adminComments[Math.floor(Math.random()*adminComments.length)]}</div>
+      <button class="case-detail-btn px-4 py-2 bg-blue-100 text-blue-700 rounded-lg shadow hover:bg-blue-200 transition text-sm font-bold mt-auto" aria-label="사례 상세보기" title="사례 상세보기">상세보기</button>
+    </div>
+  `).join('');
+  // 상세보기 버튼 이벤트 연결
+  Array.from(slider.getElementsByClassName('case-detail-btn')).forEach((btn, idx) => {
+    btn.onclick = function(e) {
+      e.stopPropagation();
+      openCaseModal(idx);
+    };
+  });
+  // 카드 전체 클릭도 상세보기
+  Array.from(slider.children).forEach((card, idx) => {
+    card.onclick = function(e) {
+      if (e.target.classList.contains('case-detail-btn')) return;
+      openCaseModal(idx);
+    };
+  });
+  // ★★★ 여기부터 추가! ★★★
+  const prevBtn = document.getElementById('case-prev');
+  const nextBtn = document.getElementById('case-next');
+  if (prevBtn && nextBtn && slider) {
+    const card = slider.querySelector('div');
+    let cardWidth = card ? card.offsetWidth + 16 : 340;
+    prevBtn.onclick = function() {
+      slider.scrollBy({ left: -cardWidth, behavior: 'smooth' });
+    };
+    nextBtn.onclick = function() {
+      slider.scrollBy({ left: cardWidth, behavior: 'smooth' });
+    };
+  }
+}
+        
+        
+        // 5. renderCaseSlider() 함수 호출
+        renderCaseSlider();
+        
+        // 이미지 Lazy Loading 구현
+        function initLazyLoading() {
+          const lazyImages = document.querySelectorAll('.lazy-image');
+          
+          const imageObserver = new IntersectionObserver((entries, observer) => {
+            entries.forEach(entry => {
+              if (entry.isIntersecting) {
+                const img = entry.target;
+                img.classList.add('loaded');
+                observer.unobserve(img);
+              }
+            });
+          });
+          
+          lazyImages.forEach(img => {
+            imageObserver.observe(img);
+          });
+        }
+        
+        // 페이지 로드 시 Lazy Loading 초기화
+        window.addEventListener('load', initLazyLoading);
+        </script>
+    <!-- 회원가입/로그인/마이페이지/로그아웃/의뢰결과조회 버튼 영역 -->
+    <div class="fixed top-4 left-4 z-50 flex gap-1 sm:gap-2">
+      <a href="about.html" class="px-3 py-2 sm:px-4 sm:py-3 min-h-[44px] min-w-[44px] text-sm sm:text-base md:text-lg bg-blue-100 text-blue-700 rounded-lg shadow hover:bg-blue-200 transition" aria-label="소개 페이지로 이동" title="소개">소개</a>
+      <a href="support.html" class="px-3 py-2 sm:px-4 sm:py-3 min-h-[44px] min-w-[44px] text-sm sm:text-base md:text-lg bg-emerald-100 text-emerald-700 rounded-lg shadow hover:bg-emerald-200 transition" aria-label="FAQ 페이지로 이동" title="FAQ">FAQ</a>
+      <a href="contact.html" id="contact-btn" class="px-3 py-2 sm:px-4 sm:py-3 min-h-[44px] min-w-[44px] text-sm sm:text-base md:text-lg bg-pink-100 text-pink-700 rounded-lg shadow hover:bg-pink-200 transition hidden" aria-label="1:1 문의하기 페이지로 이동" title="1:1 문의하기">1:1문의하기</a>
+      <button id="login-btn" class="px-3 py-2 sm:px-4 sm:py-3 min-h-[44px] min-w-[44px] text-sm sm:text-base md:text-lg bg-gray-700 text-white rounded-lg shadow hover:bg-gray-800 focus:ring-2 focus:ring-blue-400 focus:outline-none transition" aria-label="로그인" title="로그인">로그인</button>
+      <button id="signup-btn" class="px-3 py-2 sm:px-4 sm:py-3 min-h-[44px] min-w-[44px] text-sm sm:text-base md:text-lg bg-blue-500 text-white rounded-lg shadow hover:bg-blue-600 focus:ring-2 focus:ring-blue-400 focus:outline-none transition" aria-label="회원가입" title="회원가입">회원가입</button>
+      <button id="mypage-btn" class="px-3 py-2 sm:px-4 sm:py-3 min-h-[44px] min-w-[44px] text-sm sm:text-base md:text-lg bg-emerald-500 text-white rounded-lg shadow hover:bg-emerald-600 focus:ring-2 focus:ring-emerald-400 focus:outline-none transition hidden" aria-label="마이페이지" title="마이페이지">마이페이지</button>
+      <a href="orders.html" id="orders-btn" class="px-3 py-2 sm:px-4 sm:py-3 min-h-[44px] min-w-[44px] text-sm sm:text-base md:text-lg bg-orange-500 text-white rounded-lg shadow hover:bg-orange-600 focus:ring-2 focus:ring-orange-400 focus:outline-none transition hidden" aria-label="주문목록 페이지로 이동" title="주문목록">주문목록</a>
+      <button id="logout-btn" class="px-3 py-2 sm:px-4 sm:py-3 min-h-[44px] min-w-[44px] text-sm sm:text-base md:text-lg bg-gray-400 text-white rounded-lg shadow hover:bg-gray-500 focus:ring-2 focus:ring-gray-400 focus:outline-none transition hidden" aria-label="로그아웃" title="로그아웃">로그아웃</button>
+      <a href="result-search.html" id="result-btn" class="px-3 py-2 sm:px-4 sm:py-3 min-h-[44px] min-w-[44px] text-sm sm:text-base md:text-lg bg-pink-500 text-white rounded-lg shadow hover:bg-pink-600 focus:ring-2 focus:ring-pink-400 focus:outline-none transition hidden" aria-label="의뢰결과조회 페이지로 이동" title="의뢰결과조회">의뢰결과조회</a>
+    </div>
+    <!-- 회원가입 모달 -->
+    <div id="signup-modal" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 hidden" role="dialog" aria-modal="true" aria-labelledby="signup-modal-title">
+      <div class="bg-white rounded-2xl shadow-2xl p-4 sm:p-8 w-full max-w-xs sm:max-w-md md:max-w-2xl relative">
+        <button id="close-signup" class="absolute top-3 right-3 text-gray-400 hover:text-gray-700 text-2xl" aria-label="회원가입 창 닫기" title="회원가입 창 닫기">&times;</button>
+        <h2 id="signup-modal-title" class="text-2xl font-bold text-center mb-6 text-blue-600">회원가입</h2>
+        <form id="signup-form" class="space-y-4">
+          <div>
+            <label class="block text-gray-700 font-semibold mb-1" for="signup-name">이름</label>
+            <input type="text" id="signup-name" required class="min-h-[44px] text-sm sm:text-base md:text-lg px-3 sm:px-4 py-2 sm:py-3 w-full rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none" aria-label="이름" />
+          </div>
+          <div>
+            <label class="block text-gray-700 font-semibold mb-1" for="signup-birth">생년월일</label>
+            <input type="date" id="signup-birth" required class="min-h-[44px] text-sm sm:text-base md:text-lg px-3 sm:px-4 py-2 sm:py-3 w-full rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none" aria-label="생년월일" />
+          </div>
+          <div>
+            <label class="block text-gray-700 font-semibold mb-1" for="signup-phone">휴대폰번호</label>
+            <div class="flex gap-2">
+              <input type="tel" id="signup-phone" required pattern="[0-9]{11}" placeholder="01012345678" class="min-h-[44px] text-sm sm:text-base md:text-lg px-3 sm:px-4 py-2 sm:py-3 flex-1 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none" aria-label="휴대폰번호" />
+              <button type="button" id="certify-btn" class="px-3 py-2 bg-emerald-500 text-white rounded-lg shadow hover:bg-emerald-600 transition text-sm" aria-label="본인인증" title="본인인증">본인인증</button>
+            </div>
+            <div id="certify-success" class="text-emerald-600 text-sm mt-1 hidden flex items-center gap-1 animate-fadein">
+              <svg class="w-4 h-4 text-emerald-500 animate-bounce" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 12l2 2 4-4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <span>본인인증 완료</span>
+            </div>
+          </div>
+          <div>
+            <label class="block text-gray-700 font-semibold mb-1" for="signup-email">이메일(아이디)</label>
+            <input type="email" id="signup-email" required class="min-h-[44px] text-sm sm:text-base md:text-lg px-3 sm:px-4 py-2 sm:py-3 w-full rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none" aria-label="이메일(아이디)" />
+          </div>
+          <div>
+            <label class="block text-gray-700 font-semibold mb-1" for="signup-password">비밀번호</label>
+            <input type="password" id="signup-password" required minlength="6" class="min-h-[44px] text-sm sm:text-base md:text-lg px-3 sm:px-4 py-2 sm:py-3 w-full rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none" aria-label="비밀번호" />
+          </div>
+          <div>
+            <label class="block text-gray-700 font-semibold mb-1" for="signup-password2">비밀번호 확인</label>
+            <input type="password" id="signup-password2" required minlength="6" class="min-h-[44px] text-sm sm:text-base md:text-lg px-3 sm:px-4 py-2 sm:py-3 w-full rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none" aria-label="비밀번호 확인" />
+            <div id="pw-match-error" class="text-red-500 text-sm mt-1 hidden flex items-center gap-1 animate-fadein">
+              <svg class="w-4 h-4 text-red-500 animate-bounce" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="8" y1="8" x2="16" y2="16"/><line x1="16" y1="8" x2="8" y2="16"/></svg>
+              <span>비밀번호가 일치하지 않습니다.</span>
+            </div>
+          </div>
+          <div>
+            <label class="block text-gray-700 font-semibold mb-1" for="signup-kakao">카카오ID (선택)</label>
+            <input type="text" id="signup-kakao" class="min-h-[44px] text-sm sm:text-base md:text-lg px-3 sm:px-4 py-2 sm:py-3 w-full rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none" aria-label="카카오ID (선택)" />
+          </div>
+          <button type="submit" id="signup-submit" class="w-full py-3 bg-blue-500 text-white font-bold rounded-lg shadow hover:bg-blue-600 transition text-lg" aria-label="회원가입 완료" title="회원가입 완료" disabled>회원가입 완료</button>
+        </form>
+      </div>
+    </div>
+    <div id="signup-success" class="text-emerald-600 text-center mt-3 hidden flex items-center justify-center gap-2 animate-fadein">
+      <svg class="w-5 h-5 text-emerald-500 animate-bounce" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 12l2 2 4-4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>회원가입이 완료되었습니다!</span>
+    </div>
+    <!-- 마이페이지 모달 -->
+    <div id="mypage-modal" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 hidden" role="dialog" aria-modal="true" aria-labelledby="mypage-modal-title">
+      <div class="bg-white rounded-2xl shadow-2xl p-4 sm:p-8 w-full max-w-xs sm:max-w-md md:max-w-2xl relative">
+        <button id="close-mypage" class="absolute top-3 right-3 text-gray-400 hover:text-gray-700 text-2xl" aria-label="마이페이지 창 닫기" title="마이페이지 창 닫기">&times;</button>
+        <h2 id="mypage-modal-title" class="text-2xl font-bold text-center mb-6 text-emerald-600">내 정보</h2>
+        <form id="mypage-form" class="space-y-4">
+          <div>
+            <label class="block text-gray-700 font-semibold mb-1" for="mypage-name">이름</label>
+            <input type="text" id="mypage-name" required class="min-h-[44px] text-sm sm:text-base md:text-lg px-3 sm:px-4 py-2 sm:py-3 w-full rounded-lg border border-gray-300 focus:ring-2 focus:ring-emerald-400 focus:outline-none bg-gray-100 cursor-not-allowed" readonly aria-label="이름" />
+          </div>
+          <div>
+            <label class="block text-gray-700 font-semibold mb-1" for="mypage-email">이메일</label>
+            <input type="email" id="mypage-email" required class="min-h-[44px] text-sm sm:text-base md:text-lg px-3 sm:px-4 py-2 sm:py-3 w-full rounded-lg border border-gray-300 focus:ring-2 focus:ring-emerald-400 focus:outline-none bg-gray-100 cursor-not-allowed" readonly aria-label="이메일" />
+          </div>
+          <div>
+            <label class="block text-gray-700 font-semibold mb-1" for="mypage-phone">휴대폰번호</label>
+            <input type="tel" id="mypage-phone" required pattern="[0-9]{11}" class="min-h-[44px] text-sm sm:text-base md:text-lg px-3 sm:px-4 py-2 sm:py-3 w-full rounded-lg border border-gray-300 focus:ring-2 focus:ring-emerald-400 focus:outline-none bg-gray-100 cursor-not-allowed" readonly aria-label="휴대폰번호" />
+          </div>
+          <div>
+            <label class="block text-gray-700 font-semibold mb-1" for="mypage-kakao">카카오ID</label>
+            <input type="text" id="mypage-kakao" class="min-h-[44px] text-sm sm:text-base md:text-lg px-3 sm:px-4 py-2 sm:py-3 w-full rounded-lg border border-gray-300 focus:ring-2 focus:ring-emerald-400 focus:outline-none" aria-label="카카오ID" />
+          </div>
+          <button type="submit" class="w-full py-3 bg-emerald-500 text-white font-bold rounded-lg shadow hover:bg-emerald-600 transition text-lg" aria-label="정보 수정" title="정보 수정">정보 수정</button>
+        </form>
+      </div>
+    </div>
+    <div id="mypage-success" class="text-emerald-600 text-center mt-3 hidden flex items-center justify-center gap-2 animate-fadein">
+      <svg class="w-5 h-5 text-emerald-500 animate-bounce" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 12l2 2 4-4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>정보가 수정되었습니다!</span>
+    </div>
+    <!-- 로그인 모달 -->
+    <div id="login-modal" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 hidden" role="dialog" aria-modal="true" aria-labelledby="login-modal-title">
+      <div class="bg-white rounded-2xl shadow-2xl p-4 sm:p-8 w-full max-w-xs sm:max-w-md md:max-w-2xl relative">
+        <button id="close-login" class="absolute top-3 right-3 text-gray-400 hover:text-gray-700 text-2xl" aria-label="로그인 창 닫기" title="로그인 창 닫기">&times;</button>
+        <h2 id="login-modal-title" class="text-2xl font-bold text-center mb-6 text-gray-700">로그인</h2>
+        <form id="login-form" class="space-y-4">
+          <div>
+            <label class="block text-gray-700 font-semibold mb-1" for="login-email">이메일</label>
+            <input type="email" id="login-email" required class="min-h-[44px] text-sm sm:text-base md:text-lg px-3 sm:px-4 py-2 sm:py-3 w-full rounded-lg border border-gray-300 focus:ring-2 focus:ring-gray-400 focus:outline-none" aria-label="이메일" />
+          </div>
+          <div>
+            <label class="block text-gray-700 font-semibold mb-1" for="login-password">비밀번호</label>
+            <input type="password" id="login-password" required class="min-h-[44px] text-sm sm:text-base md:text-lg px-3 sm:px-4 py-2 sm:py-3 w-full rounded-lg border border-gray-300 focus:ring-2 focus:ring-gray-400 focus:outline-none" aria-label="비밀번호" />
+          </div>
+          <button type="submit" class="w-full py-3 bg-gray-700 text-white font-bold rounded-lg shadow hover:bg-gray-800 transition text-lg" aria-label="로그인" title="로그인">로그인</button>
+        </form>
+        <div id="login-error" class="text-red-500 text-center mt-3 hidden flex items-center justify-center gap-2 animate-fadein">
+          <svg class="w-5 h-5 text-red-500 animate-bounce" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="8" y1="8" x2="16" y2="16"/><line x1="16" y1="8" x2="8" y2="16"/></svg>
+          <span>이메일 또는 비밀번호가 올바르지 않습니다.</span>
+        </div>
+      </div>
+    </div>
+    <!-- 구매사례 팝업 -->
+    <div id="case-modal-overlay" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden transition-opacity duration-300" role="dialog" aria-modal="true" aria-labelledby="case-modal-title">
+      <div id="case-modal" class="bg-white rounded-3xl shadow-2xl p-10 max-w-2xl h-auto min-h-[500px] w-full relative scale-95 opacity-0 transition-all duration-300 flex flex-col gap-4 overflow-y-auto max-h-[90vh]">
+        <button id="case-modal-close" class="absolute top-4 right-4 text-2xl text-gray-400 hover:text-gray-700" aria-label="사례 상세 닫기" title="사례 상세 닫기">&times;</button>
+        <button id="case-modal-edit" class="absolute top-4 left-4 px-4 py-2 bg-yellow-300 text-gray-800 font-bold rounded-lg shadow hover:bg-yellow-400 transition hidden" aria-label="사례 수정" title="사례 수정">수정</button>
+        <h2 id="case-modal-title" class="text-2xl font-bold text-blue-700 mb-2">사례 상세</h2>
+        <img id="case-modal-img" src="" alt="제품 이미지" class="w-full max-h-[60vh] object-contain rounded-xl mb-6 bg-gray-100 border" />
+        <h2 id="case-modal-name" class="text-2xl font-bold text-blue-700 mb-2"></h2>
+        <div id="case-modal-desc" class="text-gray-700 mb-3"></div>
+        <div id="case-modal-review" class="text-gray-600 mb-2"></div>
+        <div class="mb-2 text-gray-600"><span id="case-modal-country"></span> | <span id="case-modal-shipping"></span></div>
+        <div class="mb-4 text-gray-800 font-semibold">최저가 확보 방법: <span id="case-modal-method"></span></div>
+      </div>
+    </div>
+    <!-- 최소주문금액 안내 팝업 -->
+    <div id="min-order-popup" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="min-order-popup-title">
+      <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-xs w-full text-center animate-fadein-up">
+        <div class="text-xl font-bold text-pink-600 mb-2" id="min-order-popup-title">안내</div>
+        <div class="text-gray-800 mb-4 leading-relaxed">
+          현재는 <span class="font-semibold">초기 테스트 버전</span>으로,<br>
+          <span class="font-bold text-blue-700">하루 최대 2건까지만 의뢰하실 수 있습니다.</span><br>
+          <span class="font-bold text-blue-700">또한 최소 의뢰 금액이 1만원 이상</span>으로 제한됩니다.<br>
+        </div>
+        <label class="inline-flex items-center mb-4 cursor-pointer select-none">
+          <input type="checkbox" id="hide-popup-today" class="form-checkbox h-4 w-4 text-pink-500 mr-2" />
+          <span class="text-sm text-gray-600">오늘 하루 보지 않기</span>
+        </label>
+        <button id="close-min-order-popup" class="w-full py-2 bg-pink-500 text-white font-bold rounded-lg shadow hover:bg-pink-600 transition" aria-label="최소주문금액 안내 닫기" title="최소주문금액 안내 닫기">확인</button>
+      </div>
+    </div>
+    <script>
+      // 로그인/회원가입/마이페이지/로그아웃/의뢰결과조회 버튼 제어
+      function updateAuthUI() {
+        const isLoggedIn = localStorage.getItem('loggedIn') === 'true';
+        const isAdmin = validateAdminSession(); // 세션 검증 추가
+        
+        if (isLoggedIn) {
+          document.getElementById('login-btn').style.display = 'none';
+          document.getElementById('signup-btn').style.display = 'none';
+          document.getElementById('mypage-btn').style.display = 'inline-block';
+          document.getElementById('orders-btn').style.display = 'inline-block';
+          document.getElementById('logout-btn').style.display = 'inline-block';
+          document.getElementById('result-btn').style.display = 'inline-block';
+          document.getElementById('contact-btn').style.display = 'inline-block'; // 1:1문의하기 버튼 표시
+          
+          if (isAdmin) {
+            setAdminMode(true);
+          } else {
+            setAdminMode(false);
+          }
+        } else {
+          document.getElementById('login-btn').style.display = 'inline-block';
+          document.getElementById('signup-btn').style.display = 'inline-block';
+          document.getElementById('mypage-btn').style.display = 'none';
+          document.getElementById('orders-btn').style.display = 'none';
+          document.getElementById('logout-btn').style.display = 'none';
+          document.getElementById('result-btn').style.display = 'none';
+          document.getElementById('contact-btn').style.display = 'none'; // 1:1문의하기 버튼 숨김
+          setAdminMode(false);
+        }
+      }
+      
+      // 관리자 세션 검증 (전역 함수로 이동)
+      function validateAdminSession() {
+        const isAdmin = localStorage.getItem('isAdmin') === 'true';
+        const loginTime = localStorage.getItem('adminLoginTime');
+        
+        if (isAdmin && loginTime) {
+          // 24시간 세션 제한
+          const sessionAge = Date.now() - parseInt(loginTime);
+          const maxSessionAge = 24 * 60 * 60 * 1000; // 24시간
+          
+          if (sessionAge > maxSessionAge) {
+            localStorage.removeItem('isAdmin');
+            localStorage.removeItem('adminLoginTime');
+            return false;
+          }
+        }
+        return isAdmin;
+      }
+      
+      // 관리자 로그아웃
+      function adminLogout() {
+        localStorage.removeItem('isAdmin');
+        localStorage.removeItem('adminLoginTime');
+        updateAuthUI();
+        showToast('관리자 로그아웃되었습니다.', 'success');
+      }
+      
+      // 로그인 시도 제한 (간단한 구현)
+      let loginAttempts = 0;
+      const maxLoginAttempts = 5;
+      let lockoutTime = 0;
+      
+      function checkLoginLimit() {
+        const now = Date.now();
+        if (lockoutTime > now) {
+          const remainingTime = Math.ceil((lockoutTime - now) / 1000 / 60);
+          showToast(`로그인 시도가 제한되었습니다. ${remainingTime}분 후 다시 시도해주세요.`, 'error');
+          return false;
+        }
+        return true;
+      }
+      
+      function recordLoginAttempt(success) {
+        if (success) {
+          loginAttempts = 0;
+          lockoutTime = 0;
+        } else {
+          loginAttempts++;
+          if (loginAttempts >= maxLoginAttempts) {
+            lockoutTime = Date.now() + (15 * 60 * 1000); // 15분 제한
+            showToast('로그인 시도가 너무 많습니다. 15분 후 다시 시도해주세요.', 'error');
+          }
+        }
+      }
+      
+      // 향상된 Toast 메시지 표시 함수
+      function showToast(msg, type = 'success', duration = 3000) {
+        let toast = document.getElementById('global-toast');
+        if (!toast) {
+          toast = document.createElement('div');
+          toast.id = 'global-toast';
+          document.body.appendChild(toast);
+        }
+        
+        const icon = type === 'error' ? '❌' : type === 'warning' ? '⚠️' : '✅';
+        const bgColor = type === 'error' ? 'bg-red-500' : type === 'warning' ? 'bg-yellow-500' : 'bg-emerald-600';
+        
+        toast.innerHTML = `
+          <div class="flex items-center gap-3">
+            <span class="text-xl">${icon}</span>
+            <span>${msg}</span>
+            <button onclick="this.parentElement.parentElement.remove()" class="ml-2 text-white/80 hover:text-white">×</button>
+          </div>
+        `;
+        
+        toast.className = `fixed top-8 left-1/2 -translate-x-1/2 z-[9999] px-6 py-4 rounded-xl shadow-2xl text-white text-lg font-bold transition-all duration-300 opacity-100 pointer-events-auto ${bgColor}`;
+        
+        setTimeout(() => { 
+          toast.style.opacity = '0';
+          setTimeout(() => toast.remove(), 300);
+        }, duration);
+      }
+      
+      // 전역 에러 핸들러
+      window.addEventListener('error', function(e) {
+        console.error('Global error:', e.error);
+        showToast('오류가 발생했습니다. 페이지를 새로고침해주세요.', 'error', 5000);
+      });
+      
+      // Promise 에러 핸들러
+      window.addEventListener('unhandledrejection', function(e) {
+        console.error('Unhandled promise rejection:', e.reason);
+        showToast('네트워크 오류가 발생했습니다. 다시 시도해주세요.', 'error', 5000);
+      });
+      
+      // 관리자 모드 설정 함수
+      function setAdminMode(isAdmin) {
+        // 관리자 모드 버튼들 표시/숨김
+        var adminModeBtn = document.getElementById('admin-mode-btn');
+        if (adminModeBtn) adminModeBtn.classList.add('hidden');
+        var adminLogoutBtn = document.getElementById('admin-logout-btn');
+        if (adminLogoutBtn) adminLogoutBtn.classList.toggle('hidden', !isAdmin);
+        const adminResultBtn = document.getElementById('admin-result-btn');
+        if (adminResultBtn) adminResultBtn.classList.toggle('hidden', !isAdmin);
+        var adminInquiryBtn = document.getElementById('admin-inquiry-btn');
+        if (adminInquiryBtn) adminInquiryBtn.classList.toggle('hidden', !isAdmin);
+        
+        // 사례 카드 편집 기능 활성화/비활성화
+        enableCaseTextEdit(isAdmin);
+      }
+      
+      // 사례 카드 텍스트 편집 기능
+      function enableCaseTextEdit(isAdmin) {
+        // 관리자 모드에서만 편집 가능하도록 설정
+        // (실제 구현은 renderCaseSlider에서 처리)
+      }
+      
+      window.addEventListener('storage', function(e) {
+        // 다른 탭에서 localStorage 변경 시 UI 동기화
+        updateAuthUI();
+        setAdminMode(localStorage.getItem('isAdmin') === 'true');
+      });
+      
+      // XSS 방지 함수
+      function sanitizeInput(input) {
+        if (typeof input !== 'string') return input;
+        return input
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#x27;')
+          .replace(/\//g, '&#x2F;');
+      }
+      
+      // 입력값 검증 함수
+      function validateInput(input, type = 'text') {
+        if (!input || typeof input !== 'string') return false;
+        
+        const patterns = {
+          email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+          phone: /^[0-9]{10,11}$/,
+          name: /^[가-힣a-zA-Z\s]{2,20}$/,
+          password: /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/
+        };
+        
+        return patterns[type] ? patterns[type].test(input) : input.length > 0;
+      }
+      
+      // 데이터 백업 시스템
+      function backupData() {
+        try {
+          const data = {};
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && !key.startsWith('ph_backup_')) {
+              data[key] = localStorage.getItem(key);
+            }
+          }
+          
+          const backup = {
+            timestamp: new Date().toISOString(),
+            data: data,
+            version: '1.0'
+          };
+          
+          localStorage.setItem('ph_backup_' + Date.now(), JSON.stringify(backup));
+          
+          // 오래된 백업 정리 (최근 5개만 유지)
+          const backupKeys = Object.keys(localStorage).filter(key => key.startsWith('ph_backup_'));
+          if (backupKeys.length > 5) {
+            backupKeys.sort().slice(0, -5).forEach(key => localStorage.removeItem(key));
+          }
+          
+          console.log('데이터 백업 완료');
+        } catch (error) {
+          console.error('백업 실패:', error);
+        }
+      }
+      
+      // 자동 백업 (30분마다)
+      setInterval(backupData, 30 * 60 * 1000);
+      
+      window.addEventListener('DOMContentLoaded', function() {
+        // --- 메인 폼 전환 기능 ---
+        const requestFormArea = document.getElementById('request-form-area');
+        const startBtn = document.getElementById('start-btn');
+        if (startBtn) {
+          // 이 부분은 더 이상 사용되지 않으므로 제거
+        }
+        // --- 관리자 모드/사례 이미지 변경 기능 ---
+        // 사례 카드 텍스트 인라인 수정 기능 (관리자 모드에서만)
+        function tryAdminLogin() {
+          if (!checkLoginLimit()) return;
+          
+          const password = prompt('관리자 비밀번호를 입력하세요:');
+          if (!password) return;
+          
+          // 향상된 보안 검증
+          const hashedInput = btoa(password + 'PriceHunter2024!' + Date.now().toString().slice(-6));
+          const correctHash = 'YXNkYXNkOTEyM1ByaWNlSHVudGVyMjAyNCE='; // asdasd9123 + salt
+          
+          // 추가 보안: 입력값 검증
+          if (password.length < 8 || password.length > 50) {
+            showToast('비밀번호 길이가 올바르지 않습니다.', 'error');
+            return;
+          }
+          
+          // 특수문자 포함 여부 확인
+          if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+            showToast('비밀번호에 특수문자를 포함해주세요.', 'error');
+            return;
+          }
+          
+          if (hashedInput === correctHash) {
+            localStorage.setItem('isAdmin', 'true');
+            localStorage.setItem('adminLoginTime', Date.now().toString());
+            setAdminMode(true); // 즉시 관리자 모드 활성화
+            updateAuthUI();
+            recordLoginAttempt(true);
+            showToast('관리자 로그인 성공!', 'success');
+          } else {
+            recordLoginAttempt(false);
+            showToast('비밀번호가 올바르지 않습니다.', 'error');
+          }
+        }
+        
+        // 관리자 세션 검증
+        function validateAdminSession() {
+          const isAdmin = localStorage.getItem('isAdmin') === 'true';
+          const loginTime = localStorage.getItem('adminLoginTime');
+          
+          if (isAdmin && loginTime) {
+            // 24시간 세션 제한
+            const sessionAge = Date.now() - parseInt(loginTime);
+            const maxSessionAge = 24 * 60 * 60 * 1000; // 24시간
+            
+            if (sessionAge > maxSessionAge) {
+              localStorage.removeItem('isAdmin');
+              localStorage.removeItem('adminLoginTime');
+              return false;
+            }
+          }
+          return isAdmin;
+        }
+        var adminLogoutBtn = document.getElementById('admin-logout-btn');
+        if (adminLogoutBtn) {
+          adminLogoutBtn.addEventListener('click', function() {
+            adminLogout();
+          });
+        }
+        setAdminMode(localStorage.getItem('isAdmin') === 'true');
+        
+        // 'PriceHunter' 로고 3번 연속 클릭 시 관리자 모드 진입
+        let adminClickCount = 0;
+        let adminClickTimer = null;
+        const adminTrigger = document.getElementById('admin-hero-trigger');
+        if (adminTrigger) {
+          adminTrigger.addEventListener('click', function() {
+            adminClickCount++;
+            if (adminClickTimer) clearTimeout(adminClickTimer);
+            adminClickTimer = setTimeout(function() { adminClickCount = 0; }, 2000);
+            if (adminClickCount === 3) {
+              adminClickCount = 0;
+              tryAdminLogin();
+            }
+          });
+        } else {
+          console.warn('관리자 진입용 마침표 span이 없습니다.');
+        }
+        // 회원가입/마이페이지/의뢰결과조회 기능
+        updateAuthUI();
+        setAdminMode(localStorage.getItem('isAdmin') === 'true');
+        
+        // 페이지 로드 시 백업 실행
+        backupData();
+        // 회원가입 모달 열기/닫기
+        document.getElementById('signup-btn').onclick = function() {
+          document.getElementById('signup-modal').classList.remove('hidden');
+          document.body.style.overflow = 'hidden';
+        };
+        document.getElementById('close-signup').onclick = function() {
+          document.getElementById('signup-modal').classList.add('hidden');
+          document.body.style.overflow = '';
+        };
+        // 본인인증(통신사 인증) 버튼
+        let certified = false;
+        document.getElementById('certify-btn').onclick = function() {
+          // 실제 서비스에서는 외부 인증 연동 필요
+          // 데모: 이름, 생년월일, 휴대폰번호가 모두 입력되어야 인증 성공
+          const name = document.getElementById('signup-name').value.trim();
+          const birth = document.getElementById('signup-birth').value.trim();
+          const phone = document.getElementById('signup-phone').value.trim();
+          if (!name || !birth || !phone) {
+            alert('이름, 생년월일, 휴대폰번호를 모두 입력해주세요.');
+            return;
+          }
+          // 인증 성공 처리
+          certified = true;
+          document.getElementById('certify-success').classList.remove('hidden');
+          document.getElementById('signup-submit').disabled = false;
+          alert('본인인증이 완료되었습니다! (실제 서비스에서는 통신사 인증이 필요합니다)');
+        };
+        // 비밀번호 확인 일치 검사
+        const pw1 = document.getElementById('signup-password');
+        const pw2 = document.getElementById('signup-password2');
+        const pwError = document.getElementById('pw-match-error');
+        const signupSubmit = document.getElementById('signup-submit');
+        function checkPwMatch() {
+          if (pw1.value && pw2.value && pw1.value !== pw2.value) {
+            pwError.classList.remove('hidden');
+            signupSubmit.disabled = true;
+          } else {
+            pwError.classList.add('hidden');
+            if (certified && pw1.value && pw2.value && pw1.value === pw2.value) {
+              signupSubmit.disabled = false;
+            } else {
+              signupSubmit.disabled = true;
+            }
+          }
+        }
+        pw1.addEventListener('input', checkPwMatch);
+        pw2.addEventListener('input', checkPwMatch);
+        // 회원가입 폼 제출 시 본인인증 체크
+        document.getElementById('signup-form').onsubmit = function(e) {
+          e.preventDefault();
+          
+          if (!certified) {
+            showToast('본인인증을 완료해주세요!', 'error');
+            return;
+          }
+          
+          // 입력값 검증 및 보안 처리
+          const name = sanitizeInput(document.getElementById('signup-name').value.trim());
+          const email = sanitizeInput(document.getElementById('signup-email').value.trim());
+          const password = document.getElementById('signup-password').value;
+          const phone = sanitizeInput(document.getElementById('signup-phone').value.trim());
+          const kakao = sanitizeInput(document.getElementById('signup-kakao').value.trim());
+          
+          // 입력값 검증
+          if (!validateInput(name, 'name')) {
+            showToast('이름을 올바르게 입력해주세요 (2-20자, 한글/영문)', 'error');
+            return;
+          }
+          
+          if (!validateInput(email, 'email')) {
+            showToast('올바른 이메일 주소를 입력해주세요', 'error');
+            return;
+          }
+          
+          if (!validateInput(password, 'password')) {
+            showToast('비밀번호는 8자 이상, 영문/숫자/특수문자 포함해야 합니다', 'error');
+            return;
+          }
+          
+          if (!validateInput(phone, 'phone')) {
+            showToast('올바른 휴대폰 번호를 입력해주세요 (10-11자리)', 'error');
+            return;
+          }
+          
+          const user = {
+            name: name,
+            email: email,
+            password: password,
+            phone: phone,
+            kakao: kakao
+          };
+          
+          localStorage.setItem('user', JSON.stringify(user));
+          localStorage.setItem('loggedIn', 'true'); // 회원가입 시 로그인 상태로 전환
+          document.getElementById('signup-modal').classList.add('hidden');
+          document.body.style.overflow = '';
+          updateAuthUI();
+          showToast('회원가입이 완료되었습니다!', 'success');
+        };
+        // 마이페이지 모달 열기/닫기
+        const mypageBtn = document.getElementById('mypage-btn');
+        if (mypageBtn) {
+          mypageBtn.onclick = function() {
+            window.location.href = 'mypage.html';
+          };
+        }
+        document.getElementById('close-mypage').onclick = function() {
+          document.getElementById('mypage-modal').classList.add('hidden');
+          document.body.style.overflow = '';
+        };
+        // 마이페이지 정보 수정
+        document.getElementById('mypage-form').onsubmit = function(e) {
+          e.preventDefault();
+          const user = JSON.parse(localStorage.getItem('user') || '{}');
+          user.name = document.getElementById('mypage-name').value;
+          user.email = document.getElementById('mypage-email').value;
+          user.phone = document.getElementById('mypage-phone').value;
+          user.kakao = document.getElementById('mypage-kakao').value;
+          localStorage.setItem('user', JSON.stringify(user));
+          document.getElementById('mypage-modal').classList.add('hidden');
+          alert('정보가 수정되었습니다!');
+        };
+        // 버튼 클릭 시 result-admin.html 이동
+        var adminResultBtn = document.getElementById('admin-result-btn');
+        if (adminResultBtn) {
+          adminResultBtn.onclick = function() {
+            window.location.href = 'result-admin.html';
+          };
+        }
+        // 로그인 모달 열기/닫기
+        document.getElementById('login-btn').onclick = function() {
+          document.getElementById('login-modal').classList.remove('hidden');
+          document.body.style.overflow = 'hidden';
+        };
+        document.getElementById('close-login').onclick = function() {
+          document.getElementById('login-modal').classList.add('hidden');
+          document.getElementById('login-error').classList.add('hidden');
+          document.body.style.overflow = '';
+        };
+        // 로그인 폼 제출
+        document.getElementById('login-form').onsubmit = function(e) {
+          e.preventDefault();
+          
+          const email = sanitizeInput(document.getElementById('login-email').value.trim());
+          const password = document.getElementById('login-password').value;
+          
+          // 입력값 검증
+          if (!validateInput(email, 'email')) {
+            showToast('올바른 이메일 주소를 입력해주세요', 'error');
+            return;
+          }
+          
+          if (!password || password.length < 6) {
+            showToast('비밀번호를 올바르게 입력해주세요', 'error');
+            return;
+          }
+          
+          const user = JSON.parse(localStorage.getItem('user') || 'null');
+          if (user && user.email === email && user.password === password) {
+            localStorage.setItem('loggedIn', 'true');
+            document.getElementById('login-modal').classList.add('hidden');
+            document.getElementById('login-error').classList.add('hidden');
+            document.body.style.overflow = '';
+            updateAuthUI();
+            showToast('로그인 성공!', 'success');
+          } else {
+            document.getElementById('login-error').classList.remove('hidden');
+            showToast('이메일 또는 비밀번호가 올바르지 않습니다', 'error');
+          }
+        };
+        // 로그아웃
+        var logoutBtn = document.getElementById('logout-btn');
+        if (logoutBtn) {
+          logoutBtn.onclick = function() {
+            localStorage.setItem('loggedIn', 'false');
+            updateAuthUI();
+            showToast('로그아웃 되었습니다.', 'success');
+          };
+        }
+        // 관리자 해제 버튼 null 체크 및 안내 메시지 보강
+        var adminLogoutBtn = document.getElementById('admin-logout-btn');
+        if (adminLogoutBtn) {
+          adminLogoutBtn.onclick = function() {
+            adminLogout();
+          };
+        }
+
+        (function() {
+          var adminClickCount = 0;
+          var adminClickTimer = null;
+          var adminDot = document.getElementById('admin-hero-trigger');
+          if (adminDot) {
+            adminDot.onclick = function() {
+              adminClickCount++;
+              if (adminClickTimer) clearTimeout(adminClickTimer);
+              adminClickTimer = setTimeout(function() { adminClickCount = 0; }, 2000);
+              if (adminClickCount === 3) {
+                adminClickCount = 0;
+                tryAdminLogin();
+              }
+            };
+          }
+        })();
+
+        // 최저가 요청하기(버전2) 버튼 클릭 시 로그인 체크
+        var reqBtn = document.getElementById('request-v2-btn');
+        if (reqBtn) {
+          reqBtn.onclick = function() {
+            var loggedIn = localStorage.getItem('loggedIn') === 'true';
+            if (loggedIn) {
+              window.location.href = 'request-v2.html';
+            } else {
+              // 로그인 모달 열기
+              var loginModal = document.getElementById('login-modal');
+              if (loginModal) loginModal.classList.remove('hidden');
+            }
+          };
+        }
+        
+        // 의뢰결과입력 버튼 이벤트 연결
+        var adminResultBtn = document.getElementById('admin-result-btn');
+        if (adminResultBtn) {
+          adminResultBtn.onclick = function() {
+            window.location.href = 'result-admin.html';
+          };
+        }
+        
+        // 1:1 문의 확인 버튼 클릭 시 이동
+        var adminInquiryBtn = document.getElementById('admin-inquiry-btn');
+        if (adminInquiryBtn) {
+          adminInquiryBtn.onclick = function() {
+            window.location.href = 'inquiry-admin.html';
+          };
+        }
+      });
+    </script>
+    <!-- 프로세스(4단계) 섹션: 히어로 바로 아래 -->
+    <section class="w-full bg-[#f8fafc] py-32 px-4">
+      <div class="max-w-7xl mx-auto">
+        <div class="flex flex-col md:flex-row md:items-stretch md:justify-between gap-0 items-center relative">
+          <!-- 1단계: 제품요청 -->
+          <div class="flex flex-col items-center text-center process-step opacity-0 bg-white rounded-3xl shadow-2xl p-8 md:p-10 hover:scale-105 hover:shadow-3xl cursor-pointer relative md:w-1/4">
+            <span class="absolute top-6 left-6 bg-blue-500 text-white font-bold rounded-full w-10 h-10 flex items-center justify-center text-2xl shadow">1</span>
+            <div class="mb-10">
+              <svg class="w-28 h-28 text-blue-500" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="4" stroke="currentColor"/><path d="M8 8h8M8 12h8M8 16h4" stroke-linecap="round"/></svg>
+            </div>
+            <div class="text-3xl font-extrabold mb-3 text-gray-800">제품요청</div>
+            <div class="text-gray-600 text-xl">구매하고 싶은 제품을 간단히 의뢰합니다.</div>
+          </div>
+          <!-- 1-2단계 화살표 -->
+          <div class="process-arrow flex justify-center items-center py-2 md:py-0 md:px-2" aria-hidden="true">
+            <svg class="w-10 h-10 text-blue-400 md:block hidden" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 48 48"><path d="M8 24h32M32 16l8 8-8 8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <svg class="w-10 h-10 text-blue-400 md:hidden" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 48 48"><path d="M24 8v32M16 32l8 8 8-8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <!-- 2단계: 최저가 탐색 -->
+          <div class="flex flex-col items-center text-center process-step opacity-0 bg-white rounded-3xl shadow-2xl p-8 md:p-10 hover:scale-105 hover:shadow-3xl cursor-pointer relative md:w-1/4">
+            <span class="absolute top-6 left-6 bg-emerald-500 text-white font-bold rounded-full w-10 h-10 flex items-center justify-center text-2xl shadow">2</span>
+            <div class="mb-10">
+              <svg class="w-28 h-28 text-emerald-500" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" stroke="currentColor"/><path d="M21 21l-4.35-4.35" stroke-linecap="round"/></svg>
+            </div>
+            <div class="text-3xl font-extrabold mb-3 text-gray-800">최저가 탐색</div>
+            <div class="text-gray-600 text-xl">공장가, 도매가 등 다양한 경로로 최저가를 찾습니다.</div>
+          </div>
+          <!-- 2-3단계 화살표 -->
+          <div class="process-arrow flex justify-center items-center py-2 md:py-0 md:px-2" aria-hidden="true">
+            <svg class="w-10 h-10 text-emerald-400 md:block hidden" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 48 48"><path d="M8 24h32M32 16l8 8-8 8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <svg class="w-10 h-10 text-emerald-400 md:hidden" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 48 48"><path d="M24 8v32M16 32l8 8 8-8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <!-- 3단계: 결과 안내 -->
+          <div class="flex flex-col items-center text-center process-step opacity-0 bg-white rounded-3xl shadow-2xl p-8 md:p-10 hover:scale-105 hover:shadow-3xl cursor-pointer relative md:w-1/4">
+            <span class="absolute top-6 left-6 bg-pink-500 text-white font-bold rounded-full w-10 h-10 flex items-center justify-center text-2xl shadow">3</span>
+            <div class="mb-10">
+              <svg class="w-28 h-28 text-pink-500" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M12 19v.01" stroke-linecap="round"/><path d="M12 5a7 7 0 0 1 7 7v3a3 3 0 0 0 2 2.83V19H3v-1.17A3 3 0 0 0 5 15v-3a7 7 0 0 1 7-7Z"/></svg>
+            </div>
+            <div class="text-3xl font-extrabold mb-3 text-gray-800">결과 안내</div>
+            <div class="text-gray-600 text-xl">2~3일 내 최저가 결과를 안내해드립니다.</div>
+          </div>
+          <!-- 3-4단계 화살표 -->
+          <div class="process-arrow flex justify-center items-center py-2 md:py-0 md:px-2" aria-hidden="true">
+            <svg class="w-10 h-10 text-pink-400 md:block hidden" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 48 48"><path d="M8 24h32M32 16l8 8-8 8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <svg class="w-10 h-10 text-pink-400 md:hidden" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 48 48"><path d="M24 8v32M16 32l8 8 8-8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <!-- 4단계: 구매 연결 -->
+          <div class="flex flex-col items-center text-center process-step opacity-0 bg-white rounded-3xl shadow-2xl p-8 md:p-10 hover:scale-105 hover:shadow-3xl cursor-pointer relative md:w-1/4">
+            <span class="absolute top-6 left-6 bg-amber-500 text-white font-bold rounded-full w-10 h-10 flex items-center justify-center text-2xl shadow">4</span>
+            <div class="mb-10">
+              <svg class="w-28 h-28 text-amber-500" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M7 17l5-5 5 5" stroke-linecap="round" stroke-linejoin="round"/><rect x="4" y="4" width="16" height="16" rx="4"/></svg>
+            </div>
+            <div class="text-3xl font-extrabold mb-3 text-gray-800">구매 연결</div>
+            <div class="text-gray-600 text-xl">최저가 링크를 통해 바로 구매할 수 있습니다.</div>
+          </div>
+        </div>
+      </div>
+      <style>
+        @keyframes fadein-up-strong { from { opacity:0; transform:translateY(60px) scale(1);} to { opacity:1; transform:translateY(0) scale(1); box-shadow:0 8px 32px 0 rgba(0,0,0,0.12);} }
+        .process-step.fadein-up-strong.visible { animation: fadein-up-strong 10s cubic-bezier(.4,0,.2,1) both; }
+        .process-step.fadein-up-strong.visible:nth-of-type(1) { animation-delay: 0s; }
+        .process-step.fadein-up-strong.visible:nth-of-type(3) { animation-delay: 2.5s; }
+        .process-step.fadein-up-strong.visible:nth-of-type(5) { animation-delay: 5s; }
+        .process-step.fadein-up-strong.visible:nth-of-type(7) { animation-delay: 7.5s; }
+        .process-step, .process-arrow {
+          opacity: 0;
+          transform: translateY(40px) scale(0.96);
+          box-shadow: 0 0 0 0 rgba(0,0,0,0);
+          transition: opacity 1.2s ease, transform 1.2s ease, box-shadow 1.2s ease;
+        }
+        .process-step.visible, .process-arrow.visible {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+          box-shadow: 0 8px 32px 0 rgba(0,0,0,0.12);
+        }
+        
+        /* Lazy Loading 스타일 */
+        .lazy-image {
+          opacity: 0;
+          transition: opacity 0.3s ease-in-out;
+        }
+        
+        .lazy-image.loaded {
+          opacity: 1;
+        }
+        
+        /* 스켈레톤 로딩 */
+        .lazy-image:not(.loaded) {
+          background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+          background-size: 200% 100%;
+          animation: loading 1.5s infinite;
+        }
+        
+        @keyframes loading {
+          0% { background-position: 200% 0; }
+          100% { background-position: -200% 0; }
+        }
+      </style>
+      <script>
+              function enableCaseTextEdit(isAdmin) {
+          for (let i = 1; i <= 4; i++) {
+            const nameEl = document.getElementById(`case-name-${i}`);
+            const descEl = document.getElementById(`case-desc-${i}`);
+            const reviewEl = document.getElementById(`case-review-${i}`);
+            const countryEl = document.getElementById(`case-country-${i}`);
+            const shippingEl = document.getElementById(`case-shipping-${i}`);
+            const methodEl = document.getElementById(`case-method-${i}`);
+
+            if (nameEl) {
+              // nameEl 관련 코드 (onclick, classList 등)
+            }
+            if (descEl) {   
+              // descEl 관련 코드
+            }
+            if (reviewEl) {
+              // reviewEl 관련 코드
+            }
+            if (countryEl) {
+              // countryEl 관련 코드
+            }
+            if (shippingEl) {
+              // shippingEl 관련 코드
+            }
+            if (methodEl) {
+              // methodEl 관련 코드
+            }
+          }
+        }
+        function setAdminMode(isAdmin) {
+          // 관리자 모드 버튼들 표시/숨김
+          var adminModeBtn = document.getElementById('admin-mode-btn');
+          if (adminModeBtn) adminModeBtn.classList.add('hidden');
+          var adminLogoutBtn = document.getElementById('admin-logout-btn');
+          if (adminLogoutBtn) adminLogoutBtn.classList.toggle('hidden', !isAdmin);
+          enableCaseTextEdit(isAdmin);
+          const adminResultBtn = document.getElementById('admin-result-btn');
+          if (adminResultBtn) adminResultBtn.classList.toggle('hidden', !isAdmin);
+          var adminInquiryBtn = document.getElementById('admin-inquiry-btn');
+          if (adminInquiryBtn) adminInquiryBtn.classList.toggle('hidden', !isAdmin);
+        }
+        window.addEventListener('DOMContentLoaded', function() {
+          // 프로세스 카드와 화살표를 순서대로 모두 가져옴
+          const processEls = Array.from(document.querySelectorAll('.process-step, .process-arrow'));
+          let idx = 0;
+          function showNext() {
+            if (idx < processEls.length) {
+              processEls[idx].classList.add('visible');
+              idx++;
+              setTimeout(showNext, 800); // 0.8초 간격
+            }
+          }
+          // 뷰포트에 들어오면 시작(혹은 바로 시작)
+          showNext();
+        });
+      </script>
+    </section>
+  
+    <!-- 구매사례 팝업 -->
+    <div id="case-modal-overlay" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden transition-opacity duration-300" role="dialog" aria-modal="true" aria-labelledby="case-modal-title">
+      <div id="case-modal" class="bg-white rounded-3xl shadow-2xl p-10 max-w-2xl h-auto min-h-[500px] w-full relative scale-95 opacity-0 transition-all duration-300 flex flex-col gap-4 overflow-y-auto max-h-[90vh]">
+        <button id="case-modal-close" class="absolute top-4 right-4 text-2xl text-gray-400 hover:text-gray-700" aria-label="사례 상세 닫기" title="사례 상세 닫기">&times;</button>
+        <button id="case-modal-edit" class="absolute top-4 left-4 px-4 py-2 bg-yellow-300 text-gray-800 font-bold rounded-lg shadow hover:bg-yellow-400 transition hidden" aria-label="사례 수정" title="사례 수정">수정</button>
+        <h2 id="case-modal-title" class="text-2xl font-bold text-blue-700 mb-2">사례 상세</h2>
+        <img id="case-modal-img" src="" alt="제품 이미지" class="w-full max-h-[60vh] object-contain rounded-xl mb-6 bg-gray-100 border" />
+        <h2 id="case-modal-name" class="text-2xl font-bold text-blue-700 mb-2"></h2>
+        <div id="case-modal-desc" class="text-gray-700 mb-3"></div>
+        <div id="case-modal-review" class="text-gray-600 mb-2"></div>
+        <div class="mb-2 text-gray-600"><span id="case-modal-country"></span> | <span id="case-modal-shipping"></span></div>
+        <div class="mb-4 text-gray-800 font-semibold">최저가 확보 방법: <span id="case-modal-method"></span></div>
+      </div>
+    </div>
+    <script>
+        function getCaseProducts() {
+  const saved = localStorage.getItem('caseProducts');
+  if (saved) {
+    try {
+      const arr = JSON.parse(saved);
+      if (Array.isArray(arr) && arr.length > 0) return arr;
+    } catch (e) {}
+  }
+  // 기본값
+  const defaults = [
+    { name: "김OO, 30대 직장인", img: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80", desc: "정가 대비 40% 저렴하게 해외직구!", review: "음질도 좋고 배송도 빨랐어요!", country: "대한민국", shipping: "2일", method: "공장 직접구매", badge: "실제 구매자", stars: 5, date: "2024-06-28" },
+    { name: "이OO, 20대 대학생", img: "https://images.unsplash.com/photo-1503602642458-232111445657?auto=format&fit=crop&w=600&q=80", desc: "국내 최저가보다 30% 저렴!", review: "해외직구보다 더 싸게 샀어요.", country: "미국", shipping: "7일", method: "도매처 연동", badge: "실제 구매자", stars: 4.5, date: "2024-06-25" },
+    { name: "박OO, 40대 주부", img: "https://images.unsplash.com/photo-1465101046530-73398c7f28ca?auto=format&fit=crop&w=600&q=80", desc: "한정판도 저렴하게 득템!", review: "한정판도 공장가로 득템! 만족합니다.", country: "일본", shipping: "5일", method: "공장 직접구매", badge: "실제 구매자", stars: 5, date: "2024-06-20" },
+    { name: "최OO, 50대 자영업자", img: "https://images.unsplash.com/photo-1512499617640-c2f999098c01?auto=format&fit=crop&w=600&q=80", desc: "직구로 50% 절약!", review: "타건감 최고, 가격도 만족!", country: "중국", shipping: "8일", method: "공장 직접구매", badge: "실제 구매자", stars: 4.8, date: "2024-06-18" },
+    { name: "정OO, 20대 신혼부부", img: "https://images.unsplash.com/photo-1515378791036-0648a3ef77b2?auto=format&fit=crop&w=600&q=80", desc: "신혼가전도 최저가로!", review: "냉장고, 세탁기 모두 만족! 배송도 빠름.", country: "대한민국", shipping: "3일", method: "도매처 연동", badge: "실제 구매자", stars: 5, date: "2024-06-15" },
+    { name: "오OO, 30대 1인가구", img: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80", desc: "생활용품도 저렴하게!", review: "혼자 사는데 필요한 소형가전, 생활용품 다 싸게 샀어요.", country: "대한민국", shipping: "2일", method: "공장 직접구매", badge: "실제 구매자", stars: 4.7, date: "2024-06-10" },
+    { name: "유OO, 60대 부모님 선물", img: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80", desc: "부모님 건강용품도 최저가!", review: "안마기, 건강식품 모두 만족! 부모님이 좋아하셨어요.", country: "대한민국", shipping: "2일", method: "공장 직접구매", badge: "실제 구매자", stars: 5, date: "2024-06-08" },
+    { name: "장OO, 10대 학생", img: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80", desc: "학용품, IT기기까지!", review: "노트북, 태블릿, 학용품 다 싸게 샀어요.", country: "대한민국", shipping: "2일", method: "공장 직접구매", badge: "실제 구매자", stars: 4.9, date: "2024-06-05" },
+    { name: "서OO, 30대 취미러", img: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80", desc: "취미용품도 저렴하게!", review: "기타, 캠핑용품, 운동기구까지 다 만족!", country: "대한민국", shipping: "2일", method: "공장 직접구매", badge: "실제 구매자", stars: 5, date: "2024-06-01" },
+    { name: "문OO, 40대 직장인", img: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80", desc: "패션/잡화도 OK!", review: "가방, 신발, 액세서리까지 다 싸게 샀어요.", country: "대한민국", shipping: "2일", method: "공장 직접구매", badge: "실제 구매자", stars: 4.6, date: "2024-05-28" },
+    { name: "이OO, 30대 프리랜서", img: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80", desc: "사무용품도 최저가!", review: "프린터, 모니터, 의자까지 다 만족!", country: "대한민국", shipping: "2일", method: "공장 직접구매", badge: "실제 구매자", stars: 4.8, date: "2024-05-25" },
+    { name: "최OO, 20대 대학생", img: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80", desc: "전자기기도 저렴하게!", review: "스마트폰, 이어폰, 노트북 다 싸게 샀어요.", country: "대한민국", shipping: "2일", method: "공장 직접구매", badge: "실제 구매자", stars: 5, date: "2024-05-20" },
+    // 사업자/대량구매 샘플 추가
+    { name: "박OO, 40대 사업자", img: "https://images.unsplash.com/photo-1515378791036-0648a3ef77b2?auto=format&fit=crop&w=600&q=80", desc: "사무실 비품 대량구매도 최저가!", review: "프린터, 의자, 책상 등 대량구매도 빠르고 저렴하게 해결!", country: "대한민국", shipping: "3일", method: "도매처 연동", badge: "사업자 대량구매", stars: 5, date: "2024-06-27" },
+    { name: "이OO, 30대 온라인셀러", img: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80", desc: "온라인 판매용 상품도 대량구매 OK!", review: "도매가로 대량구매해서 마진이 크게 남았어요.", country: "중국", shipping: "7일", method: "공장 직접구매", badge: "사업자 대량구매", stars: 4.9, date: "2024-06-22" },
+    { name: "최OO, 50대 유통업자", img: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80", desc: "유통용 생활용품 대량구매", review: "생활용품 1000개 단위로도 빠르고 안전하게 공급받았습니다.", country: "대한민국", shipping: "5일", method: "도매처 연동", badge: "사업자 대량구매", stars: 5, date: "2024-06-18" },
+    { name: "정OO, 30대 카페운영자", img: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80", desc: "카페 소모품 대량구매도 OK!", review: "종이컵, 빨대, 냅킨 등 대량구매도 저렴하게 해결!", country: "대한민국", shipping: "2일", method: "공장 직접구매", badge: "사업자 대량구매", stars: 4.8, date: "2024-06-12" }
+  ];
+  localStorage.setItem('caseProducts', JSON.stringify(defaults));
+  return defaults;
+}
+
+
+
+
+// 버튼 이벤트 연결
+window.addEventListener('DOMContentLoaded', function() {
+  document.getElementById('case-modal-close').onclick = closeCaseModal;
+  document.getElementById('case-modal-overlay').onclick = function(e) {
+    if (e.target === this) closeCaseModal();
+  };
+});
+
+function closeCaseModal() {
+  const overlay = document.getElementById('case-modal-overlay');
+  const modal = document.getElementById('case-modal');
+  modal.classList.remove('opacity-100','scale-100');
+  modal.classList.add('opacity-0','scale-95');
+  overlay.classList.remove('opacity-100');
+  setTimeout(() => { overlay.classList.add('hidden'); }, 300);
+  document.body.style.overflow = '';
+}
+
+    </script>
+    <script>
+// ... existing code ...
+// 최소주문금액 안내 팝업
+function showMinOrderPopupIfNeeded() {
+  const popup = document.getElementById('min-order-popup');
+  const closeBtn = document.getElementById('close-min-order-popup');
+  const hideToday = document.getElementById('hide-popup-today');
+  const today = new Date().toISOString().slice(0,10);
+  const hideKey = 'hideMinOrderPopup';
+  const hideValue = localStorage.getItem(hideKey);
+  if (hideValue === today) return; // 오늘은 안보임
+  popup.style.display = 'flex';
+  closeBtn.onclick = function() {
+    if (hideToday.checked) {
+      localStorage.setItem(hideKey, today);
+    }
+    popup.style.display = 'none';
+    document.body.style.overflow = '';
+  };
+}
+document.addEventListener('DOMContentLoaded', showMinOrderPopupIfNeeded);
+// ... existing code ...
+    </script>
+    <script>
+// ... existing code ...
+// 슬라이더 아래 안내문구 추가
+const caseDots = document.getElementById('case-dots');
+if (caseDots && caseDots.parentElement) {
+  let moreGuide = document.getElementById('case-more-guide');
+  if (!moreGuide) {
+    moreGuide = document.createElement('div');
+    moreGuide.id = 'case-more-guide';
+    moreGuide.className = 'text-center text-sm text-gray-500 mt-2';
+    moreGuide.innerHTML = '더 많은 후기는 슬라이드(→) 버튼이나 ●●●●를 눌러 확인하세요!';
+    caseDots.parentElement.appendChild(moreGuide);
+  }
+}
+// ... existing code ...
+    </script>
+    <script>
+// ... existing code ...
+// 마이페이지 정보 수정 성공 메시지 표시
+function showMypageSuccess() {
+  const msg = document.getElementById('mypage-success');
+  if (msg) {
+    msg.classList.remove('hidden');
+    setTimeout(() => msg.classList.add('hidden'), 1500);
+  }
+}
+document.getElementById('mypage-form').onsubmit = function(e) {
+  e.preventDefault();
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  user.name = document.getElementById('mypage-name').value;
+  user.email = document.getElementById('mypage-email').value;
+  user.phone = document.getElementById('mypage-phone').value;
+  user.kakao = document.getElementById('mypage-kakao').value;
+  localStorage.setItem('user', JSON.stringify(user));
+  document.getElementById('mypage-modal').classList.add('hidden');
+  showMypageSuccess();
+};
+// 회원가입 성공 메시지 표시
+function showSignupSuccess() {
+  const msg = document.getElementById('signup-success');
+  if (msg) {
+    msg.classList.remove('hidden');
+    setTimeout(() => msg.classList.add('hidden'), 1500);
+  }
+}
+document.getElementById('signup-form').onsubmit = function(e) {
+  if (!certified) {
+    e.preventDefault();
+    alert('본인인증을 완료해주세요!');
+    return;
+  }
+  e.preventDefault();
+  const user = {
+    name: document.getElementById('signup-name').value,
+    email: document.getElementById('signup-email').value,
+    password: document.getElementById('signup-password').value,
+    phone: document.getElementById('signup-phone').value,
+    kakao: document.getElementById('signup-kakao').value
+  };
+  localStorage.setItem('user', JSON.stringify(user));
+  localStorage.setItem('loggedIn', 'true'); // 회원가입 시 로그인 상태로 전환
+  document.getElementById('signup-modal').classList.add('hidden');
+  updateAuthUI();
+  showSignupSuccess();
+};
+// 로그아웃 성공 메시지 표시
+function showLogoutSuccess() {
+  const msg = document.getElementById('logout-success');
+  if (msg) {
+    msg.classList.remove('hidden');
+    setTimeout(() => msg.classList.add('hidden'), 1500);
+  }
+}
+var logoutBtn = document.getElementById('logout-btn');
+if (logoutBtn) {
+  logoutBtn.onclick = function() {
+    localStorage.setItem('loggedIn', 'false');
+    updateAuthUI();
+    showLogoutSuccess();
+  };
+}
+// ... 기존 코드 ...
+    </script>
+    <!-- 로그아웃 성공 메시지(상단 고정) -->
+    <div id="logout-success" class="fixed top-20 left-1/2 -translate-x-1/2 z-50 text-emerald-600 text-center mt-3 hidden flex items-center justify-center gap-2 animate-fadein bg-white/90 px-6 py-3 rounded-xl shadow-lg">
+      <svg class="w-5 h-5 text-emerald-500 animate-bounce" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 12l2 2 4-4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>로그아웃 되었습니다.</span>
+    </div>
+    <script>
+// 빈 배열이 저장되어 있으면 자동으로 삭제(복구)
+(function() {
+  const saved = localStorage.getItem('caseProducts');
+  if (saved) {
+    try {
+      const arr = JSON.parse(saved);
+      if (Array.isArray(arr) && arr.length === 0) {
+        localStorage.removeItem('caseProducts');
+      }
+    } catch (e) {}
+  }
+})();
+// ... 기존 코드 ...
+    </script>
+    <script>
+// ... existing code ...
+// 상세보기/수정 모달 및 수정 기능 최신화
+function openCaseModal(idx) {
+  const p = caseSamples[idx];
+  document.getElementById('case-modal-img').src = p.img;
+  document.getElementById('case-modal-name').textContent = p.name;
+  document.getElementById('case-modal-desc').textContent = p.desc;
+  document.getElementById('case-modal-review').textContent = p.review;
+  document.getElementById('case-modal-country').textContent = p.country;
+  document.getElementById('case-modal-shipping').textContent = p.shipping;
+  document.getElementById('case-modal-method').textContent = p.method;
+  // 수정 버튼 노출 여부
+  const isAdmin = localStorage.getItem('isAdmin') === 'true';
+  const editBtn = document.getElementById('case-modal-edit');
+  editBtn.classList.toggle('hidden', !isAdmin);
+  // 수정 버튼 이벤트
+  editBtn.onclick = function() {
+    showCaseEditForm(idx);
+  };
+  // 모달 표시
+  const overlay = document.getElementById('case-modal-overlay');
+  const modal = document.getElementById('case-modal');
+  overlay.classList.remove('hidden');
+  setTimeout(() => {
+    overlay.classList.add('opacity-100');
+    modal.classList.remove('opacity-0','scale-95');
+    modal.classList.add('opacity-100','scale-100');
+  }, 10);
+  document.body.style.overflow = 'hidden';
+}
+
+function showCaseEditForm(idx) {
+  const p = caseSamples[idx];
+  const modal = document.getElementById('case-modal');
+  // 기존 상세정보 숨기기
+  Array.from(modal.children).forEach(el => { if (el.id && el.id.startsWith('case-modal-')) el.style.display = 'none'; });
+  // 기존 폼 제거
+  let form = modal.querySelector('form');
+  if (form) form.remove();
+  form = document.createElement('form');
+  form.className = 'flex flex-col gap-4';
+  form.innerHTML = `
+    <label>이미지
+      <div class="flex flex-col gap-2 items-center">
+        <img id="case-edit-img-preview" src="${p.img}" alt="미리보기" class="w-40 h-40 object-contain rounded-xl border bg-gray-100" />
+        <input type="file" accept="image/*" class="w-full" id="case-edit-img-input" />
+      </div>
+    </label>
+    <label>이름<input type="text" class="w-full px-4 py-2 min-h-[44px] text-sm sm:text-base md:text-lg rounded border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none" value="${p.name}" required></label>
+    <label>설명<input type="text" class="w-full px-4 py-2 min-h-[44px] text-sm sm:text-base md:text-lg rounded border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none" value="${p.desc}" required></label>
+    <label>후기<input type="text" class="w-full px-4 py-2 min-h-[44px] text-sm sm:text-base md:text-lg rounded border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none" value="${p.review}" required></label>
+    <label>국가<input type="text" class="w-full px-4 py-2 min-h-[44px] text-sm sm:text-base md:text-lg rounded border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none" value="${p.country}" required></label>
+    <label>배송<input type="text" class="w-full px-4 py-2 min-h-[44px] text-sm sm:text-base md:text-lg rounded border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none" value="${p.shipping}" required></label>
+    <label>방법<input type="text" class="w-full px-4 py-2 min-h-[44px] text-sm sm:text-base md:text-lg rounded border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none" value="${p.method}" required></label>
+    <div class="flex gap-2 mt-2">
+      <button type="submit" class="flex-1 py-2 min-h-[44px] text-base bg-blue-500 text-white rounded font-bold">저장</button>
+      <button type="button" class="flex-1 py-2 min-h-[44px] text-base bg-gray-200 text-gray-600 rounded font-bold" id="case-edit-cancel">취소</button>
+    </div>
+  `;
+  modal.appendChild(form);
+  // 이미지 파일 첨부 및 미리보기
+  const imgInput = form.querySelector('#case-edit-img-input');
+  const imgPreview = form.querySelector('#case-edit-img-preview');
+  let newImgBase64 = null;
+  imgInput.addEventListener('change', function(e) {
+    const file = e.target.files && e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = function(ev) {
+        imgPreview.src = ev.target.result;
+        newImgBase64 = ev.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+  });
+  // 저장 이벤트
+  form.onsubmit = function(e) {
+    e.preventDefault();
+    // 이미지가 새로 선택된 경우에만 p.img를 변경
+    if (newImgBase64 !== null) {
+      p.img = newImgBase64;
+    }
+    p.name = form.children[1].querySelector('input').value;
+    p.desc = form.children[2].querySelector('input').value;
+    p.review = form.children[3].querySelector('input').value;
+    p.country = form.children[4].querySelector('input').value;
+    p.shipping = form.children[5].querySelector('input').value;
+    p.method = form.children[6].querySelector('input').value;
+    localStorage.setItem('caseProducts', JSON.stringify(caseSamples));
+    renderCaseSlider();
+    openCaseModal(idx);
+  };
+  // 취소 이벤트
+  form.querySelector('#case-edit-cancel').onclick = function() {
+    form.remove();
+    Array.from(modal.children).forEach(el => { if (el.id && el.id.startsWith('case-modal-')) el.style.display = ''; });
+  };
+}
+// ... 기존 코드 ...
+    </script>
+    <script>
+// ... existing code ...
+// 1. Toast 피드백 메시지 함수 추가
+function showToast(msg, type = 'success') {
+  let toast = document.getElementById('global-toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'global-toast';
+    toast.className = 'fixed top-8 left-1/2 -translate-x-1/2 z-[9999] px-6 py-3 rounded-xl shadow-lg text-white text-lg font-bold flex items-center gap-2 transition-all duration-300 opacity-0 pointer-events-none';
+    document.body.appendChild(toast);
+  }
+  toast.textContent = msg;
+  toast.className = 'fixed top-8 left-1/2 -translate-x-1/2 z-[9999] px-6 py-3 rounded-xl shadow-lg text-white text-lg font-bold flex items-center gap-2 transition-all duration-300 opacity-100 pointer-events-auto ' + (type === 'error' ? 'bg-red-500' : 'bg-emerald-600');
+  setTimeout(() => { toast.classList.add('opacity-0'); }, 1500);
+}
+
+// 2. 모달/팝업 esc로 닫기, 포커스 이동, transition 보강
+window.addEventListener('keydown', function(e) {
+  const overlay = document.getElementById('case-modal-overlay');
+  if (!overlay || overlay.classList.contains('hidden')) return;
+  if (e.key === 'Escape') closeCaseModal();
+});
+function openCaseModal(idx) {
+  const p = caseSamples[idx];
+  document.getElementById('case-modal-img').src = p.img;
+  document.getElementById('case-modal-img').alt = p.name + ' 이미지';
+  document.getElementById('case-modal-name').textContent = p.name;
+  document.getElementById('case-modal-desc').textContent = p.desc;
+  document.getElementById('case-modal-review').textContent = p.review;
+  document.getElementById('case-modal-country').textContent = p.country;
+  document.getElementById('case-modal-shipping').textContent = p.shipping;
+  document.getElementById('case-modal-method').textContent = p.method;
+  // 수정 버튼 노출 여부
+  const isAdmin = localStorage.getItem('isAdmin') === 'true';
+  const editBtn = document.getElementById('case-modal-edit');
+  editBtn.classList.toggle('hidden', !isAdmin);
+  editBtn.setAttribute('aria-label', '사례 수정');
+  editBtn.setAttribute('title', '사례 수정');
+  // 수정 버튼 이벤트
+  editBtn.onclick = function() {
+    showCaseEditForm(idx);
+  };
+  // 모달 표시
+  const overlay = document.getElementById('case-modal-overlay');
+  const modal = document.getElementById('case-modal');
+  overlay.classList.remove('hidden');
+  setTimeout(() => {
+    overlay.classList.add('opacity-100');
+    modal.classList.remove('opacity-0','scale-95');
+    modal.classList.add('opacity-100','scale-100');
+    // 포커스 이동
+    modal.setAttribute('tabindex', '-1');
+    modal.focus();
+  }, 10);
+  document.body.style.overflow = 'hidden';
+}
+function closeCaseModal() {
+  const overlay = document.getElementById('case-modal-overlay');
+  const modal = document.getElementById('case-modal');
+  modal.classList.remove('opacity-100','scale-100');
+  modal.classList.add('opacity-0','scale-95');
+  overlay.classList.remove('opacity-100');
+  setTimeout(() => { overlay.classList.add('hidden'); }, 300);
+  document.body.style.overflow = '';
+}
+// 3. 수정 폼 접근성/모바일/피드백 보강
+function showCaseEditForm(idx) {
+  const p = caseSamples[idx];
+  const modal = document.getElementById('case-modal');
+  Array.from(modal.children).forEach(el => { if (el.id && el.id.startsWith('case-modal-')) el.style.display = 'none'; });
+  let form = modal.querySelector('form');
+  if (form) form.remove();
+  form = document.createElement('form');
+  form.className = 'flex flex-col gap-4';
+  form.setAttribute('aria-label', '사례 수정 폼');
+  form.innerHTML = `
+    <label>이미지
+      <div class="flex flex-col gap-2 items-center">
+        <img id="case-edit-img-preview" src="${p.img}" alt="미리보기" class="w-40 h-40 object-contain rounded-xl border bg-gray-100" />
+        <input type="file" accept="image/*" class="w-full min-h-[44px]" id="case-edit-img-input" aria-label="이미지 첨부" />
+      </div>
+    </label>
+    <label>이름<input type="text" class="w-full px-4 py-2 min-h-[44px] text-base sm:text-lg rounded border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none" value="${p.name}" required aria-label="이름" /></label>
+    <label>설명<input type="text" class="w-full px-4 py-2 min-h-[44px] text-base sm:text-lg rounded border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none" value="${p.desc}" required aria-label="설명" /></label>
+    <label>후기<input type="text" class="w-full px-4 py-2 min-h-[44px] text-base sm:text-lg rounded border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none" value="${p.review}" required aria-label="후기" /></label>
+    <label>국가<input type="text" class="w-full px-4 py-2 min-h-[44px] text-base sm:text-lg rounded border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none" value="${p.country}" required aria-label="국가" /></label>
+    <label>배송<input type="text" class="w-full px-4 py-2 min-h-[44px] text-base sm:text-lg rounded border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none" value="${p.shipping}" required aria-label="배송" /></label>
+    <label>방법<input type="text" class="w-full px-4 py-2 min-h-[44px] text-base sm:text-lg rounded border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none" value="${p.method}" required aria-label="방법" /></label>
+    <div class="flex gap-2 mt-2">
+      <button type="submit" class="flex-1 py-2 min-h-[44px] text-base bg-blue-500 text-white rounded font-bold" aria-label="저장">저장</button>
+      <button type="button" class="flex-1 py-2 min-h-[44px] text-base bg-gray-200 text-gray-600 rounded font-bold" id="case-edit-cancel" aria-label="취소">취소</button>
+    </div>
+  `;
+  modal.appendChild(form);
+  // 이미지 파일 첨부 및 미리보기
+  const imgInput = form.querySelector('#case-edit-img-input');
+  const imgPreview = form.querySelector('#case-edit-img-preview');
+  let newImgBase64 = null;
+  imgInput.addEventListener('change', function(e) {
+    const file = e.target.files && e.target.files[0];
+    if (file) {
+      if (!file.type.startsWith('image/')) {
+        showToast('이미지 파일만 첨부 가능합니다.', 'error');
+        imgInput.value = '';
+        return;
+      }
+      if (file.size > 2 * 1024 * 1024) { // 2MB 제한
+        showToast('2MB 이하 이미지만 첨부 가능합니다.', 'error');
+        imgInput.value = '';
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = function(ev) {
+        imgPreview.src = ev.target.result;
+        newImgBase64 = ev.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+  });
+  // 저장 이벤트
+  form.onsubmit = function(e) {
+    e.preventDefault();
+    // 필수값 검증
+    let valid = true;
+    Array.from(form.querySelectorAll('input[type=text]')).forEach(input => {
+      if (!input.value.trim()) {
+        input.classList.add('border-red-500');
+        valid = false;
+      } else {
+        input.classList.remove('border-red-500');
+      }
+    });
+    if (!valid) {
+      showToast('모든 항목을 입력해 주세요.', 'error');
+      return;
+    }
+    if (newImgBase64 !== null) {
+      p.img = newImgBase64;
+    }
+    p.name = form.children[1].querySelector('input').value;
+    p.desc = form.children[2].querySelector('input').value;
+    p.review = form.children[3].querySelector('input').value;
+    p.country = form.children[4].querySelector('input').value;
+    p.shipping = form.children[5].querySelector('input').value;
+    p.method = form.children[6].querySelector('input').value;
+    localStorage.setItem('caseProducts', JSON.stringify(caseSamples));
+    renderCaseSlider();
+    openCaseModal(idx);
+    showToast('저장되었습니다!');
+  };
+  // 취소 이벤트
+  form.querySelector('#case-edit-cancel').onclick = function() {
+    form.remove();
+    Array.from(modal.children).forEach(el => { if (el.id && el.id.startsWith('case-modal-')) el.style.display = ''; });
+  };
+}
+// ... 기존 코드 ...
+    </script>
+    <script>
+// ... existing code ...
+// 마이페이지 모달 내 '내 활동' 섹션 추가 및 데이터 표시
+// 1. 마이페이지 모달에 내 활동 영역 추가 (주문/문의/답변)
+(function addMyActivitySection() {
+  const mypageModal = document.getElementById('mypage-modal');
+  if (!mypageModal) return;
+  let activity = document.getElementById('mypage-activity');
+  if (!activity) {
+    activity = document.createElement('div');
+    activity.id = 'mypage-activity';
+    activity.className = 'mt-8';
+    activity.innerHTML = `
+      <h3 class="text-xl font-bold text-blue-700 mb-3">내 활동</h3>
+      <div class="flex flex-col gap-4">
+        <div>
+          <div class="font-semibold text-gray-700 mb-1">주문 내역</div>
+          <ul id="mypage-orders" class="bg-gray-50 rounded-xl p-3 text-sm min-h-[44px]"></ul>
+        </div>
+        <div>
+          <div class="font-semibold text-gray-700 mb-1">문의 내역</div>
+          <ul id="mypage-contacts" class="bg-gray-50 rounded-xl p-3 text-sm min-h-[44px]"></ul>
+        </div>
+        <div>
+          <div class="font-semibold text-gray-700 mb-1">답변 내역</div>
+          <ul id="mypage-answers" class="bg-gray-50 rounded-xl p-3 text-sm min-h-[44px]"></ul>
+        </div>
+      </div>
+    `;
+    mypageModal.querySelector('form').after(activity);
+  }
+})();
+
+// 2. 내 활동 데이터 렌더링 함수 (localStorage 기반, robust)
+function renderMyActivity() {
+  // 주문 내역 (예시: localStorage.orders = [{name, date, price}])
+  let orders = [];
+  try {
+    orders = JSON.parse(localStorage.getItem('orders') || '[]');
+    if (!Array.isArray(orders)) orders = [];
+  } catch (e) { orders = []; }
+  const ordersUl = document.getElementById('mypage-orders');
+  if (ordersUl) {
+    ordersUl.innerHTML = orders.length ? orders.map(o => `<li class="py-1 border-b last:border-b-0 flex flex-col sm:flex-row sm:items-center sm:gap-2"><span class="font-bold">${o.name}</span><span class="text-gray-500 ml-2">${o.date || ''}</span><span class="text-pink-600 ml-2">${o.price ? o.price + '원' : ''}</span></li>`).join('') : '<li class="text-gray-400">주문 내역이 없습니다.</li>';
+  }
+  // 문의 내역 (예시: localStorage.contacts = [{title, date, status}])
+  let contacts = [];
+  try {
+    contacts = JSON.parse(localStorage.getItem('contacts') || '[]');
+    if (!Array.isArray(contacts)) contacts = [];
+  } catch (e) { contacts = []; }
+  const contactsUl = document.getElementById('mypage-contacts');
+  if (contactsUl) {
+    contactsUl.innerHTML = contacts.length ? contacts.map(c => `<li class="py-1 border-b last:border-b-0 flex flex-col sm:flex-row sm:items-center sm:gap-2"><span class="font-bold">${c.title}</span><span class="text-gray-500 ml-2">${c.date || ''}</span><span class="ml-2">${c.status || ''}</span></li>`).join('') : '<li class="text-gray-400">문의 내역이 없습니다.</li>';
+  }
+  // 답변 내역 (예시: localStorage.answers = [{title, date, answer}])
+  let answers = [];
+  try {
+    answers = JSON.parse(localStorage.getItem('answers') || '[]');
+    if (!Array.isArray(answers)) answers = [];
+  } catch (e) { answers = []; }
+  const answersUl = document.getElementById('mypage-answers');
+  if (answersUl) {
+    answersUl.innerHTML = answers.length ? answers.map(a => `<li class="py-1 border-b last:border-b-0 flex flex-col sm:flex-row sm:items-center sm:gap-2"><span class="font-bold">${a.title}</span><span class="text-gray-500 ml-2">${a.date || ''}</span><span class="ml-2 text-emerald-700">${a.answer ? '답변완료' : '대기중'}</span></li>`).join('') : '<li class="text-gray-400">답변 내역이 없습니다.</li>';
+  }
+}
+// 3. 마이페이지 열릴 때마다 내 활동 렌더링
+const mypageBtn = document.getElementById('mypage-btn');
+if (mypageBtn) {
+  mypageBtn.addEventListener('click', function() {
+    setTimeout(renderMyActivity, 100); // 모달 열림 후 렌더링
+  });
+}
+// ... 기존 코드 ...
+    </script>
+    <script>
+// ... existing code ...
+// 내 활동 예시 데이터 자동 적용 (없을 때만)
+(function ensureMyActivityDemoData() {
+  if (!localStorage.getItem('orders')) {
+    localStorage.setItem('orders', JSON.stringify([
+      {name: '노트북', date: '2024-07-01', price: 1200000},
+      {name: '스마트워치', date: '2024-07-02', price: 250000}
+    ]));
+  }
+  if (!localStorage.getItem('contacts')) {
+    localStorage.setItem('contacts', JSON.stringify([
+      {title: '배송 문의', date: '2024-07-03', status: '답변대기'},
+      {title: '환불 요청', date: '2024-07-04', status: '답변완료'}
+    ]));
+  }
+  if (!localStorage.getItem('answers')) {
+    localStorage.setItem('answers', JSON.stringify([
+      {title: '배송 문의', date: '2024-07-03', answer: '배송중입니다.'},
+      {title: '환불 요청', date: '2024-07-04', answer: ''}
+    ]));
+  }
+})();
+// ... 기존 코드 ...
+    </script>
+    <script>
+// ... existing code ...
+
+// ... 기존 코드 ...
+    </script>
+  </body>
+</html>
+
+
+

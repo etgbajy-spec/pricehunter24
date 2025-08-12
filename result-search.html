@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>의뢰 결과 조회 | PriceHunter</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+      body { font-family: 'Noto Sans KR', 'Inter', sans-serif; }
+      .fade-in { animation: fadeIn 0.7s; }
+      @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+      .spinner {
+        border: 4px solid #e5e7eb;
+        border-top: 4px solid #38bdf8;
+        border-radius: 50%;
+        width: 2.5rem;
+        height: 2.5rem;
+        animation: spin 1s linear infinite;
+        margin: 0 auto;
+      }
+      @keyframes spin { 100% { transform: rotate(360deg); } }
+      
+      /* 이미지 스타일링 */
+      #result-summary img {
+        max-width: 100%;
+        height: auto;
+        margin: 10px 0;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        display: block;
+      }
+      
+      /* 리치 텍스트 내용 스타일링 */
+      #result-summary {
+        line-height: 1.6;
+        word-wrap: break-word;
+      }
+      
+      #result-summary p {
+        margin: 8px 0;
+      }
+      
+      #result-summary strong {
+        font-weight: bold;
+      }
+      
+      #result-summary em {
+        font-style: italic;
+      }
+      
+      #result-summary u {
+        text-decoration: underline;
+      }
+    </style>
+  </head>
+  <body class="bg-gradient-to-br from-blue-50 via-emerald-50 to-pink-50 min-h-screen flex items-center justify-center px-2">
+    <main class="w-full max-w-2xl bg-white/90 rounded-3xl shadow-2xl p-8 md:p-12 flex flex-col items-center text-center backdrop-blur-md mt-8 mb-8">
+      <h1 class="text-2xl md:text-3xl font-extrabold text-blue-600 mb-6">의뢰 결과 조회</h1>
+      <div class="w-full mb-6">
+        <label class="block text-gray-700 font-semibold mb-2 text-left" for="search-input">
+          의뢰번호 또는 휴대폰 번호로 결과를 조회할 수 있습니다.
+        </label>
+        <div class="flex flex-col md:flex-row gap-3">
+          <input id="search-input" type="text" class="flex-1 px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none transition text-lg" placeholder="#PH-000000 또는 010-1234-5678" />
+        </div>
+        <!-- CAPTCHA Placeholder -->
+        <div class="mt-4 flex justify-center">
+          <div class="bg-gray-100 rounded-lg px-4 py-2 text-gray-400 text-sm select-none">(여기에 CAPTCHA가 들어갈 수 있습니다)</div>
+        </div>
+        <button id="search-btn" class="mt-6 w-full py-3 bg-gradient-to-r from-blue-400 to-emerald-400 text-white font-bold rounded-lg shadow-lg hover:scale-105 transition-all duration-300 text-lg">조회하기</button>
+      </div>
+      <!-- 내 의뢰 리스트 (로그인 시) -->
+      <div id="my-request-list-section" class="w-full mb-8 hidden">
+        <div class="font-bold text-blue-700 mb-2 text-left">내가 의뢰한 내역</div>
+        <ul id="my-request-list" class="bg-blue-50 rounded-xl shadow-inner divide-y divide-blue-100 text-left"></ul>
+      </div>
+      <!-- Loading Animation -->
+      <div id="loading" class="hidden my-8"><div class="spinner"></div><div class="mt-2 text-blue-400 font-semibold">결과를 불러오는 중...</div></div>
+      <!-- Result Card -->
+      <div id="result-card" class="hidden w-full fade-in">
+        <div class="bg-white rounded-2xl shadow-lg p-6 mb-4 text-left">
+          <!-- 진행상황 배지 -->
+          <div class="mb-4 flex justify-between items-center">
+            <div class="text-lg font-bold text-gray-800">의뢰 상세 정보</div>
+            <div id="status-badge" class="px-3 py-1 rounded-full text-sm font-bold text-white"></div>
+          </div>
+          
+          <!-- 의뢰 정보 -->
+          <div class="mb-4 p-4 bg-gray-50 rounded-lg">
+            <div class="mb-2 text-gray-600"><span class="font-semibold">의뢰번호:</span> <span id="request-num"></span></div>
+            <div class="mb-2 text-gray-600"><span class="font-semibold">제품명:</span> <span id="request-name"></span></div>
+            <div class="mb-2 text-gray-600"><span class="font-semibold">제품설명:</span> <span id="request-desc"></span></div>
+            <div class="mb-2 text-gray-600"><span class="font-semibold">참고사이트:</span> <span id="request-url"></span></div>
+            <div class="mb-2 text-gray-600"><span class="font-semibold">희망가격:</span> <span id="request-price"></span></div>
+            <div class="mb-2 text-gray-600"><span class="font-semibold">의뢰일시:</span> <span id="request-date"></span></div>
+          </div>
+          
+          <!-- 결과 정보 -->
+          <div id="result-info" class="hidden">
+            <div class="mb-3 flex flex-col md:flex-row md:items-center md:justify-between">
+              <div class="text-xl font-bold text-gray-800 mb-2 md:mb-0">최저가: <span id="result-price" class="text-emerald-600">₩123,000</span></div>
+            </div>
+            <div class="mb-2 text-gray-600">원산지/공급처: <span id="result-origin">대한민국 / PriceHunter 공식</span></div>
+            <div class="mb-4">
+              <div class="font-semibold text-gray-700 mb-1">종합설명</div>
+              <div id="result-summary" class="text-gray-700 bg-gray-50 rounded-xl p-4 min-h-[60px] overflow-hidden">가격, 원산지, 상품특징 등 전체적인 설명이 여기에 표시됩니다.</div>
+            </div>
+            
+            <!-- 구매 옵션 -->
+            <div class="mb-4 p-4 bg-gradient-to-r from-blue-50 to-emerald-50 rounded-xl border border-blue-100">
+              <div class="font-bold text-gray-800 mb-3 text-center">구매 옵션을 선택해주세요</div>
+              <div class="flex flex-col md:flex-row gap-3">
+                <button id="buy-direct-btn" onclick="goToDirectPurchase()" class="flex-1 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold rounded-lg shadow-lg hover:scale-105 transition-all duration-300">
+                  <div class="text-lg">🛒</div>
+                  <div class="text-sm">PriceHunter에서 직접구매</div>
+                  <div class="text-xs opacity-90">안전한 결제 & 빠른 배송</div>
+                </button>
+                <button id="buy-external-btn" onclick="goToExternalPurchase()" class="flex-1 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-bold rounded-lg shadow-lg hover:scale-105 transition-all duration-300">
+                  <div class="text-lg">🛍️</div>
+                  <div class="text-sm">최저가 쇼핑몰에서 구매</div>
+                  <div class="text-xs opacity-90">외부 링크로 이동</div>
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 진행중 메시지 -->
+          <div id="progress-message" class="hidden">
+            <div class="text-center py-8">
+              <div class="text-2xl mb-2">🔄</div>
+              <div class="text-lg font-bold text-gray-700 mb-2">의뢰 처리 중입니다</div>
+              <div class="text-gray-500">PriceHunter가 최저가를 찾고 있습니다.</div>
+              <div class="text-sm text-gray-400 mt-2">완료되면 자동으로 알림을 드립니다.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- No Result Message -->
+      <div id="no-result" class="hidden w-full fade-in">
+        <div class="bg-white rounded-2xl shadow-lg p-6 text-center text-gray-500">
+          <div class="text-lg font-bold mb-2">조회된 결과가 없습니다.</div>
+          <div class="text-sm">입력하신 정보를 다시 확인해주세요.</div>
+        </div>
+      </div>
+      <!-- Help Text -->
+      <div class="mt-8 text-gray-400 text-sm">
+        결과 조회가 어렵다면 고객센터로 문의해주세요.<br/>
+        <span class="font-semibold">문의: contact@pricehunter.kr</span>
+      </div>
+    </main>
+    <script>
+      const searchBtn = document.getElementById('search-btn');
+      let currentReqKey = ''; // 현재 표시된 의뢰의 키
+      const loading = document.getElementById('loading');
+      const resultCard = document.getElementById('result-card');
+      const noResult = document.getElementById('no-result');
+      
+      // 진행상황 판단 함수
+      function getRequestStatus(reqKey) {
+        const reqNum = reqKey.replace('request-', '');
+        const hasResult = !!localStorage.getItem('result-' + reqNum);
+        
+        if (!hasResult) {
+          return { status: 'new', text: '신규의뢰', color: 'bg-red-500' };
+        }
+        
+        const result = JSON.parse(localStorage.getItem('result-' + reqNum) || '{}');
+        if (result.price && result.origin && result.summary && result.link) {
+          return { status: 'complete', text: '완료', color: 'bg-green-500' };
+        }
+        
+        return { status: 'progress', text: '진행중', color: 'bg-orange-500' };
+      }
+      
+      function getMyRequestList(email) {
+        const list = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key.startsWith('request-')) {
+            const req = JSON.parse(localStorage.getItem(key));
+            if (req.email === email) {
+              list.push({ key, ...req });
+            }
+          }
+        }
+        // 최신순 정렬(가장 최근이 위로)
+        return list.sort((a, b) => (b.date || 0) - (a.date || 0));
+      }
+      
+      function renderMyRequestList() {
+        const user = JSON.parse(localStorage.getItem('user') || 'null');
+        const loggedIn = localStorage.getItem('loggedIn') === 'true';
+        const section = document.getElementById('my-request-list-section');
+        const ul = document.getElementById('my-request-list');
+        if (!loggedIn || !user) {
+          section.classList.add('hidden');
+          return;
+        }
+        const list = getMyRequestList(user.email);
+        section.classList.remove('hidden');
+        ul.innerHTML = '';
+        if (list.length === 0) {
+          ul.innerHTML = '<li class="py-4 text-center text-gray-400">내가 의뢰한 내역이 없습니다.</li>';
+          return;
+        }
+        list.forEach(req => {
+          const li = document.createElement('li');
+          li.className = 'py-3 px-4 hover:bg-blue-100 cursor-pointer flex justify-between items-center';
+          
+          const status = getRequestStatus(req.key);
+          const statusBadge = `<span class="px-2 py-1 rounded text-xs font-bold text-white ${status.color}">${status.text}</span>`;
+          
+          li.innerHTML = `
+            <div class="flex items-center gap-3">
+              <span class="font-semibold text-blue-600">${req.key.replace('request-','')}</span>
+              <span class="text-gray-700">${req.name}</span>
+              ${statusBadge}
+            </div>
+            <span class="text-xs text-gray-400">${req.date ? new Date(req.date).toLocaleString() : ''}</span>
+          `;
+          li.onclick = function() { 
+            currentReqKey = req.key; // 전역 변수에 현재 의뢰 키 저장
+            showResultByKey(req.key.replace('request-','')); 
+          };
+          ul.appendChild(li);
+        });
+      }
+      
+      function showResultByKey(key) {
+        console.log('=== showResultByKey 호출 ===');
+        console.log('입력된 key:', key);
+        
+        // 결과 카드 표시
+        const resultCard = document.getElementById('result-card');
+        const noResult = document.getElementById('no-result');
+        const resultInfo = document.getElementById('result-info');
+        const progressMessage = document.getElementById('progress-message');
+        
+        resultCard.classList.add('hidden');
+        noResult.classList.add('hidden');
+        
+        // 의뢰 정보 찾기
+        const requestKey = 'request-' + key;
+        currentReqKey = requestKey; // 전역 변수에 현재 의뢰 키 저장
+        console.log('설정된 currentReqKey:', currentReqKey);
+        const requestData = localStorage.getItem(requestKey);
+        
+        if (!requestData) {
+          noResult.classList.remove('hidden');
+          return;
+        }
+        
+        const request = JSON.parse(requestData);
+        resultCard.classList.remove('hidden');
+        
+        // 의뢰 정보 표시
+        const requestNumElement = document.getElementById('request-num');
+        if (requestNumElement) {
+          requestNumElement.textContent = key;
+        } else {
+          console.error('request-num 요소를 찾을 수 없습니다.');
+          return;
+        }
+        const requestNameElement = document.getElementById('request-name');
+        const requestDescElement = document.getElementById('request-desc');
+        const requestPriceElement = document.getElementById('request-price');
+        const requestDateElement = document.getElementById('request-date');
+        
+        if (requestNameElement) requestNameElement.textContent = request.name || '';
+        if (requestDescElement) requestDescElement.textContent = request.desc || '';
+        if (requestPriceElement) requestPriceElement.textContent = request.price || '';
+        if (requestDateElement) requestDateElement.textContent = request.date ? new Date(request.date).toLocaleString() : '';
+        
+        // 참고사이트 표시
+        const urlEl = document.getElementById('request-url');
+        if (request.urls && Array.isArray(request.urls)) {
+          urlEl.innerHTML = request.urls.map(u => {
+            if (/^https?:\/\//.test(u)) {
+              return `<a href="${u}" target="_blank" class="text-blue-600 underline break-all mr-2">${u}</a>`;
+            } else {
+              return `<span class="text-gray-700 bg-gray-100 rounded px-2 py-1 mr-2">${u}</span>`;
+            }
+          }).join('');
+        } else if (request.url) {
+          urlEl.innerHTML = `<a href="${request.url}" target="_blank" class="text-blue-600 underline break-all">${request.url}</a>`;
+        } else {
+          urlEl.innerHTML = '없음';
+        }
+        
+        // 진행상황 표시
+        const status = getRequestStatus(requestKey);
+        const statusBadge = document.getElementById('status-badge');
+        statusBadge.textContent = status.text;
+        statusBadge.className = `px-3 py-1 rounded-full text-sm font-bold text-white ${status.color}`;
+        
+        // 결과 정보 확인
+        const resultData = localStorage.getItem('result-' + key);
+        if (resultData) {
+          const result = JSON.parse(resultData);
+          resultInfo.classList.remove('hidden');
+          progressMessage.classList.add('hidden');
+          
+          const resultPriceElement = document.getElementById('result-price');
+          const resultOriginElement = document.getElementById('result-origin');
+          const resultSummaryElement = document.getElementById('result-summary');
+          const resultLinkElement = document.getElementById('result-link');
+          
+          if (resultPriceElement) resultPriceElement.textContent = result.price || '';
+          if (resultOriginElement) resultOriginElement.textContent = result.origin || '';
+          if (resultSummaryElement) {
+            renderRichContent(resultSummaryElement, result.summary);
+          }
+          
+          if (resultLinkElement) {
+            if (result.link) {
+              resultLinkElement.textContent = result.link;
+              resultLinkElement.href = result.link;
+            } else {
+              resultLinkElement.textContent = '링크 정보 없음';
+              resultLinkElement.href = '#';
+            }
+          }
+        } else {
+          resultInfo.classList.add('hidden');
+          progressMessage.classList.remove('hidden');
+        }
+      }
+      
+      // 이미지가 포함된 HTML 내용을 안전하게 렌더링하는 함수
+      function renderRichContent(element, content) {
+        if (!element) return;
+        
+        if (content && content.trim()) {
+          element.innerHTML = content;
+        } else {
+          element.textContent = '설명 정보 없음';
+        }
+      }
+      
+      // 구매 버튼 기능
+      function goToDirectPurchase() {
+        console.log('=== 구매 버튼 클릭 ===');
+        console.log('currentReqKey:', currentReqKey);
+        
+        // 현재 표시된 의뢰 정보를 전역 변수에서 가져오기
+        if (!currentReqKey) {
+          alert('의뢰 정보를 찾을 수 없습니다. 먼저 의뢰 결과를 조회해주세요.');
+          return;
+        }
+        
+        const currentKey = currentReqKey.replace('request-', '');
+        const requestKey = currentReqKey;
+        const requestData = localStorage.getItem(requestKey);
+        const resultData = localStorage.getItem('result-' + currentKey);
+        
+        console.log('구매 버튼 클릭:', {
+          currentReqKey: currentReqKey,
+          currentKey: currentKey,
+          requestKey: requestKey,
+          requestData: requestData,
+          resultData: resultData
+        });
+        
+        // localStorage의 모든 키 확인
+        console.log('localStorage 모든 키:');
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          console.log(key, ':', localStorage.getItem(key));
+        }
+        
+        if (!requestData || !resultData) {
+          alert('구매 정보를 불러올 수 없습니다.\n\n의뢰번호: ' + currentKey + '\n요청 데이터: ' + (requestData ? '있음' : '없음') + '\n결과 데이터: ' + (resultData ? '있음' : '없음'));
+          return;
+        }
+        
+        const request = JSON.parse(requestData);
+        const result = JSON.parse(resultData);
+        
+        console.log('파싱된 데이터:', { request, result });
+        
+        // 결제 페이지로 이동 (새 창)
+        const paymentUrl = `payment.html?req=${currentKey}&price=${encodeURIComponent(result.price)}&name=${encodeURIComponent(request.name)}&origin=${encodeURIComponent(result.origin)}`;
+        console.log('결제 URL:', paymentUrl);
+        
+        // 새 창 열기
+        const paymentWindow = window.open(paymentUrl, '_blank', 'width=1000,height=800,scrollbars=yes,resizable=yes');
+        
+        if (paymentWindow) {
+          console.log('결제 창이 성공적으로 열렸습니다.');
+        } else {
+          console.error('결제 창을 열 수 없습니다. 팝업 차단을 확인해주세요.');
+          alert('결제 창을 열 수 없습니다. 브라우저의 팝업 차단을 해제해주세요.');
+        }
+      }
+      
+      function goToExternalPurchase() {
+        if (!currentReqKey) {
+          alert('의뢰 정보를 찾을 수 없습니다. 먼저 의뢰 결과를 조회해주세요.');
+          return;
+        }
+        
+        const currentKey = currentReqKey.replace('request-', '');
+        const resultData = localStorage.getItem('result-' + currentKey);
+        
+        if (!resultData) {
+          alert('구매 링크를 찾을 수 없습니다.');
+          return;
+        }
+        
+        const result = JSON.parse(resultData);
+        
+        if (!result.link || result.link === '링크 정보 없음') {
+          alert('최저가 쇼핑몰 링크가 등록되지 않았습니다.');
+          return;
+        }
+        
+        // 외부 링크로 이동
+        if (confirm('최저가 쇼핑몰로 이동하시겠습니까?')) {
+          // 외부 구매 정보 저장
+          const purchaseInfo = {
+            method: 'external',
+            status: 'ordered',
+            orderDate: new Date().toISOString(),
+            externalLink: result.link,
+            productName: request.name,
+            price: result.price,
+            origin: result.origin
+          };
+          localStorage.setItem('order-' + currentKey, JSON.stringify(purchaseInfo));
+          
+          window.open(result.link, '_blank');
+        }
+      }
+      
+      window.addEventListener('DOMContentLoaded', function() {
+        renderMyRequestList();
+      });
+      
+      searchBtn.onclick = function() {
+        resultCard.classList.add('hidden');
+        noResult.classList.add('hidden');
+        loading.classList.remove('hidden');
+        setTimeout(() => {
+          loading.classList.add('hidden');
+          const val = document.getElementById('search-input').value.trim();
+          showResultByKey(val);
+        }, 1200);
+      };
+    </script>
+  </body>
+</html> 
