@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>본인인증 결과 | PriceHunter</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Noto Sans KR', 'Inter', sans-serif; }
+        .fade-in { animation: fadeIn 0.7s; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+    </style>
+</head>
+<body class="gradient-bg min-h-screen flex items-center justify-center py-8 px-4">
+    <div class="max-w-md w-full bg-white rounded-2xl shadow-2xl p-8 text-center fade-in">
+        <!-- 결과 아이콘 -->
+        <div id="result-icon" class="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
+            <!-- 성공/실패에 따라 동적으로 변경됨 -->
+        </div>
+
+        <!-- 제목 -->
+        <h1 id="result-title" class="text-2xl font-bold text-gray-800 mb-4">본인인증 결과</h1>
+        
+        <!-- 메시지 -->
+        <p id="result-message" class="text-gray-600 mb-6">
+            <!-- 성공/실패에 따라 동적으로 변경됨 -->
+        </p>
+
+        <!-- 인증 정보 (성공 시에만 표시) -->
+        <div id="verification-info" class="bg-gray-50 rounded-lg p-4 mb-6 text-left hidden">
+            <h3 class="font-semibold text-gray-800 mb-2">인증 정보</h3>
+            <div id="verification-details" class="text-sm text-gray-600">
+                <!-- 인증 정보가 여기에 표시됩니다 -->
+            </div>
+        </div>
+
+        <!-- 버튼들 -->
+        <div class="space-y-3">
+            <button id="close-btn" class="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 transition duration-200">
+                창 닫기
+            </button>
+            <button id="retry-btn" class="w-full bg-gray-200 text-gray-800 py-3 px-6 rounded-lg font-semibold hover:bg-gray-300 transition duration-200 hidden">
+                다시 시도하기
+            </button>
+        </div>
+
+        <!-- 고객센터 정보 -->
+        <div class="mt-8 pt-6 border-t border-gray-200">
+            <p class="text-sm text-gray-500 mb-2">문제가 지속되면 고객센터로 문의해주세요</p>
+            <p class="text-sm font-semibold text-gray-700">📞 1588-1234</p>
+        </div>
+    </div>
+
+    <script>
+        // URL 파라미터에서 인증 결과 가져오기
+        function getVerificationResult() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const success = urlParams.get('success') === 'true';
+            const transactionId = urlParams.get('transactionId');
+            const userName = urlParams.get('userName');
+            const birthDate = urlParams.get('birthDate');
+            const phoneNumber = urlParams.get('phoneNumber');
+            
+            displayResult(success, {
+                transactionId: transactionId,
+                userName: userName,
+                birthDate: birthDate,
+                phoneNumber: phoneNumber
+            });
+        }
+
+        // 결과 표시
+        function displayResult(success, data) {
+            const resultIcon = document.getElementById('result-icon');
+            const resultTitle = document.getElementById('result-title');
+            const resultMessage = document.getElementById('result-message');
+            const verificationInfo = document.getElementById('verification-info');
+            const closeBtn = document.getElementById('close-btn');
+            const retryBtn = document.getElementById('retry-btn');
+
+            if (success) {
+                // 성공 시
+                resultIcon.className = 'w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6';
+                resultIcon.innerHTML = `
+                    <svg class="w-10 h-10 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                `;
+                resultTitle.textContent = '본인인증 성공';
+                resultMessage.textContent = '본인인증이 성공적으로 완료되었습니다.';
+                
+                // 인증 정보 표시
+                if (data.userName) {
+                    verificationInfo.classList.remove('hidden');
+                    const verificationDetails = document.getElementById('verification-details');
+                    verificationDetails.innerHTML = `
+                        <div class="mb-2">
+                            <span class="font-medium">이름:</span> ${data.userName}
+                        </div>
+                        <div class="mb-2">
+                            <span class="font-medium">생년월일:</span> ${data.birthDate}
+                        </div>
+                        <div class="mb-2">
+                            <span class="font-medium">휴대폰번호:</span> ${data.phoneNumber}
+                        </div>
+                        <div class="mb-2">
+                            <span class="font-medium">인증번호:</span> ${data.transactionId}
+                        </div>
+                    `;
+                }
+                
+                // 부모 창에 성공 메시지 전송
+                if (window.opener) {
+                    window.opener.postMessage({
+                        type: 'identity_verification_complete',
+                        success: true,
+                        data: data
+                    }, window.opener.location.origin);
+                }
+            } else {
+                // 실패 시
+                resultIcon.className = 'w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6';
+                resultIcon.innerHTML = `
+                    <svg class="w-10 h-10 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                `;
+                resultTitle.textContent = '본인인증 실패';
+                resultMessage.textContent = '본인인증에 실패했습니다. 다시 시도해주세요.';
+                retryBtn.classList.remove('hidden');
+                
+                // 부모 창에 실패 메시지 전송
+                if (window.opener) {
+                    window.opener.postMessage({
+                        type: 'identity_verification_complete',
+                        success: false,
+                        data: data
+                    }, window.opener.location.origin);
+                }
+            }
+        }
+
+        // 창 닫기
+        document.getElementById('close-btn').onclick = function() {
+            window.close();
+        };
+
+        // 다시 시도하기
+        document.getElementById('retry-btn').onclick = function() {
+            if (window.opener) {
+                window.opener.postMessage({
+                    type: 'identity_verification_retry'
+                }, window.opener.location.origin);
+            }
+            window.close();
+        };
+
+        // 페이지 로드 시 결과 표시
+        window.addEventListener('DOMContentLoaded', function() {
+            getVerificationResult();
+        });
+    </script>
+</body>
+</html> 

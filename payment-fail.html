@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>결제 실패 | PriceHunter</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Noto Sans KR', 'Inter', sans-serif; }
+        .fade-in { animation: fadeIn 0.7s; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+    </style>
+</head>
+<body class="gradient-bg min-h-screen flex items-center justify-center py-8 px-4">
+    <div class="max-w-md w-full bg-white rounded-2xl shadow-2xl p-8 text-center fade-in">
+        <!-- 실패 아이콘 -->
+        <div class="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <svg class="w-10 h-10 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+        </div>
+
+        <!-- 제목 -->
+        <h1 class="text-2xl font-bold text-gray-800 mb-4">결제 실패</h1>
+        
+        <!-- 메시지 -->
+        <p class="text-gray-600 mb-6">
+            결제 처리 중 문제가 발생했습니다.<br>
+            다시 시도해주시거나 다른 결제 방법을 이용해주세요.
+        </p>
+
+        <!-- 주문 정보 -->
+        <div id="order-info" class="bg-gray-50 rounded-lg p-4 mb-6 text-left">
+            <h3 class="font-semibold text-gray-800 mb-2">주문 정보</h3>
+            <div id="order-details" class="text-sm text-gray-600">
+                <!-- 주문 정보가 여기에 표시됩니다 -->
+            </div>
+        </div>
+
+        <!-- 버튼들 -->
+        <div class="space-y-3">
+            <button onclick="retryPayment()" class="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 transition duration-200">
+                다시 결제하기
+            </button>
+            <button onclick="goToHome()" class="w-full bg-gray-200 text-gray-800 py-3 px-6 rounded-lg font-semibold hover:bg-gray-300 transition duration-200">
+                홈으로 돌아가기
+            </button>
+        </div>
+
+        <!-- 고객센터 정보 -->
+        <div class="mt-8 pt-6 border-t border-gray-200">
+            <p class="text-sm text-gray-500 mb-2">문제가 지속되면 고객센터로 문의해주세요</p>
+            <p class="text-sm font-semibold text-gray-700">📞 1588-1234</p>
+        </div>
+    </div>
+
+    <script>
+        // URL 파라미터에서 주문 정보 가져오기
+        function getOrderInfo() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const orderNumber = urlParams.get('order');
+            
+            if (orderNumber) {
+                // localStorage에서 주문 정보 가져오기
+                const orderInfo = localStorage.getItem('order-' + orderNumber);
+                if (orderInfo) {
+                    const order = JSON.parse(orderInfo);
+                    displayOrderInfo(order);
+                }
+            }
+        }
+
+        // 주문 정보 표시
+        function displayOrderInfo(order) {
+            const orderDetails = document.getElementById('order-details');
+            orderDetails.innerHTML = `
+                <div class="mb-2">
+                    <span class="font-medium">주문번호:</span> ${order.orderNumber}
+                </div>
+                <div class="mb-2">
+                    <span class="font-medium">상품명:</span> ${order.productName}
+                </div>
+                <div class="mb-2">
+                    <span class="font-medium">결제금액:</span> ${order.price}
+                </div>
+                <div class="mb-2">
+                    <span class="font-medium">결제자:</span> ${order.payer.name}
+                </div>
+            `;
+        }
+
+        // 다시 결제하기
+        function retryPayment() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const req = urlParams.get('req');
+            const order = urlParams.get('order');
+            
+            if (req) {
+                window.location.href = `payment.html?req=${req}`;
+            } else if (order) {
+                // 주문 정보에서 의뢰 키 추출
+                const orderInfo = localStorage.getItem('order-' + order);
+                if (orderInfo) {
+                    const orderData = JSON.parse(orderInfo);
+                    // 의뢰 키를 찾아서 다시 결제 페이지로 이동
+                    window.location.href = `payment.html?req=${order}`;
+                } else {
+                    window.location.href = 'index.html';
+                }
+            } else {
+                window.location.href = 'index.html';
+            }
+        }
+
+        // 홈으로 돌아가기
+        function goToHome() {
+            window.location.href = 'index.html';
+        }
+
+        // 페이지 로드 시 주문 정보 표시
+        window.addEventListener('DOMContentLoaded', function() {
+            getOrderInfo();
+        });
+    </script>
+</body>
+</html> 

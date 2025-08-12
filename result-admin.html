@@ -440,19 +440,19 @@
             const request = JSON.parse(localStorage.getItem(reqKey));
             const result = JSON.parse(resultData);
             
-            // 알림 발송 (시뮬레이션)
+            // 실제 알림 발송
             console.log(`=== 일괄 알림 발송: ${reqNum} ===`);
             console.log('수신자:', request.userName, request.phone);
             console.log('알림 방법:', notifyMethod);
             
-            // 카카오톡 알림 (시뮬레이션)
+            // 카카오톡 알림 (실제 API 연동)
             if (notifyMethod === 'both' || notifyMethod === 'kakao') {
-              console.log('📱 카카오톡 알림 발송:', request.phone);
+              sendKakaoNotification(request.phone, request.userName, result);
             }
             
-            // SMS 알림 (시뮬레이션)
+            // SMS 알림 (실제 API 연동)
             if (notifyMethod === 'both' || notifyMethod === 'sms') {
-              console.log('📞 SMS 알림 발송:', request.phone);
+              sendSMSNotification(request.phone, request.userName, result);
             }
             
             // 알림 발송 상태 저장
@@ -1214,12 +1214,112 @@
         loadContent();
       }
       
-      // 초기화
-      window.addEventListener('DOMContentLoaded', function() {
-        renderRequestList();
-        createUserTabs();
-        initRichEditor();
-      });
+              // SMS 알림 발송 함수
+        async function sendSMSNotification(phone, userName, result) {
+          try {
+            // 네이버 클라우드 SMS API 설정
+            const serviceId = 'ncp:sms:kr:123456789012:pricehunter'; // 실제 서비스 ID로 변경 필요
+            const accessKey = 'YOUR_ACCESS_KEY'; // 실제 액세스 키로 변경 필요
+            const secretKey = 'YOUR_SECRET_KEY'; // 실제 시크릿 키로 변경 필요
+            
+            // SMS 내용 구성
+            const message = `[PriceHunter] ${userName}님, 의뢰하신 상품의 최저가 정보가 준비되었습니다. 
+            
+상품명: ${result.productName}
+최저가: ${result.lowestPrice}
+쇼핑몰: ${result.shopName}
+
+자세한 내용은 PriceHunter에서 확인해주세요.
+https://pricehunt24.com/result-search.html?req=${result.requestKey}`;
+
+            // 실제 SMS API 호출 (CORS 이슈로 인해 서버 사이드에서 처리 필요)
+            console.log('📞 SMS 발송 시도:', {
+              phone: phone,
+              message: message,
+              serviceId: serviceId
+            });
+
+            // 서버 사이드 API 호출 시뮬레이션
+            const response = await fetch('/api/send-sms', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                phone: phone,
+                message: message,
+                serviceId: serviceId,
+                accessKey: accessKey,
+                secretKey: secretKey
+              })
+            });
+
+            if (response.ok) {
+              console.log('✅ SMS 발송 성공:', phone);
+              return true;
+            } else {
+              console.error('❌ SMS 발송 실패:', phone);
+              return false;
+            }
+          } catch (error) {
+            console.error('❌ SMS 발송 오류:', error);
+            return false;
+          }
+        }
+
+        // 카카오톡 알림 발송 함수
+        async function sendKakaoNotification(phone, userName, result) {
+          try {
+            // 카카오톡 알림톡 API 설정
+            const apiKey = 'YOUR_KAKAO_API_KEY'; // 실제 API 키로 변경 필요
+            const templateId = 'pricehunter_notification'; // 실제 템플릿 ID로 변경 필요
+            
+            // 알림톡 내용 구성
+            const message = {
+              phone: phone,
+              templateId: templateId,
+              variables: {
+                userName: userName,
+                productName: result.productName,
+                lowestPrice: result.lowestPrice,
+                shopName: result.shopName,
+                requestKey: result.requestKey
+              }
+            };
+
+            console.log('📱 카카오톡 알림톡 발송 시도:', {
+              phone: phone,
+              templateId: templateId
+            });
+
+            // 서버 사이드 API 호출 시뮬레이션
+            const response = await fetch('/api/send-kakao', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(message)
+            });
+
+            if (response.ok) {
+              console.log('✅ 카카오톡 알림톡 발송 성공:', phone);
+              return true;
+            } else {
+              console.error('❌ 카카오톡 알림톡 발송 실패:', phone);
+              return false;
+            }
+          } catch (error) {
+            console.error('❌ 카카오톡 알림톡 발송 오류:', error);
+            return false;
+          }
+        }
+
+        // 초기화
+        window.addEventListener('DOMContentLoaded', function() {
+          renderRequestList();
+          createUserTabs();
+          initRichEditor();
+        });
     </script>
   </body>
 </html> 
