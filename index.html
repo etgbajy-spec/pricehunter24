@@ -6,6 +6,8 @@
     <title>PriceHunter</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 카카오 SDK -->
+    <script src="https://developers.kakao.com/sdk/js/kakao.js"></script>
   </head>
   <body class="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-700 min-h-screen">
     <section class="relative w-full min-h-[70vh] flex flex-col items-center justify-center text-center px-4 py-20 bg-gradient-to-br from-gray-900 to-gray-700 overflow-hidden">
@@ -282,6 +284,10 @@
       <a href="contact.html" id="contact-btn" class="px-3 py-2 sm:px-4 sm:py-3 min-h-[44px] min-w-[44px] text-sm sm:text-base md:text-lg bg-pink-100 text-pink-700 rounded-lg shadow hover:bg-pink-200 transition hidden" aria-label="1:1 문의하기 페이지로 이동" title="1:1 문의하기">1:1문의하기</a>
       <button id="login-btn" class="px-3 py-2 sm:px-4 sm:py-3 min-h-[44px] min-w-[44px] text-sm sm:text-base md:text-lg bg-gray-700 text-white rounded-lg shadow hover:bg-gray-800 focus:ring-2 focus:ring-blue-400 focus:outline-none transition" aria-label="로그인" title="로그인">로그인</button>
       <button id="signup-btn" class="px-3 py-2 sm:px-4 sm:py-3 min-h-[44px] min-w-[44px] text-sm sm:text-base md:text-lg bg-blue-500 text-white rounded-lg shadow hover:bg-blue-600 focus:ring-2 focus:ring-blue-400 focus:outline-none transition" aria-label="회원가입" title="회원가입">회원가입</button>
+      <button id="kakao-login-btn" class="px-3 py-2 sm:px-4 sm:py-3 min-h-[44px] min-w-[44px] text-sm sm:text-base md:text-lg bg-yellow-400 text-black rounded-lg shadow hover:bg-yellow-500 focus:ring-2 focus:ring-yellow-400 focus:outline-none transition flex items-center gap-2" aria-label="카카오로 로그인" title="카카오로 로그인">
+        <span class="text-lg">💬</span>
+        카카오 로그인
+      </button>
       <button id="mypage-btn" class="px-3 py-2 sm:px-4 sm:py-3 min-h-[44px] min-w-[44px] text-sm sm:text-base md:text-lg bg-emerald-500 text-white rounded-lg shadow hover:bg-emerald-600 focus:ring-2 focus:ring-emerald-400 focus:outline-none transition hidden" aria-label="마이페이지" title="마이페이지">마이페이지</button>
       <a href="orders.html" id="orders-btn" class="px-3 py-2 sm:px-4 sm:py-3 min-h-[44px] min-w-[44px] text-sm sm:text-base md:text-lg bg-orange-500 text-white rounded-lg shadow hover:bg-orange-600 focus:ring-2 focus:ring-orange-400 focus:outline-none transition hidden" aria-label="주문목록 페이지로 이동" title="주문목록">주문목록</a>
       <button id="logout-btn" class="px-3 py-2 sm:px-4 sm:py-3 min-h-[44px] min-w-[44px] text-sm sm:text-base md:text-lg bg-gray-400 text-white rounded-lg shadow hover:bg-gray-500 focus:ring-2 focus:ring-gray-400 focus:outline-none transition hidden" aria-label="로그아웃" title="로그아웃">로그아웃</button>
@@ -292,6 +298,27 @@
       <div class="bg-white rounded-2xl shadow-2xl p-4 sm:p-8 w-full max-w-xs sm:max-w-md md:max-w-2xl relative">
         <button id="close-signup" class="absolute top-3 right-3 text-gray-400 hover:text-gray-700 text-2xl" aria-label="회원가입 창 닫기" title="회원가입 창 닫기">&times;</button>
         <h2 id="signup-modal-title" class="text-2xl font-bold text-center mb-6 text-blue-600">회원가입</h2>
+        
+        <!-- 카카오 로그인 섹션 -->
+        <div class="mb-6">
+          <div class="text-center mb-4">
+            <span class="text-gray-500 text-sm">간편하게 카카오로 시작하기</span>
+          </div>
+          <button type="button" id="signup-kakao-login-btn" class="w-full py-3 bg-yellow-400 text-black font-bold rounded-lg shadow hover:bg-yellow-500 transition text-lg flex items-center justify-center gap-2" aria-label="카카오로 회원가입/로그인" title="카카오로 회원가입/로그인">
+            <span class="text-lg">💬</span>
+            카카오로 회원가입/로그인
+          </button>
+        </div>
+        
+        <div class="relative mb-6">
+          <div class="absolute inset-0 flex items-center">
+            <div class="w-full border-t border-gray-300"></div>
+          </div>
+          <div class="relative flex justify-center text-sm">
+            <span class="px-2 bg-white text-gray-500">또는 직접 입력하기</span>
+          </div>
+        </div>
+        
         <form id="signup-form" class="space-y-4">
           <div>
             <label class="block text-gray-700 font-semibold mb-1" for="signup-name">이름</label>
@@ -375,6 +402,27 @@
       <div class="bg-white rounded-2xl shadow-2xl p-4 sm:p-8 w-full max-w-xs sm:max-w-md md:max-w-2xl relative">
         <button id="close-login" class="absolute top-3 right-3 text-gray-400 hover:text-gray-700 text-2xl" aria-label="로그인 창 닫기" title="로그인 창 닫기">&times;</button>
         <h2 id="login-modal-title" class="text-2xl font-bold text-center mb-6 text-gray-700">로그인</h2>
+        
+        <!-- 카카오 로그인 섹션 -->
+        <div class="mb-6">
+          <div class="text-center mb-4">
+            <span class="text-gray-500 text-sm">간편하게 카카오로 시작하기</span>
+          </div>
+          <button type="button" id="login-kakao-login-btn" class="w-full py-3 bg-yellow-400 text-black font-bold rounded-lg shadow hover:bg-yellow-500 transition text-lg flex items-center justify-center gap-2" aria-label="카카오로 로그인" title="카카오로 로그인">
+            <span class="text-lg">💬</span>
+            카카오로 로그인
+          </button>
+        </div>
+        
+        <div class="relative mb-6">
+          <div class="absolute inset-0 flex items-center">
+            <div class="w-full border-t border-gray-300"></div>
+          </div>
+          <div class="relative flex justify-center text-sm">
+            <span class="px-2 bg-white text-gray-500">또는 직접 입력하기</span>
+          </div>
+        </div>
+        
         <form id="login-form" class="space-y-4">
           <div>
             <label class="block text-gray-700 font-semibold mb-1" for="login-email">이메일</label>
@@ -431,6 +479,7 @@
         if (isLoggedIn) {
           document.getElementById('login-btn').style.display = 'none';
           document.getElementById('signup-btn').style.display = 'none';
+          document.getElementById('kakao-login-btn').style.display = 'none';
           document.getElementById('mypage-btn').style.display = 'inline-block';
           document.getElementById('orders-btn').style.display = 'inline-block';
           document.getElementById('logout-btn').style.display = 'inline-block';
@@ -445,6 +494,7 @@
         } else {
           document.getElementById('login-btn').style.display = 'inline-block';
           document.getElementById('signup-btn').style.display = 'inline-block';
+          document.getElementById('kakao-login-btn').style.display = 'inline-block';
           document.getElementById('mypage-btn').style.display = 'none';
           document.getElementById('orders-btn').style.display = 'none';
           document.getElementById('logout-btn').style.display = 'none';
@@ -748,18 +798,20 @@
         // 본인인증(통신사 인증) 버튼
         let certified = false;
         document.getElementById('certify-btn').onclick = function() {
-          // 실제 본인인증 API 연동
+          // 실제 서비스에서는 외부 인증 연동 필요
+          // 데모: 이름, 생년월일, 휴대폰번호가 모두 입력되어야 인증 성공
           const name = document.getElementById('signup-name').value.trim();
           const birth = document.getElementById('signup-birth').value.trim();
           const phone = document.getElementById('signup-phone').value.trim();
-          
           if (!name || !birth || !phone) {
-            showToast('이름, 생년월일, 휴대폰번호를 모두 입력해주세요.', 'error');
+            alert('이름, 생년월일, 휴대폰번호를 모두 입력해주세요.');
             return;
           }
-          
-          // KG이니시스 본인인증 API 호출
-          startIdentityVerification(name, birth, phone);
+          // 인증 성공 처리
+          certified = true;
+          document.getElementById('certify-success').classList.remove('hidden');
+          document.getElementById('signup-submit').disabled = false;
+          alert('본인인증이 완료되었습니다! (실제 서비스에서는 통신사 인증이 필요합니다)');
         };
         // 비밀번호 확인 일치 검사
         const pw1 = document.getElementById('signup-password');
@@ -908,7 +960,17 @@
         var logoutBtn = document.getElementById('logout-btn');
         if (logoutBtn) {
           logoutBtn.onclick = function() {
-            localStorage.setItem('loggedIn', 'false');
+            // 카카오 로그인 사용자인 경우 카카오 로그아웃 처리
+            const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+            if (currentUser.loginType === 'kakao') {
+              Kakao.Auth.logout(function() {
+                console.log('카카오 로그아웃 완료');
+              });
+            }
+            
+            // 로컬 스토리지 정리
+            localStorage.removeItem('loggedIn');
+            localStorage.removeItem('currentUser');
             updateAuthUI();
             showToast('로그아웃 되었습니다.', 'success');
           };
@@ -1684,110 +1746,126 @@ if (mypageBtn) {
     <script>
 // ... existing code ...
 
-        // 본인인증 시작 함수
-        async function startIdentityVerification(name, birth, phone) {
-          try {
-            // KG이니시스 본인인증 API 설정
-            const merchantId = 'YOUR_MERCHANT_ID'; // 실제 상점 ID로 변경 필요
-            const apiKey = 'YOUR_API_KEY'; // 실제 API 키로 변경 필요
-            
-            // 본인인증 요청 데이터
-            const requestData = {
-              merchantId: merchantId,
-              userName: name,
-              birthDate: birth,
-              phoneNumber: phone,
-              returnUrl: window.location.origin + '/identity-verification-result.html',
-              popupYn: 'Y'
-            };
-
-            console.log('🔐 본인인증 시작:', {
-              name: name,
-              birth: birth,
-              phone: phone
-            });
-
-            // 서버 사이드 API 호출 시뮬레이션
-            const response = await fetch('/api/identity-verification/start', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify(requestData)
-            });
-
-            if (response.ok) {
-              const result = await response.json();
-              
-              // 본인인증 팝업 창 열기
-              const popup = window.open(
-                result.verificationUrl,
-                'identity_verification',
-                'width=500,height=600,scrollbars=yes,resizable=yes'
-              );
-
-              // 팝업 창에서 인증 완료 후 처리
-              window.addEventListener('message', function(event) {
-                if (event.origin !== window.location.origin) return;
-                
-                if (event.data.type === 'identity_verification_complete') {
-                  if (event.data.success) {
-                    // 인증 성공 처리
-                    certified = true;
-                    document.getElementById('certify-success').classList.remove('hidden');
-                    document.getElementById('signup-submit').disabled = false;
-                    showToast('본인인증이 완료되었습니다!', 'success');
-                    
-                    // 인증 정보 저장
-                    localStorage.setItem('identity_verified', JSON.stringify({
-                      name: name,
-                      birth: birth,
-                      phone: phone,
-                      verifiedAt: new Date().toISOString()
-                    }));
-                  } else {
-                    showToast('본인인증에 실패했습니다. 다시 시도해주세요.', 'error');
-                  }
-                  
-                  // 팝업 창 닫기
-                  if (popup && !popup.closed) {
-                    popup.close();
-                  }
-                }
-              });
-            } else {
-              showToast('본인인증 서비스에 연결할 수 없습니다.', 'error');
-            }
-          } catch (error) {
-            console.error('본인인증 오류:', error);
-            showToast('본인인증 중 오류가 발생했습니다.', 'error');
-          }
-        }
-
-        // 본인인증 결과 확인 함수
-        async function checkIdentityVerificationResult(transactionId) {
-          try {
-            const response = await fetch('/api/identity-verification/result', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({ transactionId: transactionId })
-            });
-
-            if (response.ok) {
-              const result = await response.json();
-              return result;
-            } else {
-              throw new Error('인증 결과 확인 실패');
-            }
-          } catch (error) {
-            console.error('인증 결과 확인 오류:', error);
-            return null;
-          }
-        }
-
 // ... 기존 코드 ...
+    </script>
+    
+    <!-- 카카오 로그인 스크립트 -->
+    <script>
+      // 카카오 초기화
+      Kakao.init('6917a034b74fafd0ac80ab855af5ed6d');
+      
+      // 카카오 로그인 함수 (공통)
+      function performKakaoLogin() {
+        // 카카오 로그인 실행
+        Kakao.Auth.login({
+          success: function(authObj) {
+            // 로그인 성공 시 사용자 정보 가져오기
+            Kakao.API.request({
+              url: '/v2/user/me',
+              success: function(res) {
+                const userInfo = res.kakao_account;
+                console.log('카카오 로그인 성공:', userInfo);
+                
+                // 사용자 정보를 localStorage에 저장 (현재 수집 가능한 정보만)
+                const userData = {
+                  name: userInfo.profile?.nickname || '카카오 사용자',
+                  email: userInfo.email || `kakao_${res.id}@pricehunter.com`,
+                  phone: '', // 현재 수집 불가 - 나중에 사용자 입력으로 받기
+                  birth: '', // 현재 수집 불가 - 나중에 사용자 입력으로 받기
+                  kakaoId: userInfo.profile?.nickname || '',
+                  loginType: 'kakao',
+                  kakaoId: res.id,
+                  loginTime: Date.now()
+                };
+                
+                // 기존 사용자 데이터와 병합
+                const existingUsers = JSON.parse(localStorage.getItem('users') || '[]');
+                const existingUserIndex = existingUsers.findIndex(user => user.email === userData.email);
+                
+                if (existingUserIndex >= 0) {
+                  // 기존 사용자 정보 업데이트
+                  existingUsers[existingUserIndex] = { ...existingUsers[existingUserIndex], ...userData };
+                } else {
+                  // 새 사용자 추가
+                  existingUsers.push(userData);
+                }
+                
+                localStorage.setItem('users', JSON.stringify(existingUsers));
+                localStorage.setItem('loggedIn', userData.email);
+                localStorage.setItem('currentUser', JSON.stringify(userData));
+                
+                // UI 업데이트
+                updateAuthUI();
+                
+                // 성공 메시지
+                showToast('카카오 로그인 성공!', 'success');
+                
+                // 마이페이지 정보 업데이트
+                updateMyPageInfo(userData);
+                
+                // 모달 닫기
+                const signupModal = document.getElementById('signup-modal');
+                const loginModal = document.getElementById('login-modal');
+                if (signupModal) signupModal.classList.add('hidden');
+                if (loginModal) loginModal.classList.add('hidden');
+              },
+              fail: function(err) {
+                console.error('사용자 정보 조회 실패:', err);
+                showToast('사용자 정보를 가져올 수 없습니다.', 'error');
+              }
+            });
+          },
+          fail: function(err) {
+            console.error('카카오 로그인 실패:', err);
+            showToast('카카오 로그인에 실패했습니다.', 'error');
+          }
+        });
+      }
+      
+      // 메인 카카오 로그인 버튼 이벤트
+      document.getElementById('kakao-login-btn').addEventListener('click', function() {
+        performKakaoLogin();
+      });
+      
+      // 회원가입 모달의 카카오 로그인 버튼 이벤트
+      document.getElementById('signup-kakao-login-btn').addEventListener('click', function() {
+        performKakaoLogin();
+      });
+      
+      // 로그인 모달의 카카오 로그인 버튼 이벤트
+      document.getElementById('login-kakao-login-btn').addEventListener('click', function() {
+        performKakaoLogin();
+      });
+      
+      // 마이페이지 정보 업데이트 함수
+      function updateMyPageInfo(userData) {
+        const mypageName = document.getElementById('mypage-name');
+        const mypageEmail = document.getElementById('mypage-email');
+        const mypagePhone = document.getElementById('mypage-phone');
+        const mypageKakao = document.getElementById('mypage-kakao');
+        
+        if (mypageName) mypageName.value = userData.name || '';
+        if (mypageEmail) mypageEmail.value = userData.email || '';
+        if (mypagePhone) mypagePhone.value = userData.phone || '';
+        if (mypageKakao) mypageKakao.value = userData.kakaoId || '';
+      }
+      
+      // 페이지 로드 시 카카오 로그인 상태 확인
+      window.addEventListener('load', function() {
+        const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        if (currentUser.loginType === 'kakao') {
+          // 카카오 로그인 사용자의 경우 토큰 유효성 확인
+          if (Kakao.Auth.getAccessToken()) {
+            console.log('카카오 토큰 유효');
+          } else {
+            console.log('카카오 토큰 만료');
+            // 토큰이 만료된 경우 로그아웃 처리
+            localStorage.removeItem('loggedIn');
+            localStorage.removeItem('currentUser');
+            updateAuthUI();
+          }
+        }
+      });
     </script>
   </body>
 </html>
