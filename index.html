@@ -1751,11 +1751,18 @@ if (mypageBtn) {
     
     <!-- 카카오 로그인 스크립트 -->
     <script>
-      // 카카오 초기화
-      Kakao.init('6917a034b74fafd0ac80ab855af5ed6d');
+              // 카카오 초기화 (SDK 로딩 확인 후)
+        if (typeof Kakao !== 'undefined') {
+          Kakao.init('6917a034b74fafd0ac80ab855af5ed6d');
+        }
       
       // 카카오 로그인 함수 (공통)
       function performKakaoLogin() {
+        if (typeof Kakao === 'undefined') {
+          showToast('카카오 SDK를 불러오는 중입니다. 잠시 후 다시 시도해주세요.', 'error');
+          return;
+        }
+        
         // 카카오 로그인 실행
         Kakao.Auth.login({
           success: function(authObj) {
