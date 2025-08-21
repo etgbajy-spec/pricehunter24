@@ -109,23 +109,22 @@
               <div id="result-summary" class="text-gray-700 bg-gray-50 rounded-xl p-4 min-h-[60px] overflow-hidden">가격, 원산지, 상품특징 등 전체적인 설명이 여기에 표시됩니다.</div>
             </div>
             
-            <!-- 구매 안내 -->
+            <!-- 구매 옵션 -->
             <div class="mb-4 p-4 bg-gradient-to-r from-blue-50 to-emerald-50 rounded-xl border border-blue-100">
-              <div class="font-bold text-gray-800 mb-3 text-center">💡 구매 안내</div>
+              <div class="font-bold text-gray-800 mb-3 text-center">🛒 구매 옵션</div>
               <div class="text-sm text-gray-600 mb-3">
-                PriceHunter는 <strong>정보 제공 서비스</strong>입니다. 
-                실제 구매는 아래 최저가 쇼핑몰에서 직접 진행해주세요.
+                최저가 정보를 확인했습니다. 원하시는 구매 방법을 선택해주세요.
               </div>
               <div class="flex flex-col md:flex-row gap-3">
                 <button id="buy-external-btn" onclick="goToExternalPurchase()" class="flex-1 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-bold rounded-lg shadow-lg hover:scale-105 transition-all duration-300">
                   <div class="text-lg">🛍️</div>
-                  <div class="text-sm">최저가 쇼핑몰에서 구매</div>
-                  <div class="text-xs opacity-90">외부 링크로 이동</div>
+                  <div class="text-sm">직접 구매하기</div>
+                  <div class="text-xs opacity-90">최저가 쇼핑몰에서 구매</div>
                 </button>
-                <button onclick="showPurchaseGuide()" class="flex-1 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold rounded-lg shadow-lg hover:scale-105 transition-all duration-300">
-                  <div class="text-lg">📋</div>
-                  <div class="text-sm">구매 가이드</div>
-                  <div class="text-xs opacity-90">안전한 구매 방법</div>
+                <button onclick="showPurchaseSupport()" class="flex-1 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold rounded-lg shadow-lg hover:scale-105 transition-all duration-300">
+                  <div class="text-lg">🤝</div>
+                  <div class="text-sm">구매 지원 서비스</div>
+                  <div class="text-xs opacity-90">전담 관리 & 추적</div>
                 </button>
               </div>
             </div>
@@ -400,49 +399,95 @@
         }
       }
       
-      function showPurchaseGuide() {
-        const guideContent = `
+      function showPurchaseSupport() {
+        const supportContent = `
           <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div class="bg-white rounded-lg p-6 max-w-md mx-4">
+            <div class="bg-white rounded-lg p-6 max-w-lg mx-4">
               <div class="flex justify-between items-center mb-4">
-                <h3 class="text-lg font-bold text-gray-800">🛒 안전한 구매 가이드</h3>
+                <h3 class="text-lg font-bold text-gray-800">🤝 구매 지원 서비스</h3>
                 <button onclick="this.closest('.fixed').remove()" class="text-gray-500 hover:text-gray-700">
                   <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                   </svg>
                 </button>
               </div>
-              <div class="space-y-3 text-sm text-gray-600">
-                <div class="flex items-start space-x-2">
-                  <span class="text-blue-500 font-bold">1.</span>
-                  <span>PriceHunter는 <strong>정보 제공 서비스</strong>입니다.</span>
+              <div class="space-y-4">
+                <div class="p-4 bg-blue-50 rounded-lg">
+                  <h4 class="font-bold text-blue-800 mb-2">✨ 프리미엄 구매 지원</h4>
+                  <div class="space-y-2 text-sm text-blue-700">
+                    <div class="flex items-center space-x-2">
+                      <span>✅</span>
+                      <span>전담 구매 대행 서비스</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                      <span>✅</span>
+                      <span>실시간 배송 추적</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                      <span>✅</span>
+                      <span>품질 보증 & 환불 지원</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                      <span>✅</span>
+                      <span>24시간 고객 지원</span>
+                    </div>
+                  </div>
                 </div>
-                <div class="flex items-start space-x-2">
-                  <span class="text-blue-500 font-bold">2.</span>
-                  <span>실제 구매는 <strong>최저가 쇼핑몰</strong>에서 진행됩니다.</span>
+                
+                <div class="p-4 bg-green-50 rounded-lg">
+                  <h4 class="font-bold text-green-800 mb-2">💰 서비스 요금</h4>
+                  <div class="text-sm text-green-700">
+                    <p>• 구매 금액의 <strong>3%</strong> 수수료</p>
+                    <p>• 최소 수수료: <strong>5,000원</strong></p>
+                    <p>• 배송비 별도 (실제 배송비)</p>
+                  </div>
                 </div>
-                <div class="flex items-start space-x-2">
-                  <span class="text-blue-500 font-bold">3.</span>
-                  <span>구매 시 <strong>쇼핑몰의 이용약관</strong>을 확인하세요.</span>
-                </div>
-                <div class="flex items-start space-x-2">
-                  <span class="text-blue-500 font-bold">4.</span>
-                  <span>배송, 환불 등은 <strong>해당 쇼핑몰</strong>에 문의하세요.</span>
-                </div>
-                <div class="flex items-start space-x-2">
-                  <span class="text-blue-500 font-bold">5.</span>
-                  <span>문제 발생 시 <strong>고객센터</strong>로 연락주세요.</span>
+                
+                <div class="p-4 bg-yellow-50 rounded-lg">
+                  <h4 class="font-bold text-yellow-800 mb-2">📞 신청 방법</h4>
+                  <div class="text-sm text-yellow-700">
+                    <p>• 고객센터: <strong>1588-1234</strong></p>
+                    <p>• 카카오톡: <strong>@pricehunter</strong></p>
+                    <p>• 이메일: <strong>support@pricehunter.kr</strong></p>
+                  </div>
                 </div>
               </div>
-              <div class="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded">
-                <p class="text-xs text-yellow-800">
-                  <strong>주의:</strong> PriceHunter는 중개 서비스로, 실제 거래는 쇼핑몰과 고객 간에 이루어집니다.
-                </p>
+              
+              <div class="mt-4 flex space-x-3">
+                <button onclick="this.closest('.fixed').remove(); goToExternalPurchase()" class="flex-1 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition">
+                  직접 구매하기
+                </button>
+                <button onclick="contactSupport()" class="flex-1 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition">
+                  지원 서비스 신청
+                </button>
               </div>
             </div>
           </div>
         `;
-        document.body.insertAdjacentHTML('beforeend', guideContent);
+        document.body.insertAdjacentHTML('beforeend', supportContent);
+      }
+
+      function contactSupport() {
+        const currentKey = currentReqKey.replace('request-', '');
+        const request = JSON.parse(localStorage.getItem(currentReqKey) || '{}');
+        const result = JSON.parse(localStorage.getItem('result-' + currentKey) || '{}');
+        
+        const message = `구매 지원 서비스 신청
+
+의뢰번호: ${currentKey}
+제품명: ${request.name}
+최저가: ${result.price}
+최저가 쇼핑몰: ${result.link}
+
+구매 지원 서비스를 신청합니다.`;
+
+        // 카카오톡 채널로 연결
+        if (confirm('카카오톡 채널로 연결하시겠습니까?')) {
+          window.open('https://open.kakao.com/o/pricehunter', '_blank');
+        }
+        
+        // 모달 닫기
+        document.querySelector('.fixed').remove();
       }
 
       function goToExternalPurchase() {
