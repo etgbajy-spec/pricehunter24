@@ -291,6 +291,33 @@
         imgWrap.innerHTML = '<span class="text-gray-400">(없음)</span>';
       }
     }
+    
+    // 의뢰 상태 업데이트 함수
+    function updateRequestStatus(reqNum, newStatus, newDetail, newProgress) {
+      const requestKey = 'request-' + reqNum;
+      const requestData = JSON.parse(localStorage.getItem(requestKey) || '{}');
+      
+      if (requestData.reqNum) {
+        requestData.status = newStatus;
+        requestData.statusDetail = newDetail;
+        requestData.progress = newProgress;
+        requestData.lastUpdated = Date.now();
+        
+        localStorage.setItem(requestKey, JSON.stringify(requestData));
+        
+        // 상태 변경 알림 (브라우저 알림)
+        if (Notification.permission === 'granted') {
+          new Notification('PriceHunter 의뢰 상태 업데이트', {
+            body: `${newStatus}: ${newDetail}`,
+            icon: '/favicon.ico'
+          });
+        }
+        
+        return true;
+      }
+      return false;
+    }
+    
     // 제출
     document.getElementById('step-form').addEventListener('submit', function(e) {
       e.preventDefault();
@@ -367,7 +394,25 @@
         saveRequest([]);
       }
       function saveRequest(imgArr) {
-        const reqData = {name, desc, urls, images: imgArr, email, phone, kakao, customs, price, userName, date: Date.now()};
+        const reqData = {
+          name, 
+          desc, 
+          urls, 
+          images: imgArr, 
+          email, 
+          phone, 
+          kakao, 
+          customs, 
+          price, 
+          userName, 
+          date: Date.now(),
+          reqNum: reqNum,
+          status: '접수됨',
+          statusDetail: '의뢰가 접수되었습니다. 검색을 시작합니다.',
+          estimatedTime: '2-3일 내 완료 예정',
+          lastUpdated: Date.now(),
+          progress: 10
+        };
         localStorage.setItem('request-' + reqNum, JSON.stringify(reqData));
         sessionStorage.setItem('request', JSON.stringify({...reqData, reqNum}));
         document.getElementById('submit-success').classList.remove('hidden');

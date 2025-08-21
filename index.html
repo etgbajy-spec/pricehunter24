@@ -122,6 +122,8 @@
     <button id="admin-result-btn" class="fixed top-20 right-4 z-50 px-4 py-2 bg-pink-600 text-white rounded-lg shadow hover:bg-pink-700 transition hidden" aria-label="의뢰 결과 입력" title="의뢰 결과 입력">의뢰 결과 입력</button>
     <!-- 관리자 모드에서만 보이는 1:1 문의 확인 버튼 -->
     <button id="admin-inquiry-btn" class="fixed top-32 right-4 z-50 px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition hidden" aria-label="1:1 문의 확인" title="1:1 문의 확인">1:1 문의 확인</button>
+    <!-- 관리자 모드에서만 보이는 회원 관리 버튼 -->
+    <button id="admin-member-btn" class="fixed top-44 right-4 z-50 px-4 py-2 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 transition hidden" aria-label="회원 관리" title="회원 관리">회원 관리</button>
     <!-- 관리자 해제 버튼 (관리자 모드에서만 노출) -->
     <button id="admin-logout-btn" class="fixed top-4 right-4 z-50 px-4 py-2 bg-gray-800 text-white rounded-lg shadow hover:bg-amber-500 transition hidden" aria-label="관리자 해제" title="관리자 해제">관리자 해제</button>
     <!-- 저렴하게 구입한 사례 섹션: main 바깥, 전체 폭 -->
@@ -391,6 +393,21 @@
           </div>
           <button type="submit" class="w-full py-3 bg-emerald-500 text-white font-bold rounded-lg shadow hover:bg-emerald-600 transition text-lg" aria-label="정보 수정" title="정보 수정">정보 수정</button>
         </form>
+        
+        <!-- 구분선 -->
+        <div class="relative my-6">
+          <div class="absolute inset-0 flex items-center">
+            <div class="w-full border-t border-gray-300"></div>
+          </div>
+          <div class="relative flex justify-center text-sm">
+            <span class="px-2 bg-white text-gray-500">계정 관리</span>
+          </div>
+        </div>
+        
+        <!-- 탈퇴 버튼 -->
+        <button type="button" id="withdraw-btn" class="w-full py-3 bg-red-500 text-white font-bold rounded-lg shadow hover:bg-red-600 transition text-lg" aria-label="회원 탈퇴" title="회원 탈퇴">
+          회원 탈퇴
+        </button>
       </div>
     </div>
     <div id="mypage-success" class="text-emerald-600 text-center mt-3 hidden flex items-center justify-center gap-2 animate-fadein">
@@ -454,6 +471,63 @@
         <div class="mb-4 text-gray-800 font-semibold">최저가 확보 방법: <span id="case-modal-method"></span></div>
       </div>
     </div>
+    <!-- 회원 탈퇴 확인 모달 -->
+    <div id="withdraw-modal" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 hidden" role="dialog" aria-modal="true" aria-labelledby="withdraw-modal-title">
+      <div class="bg-white rounded-2xl shadow-2xl p-6 sm:p-8 w-full max-w-md relative">
+        <button id="close-withdraw" class="absolute top-3 right-3 text-gray-400 hover:text-gray-700 text-2xl" aria-label="탈퇴 창 닫기" title="탈퇴 창 닫기">&times;</button>
+        <h2 id="withdraw-modal-title" class="text-2xl font-bold text-center mb-6 text-red-600">회원 탈퇴</h2>
+        
+        <div class="space-y-4 mb-6">
+          <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+            <div class="flex items-start">
+              <svg class="w-5 h-5 text-red-500 mt-0.5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+              </svg>
+              <div>
+                <h3 class="text-sm font-medium text-red-800">탈퇴 시 주의사항</h3>
+                <div class="mt-2 text-sm text-red-700">
+                  <ul class="list-disc list-inside space-y-1">
+                    <li>모든 개인정보가 영구적으로 삭제됩니다</li>
+                    <li>진행 중인 의뢰나 문의는 취소됩니다</li>
+                    <li>구매 내역은 법적 요구사항에 따라 보관됩니다</li>
+                    <li>탈퇴 후 재가입 시 이전 데이터는 복구되지 않습니다</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <div class="flex items-start">
+              <svg class="w-5 h-5 text-yellow-500 mt-0.5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+              </svg>
+              <div>
+                <h3 class="text-sm font-medium text-yellow-800">진행 중인 작업 확인</h3>
+                <div class="mt-2 text-sm text-yellow-700">
+                  <div id="withdraw-check-list">
+                    <!-- 진행 중인 작업들이 여기에 표시됩니다 -->
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="space-y-3">
+          <label class="flex items-center">
+            <input type="checkbox" id="withdraw-confirm-checkbox" class="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500">
+            <span class="ml-2 text-sm text-gray-700">위 내용을 모두 확인했으며, 회원 탈퇴에 동의합니다</span>
+          </label>
+          
+          <div class="flex space-x-3">
+            <button id="cancel-withdraw" class="flex-1 py-3 bg-gray-500 text-white font-bold rounded-lg shadow hover:bg-gray-600 transition">취소</button>
+            <button id="confirm-withdraw" class="flex-1 py-3 bg-red-500 text-white font-bold rounded-lg shadow hover:bg-red-600 transition disabled:opacity-50 disabled:cursor-not-allowed" disabled>탈퇴</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- 최소주문금액 안내 팝업 -->
     <div id="min-order-popup" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="min-order-popup-title">
       <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-xs w-full text-center animate-fadein-up">
@@ -610,6 +684,11 @@
         if (adminResultBtn) adminResultBtn.classList.toggle('hidden', !isAdmin);
         var adminInquiryBtn = document.getElementById('admin-inquiry-btn');
         if (adminInquiryBtn) adminInquiryBtn.classList.toggle('hidden', !isAdmin);
+        var adminMemberBtn = document.getElementById('admin-member-btn');
+        if (adminMemberBtn) {
+          adminMemberBtn.classList.toggle('hidden', !isAdmin);
+          console.log('회원관리 버튼 표시 상태:', !isAdmin ? '숨김' : '표시');
+        }
         
         // 사례 카드 편집 기능 활성화/비활성화
         enableCaseTextEdit(isAdmin);
@@ -684,8 +763,35 @@
         }
       }
       
-      // 자동 백업 (30분마다)
-      setInterval(backupData, 30 * 60 * 1000);
+          // 자동 백업 (30분마다)
+    setInterval(backupData, 30 * 60 * 1000);
+    
+    // 알림 권한 요청
+    function requestNotificationPermission() {
+      if ('Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission().then(function(permission) {
+          if (permission === 'granted') {
+            console.log('알림 권한이 허용되었습니다.');
+          }
+        });
+      }
+    }
+    
+    // 알림 보내기
+    function sendNotification(title, body) {
+      if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification(title, {
+          body: body,
+          icon: '/favicon.ico',
+          badge: '/favicon.ico'
+        });
+      }
+    }
+    
+    // 페이지 로드 시 알림 권한 요청
+    window.addEventListener('DOMContentLoaded', function() {
+      requestNotificationPermission();
+    });
       
       window.addEventListener('DOMContentLoaded', function() {
         // --- 메인 폼 전환 기능 ---
@@ -727,6 +833,7 @@
           if (hashedInput === correctHash) {
             localStorage.setItem('isAdmin', 'true');
             localStorage.setItem('adminLoginTime', Date.now().toString());
+            console.log('관리자 로그인 성공!');
             setAdminMode(true); // 즉시 관리자 모드 활성화
             updateAuthUI();
             recordLoginAttempt(true);
@@ -889,7 +996,19 @@
         const mypageBtn = document.getElementById('mypage-btn');
         if (mypageBtn) {
           mypageBtn.onclick = function() {
-            window.location.href = 'mypage.html';
+            // 현재 로그인된 사용자 정보로 마이페이지 모달 채우기
+            const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            
+            // 사용자 정보를 폼에 채우기
+            document.getElementById('mypage-name').value = currentUser.name || user.name || '';
+            document.getElementById('mypage-email').value = currentUser.email || user.email || '';
+            document.getElementById('mypage-phone').value = currentUser.phone || user.phone || '';
+            document.getElementById('mypage-kakao').value = currentUser.kakaoId || user.kakao || '';
+            
+            // 마이페이지 모달 열기
+            document.getElementById('mypage-modal').classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
           };
         }
         document.getElementById('close-mypage').onclick = function() {
@@ -899,15 +1018,160 @@
         // 마이페이지 정보 수정
         document.getElementById('mypage-form').onsubmit = function(e) {
           e.preventDefault();
+          
+          // 현재 로그인된 사용자 정보 업데이트
+          const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+          const updatedUser = {
+            ...currentUser,
+            name: document.getElementById('mypage-name').value,
+            email: document.getElementById('mypage-email').value,
+            phone: document.getElementById('mypage-phone').value,
+            kakaoId: document.getElementById('mypage-kakao').value
+          };
+          
+          // localStorage 업데이트
+          localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+          
+          // 기존 user 데이터도 업데이트 (호환성)
           const user = JSON.parse(localStorage.getItem('user') || '{}');
-          user.name = document.getElementById('mypage-name').value;
-          user.email = document.getElementById('mypage-email').value;
-          user.phone = document.getElementById('mypage-phone').value;
-          user.kakao = document.getElementById('mypage-kakao').value;
+          user.name = updatedUser.name;
+          user.email = updatedUser.email;
+          user.phone = updatedUser.phone;
+          user.kakao = updatedUser.kakaoId;
           localStorage.setItem('user', JSON.stringify(user));
+          
+          // users 배열에서도 업데이트
+          const users = JSON.parse(localStorage.getItem('users') || '[]');
+          const userIndex = users.findIndex(u => u.email === currentUser.email);
+          if (userIndex >= 0) {
+            users[userIndex] = { ...users[userIndex], ...updatedUser };
+            localStorage.setItem('users', JSON.stringify(users));
+          }
+          
           document.getElementById('mypage-modal').classList.add('hidden');
-          alert('정보가 수정되었습니다!');
+          document.body.style.overflow = '';
+          showToast('정보가 수정되었습니다!', 'success');
         };
+        
+        // 회원 탈퇴 기능
+        document.getElementById('withdraw-btn').onclick = function() {
+          showWithdrawModal();
+        };
+        
+        // 탈퇴 모달 닫기
+        document.getElementById('close-withdraw').onclick = function() {
+          document.getElementById('withdraw-modal').classList.add('hidden');
+        };
+        
+        document.getElementById('cancel-withdraw').onclick = function() {
+          document.getElementById('withdraw-modal').classList.add('hidden');
+        };
+        
+        // 탈퇴 확인 체크박스
+        document.getElementById('withdraw-confirm-checkbox').onchange = function() {
+          const confirmBtn = document.getElementById('confirm-withdraw');
+          confirmBtn.disabled = !this.checked;
+        };
+        
+        // 탈퇴 실행
+        document.getElementById('confirm-withdraw').onclick = function() {
+          if (document.getElementById('withdraw-confirm-checkbox').checked) {
+            executeWithdraw();
+          }
+        };
+        
+        // 탈퇴 모달 표시
+        function showWithdrawModal() {
+          const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+          const checkList = document.getElementById('withdraw-check-list');
+          
+          // 진행 중인 작업 확인
+          const requests = JSON.parse(localStorage.getItem('requests') || '[]');
+          const inquiries = JSON.parse(localStorage.getItem('inquiries') || '[]');
+          const orders = JSON.parse(localStorage.getItem('orders') || '[]');
+          
+          const pendingRequests = requests.filter(req => req.email === currentUser.email && req.status !== 'completed');
+          const pendingInquiries = inquiries.filter(inq => inq.email === currentUser.email && inq.status !== 'completed');
+          const pendingOrders = orders.filter(order => order.email === currentUser.email && order.status !== 'completed');
+          
+          let checkListHTML = '<ul class="list-disc list-inside space-y-1">';
+          
+          if (pendingRequests.length > 0) {
+            checkListHTML += `<li>진행 중인 의뢰: ${pendingRequests.length}건</li>`;
+          }
+          if (pendingInquiries.length > 0) {
+            checkListHTML += `<li>답변 대기 중인 문의: ${pendingInquiries.length}건</li>`;
+          }
+          if (pendingOrders.length > 0) {
+            checkListHTML += `<li>진행 중인 주문: ${pendingOrders.length}건</li>`;
+          }
+          
+          if (pendingRequests.length === 0 && pendingInquiries.length === 0 && pendingOrders.length === 0) {
+            checkListHTML += '<li>진행 중인 작업이 없습니다</li>';
+          }
+          
+          checkListHTML += '</ul>';
+          checkList.innerHTML = checkListHTML;
+          
+          document.getElementById('withdraw-modal').classList.remove('hidden');
+        }
+        
+        // 탈퇴 실행
+        function executeWithdraw() {
+          const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+          
+          // 1. 사용자 목록에서 삭제
+          const users = JSON.parse(localStorage.getItem('users') || '[]');
+          const updatedUsers = users.map(user => {
+            if (user.email === currentUser.email) {
+              return { ...user, status: 'withdrawn', withdrawDate: Date.now() };
+            }
+            return user;
+          });
+          localStorage.setItem('users', JSON.stringify(updatedUsers));
+          
+          // 2. 로그인 상태 해제
+          localStorage.removeItem('loggedIn');
+          localStorage.removeItem('currentUser');
+          
+          // 3. 관련 데이터 정리
+          // 의뢰 내역 익명화
+          const requests = JSON.parse(localStorage.getItem('requests') || '[]');
+          const updatedRequests = requests.map(req => {
+            if (req.email === currentUser.email) {
+              return { ...req, email: 'withdrawn_user', name: '탈퇴한 사용자' };
+            }
+            return req;
+          });
+          localStorage.setItem('requests', JSON.stringify(updatedRequests));
+          
+          // 문의 내역 익명화
+          const inquiries = JSON.parse(localStorage.getItem('inquiries') || '[]');
+          const updatedInquiries = inquiries.map(inq => {
+            if (inq.email === currentUser.email) {
+              return { ...inq, email: 'withdrawn_user', name: '탈퇴한 사용자' };
+            }
+            return inq;
+          });
+          localStorage.setItem('inquiries', JSON.stringify(updatedInquiries));
+          
+          // 주문 내역은 유지 (법적 요구사항)
+          
+          // 4. 모달 닫기
+          document.getElementById('withdraw-modal').classList.add('hidden');
+          document.getElementById('mypage-modal').classList.add('hidden');
+          
+          // 5. UI 업데이트
+          updateAuthUI();
+          
+          // 6. 성공 메시지
+          showToast('회원 탈퇴가 완료되었습니다.', 'success');
+          
+          // 7. 홈페이지로 리다이렉트
+          setTimeout(() => {
+            window.location.href = 'index.html';
+          }, 2000);
+        }
         // 버튼 클릭 시 result-admin.html 이동
         var adminResultBtn = document.getElementById('admin-result-btn');
         if (adminResultBtn) {
@@ -1028,6 +1292,14 @@
         if (adminInquiryBtn) {
           adminInquiryBtn.onclick = function() {
             window.location.href = 'inquiry-admin.html';
+          };
+        }
+        
+        // 회원 관리 버튼 클릭 시 이동
+        var adminMemberBtn = document.getElementById('admin-member-btn');
+        if (adminMemberBtn) {
+          adminMemberBtn.onclick = function() {
+            window.location.href = 'member-admin.html';
           };
         }
       });
@@ -1160,18 +1432,7 @@
             }
           }
         }
-        function setAdminMode(isAdmin) {
-          // 관리자 모드 버튼들 표시/숨김
-          var adminModeBtn = document.getElementById('admin-mode-btn');
-          if (adminModeBtn) adminModeBtn.classList.add('hidden');
-          var adminLogoutBtn = document.getElementById('admin-logout-btn');
-          if (adminLogoutBtn) adminLogoutBtn.classList.toggle('hidden', !isAdmin);
-          enableCaseTextEdit(isAdmin);
-          const adminResultBtn = document.getElementById('admin-result-btn');
-          if (adminResultBtn) adminResultBtn.classList.toggle('hidden', !isAdmin);
-          var adminInquiryBtn = document.getElementById('admin-inquiry-btn');
-          if (adminInquiryBtn) adminInquiryBtn.classList.toggle('hidden', !isAdmin);
-        }
+        // setAdminMode 함수는 위에서 이미 정의되었으므로 중복 제거
         window.addEventListener('DOMContentLoaded', function() {
           // 프로세스 카드와 화살표를 순서대로 모두 가져옴
           const processEls = Array.from(document.querySelectorAll('.process-step, .process-arrow'));
@@ -1676,37 +1937,37 @@ function showCaseEditForm(idx) {
   }
 })();
 
-// 2. 내 활동 데이터 렌더링 함수 (localStorage 기반, robust)
+// 2. 내 활동 데이터 렌더링 함수 (실제 사용자 데이터만 표시)
 function renderMyActivity() {
-  // 주문 내역 (예시: localStorage.orders = [{name, date, price}])
+  const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+  
+  // 주문 내역 (실제 orders 데이터에서 현재 사용자 것만 필터링)
   let orders = [];
   try {
-    orders = JSON.parse(localStorage.getItem('orders') || '[]');
-    if (!Array.isArray(orders)) orders = [];
+    const allOrders = JSON.parse(localStorage.getItem('orders') || '[]');
+    orders = allOrders.filter(order => order.email === currentUser.email);
   } catch (e) { orders = []; }
   const ordersUl = document.getElementById('mypage-orders');
   if (ordersUl) {
-    ordersUl.innerHTML = orders.length ? orders.map(o => `<li class="py-1 border-b last:border-b-0 flex flex-col sm:flex-row sm:items-center sm:gap-2"><span class="font-bold">${o.name}</span><span class="text-gray-500 ml-2">${o.date || ''}</span><span class="text-pink-600 ml-2">${o.price ? o.price + '원' : ''}</span></li>`).join('') : '<li class="text-gray-400">주문 내역이 없습니다.</li>';
+    ordersUl.innerHTML = orders.length ? orders.map(o => `<li class="py-1 border-b last:border-b-0 flex flex-col sm:flex-row sm:items-center sm:gap-2"><span class="font-bold">${o.productName || o.name || '상품'}</span><span class="text-gray-500 ml-2">${o.orderDate || o.date || ''}</span><span class="text-pink-600 ml-2">${o.totalAmount || o.price ? (o.totalAmount || o.price) + '원' : ''}</span></li>`).join('') : '<li class="text-gray-400">주문 내역이 없습니다.</li>';
   }
-  // 문의 내역 (예시: localStorage.contacts = [{title, date, status}])
+  
+  // 문의 내역 (실제 inquiries 데이터에서 현재 사용자 것만 필터링)
   let contacts = [];
   try {
-    contacts = JSON.parse(localStorage.getItem('contacts') || '[]');
-    if (!Array.isArray(contacts)) contacts = [];
+    const allInquiries = JSON.parse(localStorage.getItem('inquiries') || '[]');
+    contacts = allInquiries.filter(inquiry => inquiry.email === currentUser.email);
   } catch (e) { contacts = []; }
   const contactsUl = document.getElementById('mypage-contacts');
   if (contactsUl) {
-    contactsUl.innerHTML = contacts.length ? contacts.map(c => `<li class="py-1 border-b last:border-b-0 flex flex-col sm:flex-row sm:items-center sm:gap-2"><span class="font-bold">${c.title}</span><span class="text-gray-500 ml-2">${c.date || ''}</span><span class="ml-2">${c.status || ''}</span></li>`).join('') : '<li class="text-gray-400">문의 내역이 없습니다.</li>';
+    contactsUl.innerHTML = contacts.length ? contacts.map(c => `<li class="py-1 border-b last:border-b-0 flex flex-col sm:flex-row sm:items-center sm:gap-2"><span class="font-bold">${c.title || c.subject || '문의'}</span><span class="text-gray-500 ml-2">${c.date || ''}</span><span class="ml-2">${c.status === 'completed' ? '답변완료' : '답변대기'}</span></li>`).join('') : '<li class="text-gray-400">문의 내역이 없습니다.</li>';
   }
-  // 답변 내역 (예시: localStorage.answers = [{title, date, answer}])
-  let answers = [];
-  try {
-    answers = JSON.parse(localStorage.getItem('answers') || '[]');
-    if (!Array.isArray(answers)) answers = [];
-  } catch (e) { answers = []; }
+  
+  // 답변 내역 (문의 내역과 동일하지만 답변 상태별로 표시)
   const answersUl = document.getElementById('mypage-answers');
   if (answersUl) {
-    answersUl.innerHTML = answers.length ? answers.map(a => `<li class="py-1 border-b last:border-b-0 flex flex-col sm:flex-row sm:items-center sm:gap-2"><span class="font-bold">${a.title}</span><span class="text-gray-500 ml-2">${a.date || ''}</span><span class="ml-2 text-emerald-700">${a.answer ? '답변완료' : '대기중'}</span></li>`).join('') : '<li class="text-gray-400">답변 내역이 없습니다.</li>';
+    const answeredInquiries = contacts.filter(c => c.status === 'completed');
+    answersUl.innerHTML = answeredInquiries.length ? answeredInquiries.map(a => `<li class="py-1 border-b last:border-b-0 flex flex-col sm:flex-row sm:items-center sm:gap-2"><span class="font-bold">${a.title || a.subject || '문의'}</span><span class="text-gray-500 ml-2">${a.date || ''}</span><span class="ml-2 text-emerald-700">답변완료</span></li>`).join('') : '<li class="text-gray-400">답변 내역이 없습니다.</li>';
   }
 }
 // 3. 마이페이지 열릴 때마다 내 활동 렌더링
@@ -1720,26 +1981,13 @@ if (mypageBtn) {
     </script>
     <script>
 // ... existing code ...
-// 내 활동 예시 데이터 자동 적용 (없을 때만)
-(function ensureMyActivityDemoData() {
-  if (!localStorage.getItem('orders')) {
-    localStorage.setItem('orders', JSON.stringify([
-      {name: '노트북', date: '2024-07-01', price: 1200000},
-      {name: '스마트워치', date: '2024-07-02', price: 250000}
-    ]));
-  }
-  if (!localStorage.getItem('contacts')) {
-    localStorage.setItem('contacts', JSON.stringify([
-      {title: '배송 문의', date: '2024-07-03', status: '답변대기'},
-      {title: '환불 요청', date: '2024-07-04', status: '답변완료'}
-    ]));
-  }
-  if (!localStorage.getItem('answers')) {
-    localStorage.setItem('answers', JSON.stringify([
-      {title: '배송 문의', date: '2024-07-03', answer: '배송중입니다.'},
-      {title: '환불 요청', date: '2024-07-04', answer: ''}
-    ]));
-  }
+// 내 활동 데이터는 실제 사용자 데이터만 표시
+// 기존 가짜 데이터 제거
+(function clearFakeData() {
+  // 가짜 데이터 제거
+  localStorage.removeItem('orders');
+  localStorage.removeItem('contacts');
+  localStorage.removeItem('answers');
 })();
 // ... 기존 코드 ...
     </script>
