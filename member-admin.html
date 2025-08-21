@@ -222,6 +222,9 @@
                 purchaseCount: getPurchaseCount(user.email)
             }));
 
+            // filteredMembers 초기화
+            filteredMembers = [...allMembers];
+
             updateStatistics();
             renderMemberList();
         }
@@ -333,14 +336,18 @@
                                 <span class="text-xs text-gray-400">가입: ${joinDate}</span>
                                 <span class="text-xs text-gray-400">최근 로그인: ${lastLogin}</span>
                             </div>
+                            <div class="flex items-center space-x-4 mt-1">
+                                <span class="text-xs text-gray-400">전화번호: ${member.phone || '미입력'}</span>
+                                <span class="text-xs text-gray-400">카카오: ${member.kakao || member.kakaoId || '미입력'}</span>
+                            </div>
                         </div>
                     </div>
                     <div class="flex items-center space-x-4">
                         <div class="text-right">
                             <div class="flex items-center space-x-2 text-xs text-gray-500">
-                                <span>의뢰: ${member.requestCount}</span>
-                                <span>문의: ${member.inquiryCount}</span>
-                                <span>구매: ${member.purchaseCount}</span>
+                                <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded">의뢰: ${member.requestCount}</span>
+                                <span class="bg-green-100 text-green-800 px-2 py-1 rounded">문의: ${member.inquiryCount}</span>
+                                <span class="bg-purple-100 text-purple-800 px-2 py-1 rounded">구매: ${member.purchaseCount}</span>
                             </div>
                         </div>
                         <div class="flex items-center space-x-2">
