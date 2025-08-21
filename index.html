@@ -788,9 +788,52 @@
       }
     }
     
-    // 페이지 로드 시 알림 권한 요청
+    // 페이지 로드 시 알림 권한 요청 및 기존 회원 마이그레이션
     window.addEventListener('DOMContentLoaded', function() {
       requestNotificationPermission();
+      
+      // 기존 회원 데이터 마이그레이션 (한 번만 실행)
+      (function migrateExistingUsers() {
+        const users = JSON.parse(localStorage.getItem('users') || '[]');
+        const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        
+        // 기존 user가 있지만 users 배열에 없는 경우 추가
+        if (user.email && !users.find(u => u.email === user.email)) {
+          const migratedUser = {
+            name: user.name || '',
+            email: user.email || '',
+            password: user.password || '',
+            phone: user.phone || '',
+            kakao: user.kakao || '',
+            joinDate: Date.now() - (7 * 24 * 60 * 60 * 1000), // 일주일 전으로 추정
+            lastLogin: Date.now(),
+            status: 'active',
+            loginType: user.loginType || 'normal'
+          };
+          users.push(migratedUser);
+          localStorage.setItem('users', JSON.stringify(users));
+          console.log('기존 회원 데이터 마이그레이션 완료:', user.email);
+        }
+        
+        // currentUser가 있지만 users 배열에 없는 경우 추가
+        if (currentUser.email && !users.find(u => u.email === currentUser.email)) {
+          const migratedUser = {
+            name: currentUser.name || '',
+            email: currentUser.email || '',
+            password: currentUser.password || '',
+            phone: currentUser.phone || '',
+            kakao: currentUser.kakaoId || currentUser.kakao || '',
+            joinDate: currentUser.joinDate || (Date.now() - (7 * 24 * 60 * 60 * 1000)),
+            lastLogin: currentUser.lastLogin || Date.now(),
+            status: 'active',
+            loginType: currentUser.loginType || 'normal'
+          };
+          users.push(migratedUser);
+          localStorage.setItem('users', JSON.stringify(users));
+          console.log('기존 현재 사용자 데이터 마이그레이션 완료:', currentUser.email);
+        }
+      })();
     });
       
       window.addEventListener('DOMContentLoaded', function() {
@@ -982,11 +1025,23 @@
             email: email,
             password: password,
             phone: phone,
-            kakao: kakao
+            kakao: kakao,
+            joinDate: Date.now(),
+            lastLogin: Date.now(),
+            status: 'active',
+            loginType: 'normal'
           };
           
+          // users 배열에 새 회원 추가
+          const users = JSON.parse(localStorage.getItem('users') || '[]');
+          users.push(user);
+          localStorage.setItem('users', JSON.stringify(users));
+          
+          // 현재 사용자 정보 저장
           localStorage.setItem('user', JSON.stringify(user));
+          localStorage.setItem('currentUser', JSON.stringify(user));
           localStorage.setItem('loggedIn', 'true'); // 회원가입 시 로그인 상태로 전환
+          
           document.getElementById('signup-modal').classList.add('hidden');
           document.body.style.overflow = '';
           updateAuthUI();
@@ -1209,7 +1264,20 @@
           
           const user = JSON.parse(localStorage.getItem('user') || 'null');
           if (user && user.email === email && user.password === password) {
+            // 로그인 시간 업데이트
+            user.lastLogin = Date.now();
+            localStorage.setItem('user', JSON.stringify(user));
+            localStorage.setItem('currentUser', JSON.stringify(user));
             localStorage.setItem('loggedIn', 'true');
+            
+            // users 배열에서도 업데이트
+            const users = JSON.parse(localStorage.getItem('users') || '[]');
+            const userIndex = users.findIndex(u => u.email === email);
+            if (userIndex >= 0) {
+              users[userIndex].lastLogin = Date.now();
+              localStorage.setItem('users', JSON.stringify(users));
+            }
+            
             document.getElementById('login-modal').classList.add('hidden');
             document.getElementById('login-error').classList.add('hidden');
             document.body.style.overflow = '';
