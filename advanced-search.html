@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>고급 검색 - PriceHunter</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔍</text></svg>">
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- 네비게이션 -->
+    <nav class="bg-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex justify-between items-center py-4">
+                <div class="flex items-center space-x-4">
+                    <a href="index.html" class="text-2xl font-bold text-blue-600">🔍 PriceHunter</a>
+                    <span class="text-gray-500">고급 검색</span>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="index.html" class="text-gray-600 hover:text-blue-600 transition-colors">홈으로</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 메인 컨텐츠 -->
+    <div class="max-w-6xl mx-auto px-4 py-8">
+        <!-- 검색 폼 -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+            <h1 class="text-3xl font-bold text-gray-800 mb-6">🔍 고급 검색</h1>
+            
+            <form id="search-form" class="space-y-6">
+                <!-- 기본 검색 -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">제품명</label>
+                        <input type="text" id="product-name" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="제품명을 입력하세요">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">카테고리</label>
+                        <select id="category" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <option value="">전체 카테고리</option>
+                            <option value="전자기기">전자기기</option>
+                            <option value="의류">의류</option>
+                            <option value="가전제품">가전제품</option>
+                            <option value="화장품">화장품</option>
+                            <option value="식품">식품</option>
+                            <option value="도서">도서</option>
+                            <option value="스포츠">스포츠</option>
+                            <option value="자동차">자동차</option>
+                            <option value="기타">기타</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- 가격 범위 -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">최소 가격</label>
+                        <input type="number" id="min-price" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="0">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">최대 가격</label>
+                        <input type="number" id="max-price" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="무제한">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">가격 단위</label>
+                        <select id="price-unit" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <option value="KRW">원 (KRW)</option>
+                            <option value="USD">달러 (USD)</option>
+                            <option value="EUR">유로 (EUR)</option>
+                            <option value="JPY">엔 (JPY)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- 날짜 범위 -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">시작 날짜</label>
+                        <input type="date" id="start-date" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">종료 날짜</label>
+                        <input type="date" id="end-date" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                </div>
+
+                <!-- 상태 필터 -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div class="flex items-center space-x-2">
+                        <input type="checkbox" id="status-pending" class="w-4 h-4 text-blue-600" checked>
+                        <label for="status-pending" class="text-gray-700">대기중</label>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <input type="checkbox" id="status-processing" class="w-4 h-4 text-blue-600" checked>
+                        <label for="status-processing" class="text-gray-700">처리중</label>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <input type="checkbox" id="status-completed" class="w-4 h-4 text-blue-600" checked>
+                        <label for="status-completed" class="text-gray-700">완료</label>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <input type="checkbox" id="status-cancelled" class="w-4 h-4 text-blue-600">
+                        <label for="status-cancelled" class="text-gray-700">취소</label>
+                    </div>
+                </div>
+
+                <!-- 검색 버튼 -->
+                <div class="flex justify-center space-x-4">
+                    <button type="submit" class="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition-colors">
+                        🔍 검색하기
+                    </button>
+                    <button type="button" id="reset-form" class="bg-gray-600 text-white px-8 py-3 rounded-lg hover:bg-gray-700 transition-colors">
+                        🔄 초기화
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- 검색 결과 -->
+        <div id="search-results" class="bg-white rounded-lg shadow-lg p-6 hidden">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-gray-800">검색 결과</h2>
+                <div class="flex items-center space-x-4">
+                    <span id="result-count" class="text-gray-600">0개 결과</span>
+                    <select id="sort-by" class="px-3 py-2 border border-gray-300 rounded-lg">
+                        <option value="date-desc">최신순</option>
+                        <option value="date-asc">오래된순</option>
+                        <option value="price-asc">가격 낮은순</option>
+                        <option value="price-desc">가격 높은순</option>
+                        <option value="name-asc">이름순</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div id="results-container" class="space-y-4">
+                <!-- 검색 결과가 여기에 표시됩니다 -->
+            </div>
+
+            <!-- 페이지네이션 -->
+            <div id="pagination" class="flex justify-center mt-8">
+                <!-- 페이지네이션이 여기에 표시됩니다 -->
+            </div>
+        </div>
+
+        <!-- 검색 히스토리 -->
+        <div id="search-history" class="bg-white rounded-lg shadow-lg p-6 mt-8">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">🔍 최근 검색 기록</h2>
+            <div id="history-list" class="space-y-2">
+                <!-- 검색 히스토리가 여기에 표시됩니다 -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class AdvancedSearch {
+            constructor() {
+                this.searchHistory = JSON.parse(localStorage.getItem('searchHistory') || '[]');
+                this.currentResults = [];
+                this.currentPage = 1;
+                this.itemsPerPage = 10;
+                this.init();
+            }
+
+            init() {
+                this.setupEventListeners();
+                this.loadSearchHistory();
+                this.setDefaultDates();
+            }
+
+            setupEventListeners() {
+                document.getElementById('search-form').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.performSearch();
+                });
+
+                document.getElementById('reset-form').addEventListener('click', () => {
+                    this.resetForm();
+                });
+
+                document.getElementById('sort-by').addEventListener('change', () => {
+                    this.sortResults();
+                });
+            }
+
+            setDefaultDates() {
+                const today = new Date();
+                const thirtyDaysAgo = new Date(today.getTime() - (30 * 24 * 60 * 60 * 1000));
+                
+                document.getElementById('start-date').value = thirtyDaysAgo.toISOString().split('T')[0];
+                document.getElementById('end-date').value = today.toISOString().split('T')[0];
+            }
+
+            performSearch() {
+                const searchCriteria = this.getSearchCriteria();
+                this.saveSearchHistory(searchCriteria);
+                this.searchData(searchCriteria);
+            }
+
+            getSearchCriteria() {
+                return {
+                    productName: document.getElementById('product-name').value,
+                    category: document.getElementById('category').value,
+                    minPrice: document.getElementById('min-price').value,
+                    maxPrice: document.getElementById('max-price').value,
+                    priceUnit: document.getElementById('price-unit').value,
+                    startDate: document.getElementById('start-date').value,
+                    endDate: document.getElementById('end-date').value,
+                    statuses: this.getSelectedStatuses(),
+                    timestamp: new Date().toISOString()
+                };
+            }
+
+            getSelectedStatuses() {
+                const statuses = [];
+                if (document.getElementById('status-pending').checked) statuses.push('대기중');
+                if (document.getElementById('status-processing').checked) statuses.push('처리중');
+                if (document.getElementById('status-completed').checked) statuses.push('완료');
+                if (document.getElementById('status-cancelled').checked) statuses.push('취소');
+                return statuses;
+            }
+
+            searchData(criteria) {
+                const allData = this.getAllData();
+                let filteredData = this.filterData(allData, criteria);
+                
+                this.currentResults = filteredData;
+                this.currentPage = 1;
+                this.displayResults();
+            }
+
+            getAllData() {
+                const data = [];
+                
+                // 의뢰 데이터 수집
+                Object.keys(localStorage).forEach(key => {
+                    if (key.startsWith('request-') || key.startsWith('result-')) {
+                        try {
+                            const item = JSON.parse(localStorage.getItem(key));
+                            if (item) {
+                                data.push({
+                                    ...item,
+                                    key: key,
+                                    type: key.startsWith('request-') ? 'request' : 'result'
+                                });
+                            }
+                        } catch (e) {
+                            // 무시
+                        }
+                    }
+                });
+
+                return data;
+            }
+
+            filterData(data, criteria) {
+                return data.filter(item => {
+                    // 제품명 필터
+                    if (criteria.productName && item.productName) {
+                        if (!item.productName.toLowerCase().includes(criteria.productName.toLowerCase())) {
+                            return false;
+                        }
+                    }
+
+                    // 카테고리 필터
+                    if (criteria.category && item.category) {
+                        if (item.category !== criteria.category) {
+                            return false;
+                        }
+                    }
+
+                    // 가격 필터
+                    if (criteria.minPrice && item.price) {
+                        if (parseFloat(item.price) < parseFloat(criteria.minPrice)) {
+                            return false;
+                        }
+                    }
+                    if (criteria.maxPrice && item.price) {
+                        if (parseFloat(item.price) > parseFloat(criteria.maxPrice)) {
+                            return false;
+                        }
+                    }
+
+                    // 날짜 필터
+                    if (criteria.startDate && item.timestamp) {
+                        const itemDate = new Date(item.timestamp);
+                        const startDate = new Date(criteria.startDate);
+                        if (itemDate < startDate) {
+                            return false;
+                        }
+                    }
+                    if (criteria.endDate && item.timestamp) {
+                        const itemDate = new Date(item.timestamp);
+                        const endDate = new Date(criteria.endDate);
+                        if (itemDate > endDate) {
+                            return false;
+                        }
+                    }
+
+                    // 상태 필터
+                    if (criteria.statuses.length > 0 && item.status) {
+                        if (!criteria.statuses.includes(item.status)) {
+                            return false;
+                        }
+                    }
+
+                    return true;
+                });
+            }
+
+            displayResults() {
+                const container = document.getElementById('search-results');
+                const resultsContainer = document.getElementById('results-container');
+                const resultCount = document.getElementById('result-count');
+
+                if (this.currentResults.length === 0) {
+                    container.classList.remove('hidden');
+                    resultCount.textContent = '0개 결과';
+                    resultsContainer.innerHTML = `
+                        <div class="text-center py-12 text-gray-500">
+                            <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                            </svg>
+                            <p class="text-lg font-medium">검색 결과가 없습니다.</p>
+                            <p class="text-sm">검색 조건을 변경해보세요.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.classList.remove('hidden');
+                resultCount.textContent = `${this.currentResults.length}개 결과`;
+
+                const startIndex = (this.currentPage - 1) * this.itemsPerPage;
+                const endIndex = startIndex + this.itemsPerPage;
+                const pageData = this.currentResults.slice(startIndex, endIndex);
+
+                resultsContainer.innerHTML = pageData.map(item => this.createResultCard(item)).join('');
+                this.createPagination();
+            }
+
+            createResultCard(item) {
+                const date = new Date(item.timestamp).toLocaleDateString('ko-KR');
+                const price = item.price ? `${parseInt(item.price).toLocaleString()}원` : '가격 정보 없음';
+                const status = item.status || '상태 정보 없음';
+                const type = item.type === 'request' ? '의뢰' : '결과';
+
+                return `
+                    <div class="border rounded-lg p-4 hover:shadow-md transition-shadow">
+                        <div class="flex justify-between items-start">
+                            <div class="flex-1">
+                                <div class="flex items-center space-x-2 mb-2">
+                                    <span class="text-lg font-semibold text-gray-800">${item.productName || '제품명 없음'}</span>
+                                    <span class="px-2 py-1 text-xs rounded-full ${this.getStatusColor(status)}">${status}</span>
+                                    <span class="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800">${type}</span>
+                                </div>
+                                <p class="text-gray-600 mb-2">${item.description || '설명 없음'}</p>
+                                <div class="flex items-center space-x-4 text-sm text-gray-500">
+                                    <span>💰 ${price}</span>
+                                    <span>📅 ${date}</span>
+                                    <span>👤 ${item.userName || '사용자 정보 없음'}</span>
+                                </div>
+                            </div>
+                            <button onclick="advancedSearch.viewDetails('${item.key}')" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                                상세보기 →
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+
+            getStatusColor(status) {
+                const colors = {
+                    '대기중': 'bg-yellow-100 text-yellow-800',
+                    '처리중': 'bg-blue-100 text-blue-800',
+                    '완료': 'bg-green-100 text-green-800',
+                    '취소': 'bg-red-100 text-red-800'
+                };
+                return colors[status] || 'bg-gray-100 text-gray-800';
+            }
+
+            createPagination() {
+                const totalPages = Math.ceil(this.currentResults.length / this.itemsPerPage);
+                const pagination = document.getElementById('pagination');
+
+                if (totalPages <= 1) {
+                    pagination.innerHTML = '';
+                    return;
+                }
+
+                let paginationHTML = '';
+                
+                // 이전 버튼
+                if (this.currentPage > 1) {
+                    paginationHTML += `<button onclick="advancedSearch.goToPage(${this.currentPage - 1})" class="px-3 py-2 mx-1 text-gray-600 hover:text-blue-600">이전</button>`;
+                }
+
+                // 페이지 번호
+                for (let i = 1; i <= totalPages; i++) {
+                    if (i === this.currentPage) {
+                        paginationHTML += `<button class="px-3 py-2 mx-1 bg-blue-600 text-white rounded">${i}</button>`;
+                    } else {
+                        paginationHTML += `<button onclick="advancedSearch.goToPage(${i})" class="px-3 py-2 mx-1 text-gray-600 hover:text-blue-600">${i}</button>`;
+                    }
+                }
+
+                // 다음 버튼
+                if (this.currentPage < totalPages) {
+                    paginationHTML += `<button onclick="advancedSearch.goToPage(${this.currentPage + 1})" class="px-3 py-2 mx-1 text-gray-600 hover:text-blue-600">다음</button>`;
+                }
+
+                pagination.innerHTML = paginationHTML;
+            }
+
+            goToPage(page) {
+                this.currentPage = page;
+                this.displayResults();
+            }
+
+            sortResults() {
+                const sortBy = document.getElementById('sort-by').value;
+                
+                this.currentResults.sort((a, b) => {
+                    switch (sortBy) {
+                        case 'date-desc':
+                            return new Date(b.timestamp) - new Date(a.timestamp);
+                        case 'date-asc':
+                            return new Date(a.timestamp) - new Date(b.timestamp);
+                        case 'price-asc':
+                            return (parseFloat(a.price) || 0) - (parseFloat(b.price) || 0);
+                        case 'price-desc':
+                            return (parseFloat(b.price) || 0) - (parseFloat(a.price) || 0);
+                        case 'name-asc':
+                            return (a.productName || '').localeCompare(b.productName || '');
+                        default:
+                            return 0;
+                    }
+                });
+
+                this.currentPage = 1;
+                this.displayResults();
+            }
+
+            saveSearchHistory(criteria) {
+                this.searchHistory.unshift(criteria);
+                if (this.searchHistory.length > 10) {
+                    this.searchHistory = this.searchHistory.slice(0, 10);
+                }
+                localStorage.setItem('searchHistory', JSON.stringify(this.searchHistory));
+                this.loadSearchHistory();
+            }
+
+            loadSearchHistory() {
+                const historyList = document.getElementById('history-list');
+                
+                if (this.searchHistory.length === 0) {
+                    historyList.innerHTML = '<p class="text-gray-500">검색 기록이 없습니다.</p>';
+                    return;
+                }
+
+                historyList.innerHTML = this.searchHistory.map((history, index) => `
+                    <div class="flex justify-between items-center p-3 border rounded-lg hover:bg-gray-50">
+                        <div class="flex-1">
+                            <div class="flex items-center space-x-2">
+                                <span class="font-medium">${history.productName || '전체 검색'}</span>
+                                <span class="text-sm text-gray-500">${new Date(history.timestamp).toLocaleDateString()}</span>
+                            </div>
+                            <div class="text-sm text-gray-600">
+                                ${this.formatSearchCriteria(history)}
+                            </div>
+                        </div>
+                        <button onclick="advancedSearch.loadSearchHistoryItem(${index})" class="text-blue-600 hover:text-blue-800 text-sm">
+                            다시 검색
+                        </button>
+                    </div>
+                `).join('');
+            }
+
+            formatSearchCriteria(criteria) {
+                const parts = [];
+                if (criteria.productName) parts.push(`제품: ${criteria.productName}`);
+                if (criteria.category) parts.push(`카테고리: ${criteria.category}`);
+                if (criteria.minPrice || criteria.maxPrice) {
+                    const priceRange = [];
+                    if (criteria.minPrice) priceRange.push(`${criteria.minPrice}원 이상`);
+                    if (criteria.maxPrice) priceRange.push(`${criteria.maxPrice}원 이하`);
+                    parts.push(`가격: ${priceRange.join(' ~ ')}`);
+                }
+                return parts.join(', ');
+            }
+
+            loadSearchHistoryItem(index) {
+                const history = this.searchHistory[index];
+                
+                document.getElementById('product-name').value = history.productName || '';
+                document.getElementById('category').value = history.category || '';
+                document.getElementById('min-price').value = history.minPrice || '';
+                document.getElementById('max-price').value = history.maxPrice || '';
+                document.getElementById('price-unit').value = history.priceUnit || 'KRW';
+                document.getElementById('start-date').value = history.startDate || '';
+                document.getElementById('end-date').value = history.endDate || '';
+
+                // 상태 체크박스 설정
+                document.getElementById('status-pending').checked = history.statuses.includes('대기중');
+                document.getElementById('status-processing').checked = history.statuses.includes('처리중');
+                document.getElementById('status-completed').checked = history.statuses.includes('완료');
+                document.getElementById('status-cancelled').checked = history.statuses.includes('취소');
+
+                this.performSearch();
+            }
+
+            resetForm() {
+                document.getElementById('search-form').reset();
+                this.setDefaultDates();
+                document.getElementById('search-results').classList.add('hidden');
+            }
+
+            viewDetails(key) {
+                // 상세보기 페이지로 이동하거나 모달 표시
+                if (key.startsWith('request-')) {
+                    window.open(`result-search.html?req=${key}`, '_blank');
+                } else if (key.startsWith('result-')) {
+                    window.open(`result-search.html?req=${key.replace('result-', 'request-')}`, '_blank');
+                }
+            }
+        }
+
+        // 초기화
+        const advancedSearch = new AdvancedSearch();
+    </script>
+</body>
+</html>

@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>실시간 알림 - PriceHunter</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔍</text></svg>">
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- 네비게이션 -->
+    <nav class="bg-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex justify-between items-center py-4">
+                <div class="flex items-center space-x-4">
+                    <a href="index.html" class="text-2xl font-bold text-blue-600">🔍 PriceHunter</a>
+                    <span class="text-gray-500">실시간 알림</span>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button id="notification-toggle" class="relative p-2 text-gray-600 hover:text-blue-600 transition-colors">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-5 5v-5z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M9 11h.01M9 8h.01"></path>
+                        </svg>
+                        <span id="notification-badge" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center hidden">0</span>
+                    </button>
+                    <a href="index.html" class="text-gray-600 hover:text-blue-600 transition-colors">홈으로</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 메인 컨텐츠 -->
+    <div class="max-w-4xl mx-auto px-4 py-8">
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <h1 class="text-3xl font-bold text-gray-800 mb-6">🔔 실시간 알림 시스템</h1>
+            
+            <!-- 알림 설정 -->
+            <div class="mb-8 p-6 bg-blue-50 rounded-lg">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">알림 설정</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="flex items-center space-x-3">
+                        <input type="checkbox" id="email-notify" class="w-4 h-4 text-blue-600" checked>
+                        <label for="email-notify" class="text-gray-700">이메일 알림</label>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <input type="checkbox" id="sms-notify" class="w-4 h-4 text-blue-600" checked>
+                        <label for="sms-notify" class="text-gray-700">SMS 알림</label>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <input type="checkbox" id="push-notify" class="w-4 h-4 text-blue-600">
+                        <label for="push-notify" class="text-gray-700">브라우저 푸시</label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 실시간 알림 목록 -->
+            <div class="mb-8">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">최근 알림</h2>
+                <div id="notifications-list" class="space-y-4">
+                    <!-- 알림이 여기에 동적으로 추가됩니다 -->
+                </div>
+            </div>
+
+            <!-- 알림 테스트 -->
+            <div class="p-6 bg-gray-50 rounded-lg">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">알림 테스트</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <button id="test-notification" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                        테스트 알림 발송
+                    </button>
+                    <button id="clear-notifications" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors">
+                        모든 알림 지우기
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 알림 토스트 -->
+    <div id="toast-container" class="fixed top-4 right-4 z-50 space-y-2"></div>
+
+    <script>
+        // 알림 관리 클래스
+        class NotificationManager {
+            constructor() {
+                this.notifications = JSON.parse(localStorage.getItem('realtimeNotifications') || '[]');
+                this.unreadCount = 0;
+                this.init();
+            }
+
+            init() {
+                this.updateNotificationBadge();
+                this.renderNotifications();
+                this.setupEventListeners();
+                this.requestNotificationPermission();
+                this.startRealtimeUpdates();
+            }
+
+            setupEventListeners() {
+                document.getElementById('test-notification').addEventListener('click', () => {
+                    this.sendTestNotification();
+                });
+
+                document.getElementById('clear-notifications').addEventListener('click', () => {
+                    this.clearAllNotifications();
+                });
+
+                document.getElementById('notification-toggle').addEventListener('click', () => {
+                    this.toggleNotifications();
+                });
+            }
+
+            requestNotificationPermission() {
+                if ('Notification' in window) {
+                    Notification.requestPermission().then(permission => {
+                        if (permission === 'granted') {
+                            this.showToast('브라우저 알림이 활성화되었습니다!', 'success');
+                        }
+                    });
+                }
+            }
+
+            addNotification(type, title, message, data = {}) {
+                const notification = {
+                    id: Date.now(),
+                    type: type, // 'request', 'result', 'payment', 'system'
+                    title: title,
+                    message: message,
+                    timestamp: new Date().toISOString(),
+                    read: false,
+                    data: data
+                };
+
+                this.notifications.unshift(notification);
+                this.unreadCount++;
+                
+                // 최대 100개까지만 유지
+                if (this.notifications.length > 100) {
+                    this.notifications = this.notifications.slice(0, 100);
+                }
+
+                this.saveNotifications();
+                this.updateNotificationBadge();
+                this.renderNotifications();
+                this.showBrowserNotification(title, message);
+                this.showToast(message, 'info');
+            }
+
+            sendTestNotification() {
+                this.addNotification(
+                    'system',
+                    '테스트 알림',
+                    '실시간 알림 시스템이 정상적으로 작동하고 있습니다!',
+                    { test: true }
+                );
+            }
+
+            clearAllNotifications() {
+                this.notifications = [];
+                this.unreadCount = 0;
+                this.saveNotifications();
+                this.updateNotificationBadge();
+                this.renderNotifications();
+                this.showToast('모든 알림이 삭제되었습니다.', 'success');
+            }
+
+            markAsRead(notificationId) {
+                const notification = this.notifications.find(n => n.id === notificationId);
+                if (notification && !notification.read) {
+                    notification.read = true;
+                    this.unreadCount = Math.max(0, this.unreadCount - 1);
+                    this.saveNotifications();
+                    this.updateNotificationBadge();
+                    this.renderNotifications();
+                }
+            }
+
+            updateNotificationBadge() {
+                const badge = document.getElementById('notification-badge');
+                if (this.unreadCount > 0) {
+                    badge.textContent = this.unreadCount > 99 ? '99+' : this.unreadCount;
+                    badge.classList.remove('hidden');
+                } else {
+                    badge.classList.add('hidden');
+                }
+            }
+
+            renderNotifications() {
+                const container = document.getElementById('notifications-list');
+                if (this.notifications.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-center py-8 text-gray-500">
+                            <svg class="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-5 5v-5z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M9 11h.01M9 8h.01"></path>
+                            </svg>
+                            <p>아직 알림이 없습니다.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = this.notifications.map(notification => `
+                    <div class="notification-item p-4 border rounded-lg ${notification.read ? 'bg-gray-50' : 'bg-blue-50 border-blue-200'}" 
+                         data-id="${notification.id}">
+                        <div class="flex items-start justify-between">
+                            <div class="flex-1">
+                                <div class="flex items-center space-x-2 mb-2">
+                                    <span class="text-sm font-medium text-gray-900">${notification.title}</span>
+                                    <span class="px-2 py-1 text-xs rounded-full ${this.getTypeColor(notification.type)}">
+                                        ${this.getTypeLabel(notification.type)}
+                                    </span>
+                                    ${!notification.read ? '<span class="w-2 h-2 bg-blue-500 rounded-full"></span>' : ''}
+                                </div>
+                                <p class="text-gray-600 text-sm mb-2">${notification.message}</p>
+                                <span class="text-xs text-gray-400">${this.formatTime(notification.timestamp)}</span>
+                            </div>
+                            <button class="text-gray-400 hover:text-gray-600" onclick="notificationManager.markAsRead(${notification.id})">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            getTypeColor(type) {
+                const colors = {
+                    'request': 'bg-yellow-100 text-yellow-800',
+                    'result': 'bg-green-100 text-green-800',
+                    'payment': 'bg-blue-100 text-blue-800',
+                    'system': 'bg-gray-100 text-gray-800'
+                };
+                return colors[type] || colors.system;
+            }
+
+            getTypeLabel(type) {
+                const labels = {
+                    'request': '의뢰',
+                    'result': '결과',
+                    'payment': '결제',
+                    'system': '시스템'
+                };
+                return labels[type] || '시스템';
+            }
+
+            formatTime(timestamp) {
+                const now = new Date();
+                const time = new Date(timestamp);
+                const diff = now - time;
+
+                if (diff < 60000) return '방금 전';
+                if (diff < 3600000) return `${Math.floor(diff / 60000)}분 전`;
+                if (diff < 86400000) return `${Math.floor(diff / 3600000)}시간 전`;
+                return time.toLocaleDateString();
+            }
+
+            showBrowserNotification(title, message) {
+                if ('Notification' in window && Notification.permission === 'granted') {
+                    new Notification(title, {
+                        body: message,
+                        icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🔍</text></svg>'
+                    });
+                }
+            }
+
+            showToast(message, type = 'info') {
+                const container = document.getElementById('toast-container');
+                const toast = document.createElement('div');
+                const colors = {
+                    'success': 'bg-green-500',
+                    'error': 'bg-red-500',
+                    'warning': 'bg-yellow-500',
+                    'info': 'bg-blue-500'
+                };
+
+                toast.className = `${colors[type]} text-white px-4 py-2 rounded-lg shadow-lg transform transition-all duration-300 translate-x-full`;
+                toast.textContent = message;
+
+                container.appendChild(toast);
+
+                // 애니메이션
+                setTimeout(() => toast.classList.remove('translate-x-full'), 100);
+                setTimeout(() => {
+                    toast.classList.add('translate-x-full');
+                    setTimeout(() => container.removeChild(toast), 300);
+                }, 3000);
+            }
+
+            saveNotifications() {
+                localStorage.setItem('realtimeNotifications', JSON.stringify(this.notifications));
+            }
+
+            startRealtimeUpdates() {
+                // 실제 서비스에서는 WebSocket이나 Server-Sent Events를 사용
+                // 여기서는 시뮬레이션
+                setInterval(() => {
+                    // 새로운 의뢰나 결과가 있는지 확인
+                    this.checkForNewUpdates();
+                }, 30000); // 30초마다 확인
+            }
+
+            checkForNewUpdates() {
+                // localStorage에서 새로운 데이터 확인
+                const requests = Object.keys(localStorage).filter(key => key.startsWith('request-'));
+                const results = Object.keys(localStorage).filter(key => key.startsWith('result-'));
+
+                // 새로운 의뢰 알림
+                requests.forEach(key => {
+                    try {
+                        const request = JSON.parse(localStorage.getItem(key));
+                        const lastChecked = localStorage.getItem(`lastChecked_${key}`);
+                        
+                        if (!lastChecked || new Date(request.timestamp) > new Date(lastChecked)) {
+                            this.addNotification(
+                                'request',
+                                '새로운 의뢰',
+                                `${request.userName}님이 ${request.productName || '제품'} 의뢰를 등록했습니다.`,
+                                { requestKey: key }
+                            );
+                            localStorage.setItem(`lastChecked_${key}`, new Date().toISOString());
+                        }
+                    } catch (e) {
+                        // 무시
+                    }
+                });
+
+                // 새로운 결과 알림
+                results.forEach(key => {
+                    try {
+                        const result = JSON.parse(localStorage.getItem(key));
+                        const lastChecked = localStorage.getItem(`lastChecked_${key}`);
+                        
+                        if (!lastChecked || new Date(result.timestamp) > new Date(lastChecked)) {
+                            this.addNotification(
+                                'result',
+                                '의뢰 결과',
+                                `${result.productName || '제품'} 의뢰에 대한 결과가 등록되었습니다.`,
+                                { resultKey: key }
+                            );
+                            localStorage.setItem(`lastChecked_${key}`, new Date().toISOString());
+                        }
+                    } catch (e) {
+                        // 무시
+                    }
+                });
+            }
+
+            toggleNotifications() {
+                // 알림 토글 기능
+                this.showToast('알림 설정이 변경되었습니다.', 'info');
+            }
+        }
+
+        // 초기화
+        const notificationManager = new NotificationManager();
+
+        // 페이지 로드 시 알림 권한 요청
+        document.addEventListener('DOMContentLoaded', () => {
+            if ('Notification' in window && Notification.permission === 'default') {
+                notificationManager.requestNotificationPermission();
+            }
+        });
+    </script>
+</body>
+</html>

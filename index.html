@@ -512,18 +512,25 @@
     <script>
       // 로그인/회원가입/마이페이지/로그아웃/의뢰결과조회 버튼 제어
       function updateAuthUI() {
-        const isLoggedIn = localStorage.getItem('loggedIn') === 'true';
+        const isLoggedIn = localStorage.getItem('loggedIn') === 'true' || localStorage.getItem('currentUser');
         const isAdmin = validateAdminSession(); // 세션 검증 추가
         
+        // null 체크를 위한 안전한 함수
+        function safeSetDisplay(elementId, display) {
+          const element = document.getElementById(elementId);
+          if (element) {
+            element.style.display = display;
+          }
+        }
+        
         if (isLoggedIn) {
-          document.getElementById('login-btn').style.display = 'none';
-          document.getElementById('signup-btn').style.display = 'none';
-          document.getElementById('kakao-login-btn').style.display = 'none';
-          document.getElementById('mypage-btn').style.display = 'inline-block';
-          document.getElementById('orders-btn').style.display = 'inline-block';
-          document.getElementById('logout-btn').style.display = 'inline-block';
-          document.getElementById('result-btn').style.display = 'inline-block';
-          document.getElementById('contact-btn').style.display = 'inline-block'; // 1:1문의하기 버튼 표시
+          safeSetDisplay('login-btn', 'none');
+          safeSetDisplay('signup-btn', 'none');
+          safeSetDisplay('mypage-btn', 'inline-block');
+          safeSetDisplay('orders-btn', 'inline-block');
+          safeSetDisplay('logout-btn', 'inline-block');
+          safeSetDisplay('result-btn', 'inline-block');
+          safeSetDisplay('contact-btn', 'inline-block'); // 1:1문의하기 버튼 표시
           
           if (isAdmin) {
             setAdminMode(true);
@@ -531,14 +538,13 @@
             setAdminMode(false);
           }
         } else {
-          document.getElementById('login-btn').style.display = 'inline-block';
-          document.getElementById('signup-btn').style.display = 'inline-block';
-          document.getElementById('kakao-login-btn').style.display = 'inline-block';
-          document.getElementById('mypage-btn').style.display = 'none';
-          document.getElementById('orders-btn').style.display = 'none';
-          document.getElementById('logout-btn').style.display = 'none';
-          document.getElementById('result-btn').style.display = 'none';
-          document.getElementById('contact-btn').style.display = 'none'; // 1:1문의하기 버튼 숨김
+          safeSetDisplay('login-btn', 'inline-block');
+          safeSetDisplay('signup-btn', 'inline-block');
+          safeSetDisplay('mypage-btn', 'none');
+          safeSetDisplay('orders-btn', 'none');
+          safeSetDisplay('logout-btn', 'none');
+          safeSetDisplay('result-btn', 'none');
+          safeSetDisplay('contact-btn', 'none'); // 1:1문의하기 버튼 숨김
           setAdminMode(false);
         }
       }
@@ -733,7 +739,7 @@
             backupKeys.sort().slice(0, -5).forEach(key => localStorage.removeItem(key));
           }
           
-          console.log('데이터 백업 완료');
+  
         } catch (error) {
           console.error('백업 실패:', error);
         }
@@ -747,7 +753,7 @@
       if ('Notification' in window && Notification.permission === 'default') {
         Notification.requestPermission().then(function(permission) {
           if (permission === 'granted') {
-            console.log('알림 권한이 허용되었습니다.');
+    
           }
         });
       }
@@ -781,7 +787,7 @@
             email: user.email || '',
             password: user.password || '',
             phone: user.phone || '',
-            kakao: user.kakao || '',
+  
             joinDate: Date.now() - (7 * 24 * 60 * 60 * 1000), // 일주일 전으로 추정
             lastLogin: Date.now(),
             status: 'active',
@@ -789,7 +795,7 @@
           };
           users.push(migratedUser);
           localStorage.setItem('users', JSON.stringify(users));
-          console.log('기존 회원 데이터 마이그레이션 완료:', user.email);
+  
         }
         
         // currentUser가 있지만 users 배열에 없는 경우 추가
@@ -799,7 +805,7 @@
             email: currentUser.email || '',
             password: currentUser.password || '',
             phone: currentUser.phone || '',
-            kakao: currentUser.kakaoId || currentUser.kakao || '',
+  
             joinDate: currentUser.joinDate || (Date.now() - (7 * 24 * 60 * 60 * 1000)),
             lastLogin: currentUser.lastLogin || Date.now(),
             status: 'active',
@@ -807,7 +813,7 @@
           };
           users.push(migratedUser);
           localStorage.setItem('users', JSON.stringify(users));
-          console.log('기존 현재 사용자 데이터 마이그레이션 완료:', currentUser.email);
+  
         }
         
         // 기존 의뢰 데이터 마이그레이션
@@ -836,16 +842,14 @@
               // userName 필드 추가
               requestData.userName = userName;
               localStorage.setItem(key, JSON.stringify(requestData));
-              console.log('의뢰 데이터 마이그레이션 완료:', key, 'userName:', userName);
+      
             }
           } catch (e) {
-            console.log('의뢰 데이터 마이그레이션 실패:', key, e);
+    
           }
         });
         
-        console.log('=== 데이터 마이그레이션 완료 ===');
-        console.log('총 회원 수:', users.length);
-        console.log('총 의뢰 수:', requestKeys.length);
+
       })();
     });
       
@@ -869,10 +873,7 @@
           const correctHash = 'YXNkYXNkOTEyMyFAUHJpY2VIdW50ZXIyMDI0IQ=='; // asdasd9123!@ + salt
           
           // 디버깅용
-          console.log('입력된 비밀번호:', password);
-          console.log('입력 해시:', hashedInput);
-          console.log('정답 해시:', correctHash);
-          console.log('일치 여부:', hashedInput === correctHash);
+          
           
           // 추가 보안: 입력값 검증
           if (password.length < 8 || password.length > 50) {
@@ -889,7 +890,7 @@
           if (hashedInput === correctHash) {
             localStorage.setItem('isAdmin', 'true');
             localStorage.setItem('adminLoginTime', Date.now().toString());
-            console.log('관리자 로그인 성공!');
+    
             setAdminMode(true); // 즉시 관리자 모드 활성화
             updateAuthUI();
             recordLoginAttempt(true);
@@ -1090,7 +1091,7 @@
             document.getElementById('mypage-name').value = currentUser.name || user.name || '';
             document.getElementById('mypage-email').value = currentUser.email || user.email || '';
             document.getElementById('mypage-phone').value = currentUser.phone || user.phone || '';
-            document.getElementById('mypage-kakao').value = currentUser.kakaoId || user.kakao || '';
+    
             
             // 마이페이지 모달 열기
             document.getElementById('mypage-modal').classList.remove('hidden');
@@ -1112,7 +1113,7 @@
             name: document.getElementById('mypage-name').value,
             email: document.getElementById('mypage-email').value,
             phone: document.getElementById('mypage-phone').value,
-            kakaoId: document.getElementById('mypage-kakao').value
+  
           };
           
           // localStorage 업데이트
@@ -1123,7 +1124,7 @@
           user.name = updatedUser.name;
           user.email = updatedUser.email;
           user.phone = updatedUser.phone;
-          user.kakao = updatedUser.kakaoId;
+
           localStorage.setItem('user', JSON.stringify(user));
           
           // users 배열에서도 업데이트
@@ -1325,11 +1326,7 @@
           logoutBtn.onclick = function() {
             // 카카오 로그인 사용자인 경우 카카오 로그아웃 처리
             const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-            if (currentUser.loginType === 'kakao') {
-              Kakao.Auth.logout(function() {
-                console.log('카카오 로그아웃 완료');
-              });
-            }
+            
             
             // 로컬 스토리지 정리
             localStorage.removeItem('loggedIn');
@@ -1673,7 +1670,7 @@ document.getElementById('mypage-form').onsubmit = function(e) {
   user.name = document.getElementById('mypage-name').value;
   user.email = document.getElementById('mypage-email').value;
   user.phone = document.getElementById('mypage-phone').value;
-  user.kakao = document.getElementById('mypage-kakao').value;
+  
   localStorage.setItem('user', JSON.stringify(user));
   document.getElementById('mypage-modal').classList.add('hidden');
   showMypageSuccess();
@@ -1698,7 +1695,7 @@ document.getElementById('signup-form').onsubmit = function(e) {
     email: document.getElementById('signup-email').value,
     password: document.getElementById('signup-password').value,
     phone: document.getElementById('signup-phone').value,
-    kakao: document.getElementById('signup-kakao').value
+    
   };
   localStorage.setItem('user', JSON.stringify(user));
   localStorage.setItem('loggedIn', 'true'); // 회원가입 시 로그인 상태로 전환
@@ -2109,22 +2106,7 @@ if (mypageBtn) {
         if (mypagePhone) mypagePhone.value = userData.phone || '';
       }
       
-      // 페이지 로드 시 카카오 로그인 상태 확인
-      window.addEventListener('load', function() {
-        const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-        if (currentUser.loginType === 'kakao') {
-          // 카카오 로그인 사용자의 경우 토큰 유효성 확인
-          if (Kakao.Auth.getAccessToken()) {
-            console.log('카카오 토큰 유효');
-          } else {
-            console.log('카카오 토큰 만료');
-            // 토큰이 만료된 경우 로그아웃 처리
-            localStorage.removeItem('loggedIn');
-            localStorage.removeItem('currentUser');
-            updateAuthUI();
-          }
-        }
-      });
+
     </script>
     <!-- 테스트 데이터 정리 함수 -->
     <script>
@@ -2143,7 +2125,9 @@ if (mypageBtn) {
             key.includes('result-#PH-') ||
             key.includes('order-#PH-') ||
             key.includes('notify-#PH-') ||
-            key.includes('inquiry-#PH-');
+            key.includes('inquiry-#PH-') ||
+            key.includes('kakao') ||
+            key.includes('Kakao');
           
           if (isTestData) {
             localStorage.removeItem(key);

@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>모니터링 대시보드 - PriceHunter</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔍</text></svg>">
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- 네비게이션 -->
+    <nav class="bg-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex justify-between items-center py-4">
+                <div class="flex items-center space-x-4">
+                    <a href="index.html" class="text-2xl font-bold text-blue-600">🔍 PriceHunter</a>
+                    <span class="text-gray-500">모니터링 대시보드</span>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span id="last-update" class="text-sm text-gray-500">마지막 업데이트: 방금 전</span>
+                    <button id="refresh-btn" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                        🔄 새로고침
+                    </button>
+                    <a href="index.html" class="text-gray-600 hover:text-blue-600 transition-colors">홈으로</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 메인 컨텐츠 -->
+    <div class="max-w-7xl mx-auto px-4 py-8">
+        <!-- 실시간 상태 -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">총 회원 수</p>
+                        <p id="total-users" class="text-3xl font-bold text-gray-900">0</p>
+                    </div>
+                    <div class="p-3 bg-blue-100 rounded-full">
+                        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
+                        </svg>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <span id="user-growth" class="text-sm text-green-600">+0%</span>
+                    <span class="text-sm text-gray-500">지난 주 대비</span>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">총 의뢰 수</p>
+                        <p id="total-requests" class="text-3xl font-bold text-gray-900">0</p>
+                    </div>
+                    <div class="p-3 bg-green-100 rounded-full">
+                        <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <span id="request-growth" class="text-sm text-green-600">+0%</span>
+                    <span class="text-sm text-gray-500">지난 주 대비</span>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">완료된 의뢰</p>
+                        <p id="completed-requests" class="text-3xl font-bold text-gray-900">0</p>
+                    </div>
+                    <div class="p-3 bg-yellow-100 rounded-full">
+                        <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <span id="completion-rate" class="text-sm text-green-600">0%</span>
+                    <span class="text-sm text-gray-500">완료율</span>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">총 매출</p>
+                        <p id="total-revenue" class="text-3xl font-bold text-gray-900">0원</p>
+                    </div>
+                    <div class="p-3 bg-purple-100 rounded-full">
+                        <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                        </svg>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <span id="revenue-growth" class="text-sm text-green-600">+0%</span>
+                    <span class="text-sm text-gray-500">지난 주 대비</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 차트 섹션 -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            <!-- 의뢰 추이 차트 -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">📈 의뢰 추이 (최근 30일)</h3>
+                <canvas id="requests-chart" width="400" height="200"></canvas>
+            </div>
+
+            <!-- 카테고리별 분포 -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">📊 카테고리별 분포</h3>
+                <canvas id="category-chart" width="400" height="200"></canvas>
+            </div>
+        </div>
+
+        <!-- 상세 통계 -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+            <!-- 최근 활동 -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">🕒 최근 활동</h3>
+                <div id="recent-activities" class="space-y-3">
+                    <!-- 활동 목록이 여기에 표시됩니다 -->
+                </div>
+            </div>
+
+            <!-- 시스템 상태 -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">⚙️ 시스템 상태</h3>
+                <div id="system-status" class="space-y-3">
+                    <!-- 시스템 상태가 여기에 표시됩니다 -->
+                </div>
+            </div>
+
+            <!-- 알림 -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">🔔 알림</h3>
+                <div id="notifications" class="space-y-3">
+                    <!-- 알림이 여기에 표시됩니다 -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 데이터 테이블 -->
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">📋 상세 데이터</h3>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">지표</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">오늘</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">이번 주</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">이번 달</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">전체</th>
+                        </tr>
+                    </thead>
+                    <tbody id="stats-table" class="bg-white divide-y divide-gray-200">
+                        <!-- 통계 데이터가 여기에 표시됩니다 -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class MonitoringDashboard {
+            constructor() {
+                this.charts = {};
+                this.updateInterval = null;
+                this.init();
+            }
+
+            init() {
+                this.setupEventListeners();
+                this.loadData();
+                this.startAutoUpdate();
+                this.createCharts();
+            }
+
+            setupEventListeners() {
+                document.getElementById('refresh-btn').addEventListener('click', () => {
+                    this.loadData();
+                });
+            }
+
+            loadData() {
+                this.updateStatistics();
+                this.updateCharts();
+                this.updateRecentActivities();
+                this.updateSystemStatus();
+                this.updateNotifications();
+                this.updateStatsTable();
+                this.updateLastUpdate();
+            }
+
+            updateStatistics() {
+                const users = JSON.parse(localStorage.getItem('users') || '[]');
+                const requests = this.getAllRequests();
+                const orders = this.getAllOrders();
+
+                // 총 회원 수
+                document.getElementById('total-users').textContent = users.length;
+
+                // 총 의뢰 수
+                document.getElementById('total-requests').textContent = requests.length;
+
+                // 완료된 의뢰 수
+                const completedRequests = requests.filter(req => req.status === '완료');
+                document.getElementById('completed-requests').textContent = completedRequests.length;
+
+                // 완료율
+                const completionRate = requests.length > 0 ? Math.round((completedRequests.length / requests.length) * 100) : 0;
+                document.getElementById('completion-rate').textContent = `${completionRate}%`;
+
+                // 총 매출
+                const totalRevenue = orders.reduce((sum, order) => sum + (parseInt(order.amount) || 0), 0);
+                document.getElementById('total-revenue').textContent = `${totalRevenue.toLocaleString()}원`;
+
+                // 성장률 계산 (간단한 시뮬레이션)
+                document.getElementById('user-growth').textContent = '+5%';
+                document.getElementById('request-growth').textContent = '+12%';
+                document.getElementById('revenue-growth').textContent = '+8%';
+            }
+
+            getAllRequests() {
+                const requests = [];
+                Object.keys(localStorage).forEach(key => {
+                    if (key.startsWith('request-')) {
+                        try {
+                            const request = JSON.parse(localStorage.getItem(key));
+                            if (request) requests.push(request);
+                        } catch (e) {
+                            // 무시
+                        }
+                    }
+                });
+                return requests;
+            }
+
+            getAllOrders() {
+                const orders = [];
+                Object.keys(localStorage).forEach(key => {
+                    if (key.startsWith('order-')) {
+                        try {
+                            const order = JSON.parse(localStorage.getItem(key));
+                            if (order) orders.push(order);
+                        } catch (e) {
+                            // 무시
+                        }
+                    }
+                });
+                return orders;
+            }
+
+            createCharts() {
+                this.createRequestsChart();
+                this.createCategoryChart();
+            }
+
+            createRequestsChart() {
+                const ctx = document.getElementById('requests-chart').getContext('2d');
+                this.charts.requests = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: this.getLast30Days(),
+                        datasets: [{
+                            label: '의뢰 수',
+                            data: this.generateRandomData(30),
+                            borderColor: 'rgb(59, 130, 246)',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+            }
+
+            createCategoryChart() {
+                const ctx = document.getElementById('category-chart').getContext('2d');
+                this.charts.category = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['전자기기', '의류', '가전제품', '화장품', '기타'],
+                        datasets: [{
+                            data: [30, 25, 20, 15, 10],
+                            backgroundColor: [
+                                'rgba(59, 130, 246, 0.8)',
+                                'rgba(16, 185, 129, 0.8)',
+                                'rgba(245, 158, 11, 0.8)',
+                                'rgba(239, 68, 68, 0.8)',
+                                'rgba(139, 92, 246, 0.8)'
+                            ]
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false
+                    }
+                });
+            }
+
+            getLast30Days() {
+                const dates = [];
+                for (let i = 29; i >= 0; i--) {
+                    const date = new Date();
+                    date.setDate(date.getDate() - i);
+                    dates.push(date.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' }));
+                }
+                return dates;
+            }
+
+            generateRandomData(count) {
+                return Array.from({ length: count }, () => Math.floor(Math.random() * 20) + 1);
+            }
+
+            updateCharts() {
+                // 차트 데이터 업데이트 (실제 데이터로 교체)
+                if (this.charts.requests) {
+                    this.charts.requests.data.datasets[0].data = this.generateRandomData(30);
+                    this.charts.requests.update();
+                }
+            }
+
+            updateRecentActivities() {
+                const activities = [
+                    { time: '방금 전', action: '새로운 의뢰 등록', user: '김철수', product: '노트북' },
+                    { time: '5분 전', action: '의뢰 결과 등록', user: '관리자', product: '스마트폰' },
+                    { time: '10분 전', action: '결제 완료', user: '이영희', product: '태블릿' },
+                    { time: '15분 전', action: '회원가입', user: '박민수', product: '-' },
+                    { time: '30분 전', action: '의뢰 취소', user: '최지은', product: '헤드폰' }
+                ];
+
+                const container = document.getElementById('recent-activities');
+                container.innerHTML = activities.map(activity => `
+                    <div class="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                        <div class="flex-1">
+                            <p class="text-sm font-medium text-gray-800">${activity.action}</p>
+                            <p class="text-xs text-gray-500">${activity.user} • ${activity.product}</p>
+                        </div>
+                        <span class="text-xs text-gray-400">${activity.time}</span>
+                    </div>
+                `).join('');
+            }
+
+            updateSystemStatus() {
+                const statuses = [
+                    { name: '서버 상태', status: '정상', color: 'green' },
+                    { name: '데이터베이스', status: '정상', color: 'green' },
+                    { name: '결제 시스템', status: '정상', color: 'green' },
+                    { name: '알림 시스템', status: '정상', color: 'green' },
+                    { name: '백업 시스템', status: '정상', color: 'green' }
+                ];
+
+                const container = document.getElementById('system-status');
+                container.innerHTML = statuses.map(status => `
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <span class="text-sm font-medium text-gray-800">${status.name}</span>
+                        <span class="px-2 py-1 text-xs rounded-full bg-${status.color}-100 text-${status.color}-800">
+                            ${status.status}
+                        </span>
+                    </div>
+                `).join('');
+            }
+
+            updateNotifications() {
+                const notifications = [
+                    { type: 'info', message: '시스템 점검이 완료되었습니다.', time: '1시간 전' },
+                    { type: 'warning', message: '저장 공간이 80% 사용되었습니다.', time: '2시간 전' },
+                    { type: 'success', message: '새로운 기능이 업데이트되었습니다.', time: '3시간 전' }
+                ];
+
+                const container = document.getElementById('notifications');
+                container.innerHTML = notifications.map(notification => `
+                    <div class="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                        <div class="flex-1">
+                            <p class="text-sm text-gray-800">${notification.message}</p>
+                            <p class="text-xs text-gray-500">${notification.time}</p>
+                        </div>
+                        <span class="w-2 h-2 bg-${notification.type === 'warning' ? 'yellow' : notification.type === 'success' ? 'green' : 'blue'}-500 rounded-full"></span>
+                    </div>
+                `).join('');
+            }
+
+            updateStatsTable() {
+                const stats = [
+                    { metric: '신규 회원', today: 5, week: 35, month: 150, total: 1250 },
+                    { metric: '의뢰 등록', today: 12, week: 85, month: 320, total: 2850 },
+                    { metric: '결제 완료', today: 8, week: 65, month: 280, total: 2450 },
+                    { metric: '매출액', today: '150만원', week: '1,200만원', month: '4,500만원', total: '3억 2,500만원' }
+                ];
+
+                const container = document.getElementById('stats-table');
+                container.innerHTML = stats.map(stat => `
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${stat.metric}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${stat.today}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${stat.week}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${stat.month}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${stat.total}</td>
+                    </tr>
+                `).join('');
+            }
+
+            updateLastUpdate() {
+                const now = new Date();
+                document.getElementById('last-update').textContent = 
+                    `마지막 업데이트: ${now.toLocaleTimeString('ko-KR')}`;
+            }
+
+            startAutoUpdate() {
+                this.updateInterval = setInterval(() => {
+                    this.loadData();
+                }, 30000); // 30초마다 업데이트
+            }
+
+            stopAutoUpdate() {
+                if (this.updateInterval) {
+                    clearInterval(this.updateInterval);
+                }
+            }
+        }
+
+        // 초기화
+        const dashboard = new MonitoringDashboard();
+
+        // 페이지 언로드 시 자동 업데이트 중지
+        window.addEventListener('beforeunload', () => {
+            dashboard.stopAutoUpdate();
+        });
+    </script>
+</body>
+</html>
