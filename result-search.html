@@ -84,18 +84,7 @@
         <div class="bg-white rounded-2xl shadow-lg p-6 mb-4 text-left">
           <!-- 진행상황 배지 -->
           <div class="mb-4 flex justify-between items-center">
-            <div class="text-lg font-bold text-gray-800">의뢰 상세 정보</div>
             <div id="status-badge" class="px-3 py-1 rounded-full text-sm font-bold text-white"></div>
-          </div>
-          
-          <!-- 의뢰 정보 -->
-          <div class="mb-4 p-4 bg-gray-50 rounded-lg">
-            <div class="mb-2 text-gray-600"><span class="font-semibold">의뢰번호:</span> <span id="request-num"></span></div>
-            <div class="mb-2 text-gray-600"><span class="font-semibold">제품명:</span> <span id="request-name"></span></div>
-            <div class="mb-2 text-gray-600"><span class="font-semibold">제품설명:</span> <span id="request-desc"></span></div>
-            <div class="mb-2 text-gray-600"><span class="font-semibold">참고사이트:</span> <span id="request-url"></span></div>
-            <div class="mb-2 text-gray-600"><span class="font-semibold">희망가격:</span> <span id="request-price"></span></div>
-            <div class="mb-2 text-gray-600"><span class="font-semibold">의뢰일시:</span> <span id="request-date"></span></div>
           </div>
           
           <!-- 결과 정보 -->
@@ -157,6 +146,7 @@
     <script>
       const searchBtn = document.getElementById('search-btn');
       let currentReqKey = ''; // 현재 표시된 의뢰의 키
+      let currentDisplayedReq = ''; // 현재 표시된 의뢰 번호 (토글용)
       const loading = document.getElementById('loading');
       const resultCard = document.getElementById('result-card');
       const noResult = document.getElementById('no-result');
@@ -211,32 +201,97 @@
         }
         list.forEach(req => {
           const li = document.createElement('li');
-          li.className = 'py-3 px-4 hover:bg-blue-100 cursor-pointer flex justify-between items-center';
+          li.className = 'py-3 px-4 hover:bg-blue-100 cursor-pointer';
           
           const status = getRequestStatus(req.key);
           const statusBadge = `<span class="px-2 py-1 rounded text-xs font-bold text-white ${status.color}">${status.text}</span>`;
           
+          // 관리자 답변 확인
+          const reqNum = req.key.replace('request-', '');
+          const resultData = localStorage.getItem(`result-${reqNum}`);
+          let adminResponse = '';
+          
+          if (resultData) {
+            try {
+              const result = JSON.parse(resultData);
+              if (result.summary) {
+                // HTML 태그 제거하고 텍스트만 추출 (최대 100자)
+                const textContent = result.summary.replace(/<[^>]*>/g, '').trim();
+                adminResponse = textContent.length > 100 ? textContent.substring(0, 100) + '...' : textContent;
+              }
+            } catch (e) {
+              console.log('결과 데이터 파싱 실패:', e);
+            }
+          }
+          
           li.innerHTML = `
-            <div class="flex items-center gap-3">
-              <span class="font-semibold text-blue-600">${req.key.replace('request-','')}</span>
-              <span class="text-gray-700">${req.name}</span>
-              ${statusBadge}
+            <div class="flex justify-between items-start mb-2">
+              <div class="flex items-center gap-3">
+                <span class="font-semibold text-blue-600">${req.key.replace('request-','')}</span>
+                <span class="text-gray-700">${req.name}</span>
+                ${statusBadge}
+              </div>
+              <span class="text-xs text-gray-400">${req.date ? new Date(req.date).toLocaleString() : ''}</span>
             </div>
-            <span class="text-xs text-gray-400">${req.date ? new Date(req.date).toLocaleString() : ''}</span>
+            ${adminResponse ? `
+              <div class="text-sm text-gray-600 bg-gray-50 p-2 rounded mt-2">
+                <span class="font-medium text-green-600">💬 관리자 답변:</span> ${adminResponse}
+              </div>
+            ` : ''}
           `;
           li.onclick = function() { 
+            const reqNum = req.key.replace('request-', '');
+            
+            // 토글 기능: 같은 의뢰를 다시 클릭하면 숨기기
+            if (currentDisplayedReq === reqNum) {
+              console.log('같은 의뢰 다시 클릭 - 토글 닫기');
+              hideResult();
+              currentDisplayedReq = '';
+              return;
+            }
+            
+            // 다른 의뢰 클릭 시 표시
+            console.log('새로운 의뢰 클릭 - 표시');
             currentReqKey = req.key; // 전역 변수에 현재 의뢰 키 저장
-            showResultByKey(req.key.replace('request-','')); 
+            currentDisplayedReq = reqNum;
+            
+            // 새로운 관리자 답변 표시 함수 사용
+            const success = showAdminResponse(reqNum);
+            if (!success) {
+              // 실패 시 기존 방법 사용
+              showResultByKey(reqNum);
+            }
           };
           ul.appendChild(li);
         });
       }
       
       function showResultByKey(key) {
-        console.log('=== showResultByKey 호출 ===');
-        console.log('입력된 key:', key);
+        console.log('=== showResultByKey 호출됨 ===');
+        console.log('입력된 키:', key);
+        console.log('키 타입:', typeof key);
         
-        // 결과 카드 표시
+        if (!key) {
+          console.log('키가 비어있음');
+          document.getElementById('no-result').classList.remove('hidden');
+          return;
+        }
+        
+        // 키 정규화 (다양한 형식 지원)
+        let normalizedKey = key.toString().trim();
+        
+        // PH- 접두사 제거
+        if (normalizedKey.startsWith('PH-')) {
+          normalizedKey = normalizedKey.substring(3);
+        }
+        
+        // # 접두사 제거  
+        if (normalizedKey.startsWith('#')) {
+          normalizedKey = normalizedKey.substring(1);
+        }
+        
+        console.log('정규화된 키:', normalizedKey);
+        
         const resultCard = document.getElementById('result-card');
         const noResult = document.getElementById('no-result');
         const resultInfo = document.getElementById('result-info');
@@ -245,102 +300,273 @@
         resultCard.classList.add('hidden');
         noResult.classList.add('hidden');
         
-        // 의뢰 정보 찾기
-        const requestKey = 'request-' + key;
-        currentReqKey = requestKey; // 전역 변수에 현재 의뢰 키 저장
-        console.log('설정된 currentReqKey:', currentReqKey);
-        const requestData = localStorage.getItem(requestKey);
+        // 의뢰 정보 찾기 - 여러 형식으로 시도
+        const possibleKeys = [
+          `request-${normalizedKey}`,
+          `request-PH-${normalizedKey}`,
+          normalizedKey,
+          `PH-${normalizedKey}`
+        ];
+        
+        console.log('시도할 키들:', possibleKeys);
+        
+        let requestData = null;
+        let foundRequestKey = null;
+        
+        for (const testKey of possibleKeys) {
+          const data = localStorage.getItem(testKey);
+          if (data) {
+            try {
+              requestData = JSON.parse(data);
+              foundRequestKey = testKey;
+              console.log('찾은 의뢰 키:', foundRequestKey);
+              console.log('의뢰 데이터:', requestData);
+              break;
+            } catch (e) {
+              console.log(`${testKey} 파싱 실패:`, e);
+            }
+          }
+        }
         
         if (!requestData) {
+          console.log('의뢰 데이터를 찾을 수 없음');
+          
+          // 모든 localStorage 키 확인해서 유사한 것 찾기
+          const allKeys = Object.keys(localStorage);
+          const similarKeys = allKeys.filter(k => 
+            k.toLowerCase().includes(normalizedKey.toLowerCase()) ||
+            normalizedKey.toLowerCase().includes(k.toLowerCase())
+          );
+          console.log('유사한 키들:', similarKeys);
+          
           noResult.classList.remove('hidden');
           return;
         }
         
-        const request = JSON.parse(requestData);
-        resultCard.classList.remove('hidden');
-        
-        // 의뢰 정보 표시
-        const requestNumElement = document.getElementById('request-num');
-        if (requestNumElement) {
-          requestNumElement.textContent = key;
-        } else {
-          console.error('request-num 요소를 찾을 수 없습니다.');
-          return;
-        }
-        const requestNameElement = document.getElementById('request-name');
-        const requestDescElement = document.getElementById('request-desc');
-        const requestPriceElement = document.getElementById('request-price');
-        const requestDateElement = document.getElementById('request-date');
-        
-        if (requestNameElement) requestNameElement.textContent = request.name || '';
-        if (requestDescElement) requestDescElement.textContent = request.desc || '';
-        if (requestPriceElement) requestPriceElement.textContent = request.price || '';
-        if (requestDateElement) requestDateElement.textContent = request.date ? new Date(request.date).toLocaleString() : '';
-        
-        // 참고사이트 표시
-        const urlEl = document.getElementById('request-url');
-        if (request.urls && Array.isArray(request.urls)) {
-          urlEl.innerHTML = request.urls.map(u => {
-            if (/^https?:\/\//.test(u)) {
-              return `<a href="${u}" target="_blank" class="text-blue-600 underline break-all mr-2">${u}</a>`;
-            } else {
-              return `<span class="text-gray-700 bg-gray-100 rounded px-2 py-1 mr-2">${u}</span>`;
+        if (requestData) {
+          // userName 필드가 없는 경우 처리
+          if (!requestData.userName) {
+            // user 또는 currentUser에서 이름 찾기
+            let userName = '';
+            if (requestData.email) {
+              const user = JSON.parse(localStorage.getItem('user') || '{}');
+              const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+              
+              if (user.email === requestData.email) {
+                userName = user.name || '';
+              } else if (currentUser.email === requestData.email) {
+                userName = currentUser.name || '';
+              }
             }
-          }).join('');
-        } else if (request.url) {
-          urlEl.innerHTML = `<a href="${request.url}" target="_blank" class="text-blue-600 underline break-all">${request.url}</a>`;
-        } else {
-          urlEl.innerHTML = '없음';
-        }
-        
-        // 진행상황 표시
-        const status = getRequestStatus(requestKey);
-        const statusBadge = document.getElementById('status-badge');
-        statusBadge.textContent = status.text;
-        statusBadge.className = `px-3 py-1 rounded-full text-sm font-bold text-white ${status.color}`;
-        
-        // 결과 정보 확인
-        const resultData = localStorage.getItem('result-' + key);
-        if (resultData) {
-          const result = JSON.parse(resultData);
-          resultInfo.classList.remove('hidden');
-          progressMessage.classList.add('hidden');
-          
-          const resultPriceElement = document.getElementById('result-price');
-          const resultOriginElement = document.getElementById('result-origin');
-          const resultSummaryElement = document.getElementById('result-summary');
-          const resultLinkElement = document.getElementById('result-link');
-          
-          if (resultPriceElement) resultPriceElement.textContent = result.price || '';
-          if (resultOriginElement) resultOriginElement.textContent = result.origin || '';
-          if (resultSummaryElement) {
-            renderRichContent(resultSummaryElement, result.summary);
+            
+            // userName 필드 추가하고 저장
+            requestData.userName = userName;
+            localStorage.setItem(foundRequestKey, JSON.stringify(requestData));
+            console.log('의뢰 데이터 userName 추가:', foundRequestKey, 'userName:', userName);
           }
           
-          if (resultLinkElement) {
-            if (result.link) {
-              resultLinkElement.textContent = result.link;
-              resultLinkElement.href = result.link;
-            } else {
-              resultLinkElement.textContent = '링크 정보 없음';
-              resultLinkElement.href = '#';
+          // currentReqKey 설정
+          currentReqKey = foundRequestKey;
+          console.log('설정된 currentReqKey:', currentReqKey);
+        
+          resultCard.classList.remove('hidden');
+          
+          // 진행상황 표시
+          const status = getRequestStatus(foundRequestKey);
+          const statusBadge = document.getElementById('status-badge');
+          statusBadge.textContent = status.text;
+          statusBadge.className = `px-3 py-1 rounded-full text-sm font-bold text-white ${status.color}`;
+        
+          // 결과 정보 확인 - 완전히 새로운 접근 방법
+          console.log('=== 결과 데이터 검색 시작 ===');
+          console.log('foundRequestKey:', foundRequestKey);
+          console.log('normalizedKey:', normalizedKey);
+          
+          // 1단계: localStorage의 모든 키 확인
+          const allKeys = Object.keys(localStorage);
+          console.log('localStorage 전체 키 개수:', allKeys.length);
+          
+          // 2단계: 의뢰 번호 추출
+          let reqNum = '';
+          if (foundRequestKey.startsWith('request-')) {
+            reqNum = foundRequestKey.replace('request-', '');
+          } else {
+            reqNum = foundRequestKey;
+          }
+          console.log('추출된 의뢰 번호:', reqNum);
+          
+          // 3단계: 모든 result 키 찾기
+          const allResultKeys = allKeys.filter(key => key.startsWith('result-'));
+          console.log('모든 result 키들:', allResultKeys);
+          
+          // 4단계: 의뢰 번호와 관련된 result 키 찾기
+          let resultData = null;
+          let foundResultKey = null;
+          
+          for (const resultKey of allResultKeys) {
+            console.log(`검사 중: ${resultKey}`);
+            
+            // 의뢰 번호가 포함되어 있는지 확인
+            if (resultKey.includes(reqNum) || 
+                resultKey.includes(normalizedKey) || 
+                resultKey.includes(reqNum.replace('PH-', '')) ||
+                resultKey.includes(normalizedKey.replace('PH-', ''))) {
+              
+              console.log(`✅ 매칭된 result 키 발견: ${resultKey}`);
+              const data = localStorage.getItem(resultKey);
+              
+              if (data) {
+                try {
+                  resultData = JSON.parse(data);
+                  foundResultKey = resultKey;
+                  console.log('✅ 결과 데이터 파싱 성공:', resultData);
+                  break;
+                } catch (e) {
+                  console.log(`❌ ${resultKey} 파싱 실패:`, e);
+                }
+              }
             }
           }
-        } else {
-          resultInfo.classList.add('hidden');
-          progressMessage.classList.remove('hidden');
+          
+          // 5단계: 결과가 없으면 더 넓은 검색
+          if (!resultData) {
+            console.log('❌ 정확한 매칭을 찾지 못함, 더 넓은 검색 시작');
+            
+            // 모든 result 데이터 확인
+            for (const resultKey of allResultKeys) {
+              const data = localStorage.getItem(resultKey);
+              if (data) {
+                try {
+                  const parsed = JSON.parse(data);
+                  console.log(`${resultKey}:`, parsed);
+                  
+                  // 의뢰 데이터와 비교
+                  if (requestData.email && parsed.email && requestData.email === parsed.email) {
+                    console.log(`✅ 이메일로 매칭된 결과 발견: ${resultKey}`);
+                    resultData = parsed;
+                    foundResultKey = resultKey;
+                    break;
+                  }
+                } catch (e) {
+                  console.log(`${resultKey} 파싱 실패:`, e);
+                }
+              }
+            }
+          }
+          
+          if (!resultData) {
+            console.log('❌ 결과 데이터를 찾을 수 없음');
+            console.log('=== 전체 localStorage 내용 ===');
+            allKeys.forEach(key => {
+              if (key.includes('result') || key.includes('request')) {
+                console.log(key, ':', localStorage.getItem(key));
+              }
+            });
+          }
+          
+          if (resultData) {
+            console.log('=== 결과 데이터 표시 시작 ===');
+            console.log('찾은 결과 키:', foundResultKey);
+            console.log('resultData:', resultData);
+            console.log('resultData.summary:', resultData.summary);
+            console.log('resultData.summary 타입:', typeof resultData.summary);
+            console.log('resultData.summary 길이:', resultData.summary ? resultData.summary.length : 0);
+            
+            // 결과 섹션 표시
+            resultInfo.classList.remove('hidden');
+            progressMessage.classList.add('hidden');
+            
+            // DOM 요소들 가져오기
+            const resultPriceElement = document.getElementById('result-price');
+            const resultOriginElement = document.getElementById('result-origin');
+            const resultSummaryElement = document.getElementById('result-summary');
+            const resultLinkElement = document.getElementById('result-link');
+            
+            console.log('DOM 요소들 확인:', {
+              resultPriceElement: !!resultPriceElement,
+              resultOriginElement: !!resultOriginElement,
+              resultSummaryElement: !!resultSummaryElement,
+              resultLinkElement: !!resultLinkElement
+            });
+            
+            // 가격 설정
+            if (resultPriceElement) {
+              const price = resultData.price || '가격 정보 없음';
+              resultPriceElement.textContent = price;
+              console.log('✅ 가격 설정 완료:', price);
+            } else {
+              console.error('❌ result-price 요소를 찾을 수 없음');
+            }
+            
+            // 원산지 설정
+            if (resultOriginElement) {
+              const origin = resultData.origin || '원산지 정보 없음';
+              resultOriginElement.textContent = origin;
+              console.log('✅ 원산지 설정 완료:', origin);
+            } else {
+              console.error('❌ result-origin 요소를 찾을 수 없음');
+            }
+            
+            // 종합설명 설정 (가장 중요)
+            if (resultSummaryElement) {
+              const summary = resultData.summary || '설명 정보 없음';
+              console.log('renderRichContent 호출 전 summary:', summary);
+              
+              // 직접 innerHTML 설정
+              resultSummaryElement.innerHTML = summary;
+              console.log('✅ 종합설명 설정 완료');
+              console.log('설정 후 innerHTML:', resultSummaryElement.innerHTML);
+            } else {
+              console.error('❌ result-summary 요소를 찾을 수 없음');
+            }
+            
+            // 링크 설정
+            if (resultLinkElement) {
+              if (resultData.link && resultData.link !== '링크 정보 없음') {
+                resultLinkElement.textContent = resultData.link;
+                resultLinkElement.href = resultData.link;
+                console.log('✅ 링크 설정 완료:', resultData.link);
+              } else {
+                resultLinkElement.textContent = '링크 정보 없음';
+                resultLinkElement.href = '#';
+                console.log('✅ 링크 정보 없음으로 설정');
+              }
+            } else {
+              console.error('❌ result-link 요소를 찾을 수 없음');
+            }
+            
+            console.log('=== 결과 데이터 표시 완료 ===');
+          } else {
+            console.log('❌ 결과 데이터가 없어서 진행중 메시지 표시');
+            resultInfo.classList.add('hidden');
+            progressMessage.classList.remove('hidden');
+          }
         }
       }
       
       // 이미지가 포함된 HTML 내용을 안전하게 렌더링하는 함수
       function renderRichContent(element, content) {
-        if (!element) return;
+        console.log('=== renderRichContent 함수 시작 ===');
+        console.log('element:', element);
+        console.log('content:', content);
+        console.log('content 타입:', typeof content);
+        console.log('content 길이:', content ? content.length : 0);
+        
+        if (!element) {
+          console.error('element가 null입니다!');
+          return;
+        }
         
         if (content && content.trim()) {
+          console.log('content를 innerHTML로 설정:', content);
           element.innerHTML = content;
+          console.log('설정 후 element.innerHTML:', element.innerHTML);
         } else {
+          console.log('content가 비어있어서 기본 메시지 표시');
           element.textContent = '설명 정보 없음';
         }
+        
+        console.log('=== renderRichContent 함수 완료 ===');
       }
       
       // 구매 버튼 기능
@@ -443,14 +669,7 @@
                   </div>
                 </div>
                 
-                <div class="p-4 bg-yellow-50 rounded-lg">
-                  <h4 class="font-bold text-yellow-800 mb-2">📞 신청 방법</h4>
-                  <div class="text-sm text-yellow-700">
-                    <p>• 고객센터: <strong>1588-1234</strong></p>
-                    <p>• 카카오톡: <strong>@pricehunter</strong></p>
-                    <p>• 이메일: <strong>support@pricehunter.kr</strong></p>
-                  </div>
-                </div>
+
               </div>
               
               <div class="mt-4 flex space-x-3">
@@ -467,27 +686,59 @@
         document.body.insertAdjacentHTML('beforeend', supportContent);
       }
 
-      function contactSupport() {
-        const currentKey = currentReqKey.replace('request-', '');
-        const request = JSON.parse(localStorage.getItem(currentReqKey) || '{}');
-        const result = JSON.parse(localStorage.getItem('result-' + currentKey) || '{}');
+             function contactSupport() {
+        // 의뢰 결과가 표시된 상태인지 확인
+        console.log('=== contactSupport 함수 시작 ===');
+        console.log('currentReqKey 값:', currentReqKey);
+        console.log('currentReqKey 타입:', typeof currentReqKey);
+        console.log('currentReqKey 길이:', currentReqKey ? currentReqKey.length : 0);
         
-        const message = `구매 지원 서비스 신청
-
-의뢰번호: ${currentKey}
-제품명: ${request.name}
-최저가: ${result.price}
-최저가 쇼핑몰: ${result.link}
-
-구매 지원 서비스를 신청합니다.`;
-
-        // 카카오톡 채널로 연결
-        if (confirm('카카오톡 채널로 연결하시겠습니까?')) {
-          window.open('https://open.kakao.com/o/pricehunter', '_blank');
+        if (!currentReqKey) {
+          console.log('currentReqKey가 없음 - 에러 발생');
+          alert('먼저 의뢰 결과를 조회해주세요.');
+          return;
         }
         
+        // 키에서 의뢰번호 추출 (다양한 형식 지원)
+        let currentKey = currentReqKey;
+        
+        // request- 접두사 제거
+        if (currentKey.startsWith('request-')) {
+          currentKey = currentKey.substring(8); // 'request-' 제거
+        }
+        
+        // PH- 접두사 제거 (있다면)
+        if (currentKey.startsWith('PH-')) {
+          currentKey = currentKey.substring(3); // 'PH-' 제거
+        }
+        
+        console.log('=== contactSupport 호출됨 ===');
+        console.log('원본 currentReqKey:', currentReqKey);
+        console.log('추출된 currentKey:', currentKey);
+        console.log('currentKey 타입:', typeof currentKey);
+        console.log('currentKey 길이:', currentKey.length);
+        
+        // 구매 지원 서비스 페이지로 이동
+        const supportUrl = `purchase-support.html?req=${currentKey}`;
+        console.log('생성된 URL:', supportUrl);
+        console.log('현재 페이지 URL:', window.location.href);
+        console.log('현재 페이지 경로:', window.location.pathname);
+        
+        // URL이 올바른지 확인
+        console.log('URL 검증:');
+        console.log('- req 파라미터 포함 여부:', supportUrl.includes('req='));
+        console.log('- currentKey 값이 URL에 포함됨:', supportUrl.includes(currentKey));
+        console.log('- 최종 URL 파라미터:', `req=${currentKey}`);
+        
+        // 새 탭에서 열기
+        console.log('새 탭에서 URL 열기:', supportUrl);
+        window.open(supportUrl, '_blank');
+        
         // 모달 닫기
-        document.querySelector('.fixed').remove();
+        const modal = document.querySelector('.fixed');
+        if (modal) {
+          modal.remove();
+        }
       }
 
       function goToExternalPurchase() {
@@ -530,8 +781,549 @@
         }
       }
       
+
+      
+      // 기존 데이터 분석 및 표시 함수
+      function analyzeExistingData() {
+        console.log('=== 기존 데이터 분석 ===');
+        const allKeys = Object.keys(localStorage);
+        console.log('모든 localStorage 키들:', allKeys);
+        
+        // 의뢰 관련 데이터 찾기 (테스트 데이터 제외)
+        const requestKeys = allKeys.filter(key => 
+          (key.includes('request') || key.includes('PH-')) && 
+          !key.includes('TEST') &&
+          !key.startsWith('requestCount-')
+        );
+        const resultKeys = allKeys.filter(key => 
+          key.includes('result') && 
+          !key.includes('TEST')
+        );
+        const orderKeys = allKeys.filter(key => 
+          key.includes('order') && 
+          !key.includes('TEST')
+        );
+        
+        console.log('의뢰 관련 키들 (테스트 제외):', requestKeys);
+        console.log('결과 관련 키들 (테스트 제외):', resultKeys);
+        console.log('주문 관련 키들 (테스트 제외):', orderKeys);
+        
+        // 각 데이터의 구조 분석
+        requestKeys.forEach(key => {
+          try {
+            const data = JSON.parse(localStorage.getItem(key));
+            console.log(`${key} 데이터 구조:`, data);
+          } catch (e) {
+            console.log(`${key} JSON 파싱 실패:`, localStorage.getItem(key));
+          }
+        });
+        
+        resultKeys.forEach(key => {
+          try {
+            const data = JSON.parse(localStorage.getItem(key));
+            console.log(`${key} 데이터 구조:`, data);
+          } catch (e) {
+            console.log(`${key} JSON 파싱 실패:`, localStorage.getItem(key));
+          }
+        });
+        
+        return { requestKeys, resultKeys, orderKeys };
+      }
+      
+      // 기존 데이터 목록 표시 함수
+      function showExistingRequests() {
+        const { requestKeys, resultKeys } = analyzeExistingData();
+        
+        // 관리자 모드 확인
+        const isAdmin = localStorage.getItem('adminMode') === 'true';
+        
+        // 테스트 데이터 강력 필터링
+        const filteredRequestKeys = requestKeys.filter(key => {
+          // 테스트 데이터 패턴들 제외
+          const isTestData = 
+            key.includes('TEST') || 
+            key.startsWith('requestCount-') ||
+            key.includes('#PH-') ||
+            key.includes('result-#PH-') ||
+            key.includes('order-#PH-') ||
+            key.includes('notify-#PH-') ||
+            key.includes('inquiry-#PH-');
+          
+          return !isTestData;
+        });
+        
+        console.log('필터링된 의뢰 키들:', filteredRequestKeys);
+        
+        const container = document.querySelector('main');
+        const existingDiv = document.createElement('div');
+        existingDiv.className = 'mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg';
+        existingDiv.innerHTML = `
+          <h3 class="font-bold text-blue-800 mb-2">📋 기존 의뢰 목록</h3>
+          <div class="space-y-2 text-sm">
+            ${filteredRequestKeys.map(key => {
+              try {
+                const data = JSON.parse(localStorage.getItem(key));
+                const reqNum = key.replace('request-', '');
+                const hasResult = resultKeys.includes(`result-${reqNum}`);
+                return `
+                  <div class="flex justify-between items-center p-2 bg-white rounded border">
+                    <div>
+                      <span class="font-medium">${reqNum}</span> - ${data.name || '제품명 없음'}
+                      ${hasResult ? '<span class="text-green-600 ml-2">✅ 결과있음</span>' : '<span class="text-gray-500 ml-2">⏳ 대기중</span>'}
+                    </div>
+                    <div class="flex gap-2">
+                      <button onclick="testRequest('${reqNum}')" class="px-2 py-1 bg-blue-500 text-white rounded text-xs hover:bg-blue-600">
+                        조회
+                      </button>
+                      ${isAdmin ? `
+                        <button onclick="deleteRequest('${reqNum}')" class="px-2 py-1 bg-red-500 text-white rounded text-xs hover:bg-red-600">
+                          삭제
+                        </button>
+                      ` : ''}
+                    </div>
+                  </div>
+                `;
+              } catch (e) {
+                return `<div class="text-red-600">${key} - 데이터 오류</div>`;
+              }
+            }).join('')}
+          </div>
+        `;
+        
+        container.insertBefore(existingDiv, container.children[1]);
+      }
+      
+      // 특정 의뢰 테스트 함수
+      function testRequest(reqNum) {
+        console.log(`=== ${reqNum} 테스트 시작 ===`);
+        
+        // 새로운 관리자 답변 표시 함수 사용
+        const success = showAdminResponse(reqNum);
+        if (success) {
+          console.log(`${reqNum} 관리자 답변 표시 성공`);
+        } else {
+          console.log(`${reqNum} 관리자 답변 표시 실패`);
+          
+          // 기존 방법으로도 시도
+          const searchInput = document.getElementById('search-input');
+          if (searchInput) {
+            searchInput.value = reqNum;
+            document.getElementById('search-btn').click();
+          }
+        }
+      }
+
+      function deleteRequest(reqNum) {
+        if (confirm(`의뢰번호 ${reqNum}을(를) 삭제하시겠습니까?\n\n⚠️ 삭제되는 데이터:\n• 의뢰 정보\n• 의뢰 결과\n• 주문 정보\n• 알림 발송 기록\n\n이 작업은 되돌릴 수 없습니다.`)) {
+          const requestKey = `request-${reqNum}`;
+          const resultKey = `result-${reqNum}`;
+          const orderKey = `order-${reqNum}`;
+          const notifyKey = `notify-${reqNum}`;
+
+          // 모든 관련 데이터 삭제
+          localStorage.removeItem(requestKey);
+          localStorage.removeItem(resultKey);
+          localStorage.removeItem(orderKey);
+          localStorage.removeItem(notifyKey);
+
+          alert(`의뢰번호 ${reqNum}와 관련 데이터가 완전히 삭제되었습니다.`);
+          // 페이지 새로고침
+          window.location.reload();
+        }
+      }
+      
+      // 테스트 데이터 완전 삭제 함수
+      function cleanupTestData() {
+        console.log('=== 테스트 데이터 완전 삭제 시작 ===');
+        
+        // 모든 localStorage 키 확인
+        const allKeys = Object.keys(localStorage);
+        
+        // 테스트 관련 키들 삭제
+        allKeys.forEach(key => {
+          if (key.includes('TEST') || key.includes('test')) {
+            localStorage.removeItem(key);
+            console.log('삭제된 테스트 키:', key);
+          }
+        });
+        
+        console.log('✅ 테스트 데이터 완전 삭제 완료');
+      }
+      
+      // 결과 숨기기 함수
+      function hideResult() {
+        console.log('=== 결과 숨기기 실행 ===');
+        
+        // result-card 숨기기
+        const resultCard = document.getElementById('result-card');
+        if (resultCard) {
+          resultCard.style.display = 'none';
+          console.log('✅ result-card 숨김 완료');
+        }
+        
+        // result-info 숨기기
+        const resultInfo = document.getElementById('result-info');
+        if (resultInfo) {
+          resultInfo.style.display = 'none';
+          console.log('✅ result-info 숨김 완료');
+        }
+        
+        // progress-message 숨기기
+        const progressMessage = document.getElementById('progress-message');
+        if (progressMessage) {
+          progressMessage.style.display = 'none';
+          console.log('✅ progress-message 숨김 완료');
+        }
+        
+        // no-result 숨기기
+        const noResult = document.getElementById('no-result');
+        if (noResult) {
+          noResult.style.display = 'none';
+          console.log('✅ no-result 숨김 완료');
+        }
+        
+        // loading 숨기기
+        const loading = document.getElementById('loading');
+        if (loading) {
+          loading.style.display = 'none';
+          console.log('✅ loading 숨김 완료');
+        }
+        
+        console.log('=== 결과 숨기기 완료 ===');
+      }
+      
+      // 완전히 새로운 관리자 답변 표시 함수
+      function showAdminResponse(reqNum) {
+        console.log('=== 새로운 관리자 답변 표시 시도 ===');
+        console.log('의뢰 번호:', reqNum);
+        
+        // 모든 가능한 결과 키 시도
+        const possibleKeys = [
+          `result-${reqNum}`,
+          `result-PH-${reqNum}`,
+          `result-${reqNum.replace('PH-', '')}`,
+          `result-${reqNum.replace('#', '')}`,
+          `result-${reqNum.replace('#PH-', '')}`
+        ];
+        
+        console.log('시도할 키들:', possibleKeys);
+        
+        let resultData = null;
+        let foundKey = null;
+        
+        for (const key of possibleKeys) {
+          const data = localStorage.getItem(key);
+          if (data) {
+            try {
+              resultData = JSON.parse(data);
+              foundKey = key;
+              console.log('✅ 결과 데이터 발견:', key, resultData);
+              break;
+            } catch (e) {
+              console.log('❌ 파싱 실패:', key, e);
+            }
+          }
+        }
+        
+        if (resultData && resultData.summary) {
+          console.log('=== DOM 요소 강제 표시 시작 ===');
+          
+          // 1. result-info 섹션 강제 표시
+          const resultInfo = document.getElementById('result-info');
+          console.log('result-info 요소:', resultInfo);
+          
+          if (resultInfo) {
+            // 모든 클래스 제거하고 강제 표시
+            resultInfo.className = '';
+            resultInfo.style.cssText = `
+              display: block !important;
+              visibility: visible !important;
+              opacity: 1 !important;
+              background-color: #fef3c7 !important;
+              border: 3px solid #f59e0b !important;
+              padding: 20px !important;
+              margin: 20px 0 !important;
+              border-radius: 12px !important;
+              box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
+            `;
+            console.log('✅ result-info 강제 표시 완료');
+          } else {
+            console.error('❌ result-info 요소를 찾을 수 없음');
+          }
+          
+          // 2. progress-message 숨기기
+          const progressMessage = document.getElementById('progress-message');
+          if (progressMessage) {
+            progressMessage.style.display = 'none';
+            console.log('✅ progress-message 숨김 완료');
+          }
+          
+          // 3. result-summary 강제 표시
+          const resultSummaryElement = document.getElementById('result-summary');
+          console.log('result-summary 요소:', resultSummaryElement);
+          
+          if (resultSummaryElement) {
+            // 내용 설정
+            resultSummaryElement.innerHTML = resultData.summary;
+            
+            // 강제 스타일 적용
+            resultSummaryElement.style.cssText = `
+              display: block !important;
+              visibility: visible !important;
+              opacity: 1 !important;
+              background-color: #dbeafe !important;
+              border: 3px solid #3b82f6 !important;
+              padding: 20px !important;
+              margin: 15px 0 !important;
+              border-radius: 8px !important;
+              font-size: 16px !important;
+              line-height: 1.6 !important;
+              color: #1f2937 !important;
+              min-height: 100px !important;
+              overflow: visible !important;
+              word-wrap: break-word !important;
+            `;
+            
+            console.log('✅ result-summary 강제 표시 완료');
+            console.log('설정된 내용:', resultSummaryElement.innerHTML);
+          } else {
+            console.error('❌ result-summary 요소를 찾을 수 없음');
+          }
+          
+          // 4. 가격 정보 표시
+          const resultPriceElement = document.getElementById('result-price');
+          if (resultPriceElement) {
+            resultPriceElement.textContent = resultData.price || '가격 정보 없음';
+            resultPriceElement.style.cssText = `
+              color: #059669 !important;
+              font-weight: bold !important;
+              font-size: 18px !important;
+            `;
+            console.log('✅ 가격 정보 설정 완료');
+          }
+          
+          // 5. 원산지 정보 표시
+          const resultOriginElement = document.getElementById('result-origin');
+          if (resultOriginElement) {
+            resultOriginElement.textContent = resultData.origin || '원산지 정보 없음';
+            resultOriginElement.style.cssText = `
+              color: #374151 !important;
+              font-weight: 500 !important;
+            `;
+            console.log('✅ 원산지 정보 설정 완료');
+          }
+          
+          // 6. 결과 카드 표시
+          const resultCard = document.getElementById('result-card');
+          if (resultCard) {
+            resultCard.style.display = 'block';
+            resultCard.classList.remove('hidden');
+            console.log('✅ result-card 표시 완료');
+          }
+          
+          // 7. 로딩 숨기기
+          const loading = document.getElementById('loading');
+          if (loading) {
+            loading.style.display = 'none';
+            console.log('✅ loading 숨김 완료');
+          }
+          
+          // 8. no-result 숨기기
+          const noResult = document.getElementById('no-result');
+          if (noResult) {
+            noResult.style.display = 'none';
+            console.log('✅ no-result 숨김 완료');
+          }
+          
+          console.log('=== 관리자 답변 표시 완료 ===');
+          return true;
+        } else {
+          console.log('❌ 관리자 답변을 찾을 수 없음');
+          console.log('resultData:', resultData);
+          console.log('resultData.summary:', resultData ? resultData.summary : 'resultData 없음');
+          return false;
+        }
+      }
+      
+      // 테스트용 함수 - 강화된 디버깅
+      function testRealAdminResponse() {
+        console.log('=== 강화된 관리자 답변 테스트 시작 ===');
+        
+        // 1단계: localStorage 전체 분석
+        const allKeys = Object.keys(localStorage);
+        console.log('localStorage 전체 키 개수:', allKeys.length);
+        
+        // 2단계: 의뢰와 결과 데이터 분리
+        const requestKeys = allKeys.filter(key => key.startsWith('request-') && !key.includes('TEST'));
+        const resultKeys = allKeys.filter(key => key.startsWith('result-') && !key.includes('TEST'));
+        
+        console.log('의뢰 키들:', requestKeys);
+        console.log('결과 키들:', resultKeys);
+        
+        // 3단계: 각 의뢰에 대한 결과 확인
+        requestKeys.forEach(reqKey => {
+          const reqNum = reqKey.replace('request-', '');
+          console.log(`\n=== 의뢰 ${reqNum} 분석 ===`);
+          
+          // 의뢰 데이터 확인
+          const reqData = localStorage.getItem(reqKey);
+          if (reqData) {
+            try {
+              const parsedReq = JSON.parse(reqData);
+              console.log('의뢰 데이터:', parsedReq);
+            } catch (e) {
+              console.log('의뢰 데이터 파싱 실패:', e);
+            }
+          }
+          
+          // 해당 결과 찾기
+          const matchingResults = resultKeys.filter(resultKey => 
+            resultKey.includes(reqNum) || 
+            resultKey.includes(reqNum.replace('PH-', ''))
+          );
+          
+          console.log('매칭된 결과 키들:', matchingResults);
+          
+          matchingResults.forEach(resultKey => {
+            const resultData = localStorage.getItem(resultKey);
+            if (resultData) {
+              try {
+                const parsed = JSON.parse(resultData);
+                console.log(`${resultKey} 결과:`, parsed);
+              } catch (e) {
+                console.log(`${resultKey} 파싱 실패:`, e);
+              }
+            }
+          });
+        });
+        
+        // 4단계: 실제 표시 테스트
+        if (requestKeys.length > 0) {
+          const firstReqKey = requestKeys[0];
+          const reqNum = firstReqKey.replace('request-', '');
+          console.log(`\n=== 첫 번째 의뢰 ${reqNum} 표시 테스트 ===`);
+          
+          // 직접 관리자 답변 표시 시도
+          const success = showAdminResponse(reqNum);
+          if (success) {
+            console.log('✅ 관리자 답변 표시 성공');
+          } else {
+            console.log('❌ 관리자 답변 표시 실패');
+          }
+        }
+        
+        console.log('=== 강화된 관리자 답변 테스트 완료 ===');
+      }
+      
+      // 강화된 테스트 데이터 생성 함수
+      function createTestData() {
+        console.log('=== 강화된 테스트 데이터 생성 시작 ===');
+        
+        // 기존 테스트 데이터 삭제
+        localStorage.removeItem('request-TEST123');
+        localStorage.removeItem('result-TEST123');
+        
+        // 테스트 의뢰 데이터
+        const testRequestData = {
+          name: '🔥 테스트 제품 (강화버전)',
+          desc: '이것은 강화된 테스트 제품입니다!',
+          price: '50000',
+          email: 'test@test.com',
+          phone: '010-1234-5678',
+          userName: '테스트 사용자',
+          date: Date.now()
+        };
+        
+        // 테스트 결과 데이터 (더 눈에 띄는 내용)
+        const testResultData = {
+          price: '🎯 45,000원 (특가!)',
+          origin: '🇰🇷 대한민국',
+          summary: `
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 10px; margin: 10px 0;">
+              <h2 style="color: white; margin: 0 0 15px 0;">🎉 테스트 관리자 답변입니다!</h2>
+              <p style="margin: 10px 0; font-size: 16px;">이것은 관리자가 작성한 <strong>리치 텍스트</strong> 답변입니다.</p>
+              <p style="margin: 10px 0; font-size: 18px; color: #ffd700;">✨ 색상과 크기도 적용됩니다! ✨</p>
+              <ul style="margin: 10px 0; padding-left: 20px;">
+                <li style="margin: 5px 0;">✅ 항목 1: 테스트 성공</li>
+                <li style="margin: 5px 0;">✅ 항목 2: 표시 확인</li>
+                <li style="margin: 5px 0;">✅ 항목 3: 완벽 작동</li>
+              </ul>
+              <div style="background: rgba(255,255,255,0.2); padding: 10px; border-radius: 5px; margin-top: 15px;">
+                <p style="margin: 0; text-align: center; font-weight: bold;">🎊 이제 관리자 답변이 보일 것입니다! 🎊</p>
+              </div>
+            </div>
+          `,
+          link: 'https://example.com'
+        };
+        
+        // localStorage에 저장
+        const testReqNum = 'TEST123';
+        localStorage.setItem(`request-${testReqNum}`, JSON.stringify(testRequestData));
+        localStorage.setItem(`result-${testReqNum}`, JSON.stringify(testResultData));
+        
+        console.log('✅ 강화된 테스트 데이터 생성 완료');
+        console.log('의뢰 키:', `request-${testReqNum}`);
+        console.log('결과 키:', `result-${testReqNum}`);
+        
+        // 즉시 표시 테스트
+        setTimeout(() => {
+          const success = showAdminResponse(testReqNum);
+          if (success) {
+            console.log('✅ 강화된 테스트 데이터 표시 성공');
+          } else {
+            console.log('❌ 강화된 테스트 데이터 표시 실패');
+          }
+        }, 500);
+      }
+      
+      // 테스트 데이터 완전 삭제 함수
+      function cleanupTestData() {
+        console.log('=== 테스트 데이터 완전 삭제 시작 ===');
+        
+        // 모든 localStorage 키 확인
+        const allKeys = Object.keys(localStorage);
+        
+        // 테스트 관련 키들 삭제
+        allKeys.forEach(key => {
+          if (key.includes('TEST') || key.includes('test')) {
+            localStorage.removeItem(key);
+            console.log('삭제된 테스트 키:', key);
+          }
+        });
+        
+        console.log('✅ 테스트 데이터 완전 삭제 완료');
+      }
+      
+      // 페이지 로드 시 테스트 실행
       window.addEventListener('DOMContentLoaded', function() {
-        renderMyRequestList();
+        console.log('=== 페이지 로드됨 ===');
+        
+        // 테스트 데이터 완전 삭제
+        cleanupTestData();
+        
+        // DOM이 완전히 로드된 후 실행
+        setTimeout(() => {
+          console.log('=== DOM 완전 로드 후 실행 ===');
+          
+          // 테스트 데이터 생성 비활성화 (실제 운영용)
+          // createTestData();
+          
+          // 실제 데이터 테스트 실행
+          testRealAdminResponse();
+          
+          // 기존 데이터 분석 및 표시
+          showExistingRequests();
+          
+          renderMyRequestList();
+        }, 100);
+      });
+      
+      // 모든 리소스 로드 완료 후 추가 실행
+      window.addEventListener('load', function() {
+        console.log('=== 모든 리소스 로드 완료 ===');
+        
+        // 테스트 데이터 완전 삭제 (최종 확인)
+        cleanupTestData();
       });
       
       searchBtn.onclick = function() {

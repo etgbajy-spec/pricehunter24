@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>구매 대행 지원 서비스 - PriceHunter</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://js.tosspayments.com/v1/payment"></script>
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Header -->
+    <header class="gradient-bg text-white shadow-lg">
+        <div class="container mx-auto px-4 py-6">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <a href="index.html" class="text-2xl font-bold">🏹 PriceHunter</a>
+                    <span class="text-sm opacity-90">구매 대행 지원 서비스</span>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span class="text-sm">고객센터: 1588-1234</span>
+                    <a href="index.html" class="bg-white bg-opacity-20 px-4 py-2 rounded-lg hover:bg-opacity-30 transition">홈으로</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8">
+        <!-- Loading State -->
+        <div id="loading" class="text-center py-12">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+            <p class="text-gray-600">구매 정보를 불러오는 중...</p>
+        </div>
+
+        <!-- Purchase Support Form -->
+        <div id="purchase-form" class="hidden max-w-4xl mx-auto">
+            <div class="bg-white rounded-2xl shadow-xl overflow-hidden fade-in">
+                <!-- Header -->
+                <div class="bg-gradient-to-r from-blue-500 to-purple-600 text-white p-6">
+                    <h1 class="text-2xl font-bold mb-2">🤝 구매 대행 지원 서비스</h1>
+                    <p class="opacity-90">전담 관리로 안전하고 편리한 구매를 도와드립니다</p>
+                </div>
+
+                <!-- Product Information -->
+                <div class="p-6 border-b border-gray-200">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4">📦 상품 정보</h2>
+                    
+                    <!-- 의뢰 정보 표시 영역 -->
+                    <div id="request-info" class="mb-4"></div>
+                    
+                    <!-- 결과 정보 표시 영역 -->
+                    <div id="result-info" class="mb-4"></div>
+                    
+                    <!-- 가격 정보 표시 영역 -->
+                    <div id="pricing-info" class="mb-4"></div>
+                </div>
+
+                <!-- Service Details -->
+                <div class="p-6 border-b border-gray-200">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4">✨ 서비스 내용</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="flex items-center space-x-3 p-3 bg-green-50 rounded-lg">
+                            <span class="text-green-600 text-xl">✅</span>
+                            <span class="text-sm">전담 구매 대행 서비스</span>
+                        </div>
+                        <div class="flex items-center space-x-3 p-3 bg-green-50 rounded-lg">
+                            <span class="text-green-600 text-xl">✅</span>
+                            <span class="text-sm">실시간 배송 추적</span>
+                        </div>
+                        <div class="flex items-center space-x-3 p-3 bg-green-50 rounded-lg">
+                            <span class="text-green-600 text-xl">✅</span>
+                            <span class="text-sm">품질 보증 & 환불 지원</span>
+                        </div>
+                        <div class="flex items-center space-x-3 p-3 bg-green-50 rounded-lg">
+                            <span class="text-green-600 text-xl">✅</span>
+                            <span class="text-sm">24시간 고객 지원</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Customer Information -->
+                <div class="p-6 border-b border-gray-200">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4">👤 배송 정보</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">수령인 *</label>
+                            <input type="text" id="recipient-name" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">연락처 *</label>
+                            <input type="tel" id="recipient-phone" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">이메일 *</label>
+                            <input type="email" id="recipient-email" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">통관부호 *</label>
+                            <input type="text" id="customs-code" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="예: P123456789" required>
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">배송 주소 *</label>
+                            <textarea id="shipping-address" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="상세한 배송 주소를 입력해주세요" required></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Terms and Conditions -->
+                <div class="p-6 border-b border-gray-200">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4">📋 이용약관</h2>
+                    <div class="bg-gray-50 p-4 rounded-lg max-h-40 overflow-y-auto">
+                        <div class="space-y-2 text-sm text-gray-600">
+                            <p><strong>1. 서비스 내용:</strong> PriceHunter가 고객을 대신하여 상품을 구매하고 배송까지 관리합니다.</p>
+                            <p><strong>2. 수수료:</strong> 구매 금액의 3% (최소 5,000원)를 서비스 수수료로 받습니다.</p>
+                            <p><strong>3. 배송:</strong> 상품 수령 후 1-2일 내에 배송을 시작합니다.</p>
+                            <p><strong>4. 환불:</strong> 상품 수령 후 7일 내에 문제가 있을 경우 환불을 지원합니다.</p>
+                            <p><strong>5. 책임:</strong> 배송 중 발생하는 문제는 PriceHunter가 책임집니다.</p>
+                        </div>
+                    </div>
+                    <div class="mt-4 flex items-center">
+                        <input type="checkbox" id="agree-terms" class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500">
+                        <label for="agree-terms" class="ml-2 text-sm text-gray-700">이용약관에 동의합니다 *</label>
+                    </div>
+                </div>
+
+                <!-- Payment Button -->
+                <div class="p-6 bg-gray-50">
+                    <div class="flex space-x-4">
+                        <button onclick="goBack()" class="flex-1 py-3 px-6 bg-gray-500 text-white font-bold rounded-lg hover:bg-gray-600 transition">
+                            ← 돌아가기
+                        </button>
+                        <button onclick="processPayment()" id="payment-btn" class="flex-1 py-3 px-6 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-bold rounded-lg hover:from-blue-600 hover:to-purple-700 transition disabled:opacity-50 disabled:cursor-not-allowed">
+                            💳 결제하기
+                        </button>
+                    </div>
+                    
+                    <!-- 숨겨진 필드들 -->
+                    <input type="hidden" id="base-price" value="">
+                    <input type="hidden" id="service-fee" value="">
+                    <input type="hidden" id="total-amount" value="">
+                    <input type="hidden" id="request-number" value="">
+                </div>
+            </div>
+        </div>
+
+        <!-- Error State -->
+        <div id="error-state" class="hidden text-center py-12">
+            <div class="text-red-500 text-6xl mb-4">❌</div>
+            <h2 class="text-xl font-bold text-gray-800 mb-2">구매 정보를 찾을 수 없습니다</h2>
+            <p class="text-gray-600 mb-4">의뢰 결과 페이지에서 다시 시도해주세요.</p>
+            <a href="result-search.html" class="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 transition">결과 조회로 돌아가기</a>
+        </div>
+    </main>
+
+    <script>
+        let currentRequestData = null;
+        let currentResultData = null;
+        let currentReqNumber = '';
+
+        // 페이지 로드 시 데이터 초기화
+        window.addEventListener('DOMContentLoaded', function() {
+            console.log('=== purchase-support.html 로드됨 ===');
+            console.log('현재 시간:', new Date().toISOString());
+            console.log('User Agent:', navigator.userAgent);
+            initializePage();
+        });
+
+        function initializePage() {
+            // 구매 정보 로드
+            loadPurchaseData();
+        }
+
+        // URL에서 의뢰번호 파라미터 추출 - 새로운 접근 방식
+        function getUrlParameter(name) {
+            console.log('=== getUrlParameter 호출됨 ===');
+            console.log('찾을 파라미터:', name);
+            console.log('현재 URL:', window.location.href);
+            console.log('현재 location.search:', location.search);
+            console.log('현재 location.hash:', location.hash);
+            
+            // 🎯 새로운 접근 방식: 직접 해시값 추출
+            if (location.hash) {
+                const hashValue = location.hash.substring(1); // # 제거
+                console.log('해시값 추출:', hashValue);
+                
+                // PH- 형태의 값이 있는지 확인
+                if (hashValue.startsWith('PH-')) {
+                    console.log('✅ 해시에서 PH- 값 발견:', hashValue);
+                    return hashValue;
+                }
+            }
+            
+            // 🔍 백업 방법: 전체 URL에서 PH- 패턴 검색
+            const fullUrl = window.location.href;
+            const phPattern = /PH-[A-Za-z0-9]+/;
+            const phMatch = fullUrl.match(phPattern);
+            if (phMatch) {
+                console.log('✅ 전체 URL에서 PH- 패턴 발견:', phMatch[0]);
+                return phMatch[0];
+            }
+            
+            // 🔍 백업 방법 2: req= 뒤에 있는 값 추출
+            if (location.search.includes('req=')) {
+                const searchPart = location.search;
+                console.log('검색 부분에서 req= 찾음:', searchPart);
+                
+                // req= 뒤의 모든 문자 추출 (해시 포함)
+                const afterReq = searchPart.substring(searchPart.indexOf('req=') + 4);
+                console.log('req= 뒤의 값:', afterReq);
+                
+                if (afterReq && afterReq.trim() !== '') {
+                    console.log('✅ req= 뒤에서 값 발견:', afterReq);
+                    return afterReq;
+                }
+            }
+            
+            console.log('❌ 파라미터를 찾을 수 없음');
+            return '';
+        }
+
+        // 구매 정보 로드
+        function loadPurchaseData() {
+            console.log('=== loadPurchaseData 시작 ===');
+            
+            // URL에서 의뢰번호 추출
+            let reqParam = getUrlParameter('req');
+            console.log('URL에서 추출한 req 파라미터:', reqParam);
+            console.log('reqParam 타입:', typeof reqParam);
+            console.log('reqParam 길이:', reqParam ? reqParam.length : 0);
+            
+            if (!reqParam) {
+                console.log('req 파라미터가 없음');
+                console.log('현재 URL 구조 분석:');
+                console.log('- 전체 URL:', window.location.href);
+                console.log('- 검색 부분:', window.location.search);
+                console.log('- 해시 부분:', window.location.hash);
+                console.log('- 경로 부분:', window.location.pathname);
+                showError();
+                return;
+            }
+            
+            // 키 정규화
+            let normalizedReq = reqParam.toString().trim();
+            console.log('정규화 전 req:', normalizedReq);
+            
+            // PH- 접두사 제거
+            if (normalizedReq.startsWith('PH-')) {
+                normalizedReq = normalizedReq.substring(3);
+                console.log('PH- 제거 후:', normalizedReq);
+            }
+            
+            // # 접두사 제거
+            if (normalizedReq.startsWith('#')) {
+                normalizedReq = normalizedReq.substring(1);
+                console.log('# 제거 후:', normalizedReq);
+            }
+            
+            console.log('최종 정규화된 req:', normalizedReq);
+            
+            // 🎯 단순화된 키 검색 - 직접 매칭 우선
+            const requestKey = `request-#PH-${normalizedReq}`;
+            const resultKey = `result-#PH-${normalizedReq}`;
+            
+            console.log('찾을 키들:');
+            console.log('- requestKey:', requestKey);
+            console.log('- resultKey:', resultKey);
+            
+            // 데이터 검색
+            let requestData = null;
+            let resultData = null;
+            
+            // 직접 키 매칭
+            const requestDataStr = localStorage.getItem(requestKey);
+            const resultDataStr = localStorage.getItem(resultKey);
+            
+            if (requestDataStr) {
+                console.log(`✅ request 데이터 발견: ${requestKey}`);
+                requestData = JSON.parse(requestDataStr);
+            } else {
+                console.log(`❌ request 데이터 없음: ${requestKey}`);
+            }
+            
+            if (resultDataStr) {
+                console.log(`✅ result 데이터 발견: ${resultKey}`);
+                resultData = JSON.parse(resultDataStr);
+            } else {
+                console.log(`❌ result 데이터 없음: ${resultKey}`);
+            }
+            
+            // 🔍 백업: 전체 localStorage 키에서 검색
+            if (!requestData || !resultData) {
+                console.log('백업 검색 시작...');
+                const allKeys = Object.keys(localStorage);
+                console.log('전체 localStorage 키들:', allKeys);
+                
+                // request 데이터 백업 검색
+                if (!requestData) {
+                    for (const key of allKeys) {
+                        if (key.includes('request') && key.includes(normalizedReq)) {
+                            console.log(`🔍 백업으로 request 발견: ${key}`);
+                            const data = localStorage.getItem(key);
+                            if (data) {
+                                requestData = JSON.parse(data);
+                                break;
+                            }
+                        }
+                    }
+                }
+                
+                // result 데이터 백업 검색
+                if (!resultData) {
+                    for (const key of allKeys) {
+                        if (key.includes('result') && key.includes(normalizedReq)) {
+                            console.log(`🔍 백업으로 result 발견: ${key}`);
+                            const data = localStorage.getItem(key);
+                            if (data) {
+                                resultData = JSON.parse(data);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            
+            console.log('=== 데이터 검색 결과 ===');
+            console.log('requestData 존재:', !!requestData);
+            console.log('resultData 존재:', !!resultData);
+            
+            if (!requestData || !resultData) {
+                console.log('의뢰 데이터를 찾을 수 없음');
+                console.log('전체 localStorage 키들:', Object.keys(localStorage));
+                
+                // 유사한 키들 찾기
+                const allKeys = Object.keys(localStorage);
+                const similarKeys = allKeys.filter(key => 
+                    key.includes('request') || key.includes('result')
+                );
+                console.log('유사한 키들:', similarKeys);
+                
+                showError();
+                return;
+            }
+            
+            // 글로벌 변수에 저장
+            currentRequestData = requestData;
+            currentResultData = resultData;
+            currentReqNumber = normalizedReq;
+            
+            console.log('저장된 전역 변수들:');
+            console.log('currentRequestData:', currentRequestData);
+            console.log('currentResultData:', currentResultData);
+            console.log('currentReqNumber:', currentReqNumber);
+            
+            // UI 업데이트
+            updateUI();
+        }
+
+        function updateUI() {
+            console.log('=== updateUI 시작 ===');
+            
+            // 의뢰 정보 표시
+            const requestInfoElement = document.getElementById('request-info');
+            if (requestInfoElement && currentRequestData) {
+                requestInfoElement.innerHTML = `
+                    <div class="bg-blue-50 p-4 rounded-lg mb-4">
+                        <h3 class="text-lg font-semibold text-blue-800 mb-2">📋 의뢰 정보</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                            <div><span class="font-medium">의뢰번호:</span> ${currentReqNumber}</div>
+                            <div><span class="font-medium">제품명:</span> ${currentRequestData.name || '정보 없음'}</div>
+                            <div><span class="font-medium">제품설명:</span> ${currentRequestData.desc || '정보 없음'}</div>
+                            <div><span class="font-medium">희망가격:</span> ${currentRequestData.price ? currentRequestData.price + '원' : '정보 없음'}</div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // 결과 정보 표시
+            const resultInfoElement = document.getElementById('result-info');
+            if (resultInfoElement && currentResultData) {
+                resultInfoElement.innerHTML = `
+                    <div class="bg-green-50 p-4 rounded-lg mb-4">
+                        <h3 class="text-lg font-semibold text-green-800 mb-2">✅ 찾은 최저가 정보</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                            <div><span class="font-medium">최저가:</span> ${currentResultData.price || '정보 없음'}</div>
+                            <div><span class="font-medium">원산지/공급처:</span> ${currentResultData.origin || '정보 없음'}</div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // 회원 정보 자동 입력
+            const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+            console.log('현재 사용자 정보:', currentUser);
+            
+            // 이름 자동 입력
+            const nameInput = document.getElementById('recipient-name');
+            if (nameInput && currentUser.name) {
+                nameInput.value = currentUser.name;
+                nameInput.readOnly = true;
+                nameInput.classList.add('bg-gray-100');
+                console.log('이름 자동 입력:', currentUser.name);
+            }
+            
+            // 전화번호 자동 입력
+            const phoneInput = document.getElementById('recipient-phone');
+            if (phoneInput && currentUser.phone) {
+                phoneInput.value = currentUser.phone;
+                phoneInput.readOnly = true;
+                phoneInput.classList.add('bg-gray-100');
+                console.log('전화번호 자동 입력:', currentUser.phone);
+            }
+            
+            // 이메일 자동 입력
+            const emailInput = document.getElementById('recipient-email');
+            if (emailInput && currentUser.email) {
+                emailInput.value = currentUser.email;
+                emailInput.readOnly = true;
+                emailInput.classList.add('bg-gray-100');
+                console.log('이메일 자동 입력:', currentUser.email);
+            }
+            
+            // 가격 정보 계산 및 표시
+            calculateAndDisplayPricing();
+            
+            // 로딩 숨기고 폼 표시
+            const loadingElement = document.getElementById('loading');
+            const purchaseFormElement = document.getElementById('purchase-form');
+            
+            if (loadingElement) {
+                loadingElement.classList.add('hidden');
+                console.log('✅ 로딩 숨김 완료');
+            }
+            
+            if (purchaseFormElement) {
+                purchaseFormElement.classList.remove('hidden');
+                console.log('✅ 구매 폼 표시 완료');
+            }
+            
+            console.log('=== updateUI 완료 ===');
+        }
+        
+        // 가격 및 수수료 계산 함수
+        function calculateAndDisplayPricing() {
+            console.log('=== 가격 계산 시작 ===');
+            
+            // 기본 가격 추출 (숫자만)
+            const basePriceText = currentResultData.price;
+            const basePrice = parseInt(basePriceText.replace(/[^\d]/g, ''));
+            console.log('기본 가격:', basePrice);
+            
+            // 수수료 계산 (3%)
+            const serviceFee = Math.round(basePrice * 0.03);
+            console.log('서비스 수수료 (3%):', serviceFee);
+            
+            // 총 금액 계산
+            const totalAmount = basePrice + serviceFee;
+            console.log('총 금액:', totalAmount);
+            
+            // 가격 정보 표시
+            const pricingInfo = document.getElementById('pricing-info');
+            if (pricingInfo) {
+                pricingInfo.innerHTML = `
+                    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">💰 결제 금액</h3>
+                        <div class="space-y-3">
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">상품 가격:</span>
+                                <span class="font-medium">${basePrice.toLocaleString()}원</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">구매 지원 서비스 수수료 (3%):</span>
+                                <span class="font-medium">${serviceFee.toLocaleString()}원</span>
+                            </div>
+                            <hr class="border-gray-200">
+                            <div class="flex justify-between text-lg font-semibold text-blue-600">
+                                <span>총 결제 금액:</span>
+                                <span>${totalAmount.toLocaleString()}원</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // 숨겨진 입력 필드에 값 설정
+            const basePriceInput = document.getElementById('base-price');
+            const serviceFeeInput = document.getElementById('service-fee');
+            const totalAmountInput = document.getElementById('total-amount');
+            
+            if (basePriceInput) basePriceInput.value = basePrice;
+            if (serviceFeeInput) serviceFeeInput.value = serviceFee;
+            if (totalAmountInput) totalAmountInput.value = totalAmount;
+            
+            console.log('=== 가격 계산 완료 ===');
+        }
+
+        function showError(message = '구매 정보를 찾을 수 없습니다.') {
+            console.log('=== showError 호출됨 ===');
+            console.log('현재 localStorage 내용:');
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                console.log(key, ':', localStorage.getItem(key));
+            }
+            
+            document.getElementById('loading').classList.add('hidden');
+            document.getElementById('error-state').classList.remove('hidden');
+            
+            // 에러 메시지 업데이트
+            const errorMessage = document.querySelector('#error-state h2');
+            const errorDesc = document.querySelector('#error-state p');
+            
+            if (errorMessage) {
+                if (!currentReqNumber) {
+                    errorMessage.textContent = '의뢰 번호가 없습니다';
+                    if (errorDesc) {
+                        errorDesc.innerHTML = `
+                            올바른 의뢰 결과 페이지에서 접근해주세요.<br>
+                            <br>
+                            <strong>해결 방법:</strong><br>
+                            1. 의뢰 결과 조회 페이지에서 "구매 대행 지원 서비스" 버튼을 클릭하세요.<br>
+                            2. 직접 URL에 의뢰번호를 포함하여 접근: <code>purchase-support.html?req=의뢰번호</code>
+                        `;
+                    }
+                } else {
+                    errorMessage.textContent = message;
+                    if (errorDesc) {
+                        errorDesc.innerHTML = `
+                            관리자가 아직 답변하지 않았거나, 의뢰 결과 페이지에서 다시 시도해주세요.<br>
+                            <br>
+                            <strong>확인사항:</strong><br>
+                            1. 의뢰번호 <code>${currentReqNumber}</code>가 올바른지 확인<br>
+                            2. 관리자가 해당 의뢰에 답변했는지 확인<br>
+                            3. 의뢰 결과 조회 페이지에서 다시 시도
+                        `;
+                    }
+                }
+            }
+        }
+
+        function goBack() {
+            window.history.back();
+        }
+
+        function processPayment() {
+            console.log('=== 결제 처리 시작 ===');
+            
+            // 필수 필드 검증
+            const recipientName = document.getElementById('recipient-name').value.trim();
+            const recipientPhone = document.getElementById('recipient-phone').value.trim();
+            const recipientEmail = document.getElementById('recipient-email').value.trim();
+            const customsCode = document.getElementById('customs-code').value.trim();
+            const shippingAddress = document.getElementById('shipping-address').value.trim();
+            const agreeTerms = document.getElementById('agree-terms').checked;
+
+            if (!recipientName || !recipientPhone || !recipientEmail || !customsCode || !shippingAddress) {
+                alert('필수 정보를 모두 입력해주세요.');
+                return;
+            }
+
+            if (!agreeTerms) {
+                alert('이용약관에 동의해주세요.');
+                return;
+            }
+
+            // 숨겨진 필드에서 가격 정보 가져오기
+            const basePrice = parseInt(document.getElementById('base-price').value) || 0;
+            const serviceFee = parseInt(document.getElementById('service-fee').value) || 0;
+            const totalAmount = parseInt(document.getElementById('total-amount').value) || 0;
+            
+            console.log('가격 정보:', { basePrice, serviceFee, totalAmount });
+
+            const orderInfo = {
+                reqKey: currentReqNumber,
+                productName: currentRequestData.name,
+                originalPrice: currentResultData.price,
+                basePrice: basePrice,
+                serviceFee: serviceFee,
+                totalAmount: totalAmount,
+                recipientName: recipientName,
+                recipientPhone: recipientPhone,
+                recipientEmail: recipientEmail,
+                customsCode: customsCode,
+                shippingAddress: shippingAddress,
+                method: 'support',
+                status: 'pending',
+                orderDate: new Date().toISOString(),
+                origin: currentResultData.origin
+            };
+
+            console.log('주문 정보:', orderInfo);
+
+            // 주문 정보 저장
+            localStorage.setItem('order-' + currentReqNumber, JSON.stringify(orderInfo));
+
+            // 결제 페이지로 이동
+            const paymentUrl = `payment.html?req=${currentReqNumber}&price=${totalAmount}&name=${encodeURIComponent(currentRequestData.name)}&origin=${encodeURIComponent(currentResultData.origin)}&method=support`;
+            console.log('결제 페이지 URL:', paymentUrl);
+            window.location.href = paymentUrl;
+        }
+
+        // 이용약관 동의 시 결제 버튼 활성화
+        document.getElementById('agree-terms').addEventListener('change', function() {
+            const paymentBtn = document.getElementById('payment-btn');
+            paymentBtn.disabled = !this.checked;
+        });
+    </script>
+</body>
+</html> 

@@ -188,8 +188,17 @@
     <script>
         // 관리자 세션 확인
         function validateAdminSession() {
-            const isAdmin = localStorage.getItem('isAdmin');
-            if (!isAdmin) {
+            const adminMode = localStorage.getItem('adminMode') === 'true';
+            const isAdmin = localStorage.getItem('isAdmin') === 'true';
+            const result = adminMode || isAdmin;
+            
+            console.log('관리자 세션 확인:', {
+                adminMode: adminMode,
+                isAdmin: isAdmin,
+                result: result
+            });
+            
+            if (!result) {
                 alert('관리자 권한이 필요합니다.');
                 window.location.href = 'index.html';
                 return false;
@@ -251,20 +260,68 @@
 
         // 의뢰 건수 조회
         function getRequestCount(email) {
-            const requests = JSON.parse(localStorage.getItem('requests') || '[]');
-            return requests.filter(req => req.email === email).length;
+            let count = 0;
+            
+            // localStorage에서 request- 키로 시작하는 모든 항목 검색
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.startsWith('request-') && !key.includes('TEST') && !key.startsWith('requestCount-')) {
+                    try {
+                        const requestData = JSON.parse(localStorage.getItem(key));
+                        if (requestData && requestData.email === email) {
+                            count++;
+                        }
+                    } catch (e) {
+                        console.log('의뢰 데이터 파싱 실패:', key, e);
+                    }
+                }
+            }
+            
+            return count;
         }
 
         // 문의 건수 조회
         function getInquiryCount(email) {
-            const inquiries = JSON.parse(localStorage.getItem('inquiries') || '[]');
-            return inquiries.filter(inq => inq.email === email).length;
+            let count = 0;
+            
+            // localStorage에서 inquiry- 키로 시작하는 모든 항목 검색
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.startsWith('inquiry-') && !key.includes('TEST')) {
+                    try {
+                        const inquiryData = JSON.parse(localStorage.getItem(key));
+                        if (inquiryData && inquiryData.email === email) {
+                            count++;
+                        }
+                    } catch (e) {
+                        console.log('문의 데이터 파싱 실패:', key, e);
+                    }
+                }
+            }
+            
+            return count;
         }
 
         // 구매 건수 조회
         function getPurchaseCount(email) {
-            const orders = JSON.parse(localStorage.getItem('orders') || '[]');
-            return orders.filter(order => order.email === email).length;
+            let count = 0;
+            
+            // localStorage에서 order- 키로 시작하는 모든 항목 검색
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.startsWith('order-') && !key.includes('TEST')) {
+                    try {
+                        const orderData = JSON.parse(localStorage.getItem(key));
+                        if (orderData && orderData.email === email) {
+                            count++;
+                        }
+                    } catch (e) {
+                        console.log('주문 데이터 파싱 실패:', key, e);
+                    }
+                }
+            }
+            
+            return count;
         }
 
         // 회원 목록 렌더링
@@ -456,6 +513,10 @@
 
         // 회원 삭제 실행
         function deleteMember(email) {
+            const confirmMessage = `회원 ${email}을(를) 삭제하시겠습니까?\n\n⚠️ 삭제되는 데이터:\n• 회원 정보\n• 해당 회원의 모든 의뢰\n• 해당 회원의 모든 의뢰 결과\n• 해당 회원의 모든 주문 정보\n• 해당 회원의 모든 알림 기록\n\n이 작업은 되돌릴 수 없습니다.`;
+            
+            if (!confirm(confirmMessage)) return;
+            
             // 사용자 목록에서 삭제
             const users = JSON.parse(localStorage.getItem('users') || '[]');
             const updatedUsers = users.filter(user => user.email !== email);
@@ -468,16 +529,31 @@
                 localStorage.removeItem('currentUser');
             }
 
-            // 관련 데이터 정리 (선택사항)
-            // 의뢰 내역은 익명화
-            const requests = JSON.parse(localStorage.getItem('requests') || '[]');
-            const updatedRequests = requests.map(req => {
-                if (req.email === email) {
-                    return { ...req, email: 'deleted_user', name: '삭제된 사용자' };
+            // 해당 회원의 모든 의뢰 데이터 삭제
+            const allKeys = Object.keys(localStorage);
+            let deletedCount = 0;
+            
+            allKeys.forEach(key => {
+                // request- 키 찾기
+                if (key.startsWith('request-')) {
+                    try {
+                        const requestData = JSON.parse(localStorage.getItem(key));
+                        if (requestData.email === email) {
+                            const reqNum = key.replace('request-', '');
+                            
+                            // 관련된 모든 데이터 삭제
+                            localStorage.removeItem(key); // 의뢰 정보
+                            localStorage.removeItem('result-' + reqNum); // 의뢰 결과
+                            localStorage.removeItem('order-' + reqNum); // 주문 정보
+                            localStorage.removeItem('notify-' + reqNum); // 알림 기록
+                            
+                            deletedCount++;
+                        }
+                    } catch (e) {
+                        console.log(`${key} 파싱 실패:`, e);
+                    }
                 }
-                return req;
             });
-            localStorage.setItem('requests', JSON.stringify(updatedRequests));
 
             // 문의 내역도 익명화
             const inquiries = JSON.parse(localStorage.getItem('inquiries') || '[]');
@@ -489,10 +565,10 @@
             });
             localStorage.setItem('inquiries', JSON.stringify(updatedInquiries));
 
-            // 주문 내역은 유지 (법적 요구사항)
-
             // 목록 새로고침
             loadMembers();
+            
+            alert(`회원 ${email}과 관련된 모든 데이터가 삭제되었습니다.\n\n삭제된 의뢰 수: ${deletedCount}개`);
         }
 
         // 필터링 및 검색
@@ -545,12 +621,32 @@
         function bulkDeleteMembers() {
             if (selectedMembers.size === 0) return;
 
-            if (confirm(`선택된 ${selectedMembers.size}명의 회원을 삭제하시겠습니까?`)) {
+            const confirmMessage = `선택된 ${selectedMembers.size}명의 회원을 삭제하시겠습니까?\n\n⚠️ 삭제되는 데이터:\n• 선택된 회원들의 모든 정보\n• 해당 회원들의 모든 의뢰\n• 해당 회원들의 모든 의뢰 결과\n• 해당 회원들의 모든 주문 정보\n• 해당 회원들의 모든 알림 기록\n\n이 작업은 되돌릴 수 없습니다.`;
+            
+            if (confirm(confirmMessage)) {
+                let totalDeletedRequests = 0;
                 selectedMembers.forEach(email => {
+                    // 삭제 전에 해당 회원의 의뢰 수 계산
+                    const allKeys = Object.keys(localStorage);
+                    const userRequests = allKeys.filter(key => {
+                        if (key.startsWith('request-')) {
+                            try {
+                                const requestData = JSON.parse(localStorage.getItem(key));
+                                return requestData.email === email;
+                            } catch (e) {
+                                return false;
+                            }
+                        }
+                        return false;
+                    });
+                    totalDeletedRequests += userRequests.length;
+                    
                     deleteMember(email);
                 });
                 selectedMembers.clear();
                 updateBulkDeleteButton();
+                
+                alert(`선택된 ${selectedMembers.size}명의 회원과 관련된 모든 데이터가 삭제되었습니다.\n\n총 삭제된 의뢰 수: ${totalDeletedRequests}개`);
             }
         }
 
@@ -596,40 +692,66 @@
             document.body.removeChild(link);
         }
 
+        // 테스트 데이터 정리 함수
+        function cleanupTestData() {
+            console.log('=== 회원 관리 페이지 테스트 데이터 정리 시작 ===');
+            const allKeys = Object.keys(localStorage);
+            let deletedCount = 0;
+            
+            allKeys.forEach(key => {
+                // 테스트 데이터 패턴들
+                const isTestData = 
+                    key.includes('TEST') || 
+                    key.startsWith('requestCount-') ||
+                    key.includes('#PH-') ||
+                    key.includes('result-#PH-') ||
+                    key.includes('order-#PH-') ||
+                    key.includes('notify-#PH-') ||
+                    key.includes('inquiry-#PH-');
+                
+                if (isTestData) {
+                    localStorage.removeItem(key);
+                    deletedCount++;
+                    console.log(`테스트 데이터 삭제: ${key}`);
+                }
+            });
+            
+            if (deletedCount > 0) {
+                console.log(`총 ${deletedCount}개의 테스트 데이터가 삭제되었습니다.`);
+                alert(`테스트 데이터 ${deletedCount}개가 삭제되었습니다.`);
+            } else {
+                console.log('삭제할 테스트 데이터가 없습니다.');
+            }
+            
+            // 페이지 새로고침
+            setTimeout(() => {
+                location.reload();
+            }, 1000);
+        }
+
         // 이벤트 리스너
         document.addEventListener('DOMContentLoaded', function() {
+            // 테스트 데이터 정리는 수동으로만 실행 (자동 실행 제거)
+            // cleanupTestData();
+            
+            // 관리자 권한 확인
+            if (!validateAdminSession()) {
+                alert('관리자 권한이 필요합니다.');
+                window.location.href = 'index.html';
+                return;
+            }
+            
+            // 회원 목록 로드
             loadMembers();
-
-            // 검색 및 필터 이벤트
+            
+            // 이벤트 리스너 등록
             document.getElementById('search-input').addEventListener('input', filterMembers);
             document.getElementById('status-filter').addEventListener('change', filterMembers);
             document.getElementById('login-type-filter').addEventListener('change', filterMembers);
             document.getElementById('sort-filter').addEventListener('change', filterMembers);
-
-            // 모달 닫기
-            document.getElementById('close-detail-modal').addEventListener('click', () => {
-                document.getElementById('member-detail-modal').classList.add('hidden');
-            });
-
-            document.getElementById('cancel-delete').addEventListener('click', () => {
-                document.getElementById('delete-confirm-modal').classList.add('hidden');
-            });
-
-            // 삭제 확인
-            document.getElementById('confirm-delete').addEventListener('click', () => {
-                const email = document.getElementById('delete-confirm-modal').dataset.email;
-                deleteMember(email);
-                document.getElementById('delete-confirm-modal').classList.add('hidden');
-            });
-
-            // 일괄 삭제
             document.getElementById('bulk-delete-btn').addEventListener('click', bulkDeleteMembers);
-
-            // 내보내기
             document.getElementById('export-btn').addEventListener('click', exportMembers);
-
-            // 관리자 로그아웃
-            document.getElementById('admin-logout-btn').addEventListener('click', () => {
+            document.getElementById('admin-logout-btn').addEventListener('click', function() {
                 localStorage.removeItem('isAdmin');
                 window.location.href = 'index.html';
             });

@@ -121,19 +121,19 @@
         alert('회원가입 시 입력한 이름과 동일하게 입력해야 합니다.');
         return;
       }
-      // 하루 2건 제한
+      // 하루 10건 제한 (테스트용으로 완화)
       const today = new Date().toISOString().slice(0,10);
       const userId = user && user.email ? user.email : userName;
       const reqCountKey = `requestCount-${today}-${userId}`;
       const reqCount = Number(localStorage.getItem(reqCountKey) || '0');
-      if (reqCount >= 2) {
-        alert('하루 최대 2건까지만 의뢰할 수 있습니다. 내일 다시 이용해 주세요!');
+      if (reqCount >= 10) {
+        alert('하루 최대 10건까지만 의뢰할 수 있습니다. 내일 다시 이용해 주세요!');
         return;
       }
-      // 가격 1만원 이상 제한
+      // 가격 1천원 이상 제한 (테스트용으로 완화)
       const price = Number(document.getElementById('productPrice').value);
-      if (isNaN(price) || price < 10000) {
-        alert('최소 의뢰 금액은 10,000원 이상입니다. 더 저렴한 제품은 의뢰가 어렵습니다.');
+      if (isNaN(price) || price < 1000) {
+        alert('최소 의뢰 금액은 1,000원 이상입니다. 더 저렴한 제품은 의뢰가 어렵습니다.');
         return;
       }
       // 참고사이트 단일 링크 유효성 검사
@@ -192,7 +192,19 @@
         saveRequest([]);
       }
       function saveRequest(imgArr) {
-        const reqData = {name, desc, urls, images: imgArr, email, phone, kakao, customs, price, userName, date: Date.now()};
+        const reqData = {
+          name, 
+          desc, 
+          urls, 
+          images: imgArr, 
+          email, 
+          phone, 
+          kakao, 
+          customs, 
+          price, 
+          userName: userNameInput, // 올바른 변수명 사용
+          date: Date.now()
+        };
         localStorage.setItem('request-' + reqNum, JSON.stringify(reqData));
         sessionStorage.setItem('request', JSON.stringify({...reqData, reqNum}));
         // 하루 의뢰 카운트 증가

@@ -6,8 +6,39 @@
     <title>PriceHunter</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- 카카오 SDK -->
-    <script src="https://developers.kakao.com/sdk/js/kakao.js"></script>
+    <!-- 카카오 SDK - CSP 문제 해결을 위한 수정 -->
+    <script>
+      // 카카오 SDK 로딩 상태 확인
+      window.kakaoSDKLoaded = false;
+      
+      // 카카오 SDK 동적 로딩
+      function loadKakaoSDK() {
+        return new Promise((resolve, reject) => {
+          if (window.Kakao) {
+            window.kakaoSDKLoaded = true;
+            resolve();
+            return;
+          }
+          
+          const script = document.createElement('script');
+          script.src = 'https://developers.kakao.com/sdk/js/kakao.js';
+          script.onload = () => {
+            window.kakaoSDKLoaded = true;
+            resolve();
+          };
+          script.onerror = () => {
+            console.warn('카카오 SDK 로딩 실패 - 일반 로그인으로 대체');
+            reject(new Error('카카오 SDK 로딩 실패'));
+          };
+          document.head.appendChild(script);
+        });
+      }
+      
+      // 페이지 로드 시 카카오 SDK 로딩 시도
+      loadKakaoSDK().catch(() => {
+        console.log('카카오 SDK 로딩 실패 - 일반 로그인만 사용 가능');
+      });
+    </script>
   </head>
   <body class="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-700 min-h-screen">
     <section class="relative w-full min-h-[70vh] flex flex-col items-center justify-center text-center px-4 py-20 bg-gradient-to-br from-gray-900 to-gray-700 overflow-hidden">
@@ -123,7 +154,8 @@
     <!-- 관리자 모드에서만 보이는 1:1 문의 확인 버튼 -->
     <button id="admin-inquiry-btn" class="fixed top-32 right-4 z-50 px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition hidden" aria-label="1:1 문의 확인" title="1:1 문의 확인">1:1 문의 확인</button>
     <!-- 관리자 모드에서만 보이는 회원 관리 버튼 -->
-    <button id="admin-member-btn" class="fixed top-44 right-4 z-50 px-4 py-2 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 transition hidden" aria-label="회원 관리" title="회원 관리">회원 관리</button>
+            <button id="admin-member-btn" class="fixed top-44 right-4 z-50 px-4 py-2 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 transition hidden" aria-label="회원 관리" title="회원 관리">회원 관리</button>
+        <button id="admin-cleanup-btn" class="fixed top-56 right-4 z-50 px-4 py-2 bg-red-600 text-white rounded-lg shadow hover:bg-red-700 transition hidden" aria-label="테스트 데이터 정리" title="테스트 데이터 정리" onclick="cleanupTestData()">🧹 정리</button>
     <!-- 관리자 해제 버튼 (관리자 모드에서만 노출) -->
     <button id="admin-logout-btn" class="fixed top-4 right-4 z-50 px-4 py-2 bg-gray-800 text-white rounded-lg shadow hover:bg-amber-500 transition hidden" aria-label="관리자 해제" title="관리자 해제">관리자 해제</button>
     <!-- 저렴하게 구입한 사례 섹션: main 바깥, 전체 폭 -->
@@ -675,6 +707,10 @@
       
       // 관리자 모드 설정 함수
       function setAdminMode(isAdmin) {
+        // localStorage에 관리자 모드 상태 저장
+        localStorage.setItem('adminMode', isAdmin.toString());
+        localStorage.setItem('isAdmin', isAdmin.toString());
+        
         // 관리자 모드 버튼들 표시/숨김
         var adminModeBtn = document.getElementById('admin-mode-btn');
         if (adminModeBtn) adminModeBtn.classList.add('hidden');
@@ -684,14 +720,21 @@
         if (adminResultBtn) adminResultBtn.classList.toggle('hidden', !isAdmin);
         var adminInquiryBtn = document.getElementById('admin-inquiry-btn');
         if (adminInquiryBtn) adminInquiryBtn.classList.toggle('hidden', !isAdmin);
-        var adminMemberBtn = document.getElementById('admin-member-btn');
-        if (adminMemberBtn) {
-          adminMemberBtn.classList.toggle('hidden', !isAdmin);
-          console.log('회원관리 버튼 표시 상태:', !isAdmin ? '숨김' : '표시');
-        }
+                   var adminMemberBtn = document.getElementById('admin-member-btn');
+           if (adminMemberBtn) {
+             adminMemberBtn.classList.toggle('hidden', !isAdmin);
+             console.log('회원관리 버튼 표시 상태:', !isAdmin ? '숨김' : '표시');
+           }
+           var adminCleanupBtn = document.getElementById('admin-cleanup-btn');
+           if (adminCleanupBtn) {
+             adminCleanupBtn.classList.toggle('hidden', !isAdmin);
+             console.log('테스트데이터정리 버튼 표시 상태:', !isAdmin ? '숨김' : '표시');
+           }
         
         // 사례 카드 편집 기능 활성화/비활성화
         enableCaseTextEdit(isAdmin);
+        
+        console.log('관리자 모드 설정:', isAdmin);
       }
       
       // 사례 카드 텍스트 편집 기능
@@ -833,6 +876,43 @@
           localStorage.setItem('users', JSON.stringify(users));
           console.log('기존 현재 사용자 데이터 마이그레이션 완료:', currentUser.email);
         }
+        
+        // 기존 의뢰 데이터 마이그레이션
+        const allKeys = Object.keys(localStorage);
+        const requestKeys = allKeys.filter(key => key.startsWith('request-'));
+        
+        requestKeys.forEach(key => {
+          try {
+            const requestData = JSON.parse(localStorage.getItem(key));
+            
+            // userName 필드가 없는 경우 추가
+            if (requestData && !requestData.userName) {
+              // user 또는 currentUser에서 이름 찾기
+              let userName = '';
+              if (requestData.email) {
+                const user = JSON.parse(localStorage.getItem('user') || '{}');
+                const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+                
+                if (user.email === requestData.email) {
+                  userName = user.name || '';
+                } else if (currentUser.email === requestData.email) {
+                  userName = currentUser.name || '';
+                }
+              }
+              
+              // userName 필드 추가
+              requestData.userName = userName;
+              localStorage.setItem(key, JSON.stringify(requestData));
+              console.log('의뢰 데이터 마이그레이션 완료:', key, 'userName:', userName);
+            }
+          } catch (e) {
+            console.log('의뢰 데이터 마이그레이션 실패:', key, e);
+          }
+        });
+        
+        console.log('=== 데이터 마이그레이션 완료 ===');
+        console.log('총 회원 수:', users.length);
+        console.log('총 의뢰 수:', requestKeys.length);
       })();
     });
       
@@ -2067,87 +2147,185 @@ if (mypageBtn) {
     
     <!-- 카카오 로그인 스크립트 -->
     <script>
-              // 카카오 초기화 (SDK 로딩 확인 후)
-        if (typeof Kakao !== 'undefined') {
-          Kakao.init('6917a034b74fafd0ac80ab855af5ed6d');
-        }
-      
-      // 카카오 로그인 함수 (공통)
-      function performKakaoLogin() {
-        if (typeof Kakao === 'undefined') {
-          showToast('카카오 SDK를 불러오는 중입니다. 잠시 후 다시 시도해주세요.', 'error');
-          return;
-        }
-        
-        // 카카오 로그인 실행
-        Kakao.Auth.login({
-          success: function(authObj) {
-            // 로그인 성공 시 사용자 정보 가져오기
-            Kakao.API.request({
-              url: '/v2/user/me',
-              success: function(res) {
-                const userInfo = res.kakao_account;
-                console.log('카카오 로그인 성공:', userInfo);
-                
-                // 사용자 정보를 localStorage에 저장 (현재 수집 가능한 정보만)
-                const userData = {
-                  name: userInfo.profile?.nickname || '카카오 사용자',
-                  email: userInfo.email || `kakao_${res.id}@pricehunter.com`,
-                  phone: '', // 현재 수집 불가 - 나중에 사용자 입력으로 받기
-                  birth: '', // 현재 수집 불가 - 나중에 사용자 입력으로 받기
-                  kakaoId: userInfo.profile?.nickname || '',
-                  loginType: 'kakao',
-                  kakaoId: res.id,
-                  loginTime: Date.now()
-                };
-                
-                // 기존 사용자 데이터와 병합
-                const existingUsers = JSON.parse(localStorage.getItem('users') || '[]');
-                const existingUserIndex = existingUsers.findIndex(user => user.email === userData.email);
-                
-                if (existingUserIndex >= 0) {
-                  // 기존 사용자 정보 업데이트
-                  existingUsers[existingUserIndex] = { ...existingUsers[existingUserIndex], ...userData };
-                } else {
-                  // 새 사용자 추가
-                  existingUsers.push(userData);
-                }
-                
-                localStorage.setItem('users', JSON.stringify(existingUsers));
-                localStorage.setItem('loggedIn', userData.email);
-                localStorage.setItem('currentUser', JSON.stringify(userData));
-                
-                // UI 업데이트
-                updateAuthUI();
-                
-                // 성공 메시지
-                showToast('카카오 로그인 성공!', 'success');
-                
-                // 마이페이지 정보 업데이트
-                updateMyPageInfo(userData);
-                
-                // 모달 닫기
-                const signupModal = document.getElementById('signup-modal');
-                const loginModal = document.getElementById('login-modal');
-                if (signupModal) signupModal.classList.add('hidden');
-                if (loginModal) loginModal.classList.add('hidden');
-              },
-              fail: function(err) {
-                console.error('사용자 정보 조회 실패:', err);
-                showToast('사용자 정보를 가져올 수 없습니다.', 'error');
-              }
-            });
-          },
-          fail: function(err) {
-            console.error('카카오 로그인 실패:', err);
-            showToast('카카오 로그인에 실패했습니다.', 'error');
+      // 카카오 초기화 함수
+      async function initializeKakao() {
+        try {
+          await loadKakaoSDK();
+          if (window.Kakao && !window.Kakao.isInitialized()) {
+            window.Kakao.init('6917a034b74fafd0ac80ab855af5ed6d');
+            console.log('카카오 SDK 초기화 성공');
           }
-        });
+        } catch (error) {
+          console.warn('카카오 SDK 초기화 실패:', error);
+        }
       }
       
+      // 카카오 로그인 함수 (개선된 버전)
+      async function performKakaoLogin() {
+        try {
+          // 카카오 SDK 로딩 확인
+          if (!window.kakaoSDKLoaded || !window.Kakao) {
+            showToast('카카오 로그인을 준비 중입니다. 잠시 후 다시 시도해주세요.', 'warning');
+            await initializeKakao();
+            return;
+          }
+          
+          // 카카오 로그인 실행
+          window.Kakao.Auth.login({
+            success: function(authObj) {
+              console.log('카카오 인증 성공:', authObj);
+              
+              // 사용자 정보 가져오기
+              window.Kakao.API.request({
+                url: '/v2/user/me',
+                success: function(res) {
+                  const userInfo = res.kakao_account;
+                  console.log('카카오 사용자 정보:', userInfo);
+                  
+                  // 사용자 정보 구성 (현재 수집 가능한 정보만)
+                  const userData = {
+                    name: userInfo.profile?.nickname || '카카오 사용자',
+                    email: userInfo.email || `kakao_${res.id}@pricehunter.com`,
+                    phone: '', // 추가 정보 입력으로 받기
+                    birth: '', // 추가 정보 입력으로 받기
+                    kakaoId: res.id,
+                    loginType: 'kakao',
+                    loginTime: Date.now()
+                  };
+                  
+                  // 추가 정보 입력이 필요한지 확인
+                  if (!userData.phone || !userData.birth) {
+                    showAdditionalInfoModal(userData);
+                  } else {
+                    completeKakaoLogin(userData);
+                  }
+                },
+                fail: function(err) {
+                  console.error('사용자 정보 조회 실패:', err);
+                  showToast('사용자 정보를 가져올 수 없습니다. 일반 로그인을 이용해주세요.', 'error');
+                }
+              });
+            },
+            fail: function(err) {
+              console.error('카카오 로그인 실패:', err);
+              showToast('카카오 로그인에 실패했습니다. 일반 로그인을 이용해주세요.', 'error');
+            }
+          });
+        } catch (error) {
+          console.error('카카오 로그인 오류:', error);
+          showToast('카카오 로그인을 사용할 수 없습니다. 일반 로그인을 이용해주세요.', 'error');
+        }
+      }
+      
+      // 카카오 로그인 완료 처리
+      function completeKakaoLogin(userData) {
+        // 기존 사용자 데이터와 병합
+        const existingUsers = JSON.parse(localStorage.getItem('users') || '[]');
+        const existingUserIndex = existingUsers.findIndex(user => user.email === userData.email);
+        
+        if (existingUserIndex >= 0) {
+          // 기존 사용자 정보 업데이트
+          existingUsers[existingUserIndex] = { ...existingUsers[existingUserIndex], ...userData };
+        } else {
+          // 새 사용자 추가
+          existingUsers.push(userData);
+        }
+        
+        localStorage.setItem('users', JSON.stringify(existingUsers));
+        localStorage.setItem('loggedIn', userData.email);
+        localStorage.setItem('currentUser', JSON.stringify(userData));
+        
+        // UI 업데이트
+        updateAuthUI();
+        
+        // 성공 메시지
+        showToast('카카오 로그인 성공!', 'success');
+        
+        // 마이페이지 정보 업데이트
+        updateMyPageInfo(userData);
+        
+        // 모달 닫기
+        const signupModal = document.getElementById('signup-modal');
+        const loginModal = document.getElementById('login-modal');
+        if (signupModal) signupModal.classList.add('hidden');
+        if (loginModal) loginModal.classList.add('hidden');
+      }
+      
+      // 추가 정보 입력 모달 표시
+      function showAdditionalInfoModal(userData) {
+        // 모달 HTML 생성
+        const modalHTML = `
+          <div id="additional-info-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div class="bg-white rounded-lg p-8 max-w-md w-full mx-4">
+              <h3 class="text-xl font-bold mb-4">추가 정보 입력</h3>
+              <p class="text-gray-600 mb-4">서비스 이용을 위해 추가 정보를 입력해주세요.</p>
+              
+              <div class="space-y-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">휴대폰번호</label>
+                  <input type="tel" id="additional-phone" placeholder="010-1234-5678" 
+                         class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">생년월일</label>
+                  <input type="date" id="additional-birth" 
+                         class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+              </div>
+              
+              <div class="flex gap-3 mt-6">
+                <button id="save-additional-info" class="flex-1 bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600">
+                  저장
+                </button>
+                <button id="cancel-additional-info" class="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-400">
+                  취소
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+        
+        // 기존 모달 제거
+        const existingModal = document.getElementById('additional-info-modal');
+        if (existingModal) existingModal.remove();
+        
+        // 새 모달 추가
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        
+        // 이벤트 리스너 추가
+        document.getElementById('save-additional-info').onclick = function() {
+          const phone = document.getElementById('additional-phone').value;
+          const birth = document.getElementById('additional-birth').value;
+          
+          if (!phone || !birth) {
+            showToast('모든 정보를 입력해주세요.', 'error');
+            return;
+          }
+          
+          userData.phone = phone;
+          userData.birth = birth;
+          
+          document.getElementById('additional-info-modal').remove();
+          completeKakaoLogin(userData);
+        };
+        
+        document.getElementById('cancel-additional-info').onclick = function() {
+          document.getElementById('additional-info-modal').remove();
+          showToast('카카오 로그인이 취소되었습니다.', 'info');
+        };
+      }
+      
+      // 페이지 로드 시 카카오 초기화
+      document.addEventListener('DOMContentLoaded', function() {
+        initializeKakao();
+      });
+      
       // 메인 카카오 로그인 버튼 이벤트
-      document.getElementById('kakao-login-btn').addEventListener('click', function() {
-        performKakaoLogin();
+      document.addEventListener('DOMContentLoaded', function() {
+        const kakaoBtn = document.getElementById('kakao-login-btn');
+        if (kakaoBtn) {
+          kakaoBtn.addEventListener('click', performKakaoLogin);
+        }
       });
       
       // 회원가입 모달의 카카오 로그인 버튼 이벤트
@@ -2189,6 +2367,41 @@ if (mypageBtn) {
           }
         }
       });
+    </script>
+    <!-- 테스트 데이터 정리 함수 -->
+    <script>
+      // 테스트 데이터 정리 함수
+      function cleanupTestData() {
+        console.log('=== 메인 페이지 테스트 데이터 정리 시작 ===');
+        const allKeys = Object.keys(localStorage);
+        let deletedCount = 0;
+        
+        allKeys.forEach(key => {
+          // 테스트 데이터 패턴들
+          const isTestData = 
+            key.includes('TEST') || 
+            key.startsWith('requestCount-') ||
+            key.includes('#PH-') ||
+            key.includes('result-#PH-') ||
+            key.includes('order-#PH-') ||
+            key.includes('notify-#PH-') ||
+            key.includes('inquiry-#PH-');
+          
+          if (isTestData) {
+            localStorage.removeItem(key);
+            deletedCount++;
+            console.log(`테스트 데이터 삭제: ${key}`);
+          }
+        });
+        
+        if (deletedCount > 0) {
+          console.log(`총 ${deletedCount}개의 테스트 데이터가 삭제되었습니다.`);
+          showToast(`테스트 데이터 ${deletedCount}개가 삭제되었습니다.`, 'success');
+        } else {
+          console.log('삭제할 테스트 데이터가 없습니다.');
+          showToast('삭제할 테스트 데이터가 없습니다.', 'info');
+        }
+      }
     </script>
   </body>
 </html>

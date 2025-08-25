@@ -85,8 +85,8 @@
         <label class="block text-gray-700 font-semibold mb-2" for="productDesc">제품 설명</label>
         <textarea id="productDesc" required class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none transition mb-4 input-animate" rows="3" placeholder="예: 브랜드, 모델명, 색상, 원하는 특징 등"></textarea>
         <label class="block text-gray-700 font-semibold mb-2" for="productPrice">예상 가격(원)</label>
-        <input type="number" id="productPrice" min="10000" step="1" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none transition mb-2 input-animate" placeholder="예: 10000 (원)" />
-        <div class="text-xs text-pink-600 mb-4">※ 최소 의뢰 금액은 <span class="font-bold">10,000원</span> 이상입니다.</div>
+        <input type="number" id="productPrice" min="1000" step="1" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none transition mb-2 input-animate" placeholder="예: 1000 (원)" />
+        <div class="text-xs text-pink-600 mb-4">※ 최소 의뢰 금액은 <span class="font-bold">1,000원</span> 이상입니다.</div>
         <button type="button" class="w-full mt-8 py-3 bg-blue-500 text-white font-bold rounded-lg shadow btn-animate" id="to-step-2">다음</button>
       </div>
       <!-- Step 2: 참고/이미지 -->
@@ -182,8 +182,8 @@
         return;
       }
       const price = Number(document.getElementById('productPrice').value);
-      if (isNaN(price) || price < 10000) {
-        alert('최소 의뢰 금액은 10,000원 이상입니다. 더 저렴한 제품은 의뢰가 어렵습니다.');
+      if (isNaN(price) || price < 1000) {
+        alert('최소 의뢰 금액은 1,000원 이상입니다. 더 저렴한 제품은 의뢰가 어렵습니다.');
         return;
       }
       showStep(2);
@@ -347,13 +347,13 @@
         alert('첨부한 이미지의 총 용량이 5MB를 초과합니다. 더 작은 이미지로 첨부해 주세요.');
         return;
       }
-      // 하루 2건 제한
+      // 하루 10건 제한 (테스트용으로 완화)
       const today = new Date().toISOString().slice(0,10);
       const userId = user && user.email ? user.email : userName;
       const reqCountKey = `requestCount-${today}-${userId}`;
       const reqCount = Number(localStorage.getItem(reqCountKey) || '0');
-      if (reqCount >= 2) {
-        alert('하루 최대 2건까지만 의뢰할 수 있습니다. 내일 다시 이용해 주세요!');
+      if (reqCount >= 10) {
+        alert('하루 최대 10건까지만 의뢰할 수 있습니다. 내일 다시 이용해 주세요!');
         return;
       }
       // 입력값 수집
