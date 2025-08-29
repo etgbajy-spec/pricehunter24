@@ -31,14 +31,14 @@
     </nav>
 
     <!-- 메인 컨텐츠 -->
-    <div class="max-w-4xl mx-auto px-4 py-8">
-        <div class="bg-white rounded-lg shadow-lg p-6">
-            <h1 class="text-3xl font-bold text-gray-800 mb-6">🔔 실시간 알림 시스템</h1>
+    <div class="max-w-4xl mx-auto px-4 py-4 md:py-8">
+        <div class="bg-white rounded-lg shadow-lg p-4 md:p-6">
+            <h1 class="text-2xl sm:text-3xl font-bold text-gray-800 mb-4 md:mb-6">🔔 실시간 알림 시스템</h1>
             
             <!-- 알림 설정 -->
-            <div class="mb-8 p-6 bg-blue-50 rounded-lg">
-                <h2 class="text-xl font-semibold text-gray-800 mb-4">알림 설정</h2>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="mb-6 md:mb-8 p-4 md:p-6 bg-blue-50 rounded-lg">
+                <h2 class="text-lg md:text-xl font-semibold text-gray-800 mb-3 md:mb-4">알림 설정</h2>
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
                     <div class="flex items-center space-x-3">
                         <input type="checkbox" id="email-notify" class="w-4 h-4 text-blue-600" checked>
                         <label for="email-notify" class="text-gray-700">이메일 알림</label>
@@ -55,17 +55,17 @@
             </div>
 
             <!-- 실시간 알림 목록 -->
-            <div class="mb-8">
-                <h2 class="text-xl font-semibold text-gray-800 mb-4">최근 알림</h2>
-                <div id="notifications-list" class="space-y-4">
+            <div class="mb-6 md:mb-8">
+                <h2 class="text-lg md:text-xl font-semibold text-gray-800 mb-3 md:mb-4">최근 알림</h2>
+                <div id="notifications-list" class="space-y-3 md:space-y-4">
                     <!-- 알림이 여기에 동적으로 추가됩니다 -->
                 </div>
             </div>
 
             <!-- 알림 테스트 -->
-            <div class="p-6 bg-gray-50 rounded-lg">
-                <h2 class="text-xl font-semibold text-gray-800 mb-4">알림 테스트</h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="p-4 md:p-6 bg-gray-50 rounded-lg">
+                <h2 class="text-lg md:text-xl font-semibold text-gray-800 mb-3 md:mb-4">알림 테스트</h2>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
                     <button id="test-notification" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
                         테스트 알림 발송
                     </button>
