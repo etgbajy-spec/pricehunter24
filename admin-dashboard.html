@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>관리자 대시보드 | PriceHunter</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+      body { font-family: 'Noto Sans KR', 'Inter', sans-serif; }
+      .tab-btn.active {
+        background-color: #ec4899;
+        color: white;
+      }
+      .filter-btn.active {
+        background-color: #6b7280;
+        color: white;
+      }
+      .sidebar-item.active {
+        background-color: #ec4899;
+        color: white;
+      }
+    </style>
+  </head>
+  <body class="bg-gradient-to-br from-gray-50 via-blue-50 to-emerald-50 min-h-screen">
+    <div class="flex h-screen">
+      <!-- 사이드바 -->
+      <div class="w-64 bg-white shadow-lg">
+        <div class="p-6 border-b">
+          <h1 class="text-xl font-bold text-pink-600">PriceHunter</h1>
+          <p class="text-sm text-gray-500">관리자 대시보드</p>
+        </div>
+        
+        <nav class="p-4">
+          <div class="space-y-2">
+            <button class="sidebar-item w-full text-left px-4 py-3 rounded-lg font-semibold hover:bg-pink-50 transition active" onclick="switchSection('dashboard')">
+              📊 대시보드
+            </button>
+            <button class="sidebar-item w-full text-left px-4 py-3 rounded-lg font-semibold hover:bg-pink-50 transition" onclick="switchSection('requests')">
+              📋 의뢰 관리
+            </button>
+            <button class="sidebar-item w-full text-left px-4 py-3 rounded-lg font-semibold hover:bg-pink-50 transition" onclick="switchSection('inquiries')">
+              💬 1:1 문의
+            </button>
+            <button class="sidebar-item w-full text-left px-4 py-3 rounded-lg font-semibold hover:bg-pink-50 transition" onclick="switchSection('members')">
+              👥 회원 관리
+            </button>
+            <button class="sidebar-item w-full text-left px-4 py-3 rounded-lg font-semibold hover:bg-pink-50 transition" onclick="switchSection('data')">
+              💾 데이터 관리
+            </button>
+          </div>
+        </nav>
+        
+        <div class="absolute bottom-4 left-4 right-4">
+          <button onclick="adminLogout()" class="w-full px-4 py-2 bg-red-500 text-white rounded-lg font-semibold hover:bg-red-600 transition">
+            🔓 관리자 로그아웃
+          </button>
+        </div>
+      </div>
+
+      <!-- 메인 콘텐츠 -->
+      <div class="flex-1 overflow-auto">
+        <!-- 대시보드 섹션 -->
+        <div id="dashboard-section" class="section-content p-8">
+          <h2 class="text-2xl font-bold text-gray-800 mb-6">📊 대시보드</h2>
+          
+          <!-- 통계 카드 -->
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white rounded-xl shadow-lg p-6">
+              <div class="flex items-center">
+                <div class="p-3 bg-blue-100 rounded-lg">
+                  <span class="text-2xl">📋</span>
+                </div>
+                <div class="ml-4">
+                  <p class="text-sm text-gray-500">총 의뢰</p>
+                  <p class="text-2xl font-bold text-gray-800" id="total-requests">0</p>
+                </div>
+              </div>
+            </div>
+            
+            <div class="bg-white rounded-xl shadow-lg p-6">
+              <div class="flex items-center">
+                <div class="p-3 bg-green-100 rounded-lg">
+                  <span class="text-2xl">✅</span>
+                </div>
+                <div class="ml-4">
+                  <p class="text-sm text-gray-500">완료된 의뢰</p>
+                  <p class="text-2xl font-bold text-gray-800" id="completed-requests">0</p>
+                </div>
+              </div>
+            </div>
+            
+            <div class="bg-white rounded-xl shadow-lg p-6">
+              <div class="flex items-center">
+                <div class="p-3 bg-orange-100 rounded-lg">
+                  <span class="text-2xl">👥</span>
+                </div>
+                <div class="ml-4">
+                  <p class="text-sm text-gray-500">총 회원</p>
+                  <p class="text-2xl font-bold text-gray-800" id="total-members">0</p>
+                </div>
+              </div>
+            </div>
+            
+            <div class="bg-white rounded-xl shadow-lg p-6">
+              <div class="flex items-center">
+                <div class="p-3 bg-purple-100 rounded-lg">
+                  <span class="text-2xl">💬</span>
+                </div>
+                <div class="ml-4">
+                  <p class="text-sm text-gray-500">미답변 문의</p>
+                  <p class="text-2xl font-bold text-gray-800" id="pending-inquiries">0</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 최근 활동 -->
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="bg-white rounded-xl shadow-lg p-6">
+              <h3 class="text-lg font-semibold text-gray-800 mb-4">최근 의뢰</h3>
+              <div id="recent-requests" class="space-y-3">
+                <!-- 동적으로 생성됨 -->
+              </div>
+            </div>
+            
+            <div class="bg-white rounded-xl shadow-lg p-6">
+              <h3 class="text-lg font-semibold text-gray-800 mb-4">최근 문의</h3>
+              <div id="recent-inquiries" class="space-y-3">
+                <!-- 동적으로 생성됨 -->
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 의뢰 관리 섹션 -->
+        <div id="requests-section" class="section-content p-8 hidden">
+          <h2 class="text-2xl font-bold text-gray-800 mb-6">📋 의뢰 관리</h2>
+          
+          <!-- 검색 및 필터 -->
+          <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+            <div class="flex flex-wrap gap-4 items-center">
+              <input type="text" id="request-search" placeholder="의뢰번호, 회원명, 제품명으로 검색" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-400 focus:outline-none flex-1 min-w-64">
+              <button onclick="clearRequestSearch()" class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition">초기화</button>
+              
+              <select id="request-filter" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-400 focus:outline-none">
+                <option value="all">전체</option>
+                <option value="new">신규의뢰</option>
+                <option value="progress">진행중</option>
+                <option value="complete">완료</option>
+              </select>
+            </div>
+          </div>
+          
+          <!-- 의뢰 목록 -->
+          <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full">
+                <thead class="bg-pink-50">
+                  <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-pink-700 uppercase tracking-wider">의뢰번호</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-pink-700 uppercase tracking-wider">회원명</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-pink-700 uppercase tracking-wider">제품명</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-pink-700 uppercase tracking-wider">진행상황</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-pink-700 uppercase tracking-wider">의뢰일시</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-pink-700 uppercase tracking-wider">작업</th>
+                  </tr>
+                </thead>
+                <tbody id="requests-table-body" class="bg-white divide-y divide-gray-200">
+                  <!-- 동적으로 생성됨 -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- 1:1 문의 섹션 -->
+        <div id="inquiries-section" class="section-content p-8 hidden">
+          <h2 class="text-2xl font-bold text-gray-800 mb-6">💬 1:1 문의 관리</h2>
+          
+          <!-- 문의 목록 -->
+          <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full">
+                <thead class="bg-blue-50">
+                  <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-blue-700 uppercase tracking-wider">문의번호</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-blue-700 uppercase tracking-wider">회원명</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-blue-700 uppercase tracking-wider">제목</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-blue-700 uppercase tracking-wider">상태</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-blue-700 uppercase tracking-wider">등록일시</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-blue-700 uppercase tracking-wider">작업</th>
+                  </tr>
+                </thead>
+                <tbody id="inquiries-table-body" class="bg-white divide-y divide-gray-200">
+                  <!-- 동적으로 생성됨 -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- 회원 관리 섹션 -->
+        <div id="members-section" class="section-content p-8 hidden">
+          <h2 class="text-2xl font-bold text-gray-800 mb-6">👥 회원 관리</h2>
+          
+          <!-- 회원 목록 -->
+          <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full">
+                <thead class="bg-green-50">
+                  <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">회원명</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">이메일</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">휴대폰</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">가입일</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">의뢰수</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">작업</th>
+                  </tr>
+                </thead>
+                <tbody id="members-table-body" class="bg-white divide-y divide-gray-200">
+                  <!-- 동적으로 생성됨 -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- 데이터 관리 섹션 -->
+        <div id="data-section" class="section-content p-8 hidden">
+          <h2 class="text-2xl font-bold text-gray-800 mb-6">💾 데이터 관리</h2>
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- 데이터 내보내기 -->
+            <div class="bg-white rounded-xl shadow-lg p-6">
+              <h3 class="text-lg font-semibold text-gray-800 mb-4">📥 데이터 내보내기</h3>
+              <p class="text-sm text-gray-600 mb-4">현재 모든 데이터를 JSON 파일로 다운로드합니다.</p>
+              <button onclick="exportAllData()" class="w-full px-4 py-2 bg-green-500 text-white rounded-lg font-semibold hover:bg-green-600 transition">
+                데이터 내보내기
+              </button>
+            </div>
+            
+            <!-- 데이터 가져오기 -->
+            <div class="bg-white rounded-xl shadow-lg p-6">
+              <h3 class="text-lg font-semibold text-gray-800 mb-4">📤 데이터 가져오기</h3>
+              <p class="text-sm text-gray-600 mb-4">백업 파일을 업로드하여 데이터를 복원합니다.</p>
+              <input type="file" id="import-file" accept=".json" class="hidden" onchange="importData(this.files[0])">
+              <button onclick="document.getElementById('import-file').click()" class="w-full px-4 py-2 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition">
+                데이터 가져오기
+              </button>
+            </div>
+            
+            <!-- 테스트 데이터 정리 -->
+            <div class="bg-white rounded-xl shadow-lg p-6">
+              <h3 class="text-lg font-semibold text-gray-800 mb-4">🧹 테스트 데이터 정리</h3>
+              <p class="text-sm text-gray-600 mb-4">테스트용 데이터를 모두 삭제합니다.</p>
+              <button onclick="cleanupTestData()" class="w-full px-4 py-2 bg-red-500 text-white rounded-lg font-semibold hover:bg-red-600 transition">
+                테스트 데이터 정리
+              </button>
+            </div>
+            
+            <!-- 전체 데이터 초기화 -->
+            <div class="bg-white rounded-xl shadow-lg p-6">
+              <h3 class="text-lg font-semibold text-gray-800 mb-4">⚠️ 전체 초기화</h3>
+              <p class="text-sm text-gray-600 mb-4">모든 데이터를 삭제합니다. (복구 불가)</p>
+              <button onclick="clearAllData()" class="w-full px-4 py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition">
+                전체 데이터 초기화
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 모달 -->
+    <div id="modal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+      <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div class="p-6">
+            <div class="flex justify-between items-center mb-4">
+              <h3 id="modal-title" class="text-lg font-semibold text-gray-800"></h3>
+              <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600">
+                <span class="text-2xl">×</span>
+              </button>
+            </div>
+            <div id="modal-content">
+              <!-- 동적으로 생성됨 -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // 관리자 권한 확인
+      function isAdmin() {
+        const adminMode = localStorage.getItem('adminMode') === 'true';
+        const isAdmin = localStorage.getItem('isAdmin') === 'true';
+        return adminMode || isAdmin;
+      }
+
+      // 전역 변수
+      let currentSection = 'dashboard';
+      let allRequests = [];
+      let allInquiries = [];
+      let allMembers = [];
+
+      // 섹션 전환
+      function switchSection(section) {
+        currentSection = section;
+        
+        // 모든 섹션 숨기기
+        document.querySelectorAll('.section-content').forEach(el => {
+          el.classList.add('hidden');
+        });
+        
+        // 모든 사이드바 아이템 비활성화
+        document.querySelectorAll('.sidebar-item').forEach(el => {
+          el.classList.remove('active');
+        });
+        
+        // 선택된 섹션 표시
+        document.getElementById(section + '-section').classList.remove('hidden');
+        
+        // 선택된 사이드바 아이템 활성화
+        event.target.classList.add('active');
+        
+        // 섹션별 데이터 로드
+        loadSectionData(section);
+      }
+
+      // 섹션별 데이터 로드
+      function loadSectionData(section) {
+        switch(section) {
+          case 'dashboard':
+            loadDashboardData();
+            break;
+          case 'requests':
+            loadRequestsData();
+            break;
+          case 'inquiries':
+            loadInquiriesData();
+            break;
+          case 'members':
+            loadMembersData();
+            break;
+        }
+      }
+
+      // 대시보드 데이터 로드
+      function loadDashboardData() {
+        // 통계 계산
+        const requests = getAllRequests();
+        const inquiries = getAllInquiries();
+        const members = getAllMembers();
+        
+        const completedRequests = requests.filter(req => {
+          const reqNum = req.key.replace('request-', '');
+          const result = localStorage.getItem('result-' + reqNum);
+          if (result) {
+            const resultData = JSON.parse(result);
+            return resultData.price && resultData.origin && resultData.summary && resultData.link;
+          }
+          return false;
+        });
+        
+        const pendingInquiries = inquiries.filter(inq => !inq.answered);
+        
+        // 통계 업데이트
+        document.getElementById('total-requests').textContent = requests.length;
+        document.getElementById('completed-requests').textContent = completedRequests.length;
+        document.getElementById('total-members').textContent = members.length;
+        document.getElementById('pending-inquiries').textContent = pendingInquiries.length;
+        
+        // 최근 활동 로드
+        loadRecentActivities();
+      }
+
+      // 의뢰 데이터 로드
+      function loadRequestsData() {
+        allRequests = getAllRequests();
+        renderRequestsTable();
+      }
+
+      // 문의 데이터 로드
+      function loadInquiriesData() {
+        allInquiries = getAllInquiries();
+        renderInquiriesTable();
+      }
+
+      // 회원 데이터 로드
+      function loadMembersData() {
+        allMembers = getAllMembers();
+        renderMembersTable();
+      }
+
+      // 데이터 가져오기 함수들
+      function getAllRequests() {
+        const list = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && key.startsWith('request-') && !key.includes('TEST') && !key.startsWith('requestCount-')) {
+            try {
+              const req = JSON.parse(localStorage.getItem(key));
+              list.push({ key, ...req });
+            } catch (e) {
+              console.log(`JSON 파싱 실패: ${key}`, e);
+            }
+          }
+        }
+        return list.sort((a, b) => (b.date || 0) - (a.date || 0));
+      }
+
+      function getAllInquiries() {
+        const list = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && key.startsWith('inquiry-')) {
+            try {
+              const inq = JSON.parse(localStorage.getItem(key));
+              list.push({ key, ...inq });
+            } catch (e) {
+              console.log(`JSON 파싱 실패: ${key}`, e);
+            }
+          }
+        }
+        return list.sort((a, b) => (b.date || 0) - (a.date || 0));
+      }
+
+      function getAllMembers() {
+        const members = new Map();
+        
+        // user와 currentUser에서 회원 정보 수집
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        
+        if (user.email) {
+          members.set(user.email, {
+            name: user.name || '',
+            email: user.email,
+            phone: user.phone || '',
+            joinDate: user.joinDate || new Date().toISOString()
+          });
+        }
+        
+        if (currentUser.email && currentUser.email !== user.email) {
+          members.set(currentUser.email, {
+            name: currentUser.name || '',
+            email: currentUser.email,
+            phone: currentUser.phone || '',
+            joinDate: currentUser.joinDate || new Date().toISOString()
+          });
+        }
+        
+        // 의뢰에서 추가 회원 정보 수집
+        const requests = getAllRequests();
+        requests.forEach(req => {
+          if (req.email && !members.has(req.email)) {
+            members.set(req.email, {
+              name: req.userName || req.name || '',
+              email: req.email,
+              phone: req.phone || '',
+              joinDate: req.date || new Date().toISOString()
+            });
+          }
+        });
+        
+        return Array.from(members.values()).sort((a, b) => new Date(b.joinDate) - new Date(a.joinDate));
+      }
+
+      // 테이블 렌더링 함수들
+      function renderRequestsTable() {
+        const tbody = document.getElementById('requests-table-body');
+        tbody.innerHTML = '';
+        
+        allRequests.forEach(req => {
+          const tr = document.createElement('tr');
+          const reqNum = req.key.replace('request-', '');
+          const status = getRequestStatus(req);
+          
+          tr.innerHTML = `
+            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${reqNum}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${req.userName || '익명'}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${req.name || ''}</td>
+            <td class="px-6 py-4 whitespace-nowrap">
+              <span class="px-2 py-1 text-xs font-semibold rounded-full ${status.color} text-white">${status.text}</span>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${req.date ? new Date(req.date).toLocaleString() : ''}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+              <button onclick="viewRequestDetail('${req.key}')" class="text-pink-600 hover:text-pink-900 mr-2">상세보기</button>
+              <button onclick="deleteRequest('${req.key}')" class="text-red-600 hover:text-red-900">삭제</button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
+
+      function renderInquiriesTable() {
+        const tbody = document.getElementById('inquiries-table-body');
+        tbody.innerHTML = '';
+        
+        allInquiries.forEach(inq => {
+          const tr = document.createElement('tr');
+          const inqNum = inq.key.replace('inquiry-', '');
+          
+          tr.innerHTML = `
+            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${inqNum}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${inq.userName || '익명'}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${inq.title || ''}</td>
+            <td class="px-6 py-4 whitespace-nowrap">
+              <span class="px-2 py-1 text-xs font-semibold rounded-full ${inq.answered ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">${inq.answered ? '답변완료' : '미답변'}</span>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${inq.date ? new Date(inq.date).toLocaleString() : ''}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+              <button onclick="viewInquiryDetail('${inq.key}')" class="text-blue-600 hover:text-blue-900 mr-2">상세보기</button>
+              <button onclick="deleteInquiry('${inq.key}')" class="text-red-600 hover:text-red-900">삭제</button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
+
+      function renderMembersTable() {
+        const tbody = document.getElementById('members-table-body');
+        tbody.innerHTML = '';
+        
+        allMembers.forEach(member => {
+          const tr = document.createElement('tr');
+          const requestCount = allRequests.filter(req => req.email === member.email).length;
+          
+          tr.innerHTML = `
+            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${member.name}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${member.email}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${member.phone}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${new Date(member.joinDate).toLocaleDateString()}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${requestCount}개</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+              <button onclick="viewMemberDetail('${member.email}')" class="text-green-600 hover:text-green-900 mr-2">상세보기</button>
+              <button onclick="deleteMember('${member.email}')" class="text-red-600 hover:text-red-900">삭제</button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
+
+      // 유틸리티 함수들
+      function getRequestStatus(req) {
+        const reqNum = req.key.replace('request-', '');
+        const hasResult = !!localStorage.getItem('result-' + reqNum);
+        
+        if (!hasResult) {
+          return { status: 'new', text: '신규의뢰', color: 'bg-red-500' };
+        }
+        
+        const result = JSON.parse(localStorage.getItem('result-' + reqNum) || '{}');
+        if (result.price && result.origin && result.summary && result.link) {
+          return { status: 'complete', text: '완료', color: 'bg-green-500' };
+        }
+        
+        return { status: 'progress', text: '진행중', color: 'bg-orange-500' };
+      }
+
+      // 모달 관련 함수들
+      function openModal(title, content) {
+        document.getElementById('modal-title').textContent = title;
+        document.getElementById('modal-content').innerHTML = content;
+        document.getElementById('modal').classList.remove('hidden');
+      }
+
+      function closeModal() {
+        document.getElementById('modal').classList.add('hidden');
+      }
+
+      // 데이터 관리 함수들
+      function exportAllData() {
+        const allData = {};
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key) {
+            allData[key] = localStorage.getItem(key);
+          }
+        }
+        
+        const blob = new Blob([JSON.stringify(allData, null, 2)], {
+          type: 'application/json'
+        });
+        
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `pricehunter-backup-${new Date().toISOString().split('T')[0]}.json`;
+        a.click();
+        
+        URL.revokeObjectURL(url);
+        alert('데이터 내보내기가 완료되었습니다!');
+      }
+
+      function importData(file) {
+        if (!file) return;
+        
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          try {
+            const data = JSON.parse(e.target.result);
+            
+            localStorage.clear();
+            
+            Object.keys(data).forEach(key => {
+              localStorage.setItem(key, data[key]);
+            });
+            
+            alert('데이터 복원이 완료되었습니다. 페이지를 새로고침합니다.');
+            location.reload();
+          } catch (error) {
+            alert('데이터 파일 형식이 올바르지 않습니다.');
+            console.error('Import error:', error);
+          }
+        };
+        reader.readAsText(file);
+      }
+
+      function cleanupTestData() {
+        if (!confirm('테스트 데이터를 모두 삭제하시겠습니까?')) return;
+        
+        let deletedCount = 0;
+        const keysToDelete = [];
+        
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && key.includes('TEST')) {
+            keysToDelete.push(key);
+          }
+        }
+        
+        keysToDelete.forEach(key => {
+          localStorage.removeItem(key);
+          deletedCount++;
+        });
+        
+        alert(`${deletedCount}개의 테스트 데이터가 삭제되었습니다.`);
+        loadSectionData(currentSection);
+      }
+
+      function clearAllData() {
+        if (!confirm('⚠️ 모든 데이터를 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다!')) return;
+        
+        if (!confirm('정말로 모든 데이터를 삭제하시겠습니까?\n\n마지막 확인입니다.')) return;
+        
+        localStorage.clear();
+        alert('모든 데이터가 삭제되었습니다.');
+        location.reload();
+      }
+
+      function adminLogout() {
+        localStorage.removeItem('adminMode');
+        localStorage.removeItem('isAdmin');
+        localStorage.removeItem('adminEmail');
+        alert('관리자 로그아웃되었습니다.');
+        window.location.href = 'index.html';
+      }
+
+             // 누락된 함수들 추가
+       function loadRecentActivities() {
+         const requests = getAllRequests().slice(0, 5);
+         const inquiries = getAllInquiries().slice(0, 5);
+         
+         // 최근 의뢰 렌더링
+         const recentRequestsDiv = document.getElementById('recent-requests');
+         recentRequestsDiv.innerHTML = requests.map(req => `
+           <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+             <div>
+               <p class="font-semibold text-sm">${req.name || '제품명 없음'}</p>
+               <p class="text-xs text-gray-500">${req.userName || '익명'} • ${req.date ? new Date(req.date).toLocaleDateString() : ''}</p>
+             </div>
+             <span class="px-2 py-1 text-xs font-semibold rounded-full ${getRequestStatus(req).color} text-white">${getRequestStatus(req).text}</span>
+           </div>
+         `).join('');
+         
+         // 최근 문의 렌더링
+         const recentInquiriesDiv = document.getElementById('recent-inquiries');
+         recentInquiriesDiv.innerHTML = inquiries.map(inq => `
+           <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+             <div>
+               <p class="font-semibold text-sm">${inq.title || '제목 없음'}</p>
+               <p class="text-xs text-gray-500">${inq.userName || '익명'} • ${inq.date ? new Date(inq.date).toLocaleDateString() : ''}</p>
+             </div>
+             <span class="px-2 py-1 text-xs font-semibold rounded-full ${inq.answered ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">${inq.answered ? '답변완료' : '미답변'}</span>
+           </div>
+         `).join('');
+       }
+
+       function clearRequestSearch() {
+         document.getElementById('request-search').value = '';
+         loadRequestsData();
+       }
+
+       function viewRequestDetail(reqKey) {
+         const req = allRequests.find(r => r.key === reqKey);
+         if (!req) return;
+         
+         const reqNum = req.key.replace('request-', '');
+         const result = localStorage.getItem('result-' + reqNum);
+         const resultData = result ? JSON.parse(result) : {};
+         
+         const content = `
+           <div class="space-y-4">
+             <div class="grid grid-cols-2 gap-4">
+               <div>
+                 <label class="block text-sm font-medium text-gray-700">의뢰번호</label>
+                 <p class="mt-1 text-sm text-gray-900">${reqNum}</p>
+               </div>
+               <div>
+                 <label class="block text-sm font-medium text-gray-700">회원명</label>
+                 <p class="mt-1 text-sm text-gray-900">${req.userName || '익명'}</p>
+               </div>
+               <div>
+                 <label class="block text-sm font-medium text-gray-700">제품명</label>
+                 <p class="mt-1 text-sm text-gray-900">${req.name || ''}</p>
+               </div>
+               <div>
+                 <label class="block text-sm font-medium text-gray-700">의뢰일시</label>
+                 <p class="mt-1 text-sm text-gray-900">${req.date ? new Date(req.date).toLocaleString() : ''}</p>
+               </div>
+             </div>
+             
+             <div>
+               <label class="block text-sm font-medium text-gray-700">제품설명</label>
+               <p class="mt-1 text-sm text-gray-900">${req.description || ''}</p>
+             </div>
+             
+             <div>
+               <label class="block text-sm font-medium text-gray-700">참고사이트</label>
+               <p class="mt-1 text-sm text-gray-900">${req.url || ''}</p>
+             </div>
+             
+             <div class="border-t pt-4">
+               <h4 class="text-lg font-semibold text-gray-800 mb-3">결과 정보</h4>
+               <div class="grid grid-cols-2 gap-4">
+                 <div>
+                   <label class="block text-sm font-medium text-gray-700">최저가</label>
+                   <p class="mt-1 text-sm text-gray-900">${resultData.price || '미입력'}</p>
+                 </div>
+                 <div>
+                   <label class="block text-sm font-medium text-gray-700">원산지/공급처</label>
+                   <p class="mt-1 text-sm text-gray-900">${resultData.origin || '미입력'}</p>
+                 </div>
+                 <div class="col-span-2">
+                   <label class="block text-sm font-medium text-gray-700">종합설명</label>
+                   <p class="mt-1 text-sm text-gray-900">${resultData.summary || '미입력'}</p>
+                 </div>
+                 <div class="col-span-2">
+                   <label class="block text-sm font-medium text-gray-700">구매링크</label>
+                   <p class="mt-1 text-sm text-gray-900">${resultData.link || '미입력'}</p>
+                 </div>
+               </div>
+             </div>
+           </div>
+         `;
+         
+         openModal(`의뢰 상세보기 - ${reqNum}`, content);
+       }
+
+       function deleteRequest(reqKey) {
+         if (!confirm('이 의뢰를 삭제하시겠습니까?')) return;
+         
+         const reqNum = reqKey.replace('request-', '');
+         localStorage.removeItem(reqKey);
+         localStorage.removeItem('result-' + reqNum);
+         localStorage.removeItem('result-PH-' + reqNum);
+         localStorage.removeItem('order-' + reqNum);
+         localStorage.removeItem('notify-' + reqNum);
+         
+         alert('의뢰가 삭제되었습니다.');
+         loadRequestsData();
+       }
+
+       function viewInquiryDetail(inqKey) {
+         const inq = allInquiries.find(i => i.key === inqKey);
+         if (!inq) return;
+         
+         const inqNum = inq.key.replace('inquiry-', '');
+         
+         const content = `
+           <div class="space-y-4">
+             <div class="grid grid-cols-2 gap-4">
+               <div>
+                 <label class="block text-sm font-medium text-gray-700">문의번호</label>
+                 <p class="mt-1 text-sm text-gray-900">${inqNum}</p>
+               </div>
+               <div>
+                 <label class="block text-sm font-medium text-gray-700">회원명</label>
+                 <p class="mt-1 text-sm text-gray-900">${inq.userName || '익명'}</p>
+               </div>
+               <div>
+                 <label class="block text-sm font-medium text-gray-700">제목</label>
+                 <p class="mt-1 text-sm text-gray-900">${inq.title || ''}</p>
+               </div>
+               <div>
+                 <label class="block text-sm font-medium text-gray-700">등록일시</label>
+                 <p class="mt-1 text-sm text-gray-900">${inq.date ? new Date(inq.date).toLocaleString() : ''}</p>
+               </div>
+             </div>
+             
+             <div>
+               <label class="block text-sm font-medium text-gray-700">문의내용</label>
+               <p class="mt-1 text-sm text-gray-900">${inq.content || ''}</p>
+             </div>
+             
+             ${inq.answer ? `
+             <div class="border-t pt-4">
+               <h4 class="text-lg font-semibold text-gray-800 mb-3">답변</h4>
+               <p class="text-sm text-gray-900">${inq.answer}</p>
+             </div>
+             ` : ''}
+           </div>
+         `;
+         
+         openModal(`문의 상세보기 - ${inqNum}`, content);
+       }
+
+       function deleteInquiry(inqKey) {
+         if (!confirm('이 문의를 삭제하시겠습니까?')) return;
+         
+         localStorage.removeItem(inqKey);
+         alert('문의가 삭제되었습니다.');
+         loadInquiriesData();
+       }
+
+       function viewMemberDetail(email) {
+         const member = allMembers.find(m => m.email === email);
+         if (!member) return;
+         
+         const requests = allRequests.filter(req => req.email === email);
+         
+         const content = `
+           <div class="space-y-4">
+             <div class="grid grid-cols-2 gap-4">
+               <div>
+                 <label class="block text-sm font-medium text-gray-700">회원명</label>
+                 <p class="mt-1 text-sm text-gray-900">${member.name}</p>
+               </div>
+               <div>
+                 <label class="block text-sm font-medium text-gray-700">이메일</label>
+                 <p class="mt-1 text-sm text-gray-900">${member.email}</p>
+               </div>
+               <div>
+                 <label class="block text-sm font-medium text-gray-700">휴대폰</label>
+                 <p class="mt-1 text-sm text-gray-900">${member.phone}</p>
+               </div>
+               <div>
+                 <label class="block text-sm font-medium text-gray-700">가입일</label>
+                 <p class="mt-1 text-sm text-gray-900">${new Date(member.joinDate).toLocaleDateString()}</p>
+               </div>
+             </div>
+             
+             <div class="border-t pt-4">
+               <h4 class="text-lg font-semibold text-gray-800 mb-3">의뢰 내역 (${requests.length}개)</h4>
+               ${requests.length > 0 ? `
+               <div class="space-y-2 max-h-40 overflow-y-auto">
+                 ${requests.map(req => `
+                   <div class="p-2 bg-gray-50 rounded text-sm">
+                     <div class="font-medium">${req.name || '제품명 없음'}</div>
+                     <div class="text-gray-500">${req.date ? new Date(req.date).toLocaleDateString() : ''} • ${getRequestStatus(req).text}</div>
+                   </div>
+                 `).join('')}
+               </div>
+               ` : '<p class="text-sm text-gray-500">의뢰 내역이 없습니다.</p>'}
+             </div>
+           </div>
+         `;
+         
+         openModal(`회원 상세보기 - ${member.name}`, content);
+       }
+
+       function deleteMember(email) {
+         if (!confirm('이 회원을 삭제하시겠습니까?\n\n관련된 모든 의뢰와 문의도 함께 삭제됩니다.')) return;
+         
+         // 회원 관련 데이터 삭제
+         const requests = allRequests.filter(req => req.email === email);
+         const inquiries = allInquiries.filter(inq => inq.email === email);
+         
+         requests.forEach(req => {
+           const reqNum = req.key.replace('request-', '');
+           localStorage.removeItem(req.key);
+           localStorage.removeItem('result-' + reqNum);
+           localStorage.removeItem('result-PH-' + reqNum);
+           localStorage.removeItem('order-' + reqNum);
+           localStorage.removeItem('notify-' + reqNum);
+         });
+         
+         inquiries.forEach(inq => {
+           localStorage.removeItem(inq.key);
+         });
+         
+         // user/currentUser에서도 삭제
+         const user = JSON.parse(localStorage.getItem('user') || '{}');
+         const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+         
+         if (user.email === email) {
+           localStorage.removeItem('user');
+         }
+         if (currentUser.email === email) {
+           localStorage.removeItem('currentUser');
+         }
+         
+         alert('회원과 관련 데이터가 삭제되었습니다.');
+         loadMembersData();
+       }
+
+       // 초기화
+       window.addEventListener('DOMContentLoaded', function() {
+         if (!isAdmin()) {
+           alert('관리자 권한이 필요합니다.');
+           window.location.href = 'index.html';
+           return;
+         }
+         
+         // 대시보드 데이터 로드
+         loadDashboardData();
+       });
+    </script>
+  </body>
+</html>

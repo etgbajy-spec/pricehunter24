@@ -72,31 +72,6 @@
     </div>
   </main>
   <script>
-    // 관리자 권한 확인
-    function validateAdminSession() {
-      const adminMode = localStorage.getItem('adminMode') === 'true';
-      const isAdmin = localStorage.getItem('isAdmin') === 'true';
-      const result = adminMode || isAdmin;
-      
-      console.log('관리자 세션 확인:', {
-        adminMode: adminMode,
-        isAdmin: isAdmin,
-        result: result
-      });
-      
-      if (!result) {
-        alert('관리자 권한이 필요합니다.');
-        window.location.href = 'index.html';
-        return false;
-      }
-      return true;
-    }
-
-    // 페이지 로드 시 관리자 확인
-    if (!validateAdminSession()) {
-      window.location.href = 'index.html';
-    }
-
     // CSS 애니메이션 추가
     const style = document.createElement('style');
     style.textContent = `

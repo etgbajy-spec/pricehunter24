@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>의뢰 결과 입력/관리 | PriceHunter</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- 프로덕션에서는 Tailwind CSS를 빌드하여 사용하는 것을 권장합니다 -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
@@ -18,43 +17,6 @@
       .filter-btn.active {
         background-color: #6b7280;
         color: white;
-      }
-      #rich-editor {
-        min-height: 200px;
-        border: 1px solid #d1d5db;
-        border-radius: 0.5rem;
-        padding: 1rem;
-        background: white;
-      }
-      #rich-editor:focus {
-        outline: none;
-        border-color: #ec4899;
-        box-shadow: 0 0 0 3px rgba(236, 72, 153, 0.1);
-      }
-      .editor-toolbar {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.5rem;
-        margin-bottom: 1rem;
-        padding: 0.5rem;
-        background: #f9fafb;
-        border-radius: 0.5rem;
-      }
-      .editor-btn {
-        padding: 0.5rem;
-        border: 1px solid #d1d5db;
-        border-radius: 0.25rem;
-        background: white;
-        cursor: pointer;
-        font-size: 0.875rem;
-      }
-      .editor-btn:hover {
-        background: #f3f4f6;
-      }
-      .editor-btn.active {
-        background: #ec4899;
-        color: white;
-        border-color: #ec4899;
       }
     </style>
   </head>
@@ -87,12 +49,21 @@
           <!-- 회원별 탭은 동적으로 생성됨 -->
         </div>
         
-        <!-- 진행상황 필터 -->
-        <div class="flex flex-wrap gap-2 justify-center mb-4">
-          <button id="filter-all" class="filter-btn active px-3 py-1 bg-gray-500 text-white rounded font-bold hover:bg-gray-600 transition text-sm" onclick="switchFilter('all')">전체</button>
-          <button id="filter-new" class="filter-btn px-3 py-1 bg-red-500 text-white rounded font-bold hover:bg-red-600 transition text-sm" onclick="switchFilter('new')">신규의뢰</button>
-          <button id="filter-progress" class="filter-btn px-3 py-1 bg-orange-500 text-white rounded font-bold hover:bg-orange-600 transition text-sm" onclick="switchFilter('progress')">진행중</button>
-          <button id="filter-complete" class="filter-btn px-3 py-1 bg-green-500 text-white rounded font-bold hover:bg-green-600 transition text-sm" onclick="switchFilter('complete')">완료</button>
+        <!-- 검색 및 필터 -->
+        <div class="flex flex-wrap gap-4 justify-center mb-4">
+          <!-- 검색 입력 필드 -->
+          <div class="flex items-center gap-2">
+            <input type="text" id="search-input" placeholder="의뢰번호, 회원명, 제품명으로 검색" class="px-3 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-pink-400 focus:outline-none w-64">
+            <button onclick="clearSearch()" class="px-2 py-1 bg-gray-500 text-white rounded text-xs hover:bg-gray-600 transition">초기화</button>
+          </div>
+          
+          <!-- 진행상황 필터 -->
+          <div class="flex flex-wrap gap-2">
+            <button id="filter-all" class="filter-btn active px-3 py-1 bg-gray-500 text-white rounded font-bold hover:bg-gray-600 transition text-sm" onclick="switchFilter('all')">전체</button>
+            <button id="filter-new" class="filter-btn px-3 py-1 bg-red-500 text-white rounded font-bold hover:bg-red-600 transition text-sm" onclick="switchFilter('new')">신규의뢰</button>
+            <button id="filter-progress" class="filter-btn px-3 py-1 bg-orange-500 text-white rounded font-bold hover:bg-orange-600 transition text-sm" onclick="switchFilter('progress')">진행중</button>
+            <button id="filter-complete" class="filter-btn px-3 py-1 bg-green-500 text-white rounded font-bold hover:bg-green-600 transition text-sm" onclick="switchFilter('complete')">완료</button>
+          </div>
         </div>
       </div>
       
@@ -112,6 +83,13 @@
           <button id="bulk-delete-btn" class="px-4 py-2 bg-red-500 text-white rounded-lg font-bold hover:bg-red-600 transition text-sm hidden" onclick="bulkDelete()">
             선택 삭제 (<span id="delete-count">0</span>개)
           </button>
+          <button id="export-data-btn" class="px-4 py-2 bg-green-500 text-white rounded-lg font-bold hover:bg-green-600 transition text-sm" onclick="exportAllData()">
+            📥 데이터 내보내기
+          </button>
+          <button id="import-data-btn" class="px-4 py-2 bg-blue-500 text-white rounded-lg font-bold hover:bg-blue-600 transition text-sm" onclick="document.getElementById('import-file').click()">
+            📤 데이터 가져오기
+          </button>
+          <input type="file" id="import-file" accept=".json" style="display: none;" onchange="importData(this.files[0])">
         </div>
       </div>
       
@@ -126,7 +104,7 @@
           <span class="w-1/6 text-center">구매방식</span>
           <span class="w-1/6 text-center">구매상태</span>
           <span class="w-1/6 text-center">알림상태</span>
-          <span class="w-1/4 text-right">제품명</span>
+          <span class="w-1/6 text-right">제품명</span>
         </div>
         <ul id="request-list" class="bg-pink-50 rounded-b-xl shadow-inner divide-y divide-pink-100 text-left"></ul>
       </div>
@@ -136,464 +114,489 @@
         <div class="bg-white rounded-2xl shadow-lg p-6 mb-4 text-left">
           <div class="mb-2 text-gray-700 font-bold">의뢰 상세</div>
           <div class="mb-2 text-gray-600"><span class="font-semibold">의뢰번호:</span> <span id="detail-num"></span></div>
-          <div class="mb-2 text-gray-600"><span class="font-semibold">회원명:</span> <span id="detail-name"></span></div>
-          <div class="mb-2 text-gray-600"><span class="font-semibold">제품명:</span> <span id="detail-product"></span></div>
-          <div class="mb-2 text-gray-600"><span class="font-semibold">희망가격:</span> <span id="detail-price"></span></div>
-          <div class="mb-2 text-gray-600"><span class="font-semibold">제품설명:</span> <span id="detail-description"></span></div>
-          <div class="mb-2 text-gray-600"><span class="font-semibold">참고사이트:</span> <span id="detail-reference"></span></div>
-          <div class="mb-2 text-gray-600"><span class="font-semibold">의뢰일시:</span> <span id="detail-date"></span></div>
+          <div class="mb-2 text-gray-600"><span class="font-semibold">제품명:</span> <span id="detail-name"></span></div>
+          <div class="mb-2 text-gray-600"><span class="font-semibold">제품설명:</span> <span id="detail-desc"></span></div>
+          <div class="mb-2 text-gray-600"><span class="font-semibold">참고사이트:</span> <span id="detail-url"></span></div>
+          <div class="mb-2 text-gray-600"><span class="font-semibold">가격:</span> <span id="detail-price"></span></div>
+          <div class="mb-2 text-gray-600"><span class="font-semibold">이름:</span> <span id="detail-username"></span></div>
+          <div class="mb-2 text-gray-600"><span class="font-semibold">이메일:</span> <span id="detail-email"></span></div>
+          <div class="mb-2 text-gray-600"><span class="font-semibold">휴대폰:</span> <span id="detail-phone"></span></div>
+          <div class="mb-2 text-gray-600"><span class="font-semibold">통관번호:</span> <span id="detail-customs"></span></div>
+          <div class="mb-2 text-gray-600"><span class="font-semibold">업로드 이미지:</span> <span id="detail-img"></span></div>
         </div>
         
-        <!-- 답변 입력 폼 -->
-        <div class="bg-white rounded-2xl shadow-lg p-6 text-left">
-          <div class="mb-4 text-gray-700 font-bold">답변 입력</div>
-          
-          <form id="result-form" class="space-y-4">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-2">최저가</label>
-                <input type="text" id="admin-price" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-400 focus:outline-none" placeholder="예: 45,000원">
-              </div>
-              <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-2">원산지/공급처</label>
-                <input type="text" id="admin-origin" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-400 focus:outline-none" placeholder="예: 🇰🇷 대한민국">
-              </div>
-            </div>
-            
-            <div>
-              <label class="block text-sm font-semibold text-gray-700 mb-2">구매 링크</label>
-              <input type="url" id="admin-link" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-400 focus:outline-none" placeholder="https://example.com">
-            </div>
-            
-            <div>
-              <label class="block text-sm font-semibold text-gray-700 mb-2">종합설명</label>
-              <div class="editor-toolbar">
-                <button type="button" class="editor-btn" onclick="execCommand('bold')">굵게</button>
-                <button type="button" class="editor-btn" onclick="execCommand('italic')">기울임</button>
-                <button type="button" class="editor-btn" onclick="execCommand('underline')">밑줄</button>
-                <button type="button" class="editor-btn" onclick="execCommand('insertUnorderedList')">목록</button>
-                <button type="button" class="editor-btn" onclick="execCommand('insertOrderedList')">번호목록</button>
-                <button type="button" class="editor-btn" onclick="setFontSize()">글자크기</button>
-                <button type="button" class="editor-btn" onclick="insertImage()">이미지</button>
-                <input type="file" id="image-upload" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
-              </div>
-              <div id="rich-editor" contenteditable="true" class="w-full"></div>
-              <textarea id="admin-summary" style="display: none;"></textarea>
-            </div>
-            
-            <div class="flex gap-2">
-              <button type="submit" class="px-6 py-2 bg-pink-500 text-white rounded-lg font-bold hover:bg-pink-600 transition">
-                결과 저장
-              </button>
-              <button type="button" id="admin-delete" class="px-6 py-2 bg-red-500 text-white rounded-lg font-bold hover:bg-red-600 transition">
-                결과 삭제
-              </button>
-            </div>
-          </form>
-          
-          <div id="admin-msg" class="mt-4"></div>
-        </div>
+        <form id="result-form" class="w-full bg-gray-50 rounded-2xl shadow-inner p-6 mb-4 text-left">
+          <div class="mb-3">
+            <label class="block text-gray-700 font-semibold mb-1" for="admin-price">최저가</label>
+            <input type="text" id="admin-price" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-pink-400 focus:outline-none" />
+          </div>
+          <div class="mb-3">
+            <label class="block text-gray-700 font-semibold mb-1" for="admin-origin">원산지/공급처</label>
+            <input type="text" id="admin-origin" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-pink-400 focus:outline-none" />
+          </div>
+          <div class="mb-3">
+            <label class="block text-gray-700 font-semibold mb-1" for="admin-summary">종합설명</label>
+            <textarea id="admin-summary" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-pink-400 focus:outline-none" rows="6" placeholder="제품에 대한 상세한 설명을 입력하세요..."></textarea>
+          </div>
+          <div class="mb-3">
+            <label class="block text-gray-700 font-semibold mb-1" for="admin-link">구매링크</label>
+            <input type="url" id="admin-link" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-pink-400 focus:outline-none" placeholder="https://..." />
+          </div>
+          <div class="flex gap-2">
+            <button type="submit" class="px-6 py-2 bg-pink-500 text-white font-bold rounded-lg hover:bg-pink-600 transition">결과 저장</button>
+            <button type="button" id="admin-delete" class="px-6 py-2 bg-red-500 text-white font-bold rounded-lg hover:bg-red-600 transition">결과 삭제</button>
+          </div>
+          <div id="admin-msg" class="mt-3"></div>
+        </form>
       </div>
     </main>
 
     <script>
+      // 관리자 권한 확인
+      function isAdmin() {
+        const adminMode = localStorage.getItem('adminMode') === 'true';
+        const isAdmin = localStorage.getItem('isAdmin') === 'true';
+        const result = adminMode || isAdmin;
+        
+        console.log('관리자 권한 확인:', {
+          adminMode: adminMode,
+          isAdmin: isAdmin,
+          result: result
+        });
+        
+        return result;
+      }
+      
       // 전역 변수
       let currentTab = 'all';
       let currentFilter = 'all';
-      let currentReqKey = null;
-      let currentRequest = null;
+      let allRequests = [];
+      let currentReqKey = '';
       let selectedRequests = new Set();
-
-      // 관리자 권한 확인
-      function isAdmin() {
-        // localStorage에서 직접 isAdmin 키 확인
-        const isAdminValue = localStorage.getItem('isAdmin');
-        const adminModeValue = localStorage.getItem('adminMode');
+      let currentRequest = null;
+      
+      // 의뢰 목록 불러오기
+      function getRequestList() {
+        const list = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && key.startsWith('request-') && !key.includes('TEST') && !key.startsWith('requestCount-')) {
+            try {
+              const req = JSON.parse(localStorage.getItem(key));
+              if (!req.userName) {
+                let userName = '';
+                if (req.email) {
+                  const user = JSON.parse(localStorage.getItem('user') || '{}');
+                  const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+                  
+                  if (user.email === req.email) {
+                    userName = user.name || '';
+                  } else if (currentUser.email === req.email) {
+                    userName = currentUser.name || '';
+                  }
+                }
+                req.userName = userName;
+                localStorage.setItem(key, JSON.stringify(req));
+              }
+              list.push({ key, ...req });
+            } catch (e) {
+              console.log(`JSON 파싱 실패: ${key}`, e);
+            }
+          }
+        }
+        return list.sort((a, b) => (b.date || 0) - (a.date || 0));
+      }
+      
+      // 진행상황 판단 함수
+      function getRequestStatus(req) {
+        const reqNum = req.key.replace('request-', '');
+        const hasResult = !!localStorage.getItem('result-' + reqNum);
         
-        // 둘 중 하나라도 true이면 관리자로 인식
-        return isAdminValue === 'true' || adminModeValue === 'true';
+        if (!hasResult) {
+          return { status: 'new', text: '신규의뢰', color: 'bg-red-500' };
+        }
+        
+        const result = JSON.parse(localStorage.getItem('result-' + reqNum) || '{}');
+        if (result.price && result.origin && result.summary && result.link) {
+          return { status: 'complete', text: '완료', color: 'bg-green-500' };
+        }
+        
+        return { status: 'progress', text: '진행중', color: 'bg-orange-500' };
       }
-
+      
+      // 구매 정보 가져오기
+      function getPurchaseInfo(reqKey) {
+        const reqNum = reqKey.replace('request-', '');
+        const orderData = localStorage.getItem('order-' + reqNum);
+        return orderData ? JSON.parse(orderData) : null;
+      }
+      
+      // 구매 방식 텍스트
+      function getPurchaseMethodText(method) {
+        const methods = {
+          'lowest': '최저가 쇼핑몰',
+          'direct': '직접 구매',
+          'none': '구매하지 않음'
+        };
+        return methods[method] || '구매하지 않음';
+      }
+      
+      // 구매 상태 텍스트
+      function getPurchaseStatusText(status) {
+        const statuses = {
+          'pending': '주문접수',
+          'processing': '처리중',
+          'shipped': '배송중',
+          'delivered': '배송완료',
+          'cancelled': '취소됨',
+          'none': '구매하지 않음'
+        };
+        return statuses[status] || '구매하지 않음';
+      }
+      
+      // 구매 상태 색상
+      function getPurchaseStatusColor(status) {
+        const colors = {
+          'pending': 'bg-yellow-500',
+          'processing': 'bg-blue-500',
+          'shipped': 'bg-purple-500',
+          'delivered': 'bg-green-500',
+          'cancelled': 'bg-red-500',
+          'none': 'bg-gray-500'
+        };
+        return colors[status] || 'bg-gray-500';
+      }
+      
+      // 회원별 탭 생성
+      function createUserTabs() {
+        const users = {};
+        allRequests.forEach(req => {
+          const userName = req.userName || '익명';
+          if (!users[userName]) {
+            users[userName] = { name: userName, count: 0 };
+          }
+          users[userName].count++;
+        });
+        
+        const tabContainer = document.querySelector('.flex.flex-wrap.gap-2.justify-center.mb-4');
+        const allTab = document.getElementById('tab-all');
+        
+        // 기존 회원별 탭 제거
+        const existingTabs = tabContainer.querySelectorAll('.tab-btn:not(#tab-all)');
+        existingTabs.forEach(tab => tab.remove());
+        
+        // 새로운 회원별 탭 추가
+        Object.values(users).forEach(user => {
+          const tab = document.createElement('button');
+          tab.className = 'tab-btn px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-bold hover:bg-gray-300 transition';
+          tab.onclick = () => switchTab(user.name);
+          tab.innerHTML = `${user.name} <span class="ml-1 bg-white text-gray-700 px-2 py-1 rounded text-xs">${user.count}</span>`;
+          tabContainer.appendChild(tab);
+        });
+        
+        // 전체 탭 카운트 업데이트
+        const allCount = allRequests.length;
+        document.getElementById('count-all').textContent = allCount;
+      }
+      
       // 탭 전환
-      function switchTab(tab) {
-        currentTab = tab;
-        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-        document.getElementById('tab-' + tab).classList.add('active');
+      function switchTab(tabName) {
+        currentTab = tabName;
+        
+        // 탭 버튼 활성화
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+          btn.classList.remove('active');
+        });
+        
+        const activeTab = tabName === 'all' ? 
+          document.getElementById('tab-all') : 
+          document.querySelector(`[onclick="switchTab('${tabName}')"]`);
+        
+        if (activeTab) {
+          activeTab.classList.add('active');
+        }
+        
         renderRequestList();
       }
-
+      
       // 필터 전환
-      function switchFilter(filter) {
-        currentFilter = filter;
-        document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
-        document.getElementById('filter-' + filter).classList.add('active');
+      function switchFilter(filterName) {
+        currentFilter = filterName;
+        
+        // 필터 버튼 활성화
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+          btn.classList.remove('active');
+        });
+        
+        document.getElementById('filter-' + filterName).classList.add('active');
+        
         renderRequestList();
       }
-
-      // 전체 선택/해제
+      
+      // 의뢰 목록 렌더링
+      function renderRequestList() {
+        allRequests = getRequestList();
+        
+        console.log('=== 의뢰 목록 렌더링 ===');
+        console.log('전체 의뢰 수:', allRequests.length);
+        
+        // 탭별 필터링
+        let filteredRequests = allRequests;
+        if (currentTab !== 'all') {
+          filteredRequests = allRequests.filter(req => req.userName === currentTab);
+        }
+        
+        // 진행상황별 필터링
+        if (currentFilter !== 'all') {
+          filteredRequests = filteredRequests.filter(req => {
+            const status = getRequestStatus(req);
+            return status.status === currentFilter;
+          });
+        }
+        
+        // 검색 필터링
+        const searchInput = document.getElementById('search-input');
+        if (searchInput && searchInput.value.trim()) {
+          const searchTerm = searchInput.value.toLowerCase();
+          filteredRequests = filteredRequests.filter(req => {
+            const reqNum = req.key.replace('request-', '');
+            const userName = req.userName || '';
+            const name = req.name || '';
+            return reqNum.includes(searchTerm) || 
+                   userName.toLowerCase().includes(searchTerm) || 
+                   name.toLowerCase().includes(searchTerm);
+          });
+        }
+        
+        console.log('필터링된 의뢰 수:', filteredRequests.length);
+        
+        // 우선순위 정렬 (신규의뢰 → 진행중 → 완료)
+        filteredRequests.sort((a, b) => {
+          const statusA = getRequestStatus(a);
+          const statusB = getRequestStatus(b);
+          const priority = { new: 3, progress: 2, complete: 1 };
+          return priority[statusB.status] - priority[statusA.status];
+        });
+        
+        const ul = document.getElementById('request-list');
+        ul.innerHTML = '';
+        
+        if (filteredRequests.length === 0) {
+          ul.innerHTML = '<li class="py-4 text-center text-gray-400">해당하는 의뢰가 없습니다.</li>';
+          return;
+        }
+        
+        filteredRequests.forEach(req => {
+          const li = document.createElement('li');
+          const isSelected = currentReqKey === req.key;
+          li.className = `py-3 px-4 hover:bg-pink-100 cursor-pointer flex items-center gap-2 flex-wrap ${isSelected ? 'bg-pink-200 border-l-4 border-pink-500' : ''}`;
+          
+          const reqNum = req.key.replace('request-', '');
+          const status = getRequestStatus(req);
+          const statusBadge = `<span class="px-2 py-1 rounded text-xs font-bold text-white ${status.color}">${status.text}</span>`;
+          
+          // 구매 정보
+          const purchaseInfo = getPurchaseInfo(req.key);
+          const purchaseMethod = purchaseInfo ? purchaseInfo.method : 'none';
+          const purchaseStatus = purchaseInfo ? purchaseInfo.status : 'none';
+          
+          const purchaseMethodText = getPurchaseMethodText(purchaseMethod);
+          const purchaseStatusText = getPurchaseStatusText(purchaseStatus);
+          const purchaseStatusColor = getPurchaseStatusColor(purchaseStatus);
+          
+          // 알림 상태
+          const notifyData = localStorage.getItem('notify-' + reqNum);
+          let notifyBadge = '';
+          if (notifyData) {
+            const notify = JSON.parse(notifyData);
+            if (notify.sent) {
+              const sentDate = new Date(notify.sentAt).toLocaleDateString();
+              notifyBadge = `<span class="px-2 py-1 rounded text-xs font-bold text-white bg-green-500" title="발송일: ${sentDate}">발송완료</span>`;
+            }
+          } else if (status.status === 'complete') {
+            notifyBadge = `<span class="px-2 py-1 rounded text-xs font-bold text-white bg-red-500">미발송</span>`;
+          }
+          
+          // 체크박스
+          const checkbox = `<input type="checkbox" class="request-checkbox w-4 h-4 text-pink-600 bg-gray-100 border-gray-300 rounded focus:ring-pink-500 focus:ring-2" value="${req.key}" ${selectedRequests.has(req.key) ? 'checked' : ''} onclick="event.stopPropagation(); toggleSelection('${req.key}')">`;
+          
+          li.innerHTML = `
+            <div class="w-8 flex justify-center">${checkbox}</div>
+            <div class="flex-1 truncate flex items-center" style="min-width: 0;">
+              <span class="font-semibold text-pink-600">${reqNum}</span> | 
+              <span class="text-gray-700">${req.userName || '익명'}</span>
+              <span class="ml-2 text-gray-400 text-xs">${isSelected ? '▼' : '▶'}</span>
+            </div>
+            <div class="w-1/6 text-center text-xs text-gray-400">${req.date ? new Date(req.date).toLocaleString() : ''}</div>
+            <div class="w-1/6 text-center">${statusBadge}</div>
+            <div class="w-1/6 text-center text-xs">
+              <span class="text-gray-600">${purchaseMethodText}</span>
+            </div>
+            <div class="w-1/6 text-center">
+              <span class="px-2 py-1 rounded text-xs font-bold ${purchaseStatusColor}">${purchaseStatusText}</span>
+            </div>
+            <div class="w-1/6 text-center">${notifyBadge}</div>
+            <div class="w-1/6 text-right text-sm text-gray-600 truncate flex items-center justify-between">
+              <span class="truncate">${req.name || ''}</span>
+              <button onclick="event.stopPropagation(); deleteSingleRequest('${req.key}')" class="ml-2 px-2 py-1 bg-red-500 text-white rounded text-xs hover:bg-red-600 transition" title="의뢰 삭제">
+                🗑️
+              </button>
+            </div>
+          `;
+          
+          li.onclick = () => showRequestDetail(req.key);
+          ul.appendChild(li);
+        });
+      }
+      
+      // 의뢰 상세 보기
+      function showRequestDetail(reqKey) {
+        const req = allRequests.find(r => r.key === reqKey);
+        if (!req) return;
+        
+        currentReqKey = reqKey;
+        currentRequest = req;
+        
+        // 상세 정보 표시
+        document.getElementById('detail-num').textContent = reqKey.replace('request-', '');
+        document.getElementById('detail-name').textContent = req.name || '';
+        document.getElementById('detail-desc').textContent = req.description || '';
+        document.getElementById('detail-url').textContent = req.url || '';
+        document.getElementById('detail-price').textContent = req.price || '';
+        document.getElementById('detail-username').textContent = req.userName || '';
+        document.getElementById('detail-email').textContent = req.email || '';
+        document.getElementById('detail-phone').textContent = req.phone || '';
+        document.getElementById('detail-customs').textContent = req.customs || '';
+        document.getElementById('detail-img').textContent = req.images ? req.images.length + '개' : '0개';
+        
+        // 기존 결과 데이터 로드
+        const reqNum = reqKey.replace('request-', '');
+        const resultData = localStorage.getItem('result-' + reqNum);
+        if (resultData) {
+          const result = JSON.parse(resultData);
+          document.getElementById('admin-price').value = result.price || '';
+          document.getElementById('admin-origin').value = result.origin || '';
+          document.getElementById('admin-summary').value = result.summary || '';
+          document.getElementById('admin-link').value = result.link || '';
+        } else {
+          document.getElementById('admin-price').value = '';
+          document.getElementById('admin-origin').value = '';
+          document.getElementById('admin-summary').value = '';
+          document.getElementById('admin-link').value = '';
+        }
+        
+        // 상세 섹션 표시
+        document.getElementById('detail-section').classList.remove('hidden');
+        
+        // 리스트 새로고침 (선택 상태 업데이트)
+        renderRequestList();
+      }
+      
+      // 전체 선택 처리
       function toggleSelectAll() {
-        const selectAll = document.getElementById('select-all');
+        const selectAllCheckbox = document.getElementById('select-all');
         const checkboxes = document.querySelectorAll('.request-checkbox');
         
         checkboxes.forEach(checkbox => {
-          checkbox.checked = selectAll.checked;
-          if (selectAll.checked) {
+          checkbox.checked = selectAllCheckbox.checked;
+          if (selectAllCheckbox.checked) {
             selectedRequests.add(checkbox.value);
           } else {
             selectedRequests.delete(checkbox.value);
           }
         });
         
-        updateSelectedCount();
-        updateBulkButtons();
+        updateSelectionUI();
       }
-
-      // 선택된 개수 업데이트
-      function updateSelectedCount() {
-        const count = selectedRequests.size;
-        document.getElementById('selected-count').textContent = `선택됨: ${count}개`;
-        document.getElementById('notify-count').textContent = count;
-        document.getElementById('delete-count').textContent = count;
-      }
-
-      // 일괄 버튼 업데이트
-      function updateBulkButtons() {
-        const count = selectedRequests.size;
-        const notifyBtn = document.getElementById('bulk-notify-btn');
-        const deleteBtn = document.getElementById('bulk-delete-btn');
-        
-        if (count > 0) {
-          notifyBtn.classList.remove('hidden');
-          deleteBtn.classList.remove('hidden');
+      
+      // 개별 선택 처리
+      function toggleSelection(reqKey) {
+        if (selectedRequests.has(reqKey)) {
+          selectedRequests.delete(reqKey);
         } else {
-          notifyBtn.classList.add('hidden');
-          deleteBtn.classList.add('hidden');
+          selectedRequests.add(reqKey);
         }
+        
+        updateSelectionUI();
       }
-
-      // 의뢰 목록 렌더링
-      function renderRequestList() {
-        console.log('=== 의뢰 목록 렌더링 ===');
+      
+      // 선택 UI 업데이트
+      function updateSelectionUI() {
+        const selectedCount = selectedRequests.size;
         
-        const allKeys = Object.keys(localStorage);
-        const requestKeys = allKeys.filter(key => key.startsWith('request-'));
+        document.getElementById('selected-count').textContent = `선택됨: ${selectedCount}개`;
+        document.getElementById('delete-count').textContent = selectedCount;
+        document.getElementById('notify-count').textContent = selectedCount;
         
-        console.log('전체 의뢰 수:', requestKeys.length);
-        console.log('의뢰 목록:', requestKeys);
+        const bulkDeleteBtn = document.getElementById('bulk-delete-btn');
+        const bulkNotifyBtn = document.getElementById('bulk-notify-btn');
         
-        let requests = [];
-        
-        requestKeys.forEach(key => {
-          try {
-            const request = JSON.parse(localStorage.getItem(key));
-            if (request) {
-              request.key = key;
-              requests.push(request);
-            }
-          } catch (e) {
-            console.error('의뢰 데이터 파싱 오류:', key, e);
-          }
-        });
-        
-        // 필터링
-        let filteredRequests = requests;
-        
-        if (currentTab !== 'all') {
-          filteredRequests = requests.filter(req => req.userName === currentTab);
-        }
-        
-        if (currentFilter !== 'all') {
-          filteredRequests = filteredRequests.filter(req => {
-            const result = localStorage.getItem('result-' + req.key.replace('request-', ''));
-            if (currentFilter === 'new') return !result;
-            if (currentFilter === 'progress') return result && !JSON.parse(result).summary;
-            if (currentFilter === 'complete') return result && JSON.parse(result).summary;
-            return true;
-          });
-        }
-        
-        console.log('필터링된 의뢰 수:', filteredRequests.length);
-        console.log('현재 탭:', currentTab);
-        console.log('현재 필터:', currentFilter);
-        
-        // 목록 렌더링
-        const list = document.getElementById('request-list');
-        list.innerHTML = '';
-        
-        filteredRequests.forEach(request => {
-          const reqNum = request.key.replace('request-', '');
-          const result = localStorage.getItem('result-' + reqNum);
-          const resultData = result ? JSON.parse(result) : null;
-          
-          const li = document.createElement('li');
-          li.className = 'flex items-center px-4 py-3 hover:bg-pink-100 transition cursor-pointer';
-          li.onclick = () => showDetail(request.key);
-          
-          const status = resultData ? (resultData.summary ? '완료' : '진행중') : '신규의뢰';
-          const statusColor = resultData ? (resultData.summary ? 'text-green-600' : 'text-orange-600') : 'text-red-600';
-          
-          li.innerHTML = `
-            <div class="w-8">
-              <input type="checkbox" class="request-checkbox w-4 h-4 text-pink-600 bg-gray-100 border-gray-300 rounded focus:ring-pink-500 focus:ring-2" 
-                     value="${request.key}" 
-                     ${selectedRequests.has(request.key) ? 'checked' : ''}
-                     onclick="event.stopPropagation(); toggleRequestSelection('${request.key}')">
-            </div>
-            <div class="flex-1">
-              <div class="font-semibold text-gray-800">${reqNum}</div>
-              <div class="text-sm text-gray-600">${request.userName || '알 수 없음'}</div>
-            </div>
-            <div class="w-1/6 text-center text-sm text-gray-600">${new Date(request.date).toLocaleDateString()}</div>
-            <div class="w-1/6 text-center">
-              <span class="px-2 py-1 rounded text-xs font-semibold ${statusColor}">${status}</span>
-            </div>
-            <div class="w-1/6 text-center text-sm text-gray-600">-</div>
-            <div class="w-1/6 text-center text-sm text-gray-600">-</div>
-            <div class="w-1/6 text-center text-sm text-gray-600">-</div>
-            <div class="w-1/4 text-right">
-              <div class="font-semibold text-gray-800">${request.name || request.productName || request.product || '제품명 없음'}</div>
-              <div class="text-sm text-gray-600">${request.price || request.hopePrice || '가격 없음'}원</div>
-            </div>
-          `;
-          
-          list.appendChild(li);
-        });
-        
-        // 카운트 업데이트
-        document.getElementById('count-all').textContent = requests.length;
-        
-        console.log('의뢰 목록 렌더링 완료');
-      }
-
-      // 의뢰 선택 토글
-      function toggleRequestSelection(key) {
-        const checkbox = document.querySelector(`input[value="${key}"]`);
-        if (checkbox.checked) {
-          selectedRequests.add(key);
+        if (selectedCount > 0) {
+          bulkDeleteBtn.classList.remove('hidden');
+          bulkNotifyBtn.classList.remove('hidden');
         } else {
-          selectedRequests.delete(key);
-        }
-        updateSelectedCount();
-        updateBulkButtons();
-      }
-
-      // 사용자 탭 생성
-      function createUserTabs() {
-        const allKeys = Object.keys(localStorage);
-        const requestKeys = allKeys.filter(key => key.startsWith('request-'));
-        
-        const users = new Set();
-        requestKeys.forEach(key => {
-          try {
-            const request = JSON.parse(localStorage.getItem(key));
-            if (request && request.userName) {
-              users.add(request.userName);
-            }
-          } catch (e) {
-            console.error('사용자 데이터 파싱 오류:', key, e);
-          }
-        });
-        
-        const tabContainer = document.querySelector('.flex.flex-wrap.gap-2.justify-center.mb-4');
-        
-        users.forEach(userName => {
-          const button = document.createElement('button');
-          button.id = 'tab-' + userName;
-          button.className = 'tab-btn px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-bold hover:bg-gray-300 transition';
-          button.onclick = () => switchTab(userName);
-          button.innerHTML = `${userName} <span id="count-${userName}" class="ml-1 bg-white text-gray-700 px-2 py-1 rounded text-xs">0</span>`;
-          tabContainer.appendChild(button);
-        });
-        
-        console.log('사용자 탭 생성 완료');
-      }
-
-      // 상세 정보 표시
-      function showDetail(reqKey) {
-        currentReqKey = reqKey;
-        currentRequest = JSON.parse(localStorage.getItem(reqKey));
-        
-        if (!currentRequest) {
-          alert('의뢰 정보를 찾을 수 없습니다.');
-          return;
+          bulkDeleteBtn.classList.add('hidden');
+          bulkNotifyBtn.classList.add('hidden');
         }
         
-        // 상세 정보 채우기
-        document.getElementById('detail-num').textContent = reqKey.replace('request-', '');
-        document.getElementById('detail-name').textContent = currentRequest.userName || '알 수 없음';
-        document.getElementById('detail-product').textContent = currentRequest.name || currentRequest.productName || currentRequest.product || '제품명 없음';
-        document.getElementById('detail-price').textContent = (currentRequest.price || currentRequest.hopePrice) ? (currentRequest.price || currentRequest.hopePrice) + '원' : '희망가격 없음';
-        document.getElementById('detail-description').textContent = currentRequest.desc || currentRequest.description || '설명 없음';
-        document.getElementById('detail-reference').textContent = (currentRequest.urls && currentRequest.urls.length > 0) ? currentRequest.urls[0] : (currentRequest.reference || '참고사이트 없음');
-        document.getElementById('detail-date').textContent = new Date(currentRequest.date).toLocaleString();
+        // 전체 선택 체크박스 상태 업데이트
+        const selectAllCheckbox = document.getElementById('select-all');
+        const checkboxes = document.querySelectorAll('.request-checkbox');
+        const allChecked = checkboxes.length > 0 && Array.from(checkboxes).every(cb => cb.checked);
+        selectAllCheckbox.checked = allChecked;
+      }
+      
+      // 일괄 삭제
+      function bulkDelete() {
+        if (selectedRequests.size === 0) return;
         
-        // 기존 결과 로드
-        const reqNum = reqKey.replace('request-', '');
-        const result = localStorage.getItem('result-' + reqNum);
-        if (result) {
-          const resultData = JSON.parse(result);
-          document.getElementById('admin-price').value = resultData.price || '';
-          document.getElementById('admin-origin').value = resultData.origin || '';
-          document.getElementById('admin-link').value = resultData.link || '';
+        const confirmMessage = `선택된 ${selectedRequests.size}개의 의뢰를 삭제하시겠습니까?\n\n⚠️ 삭제되는 데이터:\n• 의뢰 정보\n• 의뢰 결과\n• 주문 정보\n• 알림 발송 기록\n\n이 작업은 되돌릴 수 없습니다.`;
+        if (!confirm(confirmMessage)) return;
+        
+        let deletedCount = 0;
+        selectedRequests.forEach(reqKey => {
+          const reqNum = reqKey.replace('request-', '');
           
-          const richEditor = document.getElementById('rich-editor');
-          if (richEditor && resultData.summary) {
-            richEditor.innerHTML = resultData.summary;
-          }
-        } else {
-          // 초기화
-          document.getElementById('admin-price').value = '';
-          document.getElementById('admin-origin').value = '';
-          document.getElementById('admin-link').value = '';
-          document.getElementById('rich-editor').innerHTML = '';
-        }
-        
-        // 상세 섹션 표시
-        document.getElementById('detail-section').classList.remove('hidden');
-      }
-
-      // 리치 텍스트 에디터 초기화
-      function initRichEditor() {
-        console.log('리치 에디터 초기화 시작');
-        
-        const editor = document.getElementById('rich-editor');
-        const textarea = document.getElementById('admin-summary');
-        
-        if (!editor) {
-          console.error('rich-editor 요소를 찾을 수 없습니다.');
-          return;
-        }
-        
-        // 에디터 이벤트 리스너
-        editor.addEventListener('input', function() {
-          if (textarea) {
-            textarea.value = editor.innerHTML;
-          }
+          localStorage.removeItem(reqKey);
+          localStorage.removeItem('result-' + reqNum);
+          localStorage.removeItem('order-' + reqNum);
+          localStorage.removeItem('notify-' + reqNum);
+          
+          deletedCount++;
         });
         
-        // 이미지 붙여넣기 처리
-        editor.addEventListener('paste', function(e) {
-          const items = e.clipboardData.items;
-          for (let item of items) {
-            if (item.type.indexOf('image') !== -1) {
-              const file = item.getAsFile();
-              const reader = new FileReader();
-              reader.onload = function(e) {
-                const img = document.createElement('img');
-                img.src = e.target.result;
-                img.style.maxWidth = '100%';
-                img.style.height = 'auto';
-                img.style.margin = '10px 0';
-                editor.appendChild(img);
-              };
-              reader.readAsDataURL(file);
-              e.preventDefault();
-              break;
-            }
-          }
-        });
+        selectedRequests.clear();
+        document.getElementById('select-all').checked = false;
         
-        // 드래그 앤 드롭 이미지 처리
-        editor.addEventListener('dragover', function(e) {
-          e.preventDefault();
-        });
+        renderRequestList();
+        alert(`${deletedCount}개의 의뢰와 관련 데이터가 완전히 삭제되었습니다.`);
+      }
+      
+      // 일괄 알림 발송
+      function bulkSendNotification() {
+        if (selectedRequests.size === 0) return;
         
-        editor.addEventListener('drop', function(e) {
-          e.preventDefault();
-          const files = e.dataTransfer.files;
-          for (let file of files) {
-            if (file.type.startsWith('image/')) {
-              const reader = new FileReader();
-              reader.onload = function(e) {
-                const img = document.createElement('img');
-                img.src = e.target.result;
-                img.style.maxWidth = '100%';
-                img.style.height = 'auto';
-                img.style.margin = '10px 0';
-                editor.appendChild(img);
-              };
-              reader.readAsDataURL(file);
-            }
-          }
-        });
+        const notifyMethod = document.getElementById('notify-method').value;
+        const confirmMessage = `선택된 ${selectedRequests.size}개의 의뢰에 대해 고객에게 알림을 발송하시겠습니까?\n\n알림 방법: ${notifyMethod}`;
         
-        // 에디터 포커스
-        editor.addEventListener('click', function() {
-          editor.focus();
-        });
+        if (!confirm(confirmMessage)) return;
         
-        console.log('리치 에디터 초기화 완료');
+        alert('일괄 알림 발송 기능은 개발 중입니다.');
       }
-
-      // 에디터 명령어 실행
-      function execCommand(command) {
-        document.execCommand(command, false, null);
-        document.getElementById('rich-editor').focus();
-      }
-
-      // 글자 크기 설정
-      function setFontSize() {
-        const size = prompt('글자 크기를 입력하세요 (예: 16px, 1.2em):', '16px');
-        if (size) {
-          const selection = window.getSelection();
-          if (selection.rangeCount > 0) {
-            const range = selection.getRangeAt(0);
-            const span = document.createElement('span');
-            span.style.fontSize = size;
-            range.surroundContents(span);
-          } else {
-            // 선택된 텍스트가 없으면 현재 커서 위치에 적용
-            const editor = document.getElementById('rich-editor');
-            const span = document.createElement('span');
-            span.style.fontSize = size;
-            span.textContent = '새 텍스트';
-            editor.appendChild(span);
-          }
-        }
-        document.getElementById('rich-editor').focus();
-      }
-
-      // 이미지 삽입
-      function insertImage() {
-        document.getElementById('image-upload').click();
-      }
-
-      // 이미지 업로드 처리
-      function handleImageUpload(event) {
-        const file = event.target.files[0];
-        if (file && file.type.startsWith('image/')) {
-          const reader = new FileReader();
-          reader.onload = function(e) {
-            const img = document.createElement('img');
-            img.src = e.target.result;
-            img.style.maxWidth = '100%';
-            img.style.height = 'auto';
-            img.style.margin = '10px 0';
-            
-            const editor = document.getElementById('rich-editor');
-            editor.appendChild(img);
-            editor.focus();
-          };
-          reader.readAsDataURL(file);
-        }
-        event.target.value = ''; // 파일 입력 초기화
-      }
-
-      // 의뢰 단일 삭제 함수
+      
+      // 의뢰 단일 삭제
       function deleteSingleRequest(reqKey) {
         const reqNum = reqKey.replace('request-', '');
         const confirmMessage = `의뢰번호 ${reqNum}를 삭제하시겠습니까?\n\n⚠️ 삭제되는 데이터:\n• 의뢰 정보\n• 의뢰 결과\n• 주문 정보\n• 알림 발송 기록\n\n이 작업은 되돌릴 수 없습니다.`;
         
         if (confirm(confirmMessage)) {
-          // 모든 관련 데이터 삭제
-          localStorage.removeItem(reqKey); // 의뢰 정보
-          localStorage.removeItem('result-' + reqNum); // 의뢰 결과
-          localStorage.removeItem('order-' + reqNum); // 주문 정보
-          localStorage.removeItem('notify-' + reqNum); // 알림 발송 기록
+          localStorage.removeItem(reqKey);
+          localStorage.removeItem('result-' + reqNum);
+          localStorage.removeItem('order-' + reqNum);
+          localStorage.removeItem('notify-' + reqNum);
           
-          // 현재 선택된 의뢰가 삭제된 경우 상세 섹션 숨기기
           if (currentReqKey === reqKey) {
-            currentReqKey = null;
+            currentReqKey = '';
             document.getElementById('detail-section').classList.add('hidden');
           }
           
@@ -601,103 +604,16 @@
           renderRequestList();
         }
       }
-
-      // 일괄 삭제
-      function bulkDelete() {
-        if (selectedRequests.size === 0) {
-          alert('삭제할 의뢰를 선택해주세요.');
-          return;
-        }
-        
-        const confirmMessage = `선택된 ${selectedRequests.size}개의 의뢰를 삭제하시겠습니까?\n\n⚠️ 삭제되는 데이터:\n• 의뢰 정보\n• 의뢰 결과\n• 주문 정보\n• 알림 발송 기록\n\n이 작업은 되돌릴 수 없습니다.`;
-        
-        if (confirm(confirmMessage)) {
-          let deletedCount = 0;
-          
-          selectedRequests.forEach(reqKey => {
-            const reqNum = reqKey.replace('request-', '');
-            localStorage.removeItem(reqKey);
-            localStorage.removeItem('result-' + reqNum);
-            localStorage.removeItem('order-' + reqNum);
-            localStorage.removeItem('notify-' + reqNum);
-            deletedCount++;
-          });
-          
-          selectedRequests.clear();
-          document.getElementById('select-all').checked = false;
-          updateSelectedCount();
-          updateBulkButtons();
-          
-          alert(`${deletedCount}개의 의뢰가 삭제되었습니다.`);
+      
+      // 검색 초기화
+      function clearSearch() {
+        const searchInput = document.getElementById('search-input');
+        if (searchInput) {
+          searchInput.value = '';
           renderRequestList();
         }
       }
-
-      // 수동 알림 발송
-      function sendManualNotification() {
-        if (!currentReqKey || !currentRequest) {
-          alert('의뢰 정보가 없습니다.');
-          return;
-        }
-        
-        const reqNum = currentReqKey.replace('request-', '');
-        const result = localStorage.getItem('result-' + reqNum);
-        
-        if (!result) {
-          alert('저장된 결과가 없습니다.');
-          return;
-        }
-        
-        const resultData = JSON.parse(result);
-        
-        // 알림 발송 시뮬레이션
-        console.log('📱 알림 발송:', {
-          userName: currentRequest.userName,
-          phone: currentRequest.phone,
-          productName: currentRequest.productName,
-          result: resultData
-        });
-        
-        alert('알림이 발송되었습니다! (시뮬레이션)');
-        
-        // 알림 발송 기록 저장
-        localStorage.setItem('notify-' + reqNum, JSON.stringify({
-          date: new Date().toISOString(),
-          method: document.getElementById('notify-method').value,
-          status: 'sent'
-        }));
-      }
-
-      // 일괄 알림 발송
-      function bulkSendNotification() {
-        if (selectedRequests.size === 0) {
-          alert('알림을 발송할 의뢰를 선택해주세요.');
-          return;
-        }
-        
-        let sentCount = 0;
-        
-        selectedRequests.forEach(reqKey => {
-          const reqNum = reqKey.replace('request-', '');
-          const request = JSON.parse(localStorage.getItem(reqKey));
-          const result = localStorage.getItem('result-' + reqNum);
-          
-          if (request && result) {
-            console.log('📱 일괄 알림 발송:', reqNum);
-            sentCount++;
-            
-            // 알림 발송 기록 저장
-            localStorage.setItem('notify-' + reqNum, JSON.stringify({
-              date: new Date().toISOString(),
-              method: document.getElementById('notify-method').value,
-              status: 'sent'
-            }));
-          }
-        });
-        
-        alert(`${sentCount}개의 알림이 발송되었습니다! (시뮬레이션)`);
-      }
-
+      
       // 초기화
       window.addEventListener('DOMContentLoaded', function() {
         console.log('=== 관리자 페이지 초기화 시작 ===');
@@ -734,41 +650,36 @@
           console.log('select-all 이벤트 리스너 등록 완료');
         }
         
-        // 폼 이벤트 리스너 등록
+        const searchInputElement = document.getElementById('search-input');
+        if (searchInputElement) {
+          searchInputElement.addEventListener('input', function() {
+            setTimeout(renderRequestList, 300);
+          });
+          console.log('search-input 이벤트 리스너 등록 완료');
+        }
+        
         const resultForm = document.getElementById('result-form');
         if (resultForm) {
           resultForm.onsubmit = function(e) {
             e.preventDefault();
             if (!currentReqKey || !currentRequest) return;
+            
             const reqNum = currentReqKey.replace('request-','');
             
-            // 리치 에디터의 실제 내용을 가져오기
-            const richEditor = document.getElementById('rich-editor');
-            let summaryContent = '';
-            
-            if (richEditor) {
-              summaryContent = richEditor.innerHTML;
-              const textarea = document.getElementById('admin-summary');
-              if (textarea) {
-                textarea.value = summaryContent;
-              }
-            }
-            
-            // 입력 필드들 가져오기
             const adminPrice = document.getElementById('admin-price');
             const adminOrigin = document.getElementById('admin-origin');
+            const adminSummary = document.getElementById('admin-summary');
             const adminLink = document.getElementById('admin-link');
             
             const data = {
               price: adminPrice ? adminPrice.value : '',
               origin: adminOrigin ? adminOrigin.value : '',
-              summary: summaryContent,
+              summary: adminSummary ? adminSummary.value : '',
               link: adminLink ? adminLink.value : ''
             };
             
             console.log('저장할 데이터:', data);
             
-            // 여러 형식으로 저장하여 호환성 보장
             localStorage.setItem('result-' + reqNum, JSON.stringify(data));
             localStorage.setItem('result-PH-' + reqNum, JSON.stringify(data));
             
@@ -777,21 +688,16 @@
               data: data
             });
             
-            // 알림 발송 버튼 표시
-            const hasImages = summaryContent.includes('<img');
-            const imageInfo = hasImages ? ' (이미지 포함)' : '';
-            
             const adminMsg = document.getElementById('admin-msg');
             if (adminMsg) {
               adminMsg.innerHTML = `
-                <div class="text-green-600 font-bold mb-2">✅ 결과가 저장되었습니다!${imageInfo}</div>
-                <button id="send-notify-btn" onclick="sendManualNotification()" class="px-4 py-2 bg-blue-500 text-white rounded-lg font-bold hover:bg-blue-600 transition">
+                <div class="text-green-600 font-bold mb-2">✅ 결과가 저장되었습니다!</div>
+                <button onclick="sendManualNotification()" class="px-4 py-2 bg-blue-500 text-white rounded-lg font-bold hover:bg-blue-600 transition">
                   고객에게 알림 발송
                 </button>
               `;
             }
             
-            // 리스트 새로고침
             setTimeout(() => {
               renderRequestList();
             }, 500);
@@ -799,7 +705,6 @@
           console.log('result-form 이벤트 리스너 등록 완료');
         }
         
-        // 삭제 버튼 이벤트 리스너 등록
         const adminDeleteBtn = document.getElementById('admin-delete');
         if (adminDeleteBtn) {
           adminDeleteBtn.onclick = function() {
@@ -813,7 +718,6 @@
               adminMsg.textContent = '삭제되었습니다!';
             }
             
-            // 리스트 새로고침
             setTimeout(() => {
               renderRequestList();
             }, 500);
@@ -821,12 +725,65 @@
           console.log('admin-delete 이벤트 리스너 등록 완료');
         }
         
-        // 리치 텍스트 에디터 초기화
-        initRichEditor();
-        
         console.log('이벤트 리스너 등록 완료');
         console.log('=== 관리자 페이지 초기화 완료 ===');
       });
+      
+      // 수동 알림 발송 (임시)
+      function sendManualNotification() {
+        alert('알림 발송 기능은 개발 중입니다.');
+      }
+      
+      // 데이터 내보내기
+      function exportAllData() {
+        const allData = {};
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key) {
+            allData[key] = localStorage.getItem(key);
+          }
+        }
+        
+        const blob = new Blob([JSON.stringify(allData, null, 2)], {
+          type: 'application/json'
+        });
+        
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `pricehunter-backup-${new Date().toISOString().split('T')[0]}.json`;
+        a.click();
+        
+        URL.revokeObjectURL(url);
+        alert('데이터 내보내기가 완료되었습니다!');
+      }
+      
+      // 데이터 가져오기
+      function importData(file) {
+        if (!file) return;
+        
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          try {
+            const data = JSON.parse(e.target.result);
+            
+            // localStorage 초기화
+            localStorage.clear();
+            
+            // 데이터 복원
+            Object.keys(data).forEach(key => {
+              localStorage.setItem(key, data[key]);
+            });
+            
+            alert('데이터 복원이 완료되었습니다. 페이지를 새로고침합니다.');
+            location.reload();
+          } catch (error) {
+            alert('데이터 파일 형식이 올바르지 않습니다.');
+            console.error('Import error:', error);
+          }
+        };
+        reader.readAsText(file);
+      }
     </script>
   </body>
 </html>

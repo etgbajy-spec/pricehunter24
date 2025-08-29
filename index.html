@@ -117,13 +117,11 @@
     <!-- 관리자 모드 버튼 (숨김) -->
     <div class="fixed top-4 right-4 z-50">
     </div>
-    <!-- 관리자 모드에서만 보이는 의뢰 결과 입력 버튼 -->
-    <button id="admin-result-btn" class="fixed top-20 right-4 z-50 px-4 py-2 bg-pink-600 text-white rounded-lg shadow hover:bg-pink-700 transition hidden" aria-label="의뢰 결과 입력" title="의뢰 결과 입력">의뢰 결과 입력</button>
-    <!-- 관리자 모드에서만 보이는 1:1 문의 확인 버튼 -->
-    <button id="admin-inquiry-btn" class="fixed top-32 right-4 z-50 px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition hidden" aria-label="1:1 문의 확인" title="1:1 문의 확인">1:1 문의 확인</button>
-    <!-- 관리자 모드에서만 보이는 회원 관리 버튼 -->
-            <button id="admin-member-btn" class="fixed top-44 right-4 z-50 px-4 py-2 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 transition hidden" aria-label="회원 관리" title="회원 관리">회원 관리</button>
-        <button id="admin-cleanup-btn" class="fixed top-56 right-4 z-50 px-4 py-2 bg-red-600 text-white rounded-lg shadow hover:bg-red-700 transition hidden" aria-label="테스트 데이터 정리" title="테스트 데이터 정리" onclick="cleanupTestData()">🧹 정리</button>
+    <!-- 통합 관리자 대시보드 버튼 -->
+    <button id="admin-dashboard-btn" class="fixed top-20 right-4 z-50 px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl shadow-lg hover:from-purple-700 hover:to-pink-700 transition-all duration-300 transform hover:scale-105 hidden font-bold text-sm" aria-label="관리자 대시보드" title="관리자 대시보드">
+      🎛️ 관리자 대시보드
+    </button>
+        <button id="admin-cleanup-btn" class="fixed top-32 right-4 z-50 px-4 py-2 bg-red-600 text-white rounded-lg shadow hover:bg-red-700 transition hidden" aria-label="테스트 데이터 정리" title="테스트 데이터 정리" onclick="cleanupTestData()">🧹 정리</button>
     <!-- 관리자 해제 버튼 (관리자 모드에서만 노출) -->
     <button id="admin-logout-btn" class="fixed top-4 right-4 z-50 px-4 py-2 bg-gray-800 text-white rounded-lg shadow hover:bg-amber-500 transition hidden" aria-label="관리자 해제" title="관리자 해제">관리자 해제</button>
     <!-- 저렴하게 구입한 사례 섹션: main 바깥, 전체 폭 -->
@@ -535,7 +533,12 @@
           if (isAdmin) {
             setAdminMode(true);
           } else {
-            setAdminMode(false);
+            // 관리자 모드가 이미 활성화되어 있으면 유지
+            const currentAdminMode = localStorage.getItem('adminMode') === 'true';
+            const currentIsAdmin = localStorage.getItem('isAdmin') === 'true';
+            if (!currentAdminMode && !currentIsAdmin) {
+              setAdminMode(false);
+            }
           }
         } else {
           safeSetDisplay('login-btn', 'inline-block');
@@ -545,7 +548,12 @@
           safeSetDisplay('logout-btn', 'none');
           safeSetDisplay('result-btn', 'none');
           safeSetDisplay('contact-btn', 'none'); // 1:1문의하기 버튼 숨김
-          setAdminMode(false);
+          // 로그아웃 상태에서도 관리자 모드가 활성화되어 있으면 유지
+          const currentAdminMode = localStorage.getItem('adminMode') === 'true';
+          const currentIsAdmin = localStorage.getItem('isAdmin') === 'true';
+          if (!currentAdminMode && !currentIsAdmin) {
+            setAdminMode(false);
+          }
         }
       }
       
@@ -570,7 +578,10 @@
       
       // 관리자 로그아웃
       function adminLogout() {
+        adminModeProtected = false; // 관리자 모드 보호 해제
+        adminModeLocked = false; // 관리자 모드 잠금 해제
         localStorage.removeItem('isAdmin');
+        localStorage.removeItem('adminMode');
         localStorage.removeItem('adminLoginTime');
         updateAuthUI();
         showToast('관리자 로그아웃되었습니다.', 'success');
@@ -644,36 +655,62 @@
         showToast('네트워크 오류가 발생했습니다. 다시 시도해주세요.', 'error', 5000);
       });
       
+      // 관리자 모드 보호 전역 변수
+      let adminModeProtected = false;
+      let adminModeLocked = false;
+      
       // 관리자 모드 설정 함수
       function setAdminMode(isAdmin) {
+        // 관리자 모드가 잠겨있고 비활성화하려는 경우에만 무시
+        if (adminModeLocked && !isAdmin) {
+          console.log('🔒 관리자 모드 잠금: 비활성화 시도가 무시됩니다.');
+          return;
+        }
+        
+        // 관리자 모드가 이미 활성화되어 있고, 비활성화하려는 경우 확인
+        const currentAdminMode = localStorage.getItem('adminMode') === 'true';
+        const currentIsAdmin = localStorage.getItem('isAdmin') === 'true';
+        
+        // 관리자 모드 보호: 이미 활성화되어 있으면 비활성화 시도 무시
+        if ((currentAdminMode || currentIsAdmin || adminModeProtected) && !isAdmin) {
+          console.log('🚫 관리자 모드 보호: 이미 활성화되어 있어 비활성화를 무시합니다.');
+          // 강제로 관리자 모드 유지
+          isAdmin = true;
+          adminModeProtected = true;
+        }
+        
         // localStorage에 관리자 모드 상태 저장
         localStorage.setItem('adminMode', isAdmin.toString());
         localStorage.setItem('isAdmin', isAdmin.toString());
         
+        console.log('setAdminMode 호출됨:', isAdmin, '이전 상태:', { currentAdminMode, currentIsAdmin });
+        
         // 관리자 모드 버튼들 표시/숨김
         var adminModeBtn = document.getElementById('admin-mode-btn');
         if (adminModeBtn) adminModeBtn.classList.add('hidden');
+        
         var adminLogoutBtn = document.getElementById('admin-logout-btn');
-        if (adminLogoutBtn) adminLogoutBtn.classList.toggle('hidden', !isAdmin);
-        const adminResultBtn = document.getElementById('admin-result-btn');
-        if (adminResultBtn) adminResultBtn.classList.toggle('hidden', !isAdmin);
-        var adminInquiryBtn = document.getElementById('admin-inquiry-btn');
-        if (adminInquiryBtn) adminInquiryBtn.classList.toggle('hidden', !isAdmin);
-                   var adminMemberBtn = document.getElementById('admin-member-btn');
-           if (adminMemberBtn) {
-             adminMemberBtn.classList.toggle('hidden', !isAdmin);
-             console.log('회원관리 버튼 표시 상태:', !isAdmin ? '숨김' : '표시');
-           }
-           var adminCleanupBtn = document.getElementById('admin-cleanup-btn');
-           if (adminCleanupBtn) {
-             adminCleanupBtn.classList.toggle('hidden', !isAdmin);
-             console.log('테스트데이터정리 버튼 표시 상태:', !isAdmin ? '숨김' : '표시');
-           }
+        if (adminLogoutBtn) {
+          adminLogoutBtn.classList.toggle('hidden', !isAdmin);
+          console.log('관리자 로그아웃 버튼 표시 상태:', !isAdmin ? '숨김' : '표시');
+        }
+        
+        const adminDashboardBtn = document.getElementById('admin-dashboard-btn');
+        if (adminDashboardBtn) {
+          adminDashboardBtn.classList.toggle('hidden', !isAdmin);
+          console.log('관리자 대시보드 버튼 표시 상태:', !isAdmin ? '숨김' : '표시');
+        }
+        
+        var adminCleanupBtn = document.getElementById('admin-cleanup-btn');
+        if (adminCleanupBtn) {
+          adminCleanupBtn.classList.toggle('hidden', !isAdmin);
+          console.log('테스트데이터정리 버튼 표시 상태:', !isAdmin ? '숨김' : '표시');
+        }
         
         // 사례 카드 편집 기능 활성화/비활성화
         enableCaseTextEdit(isAdmin);
         
-        console.log('관리자 모드 설정:', isAdmin);
+        console.log('관리자 모드 설정 완료:', isAdmin);
       }
       
       // 사례 카드 텍스트 편집 기능
@@ -685,7 +722,12 @@
       window.addEventListener('storage', function(e) {
         // 다른 탭에서 localStorage 변경 시 UI 동기화
         updateAuthUI();
-        setAdminMode(localStorage.getItem('isAdmin') === 'true');
+        // 관리자 모드가 이미 활성화되어 있으면 유지
+        const currentAdminMode = localStorage.getItem('adminMode') === 'true';
+        const isAdmin = localStorage.getItem('isAdmin') === 'true';
+        if (currentAdminMode || isAdmin) {
+          setAdminMode(true);
+        }
       });
       
       // XSS 방지 함수
@@ -717,12 +759,35 @@
       // 데이터 백업 시스템
       function backupData() {
         try {
+          // 백업 키가 너무 많으면 백업 건너뛰기
+          const backupKeys = Object.keys(localStorage).filter(key => key.startsWith('ph_backup_'));
+          if (backupKeys.length > 1) {
+            console.log('백업이 너무 많아 백업을 건너뜁니다.');
+            return;
+          }
+          
+          // localStorage 용량 확인
+          const currentSize = JSON.stringify(localStorage).length;
+          const maxSize = 5 * 1024 * 1024; // 5MB 제한
+          
+          if (currentSize > maxSize * 0.5) { // 50% 이상 사용 중이면 백업 건너뛰기
+            console.log('localStorage 용량이 부족하여 백업을 건너뜁니다.');
+            return;
+          }
+          
+          // 백업 데이터 크기 예측
           const data = {};
           for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i);
             if (key && !key.startsWith('ph_backup_')) {
               data[key] = localStorage.getItem(key);
             }
+          }
+          
+          const backupSize = JSON.stringify(data).length;
+          if (backupSize > 512 * 1024) { // 512KB 이상이면 백업 건너뛰기
+            console.log('백업 데이터가 너무 커서 백업을 건너뜁니다.');
+            return;
           }
           
           const backup = {
@@ -733,10 +798,9 @@
           
           localStorage.setItem('ph_backup_' + Date.now(), JSON.stringify(backup));
           
-          // 오래된 백업 정리 (최근 5개만 유지)
-          const backupKeys = Object.keys(localStorage).filter(key => key.startsWith('ph_backup_'));
-          if (backupKeys.length > 5) {
-            backupKeys.sort().slice(0, -5).forEach(key => localStorage.removeItem(key));
+          // 오래된 백업 정리 (최근 1개만 유지)
+          if (backupKeys.length > 0) {
+            backupKeys.sort().slice(0, -1).forEach(key => localStorage.removeItem(key));
           }
           
   
@@ -889,12 +953,50 @@
           
           if (hashedInput === correctHash) {
             localStorage.setItem('isAdmin', 'true');
+            localStorage.setItem('adminMode', 'true');
             localStorage.setItem('adminLoginTime', Date.now().toString());
+            adminModeProtected = true; // 관리자 모드 보호 활성화
     
+            console.log('관리자 로그인 성공 - setAdminMode 호출');
             setAdminMode(true); // 즉시 관리자 모드 활성화
+            adminModeLocked = true; // 관리자 모드 잠금 활성화 (setAdminMode 호출 후)
             updateAuthUI();
             recordLoginAttempt(true);
             showToast('관리자 로그인 성공!', 'success');
+            
+            // 강제로 UI 업데이트 (여러 번 시도)
+            setTimeout(() => {
+              setAdminMode(true);
+              console.log('관리자 모드 재설정 완료 (1차)');
+            }, 100);
+            
+            setTimeout(() => {
+              setAdminMode(true);
+              console.log('관리자 모드 재설정 완료 (2차)');
+            }, 500);
+            
+            setTimeout(() => {
+              setAdminMode(true);
+              console.log('관리자 모드 재설정 완료 (3차)');
+            }, 1000);
+            
+            // 지속적인 관리자 모드 유지
+            const adminModeKeeper = setInterval(() => {
+              const adminMode = localStorage.getItem('adminMode') === 'true';
+              const isAdmin = localStorage.getItem('isAdmin') === 'true';
+              if (!adminMode || !isAdmin) {
+                console.log('🔄 관리자 모드 유지: 상태 복원 중...');
+                localStorage.setItem('adminMode', 'true');
+                localStorage.setItem('isAdmin', 'true');
+                setAdminMode(true);
+              }
+            }, 1000); // 1초마다 확인
+            
+            // 무한 관리자 모드 유지 (로그아웃까지)
+            // setTimeout(() => {
+            //   clearInterval(adminModeKeeper);
+            //   console.log('관리자 모드 유지 종료');
+            // }, 30000);
           } else {
             recordLoginAttempt(false);
             showToast('비밀번호가 올바르지 않습니다.', 'error');
@@ -925,7 +1027,14 @@
             adminLogout();
           });
         }
-        setAdminMode(localStorage.getItem('isAdmin') === 'true');
+        // 관리자 모드 초기 설정
+        const isAdminLoggedIn = localStorage.getItem('isAdmin') === 'true' || localStorage.getItem('adminMode') === 'true';
+        console.log('페이지 로드 시 관리자 상태 확인:', {
+          isAdmin: localStorage.getItem('isAdmin'),
+          adminMode: localStorage.getItem('adminMode'),
+          isAdminLoggedIn: isAdminLoggedIn
+        });
+        setAdminMode(isAdminLoggedIn);
         
         // 'PriceHunter' 로고 3번 연속 클릭 시 관리자 모드 진입
         let adminClickCount = 0;
@@ -946,7 +1055,6 @@
         }
         // 회원가입/마이페이지/의뢰결과조회 기능
         updateAuthUI();
-        setAdminMode(localStorage.getItem('isAdmin') === 'true');
         
         // 페이지 로드 시 백업 실행
         backupData();
@@ -1259,11 +1367,11 @@
             window.location.href = 'index.html';
           }, 2000);
         }
-        // 버튼 클릭 시 result-admin.html 이동
-        var adminResultBtn = document.getElementById('admin-result-btn');
-        if (adminResultBtn) {
-          adminResultBtn.onclick = function() {
-            window.location.href = 'result-admin.html';
+        // 통합 관리자 대시보드 버튼 클릭 이벤트
+        var adminDashboardBtn = document.getElementById('admin-dashboard-btn');
+        if (adminDashboardBtn) {
+          adminDashboardBtn.onclick = function() {
+            window.location.href = 'admin-dashboard.html';
           };
         }
         // 로그인 모달 열기/닫기
@@ -1375,27 +1483,11 @@
           };
         }
         
-        // 의뢰결과입력 버튼 이벤트 연결
-        var adminResultBtn = document.getElementById('admin-result-btn');
-        if (adminResultBtn) {
-          adminResultBtn.onclick = function() {
-            window.location.href = 'result-admin.html';
-          };
-        }
-        
-        // 1:1 문의 확인 버튼 클릭 시 이동
-        var adminInquiryBtn = document.getElementById('admin-inquiry-btn');
-        if (adminInquiryBtn) {
-          adminInquiryBtn.onclick = function() {
-            window.location.href = 'inquiry-admin.html';
-          };
-        }
-        
-        // 회원 관리 버튼 클릭 시 이동
-        var adminMemberBtn = document.getElementById('admin-member-btn');
-        if (adminMemberBtn) {
-          adminMemberBtn.onclick = function() {
-            window.location.href = 'member-admin.html';
+        // 통합 관리자 대시보드 버튼 이벤트 연결
+        var adminDashboardBtn = document.getElementById('admin-dashboard-btn');
+        if (adminDashboardBtn) {
+          adminDashboardBtn.onclick = function() {
+            window.location.href = 'admin-dashboard.html';
           };
         }
       });
@@ -2092,18 +2184,7 @@ if (mypageBtn) {
 
 // ... 기존 코드 ...
     </script>
-    <script>
-      // 마이페이지 정보 업데이트 함수
-      function updateMyPageInfo(userData) {
-        const mypageName = document.getElementById('mypage-name');
-        const mypageEmail = document.getElementById('mypage-email');
-        const mypagePhone = document.getElementById('mypage-phone');
-        
-        if (mypageName) mypageName.value = userData.name || '';
-        if (mypageEmail) mypageEmail.value = userData.email || '';
-        if (mypagePhone) mypagePhone.value = userData.phone || '';
-      }
-    </script>
+
     <!-- 테스트 데이터 정리 함수 -->
     <script>
       // 테스트 데이터 정리 함수

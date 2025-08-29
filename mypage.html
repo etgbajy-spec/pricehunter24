@@ -31,6 +31,12 @@
     </div>
   </div>
   <script>
+    // updateMyPageInfo 함수 정의 (다른 스크립트에서 호출될 수 있음)
+    function updateMyPageInfo(userData) {
+      // 이 함수는 사용되지 않으므로 빈 함수로 정의
+      console.log('updateMyPageInfo called with:', userData);
+    }
+    
     // 내 정보 표시
     function renderMyInfo() {
       const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -41,25 +47,31 @@
       document.getElementById('info-phone').value = user.phone || '';
       document.getElementById('info-kakao').value = user.kakao || '';
     }
-    renderMyInfo();
-    // 정보수정 폼 저장
-    document.getElementById('info-form').onsubmit = function(e) {
-      e.preventDefault();
-      const user = {
-        name: document.getElementById('info-name').value,
-        email: document.getElementById('info-email').value,
-        phone: document.getElementById('info-phone').value,
-        kakao: document.getElementById('info-kakao').value
-      };
-      localStorage.setItem('user', JSON.stringify(user));
+    
+    // 페이지 로드 시 정보 표시
+    document.addEventListener('DOMContentLoaded', function() {
       renderMyInfo();
-      alert('정보가 저장되었습니다!');
-    };
-    // 정보수정 버튼 → 폼으로 스크롤
-    document.getElementById('edit-info-btn').onclick = function() {
-      document.getElementById('info-form').scrollIntoView({behavior:'smooth'});
-      document.getElementById('info-name').focus();
-    };
+      
+      // 정보수정 폼 저장
+      document.getElementById('info-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const user = {
+          name: document.getElementById('info-name').value,
+          email: document.getElementById('info-email').value,
+          phone: document.getElementById('info-phone').value,
+          kakao: document.getElementById('info-kakao').value
+        };
+        localStorage.setItem('user', JSON.stringify(user));
+        renderMyInfo();
+        alert('정보가 저장되었습니다!');
+      });
+      
+      // 정보수정 버튼 → 폼으로 스크롤
+      document.getElementById('edit-info-btn').addEventListener('click', function() {
+        document.getElementById('info-form').scrollIntoView({behavior:'smooth'});
+        document.getElementById('info-name').focus();
+      });
+    });
   </script>
 </body>
 </html> 
