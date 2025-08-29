@@ -1,0 +1,2428 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>의뢰 결과 입력/관리 | PriceHunter</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 프로덕션에서는 Tailwind CSS를 빌드하여 사용하는 것을 권장합니다 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+      body { font-family: 'Noto Sans KR', 'Inter', sans-serif; }
+      .tab-btn.active {
+        background-color: #ec4899;
+        color: white;
+      }
+      .filter-btn.active {
+        background-color: #6b7280;
+        color: white;
+      }
+    </style>
+  </head>
+  <body class="bg-gradient-to-br from-gray-50 via-blue-50 to-emerald-50 min-h-screen flex items-center justify-center px-2">
+    <main class="w-full max-w-6xl bg-white/90 rounded-3xl shadow-2xl p-4 md:p-8 lg:p-12 flex flex-col items-center text-center backdrop-blur-md mt-4 md:mt-8 mb-4 md:mb-8">
+      <h1 class="text-xl sm:text-2xl md:text-3xl font-extrabold text-pink-600 mb-3 md:mb-4">의뢰 결과 입력/관리 (관리자 전용)</h1>
+      <div class="text-sm text-gray-500 mb-6">이 페이지는 관리자(개발자)만 접근 가능합니다.</div>
+      
+      <!-- 알림 설정 섹션 -->
+      <div class="w-full mb-6 p-4 bg-blue-50 rounded-xl">
+        <div class="font-bold text-blue-700 mb-3">📱 알림 발송 설정</div>
+        <div class="flex flex-wrap gap-4 items-center justify-center">
+          <select id="notify-method" class="px-3 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-pink-400 focus:outline-none">
+            <option value="both">카카오톡 + 문자</option>
+            <option value="kakao">카카오톡만</option>
+            <option value="sms">문자만</option>
+          </select>
+        </div>
+        <div class="text-xs text-gray-500 mt-2 text-center">
+          결과 저장 후 "고객에게 알림 발송" 버튼을 눌러 고객에게 알림을 발송합니다.
+        </div>
+      </div>
+      
+      <!-- 회원별 탭 시스템 -->
+      <div class="w-full mb-6">
+        <div class="flex flex-wrap gap-2 justify-center mb-4">
+          <button id="tab-all" class="tab-btn active px-4 py-2 bg-pink-500 text-white rounded-lg font-bold hover:bg-pink-600 transition" onclick="switchTab('all')">
+            전체 <span id="count-all" class="ml-1 bg-white text-pink-500 px-2 py-1 rounded text-xs">0</span>
+          </button>
+          <!-- 회원별 탭은 동적으로 생성됨 -->
+        </div>
+        
+        <!-- 진행상황 필터 -->
+        <div class="flex flex-wrap gap-2 justify-center mb-4">
+          <button id="filter-all" class="filter-btn active px-3 py-1 bg-gray-500 text-white rounded font-bold hover:bg-gray-600 transition text-sm" onclick="switchFilter('all')">전체</button>
+          <button id="filter-new" class="filter-btn px-3 py-1 bg-red-500 text-white rounded font-bold hover:bg-red-600 transition text-sm" onclick="switchFilter('new')">신규의뢰</button>
+          <button id="filter-progress" class="filter-btn px-3 py-1 bg-orange-500 text-white rounded font-bold hover:bg-orange-600 transition text-sm" onclick="switchFilter('progress')">진행중</button>
+          <button id="filter-complete" class="filter-btn px-3 py-1 bg-green-500 text-white rounded font-bold hover:bg-green-600 transition text-sm" onclick="switchFilter('complete')">완료</button>
+        </div>
+      </div>
+      
+      <!-- 일괄 삭제 및 알림 발송 버튼 -->
+      <div class="w-full mb-4 flex justify-between items-center">
+        <div class="flex items-center gap-4">
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" id="select-all" class="w-4 h-4 text-pink-600 bg-gray-100 border-gray-300 rounded focus:ring-pink-500 focus:ring-2" onchange="toggleSelectAll()">
+            <span class="text-sm font-semibold text-gray-700">전체 선택</span>
+          </label>
+          <span id="selected-count" class="text-sm text-gray-600">선택됨: 0개</span>
+        </div>
+        <div class="flex gap-2">
+          <button id="bulk-notify-btn" class="px-4 py-2 bg-blue-500 text-white rounded-lg font-bold hover:bg-blue-600 transition text-sm hidden" onclick="bulkSendNotification()">
+            선택 알림 발송 (<span id="notify-count">0</span>개)
+          </button>
+          <button id="bulk-delete-btn" class="px-4 py-2 bg-red-500 text-white rounded-lg font-bold hover:bg-red-600 transition text-sm hidden" onclick="bulkDelete()">
+            선택 삭제 (<span id="delete-count">0</span>개)
+          </button>
+        </div>
+      </div>
+      
+      <!-- 의뢰 목록 -->
+      <div class="w-full mb-8">
+        <div class="font-bold text-gray-700 mb-2 text-left">접수된 의뢰 목록</div>
+        <div class="flex justify-between items-center px-4 py-2 bg-pink-100 rounded-t-xl text-sm font-bold text-pink-700 flex-wrap">
+          <span class="w-8">선택</span>
+          <span class="flex-1">의뢰번호/회원명</span>
+          <span class="w-1/6 text-center">의뢰일시</span>
+          <span class="w-1/6 text-center">진행상황</span>
+          <span class="w-1/6 text-center">구매방식</span>
+          <span class="w-1/6 text-center">구매상태</span>
+          <span class="w-1/6 text-center">알림상태</span>
+          <span class="w-1/4 text-right">제품명</span>
+        </div>
+        <ul id="request-list" class="bg-pink-50 rounded-b-xl shadow-inner divide-y divide-pink-100 text-left"></ul>
+      </div>
+      
+      <!-- 의뢰 상세 및 답변 입력 -->
+      <div id="detail-section" class="w-full hidden">
+        <div class="bg-white rounded-2xl shadow-lg p-6 mb-4 text-left">
+          <div class="mb-2 text-gray-700 font-bold">의뢰 상세</div>
+          <div class="mb-2 text-gray-600"><span class="font-semibold">의뢰번호:</span> <span id="detail-num"></span></div>
+          <div class="mb-2 text-gray-600"><span class="font-semibold">제품명:</span> <span id="detail-name"></span></div>
+          <div class="mb-2 text-gray-600"><span class="font-semibold">제품설명:</span> <span id="detail-desc"></span></div>
+          <div class="mb-2 text-gray-600"><span class="font-semibold">참고사이트:</span> <span id="detail-url"></span></div>
+          <div class="mb-2 text-gray-600"><span class="font-semibold">가격:</span> <span id="detail-price"></span></div>
+          <div class="mb-2 text-gray-600"><span class="font-semibold">이름:</span> <span id="detail-username"></span></div>
+          <div class="mb-2 text-gray-600"><span class="font-semibold">이메일:</span> <span id="detail-email"></span></div>
+          <div class="mb-2 text-gray-600"><span class="font-semibold">휴대폰:</span> <span id="detail-phone"></span></div>
+          <div class="mb-2 text-gray-600"><span class="font-semibold">통관번호:</span> <span id="detail-customs"></span></div>
+          <div class="mb-2 text-gray-600"><span class="font-semibold">업로드 이미지:</span> <span id="detail-img"></span></div>
+        </div>
+        <form id="result-form" class="w-full bg-gray-50 rounded-2xl shadow-inner p-6 mb-4 text-left">
+          <div class="mb-3">
+            <label class="block text-gray-700 font-semibold mb-1" for="admin-price">최저가</label>
+            <input type="text" id="admin-price" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-pink-400 focus:outline-none" />
+          </div>
+          <div class="mb-3">
+            <label class="block text-gray-700 font-semibold mb-1" for="admin-origin">원산지/공급처</label>
+            <input type="text" id="admin-origin" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-pink-400 focus:outline-none" />
+          </div>
+          <div class="mb-3">
+            <label class="block text-gray-700 font-semibold mb-1" for="admin-summary">종합설명</label>
+            
+            <!-- 리치 텍스트 에디터 툴바 -->
+            <div class="bg-white border border-gray-300 rounded-t-lg p-2 flex flex-wrap gap-1 items-center">
+              <!-- 글꼴 크기 -->
+              <select id="font-size" class="px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-pink-400 focus:outline-none">
+                <option value="10">10px</option>
+                <option value="12">12px</option>
+                <option value="14">14px</option>
+                <option value="16" selected>16px</option>
+                <option value="18">18px</option>
+                <option value="20">20px</option>
+                <option value="24">24px</option>
+                <option value="28">28px</option>
+                <option value="32">32px</option>
+                <option value="36">36px</option>
+                <option value="48">48px</option>
+              </select>
+              
+              <!-- 굵게 -->
+              <button type="button" id="bold-btn" class="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded border" title="굵게">
+                <strong>B</strong>
+              </button>
+              
+              <!-- 기울임 -->
+              <button type="button" id="italic-btn" class="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded border" title="기울임">
+                <em>I</em>
+              </button>
+              
+              <!-- 밑줄 -->
+              <button type="button" id="underline-btn" class="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded border" title="밑줄">
+                <u>U</u>
+              </button>
+              
+              <!-- 구분선 -->
+              <div class="w-px h-6 bg-gray-300 mx-1"></div>
+              
+              <!-- 색상 -->
+              <input type="color" id="text-color" class="w-8 h-8 border border-gray-300 rounded cursor-pointer" title="텍스트 색상">
+              
+              <!-- 배경색 -->
+              <input type="color" id="bg-color" class="w-8 h-8 border border-gray-300 rounded cursor-pointer" title="배경색">
+              
+              <!-- 구분선 -->
+              <div class="w-px h-6 bg-gray-300 mx-1"></div>
+              
+              <!-- 링크 -->
+              <button type="button" id="link-btn" class="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded border" title="링크 추가">
+                🔗
+              </button>
+              
+              <!-- 이미지 -->
+              <button type="button" id="image-btn" class="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded border" title="이미지 파일 업로드 (클립보드 붙여넣기: Ctrl+V, 드래그앤드롭 지원)">
+                🖼️
+              </button>
+              
+              <!-- 구분선 -->
+              <div class="w-px h-6 bg-gray-300 mx-1"></div>
+              
+              <!-- 정렬 -->
+              <button type="button" id="align-left" class="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded border" title="왼쪽 정렬">
+                ⬅️
+              </button>
+              <button type="button" id="align-center" class="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded border" title="가운데 정렬">
+                ↔️
+              </button>
+              <button type="button" id="align-right" class="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded border" title="오른쪽 정렬">
+                ➡️
+              </button>
+              
+              <!-- 구분선 -->
+              <div class="w-px h-6 bg-gray-300 mx-1"></div>
+              
+              <!-- 목록 -->
+              <button type="button" id="ul-btn" class="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded border" title="글머리 기호 목록">
+                • 목록
+              </button>
+              <button type="button" id="ol-btn" class="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded border" title="번호 매기기 목록">
+                1. 목록
+              </button>
+            </div>
+            
+            <!-- 리치 텍스트 에디터 -->
+            <div id="rich-editor" class="w-full min-h-[200px] px-4 py-3 border border-gray-300 rounded-b-lg focus-within:ring-2 focus-within:ring-pink-400 focus-within:outline-none bg-white" contenteditable="true" placeholder="가격, 원산지, 상품특징 등 전체적인 설명을 입력하세요."></div>
+            
+            <!-- 이미지 삽입 안내 -->
+            <div class="text-xs text-gray-500 mt-2 flex items-center gap-4">
+              <span>💡 이미지 삽입: 🖼️ 버튼 클릭 또는 Ctrl+V (클립보드) 또는 드래그앤드롭</span>
+            </div>
+            
+            <!-- 숨겨진 textarea (데이터 저장용) -->
+            <textarea id="admin-summary" class="hidden"></textarea>
+          </div>
+          <div class="mb-3">
+            <label class="block text-gray-700 font-semibold mb-1" for="admin-link">최저가 링크</label>
+            <input type="url" id="admin-link" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-pink-400 focus:outline-none" placeholder="https://example.com" />
+          </div>
+          <div class="flex gap-2 mt-6">
+            <button type="submit" class="flex-1 py-3 bg-pink-500 text-white font-bold rounded-lg shadow hover:bg-pink-600 transition text-lg">저장</button>
+            <button type="button" id="admin-delete" class="flex-1 py-3 bg-gray-200 text-gray-600 font-bold rounded-lg shadow hover:bg-gray-300 transition text-lg">삭제</button>
+          </div>
+        </form>
+        <div id="admin-msg" class="text-center text-gray-400 text-sm mt-4"></div>
+        
+        <!-- 구매 상태 관리 섹션 -->
+        <div id="purchase-management" class="w-full bg-blue-50 rounded-2xl shadow-inner p-6 mb-4 text-left hidden">
+          <div class="mb-4">
+            <h3 class="text-lg font-bold text-blue-700 mb-3">🛒 구매 상태 관리</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-gray-700 font-semibold mb-2">구매 방식</label>
+                <div class="text-sm text-gray-600 mb-2">
+                  <span id="purchase-method-display">-</span>
+                </div>
+              </div>
+              <div>
+                <label class="block text-gray-700 font-semibold mb-2">구매 진행상태</label>
+                <select id="purchase-status" class="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none text-sm">
+                  <option value="none">구매하지 않음</option>
+                  <option value="ordered">주문접수</option>
+                  <option value="paid">결제완료</option>
+                  <option value="preparing">배송준비</option>
+                  <option value="shipping">배송중</option>
+                  <option value="delivered">배송완료</option>
+                </select>
+              </div>
+            </div>
+            <div class="mt-4">
+              <label class="block text-gray-700 font-semibold mb-2">관리자 메모</label>
+              <textarea id="purchase-memo" rows="3" class="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none text-sm" placeholder="구매 관련 특이사항이나 메모를 입력하세요."></textarea>
+            </div>
+            <div class="flex gap-2 mt-4">
+              <button type="button" id="update-purchase-status" class="px-4 py-2 bg-blue-500 text-white font-bold rounded-lg hover:bg-blue-600 transition text-sm">구매상태 업데이트</button>
+              <button type="button" id="view-order-details" class="px-4 py-2 bg-green-500 text-white font-bold rounded-lg hover:bg-green-600 transition text-sm">주문상세보기</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+    <script>
+      // 관리자 권한 확인
+      function isAdmin() {
+        const adminMode = localStorage.getItem('adminMode') === 'true';
+        const isAdmin = localStorage.getItem('isAdmin') === 'true';
+        const result = adminMode || isAdmin;
+        
+        console.log('관리자 권한 확인:', {
+          adminMode: adminMode,
+          isAdmin: isAdmin,
+          result: result
+        });
+        
+        return result;
+      }
+      
+      // 전역 변수
+      let currentTab = 'all';
+      let currentFilter = 'all';
+      let allRequests = [];
+      let currentReqKey = '';
+      let selectedRequests = new Set();
+      let currentRequest = null; // 현재 선택된 의뢰 정보
+      
+      // 의뢰 목록 불러오기
+      function getRequestList() {
+        const list = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key.startsWith('request-') && !key.includes('TEST') && !key.startsWith('requestCount-')) {
+            try {
+            const req = JSON.parse(localStorage.getItem(key));
+              
+              // userName 필드가 없는 경우 처리
+              if (!req.userName) {
+                // user 또는 currentUser에서 이름 찾기
+                let userName = '';
+                if (req.email) {
+                  const user = JSON.parse(localStorage.getItem('user') || '{}');
+                  const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+                  
+                  if (user.email === req.email) {
+                    userName = user.name || '';
+                  } else if (currentUser.email === req.email) {
+                    userName = currentUser.name || '';
+                  }
+                }
+                
+                // userName 필드 추가하고 저장
+                req.userName = userName;
+                localStorage.setItem(key, JSON.stringify(req));
+                console.log('의뢰 데이터 userName 추가:', key, 'userName:', userName);
+              }
+              
+            list.push({ key, ...req });
+            } catch (e) {
+              console.log(`JSON 파싱 실패: ${key}`, e);
+            }
+          }
+        }
+        // 최신순 정렬(가장 최근이 위로)
+        return list.sort((a, b) => (b.date || 0) - (a.date || 0));
+      }
+      
+      // 진행상황 판단 함수
+      function getRequestStatus(req) {
+        const reqNum = req.key.replace('request-', '');
+        const hasResult = !!localStorage.getItem('result-' + reqNum);
+        
+        if (!hasResult) {
+          return { status: 'new', text: '신규의뢰', color: 'bg-red-500', textColor: 'text-red-500' };
+        }
+        
+        const result = JSON.parse(localStorage.getItem('result-' + reqNum) || '{}');
+        if (result.price && result.origin && result.summary && result.link) {
+          return { status: 'complete', text: '완료', color: 'bg-green-500', textColor: 'text-green-500' };
+        }
+        
+        return { status: 'progress', text: '진행중', color: 'bg-orange-500', textColor: 'text-orange-500' };
+      }
+      
+      // 회원별 탭 생성
+      function createUserTabs() {
+        const users = {};
+        allRequests.forEach(req => {
+          const userName = req.userName || '익명';
+          if (!users[userName]) {
+            users[userName] = { name: userName, count: 0 };
+          }
+          users[userName].count++;
+        });
+        
+        const tabContainer = document.querySelector('.flex.flex-wrap.gap-2.justify-center');
+        const allTab = tabContainer.querySelector('#tab-all');
+        tabContainer.innerHTML = '';
+        tabContainer.appendChild(allTab);
+        
+        Object.values(users).forEach(user => {
+          const tab = document.createElement('button');
+          tab.className = 'tab-btn px-4 py-2 bg-gray-300 text-gray-700 rounded-lg font-bold hover:bg-gray-400 transition';
+          tab.onclick = () => switchTab(user.name);
+          tab.innerHTML = `${user.name} <span class="ml-1 bg-white text-gray-700 px-2 py-1 rounded text-xs">${user.count}</span>`;
+          tabContainer.appendChild(tab);
+        });
+      }
+      
+      // 탭 전환
+      function switchTab(userName) {
+        currentTab = userName;
+        
+        // 탭 버튼 활성화
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        event.target.classList.add('active');
+        
+        renderRequestList();
+      }
+      
+      // 필터 전환
+      function switchFilter(status) {
+        currentFilter = status;
+        
+        // 필터 버튼 활성화
+        document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+        event.target.classList.add('active');
+        
+        renderRequestList();
+      }
+      
+      // 전체 선택/해제
+      function toggleSelectAll() {
+        const selectAllCheckbox = document.getElementById('select-all');
+        const checkboxes = document.querySelectorAll('.request-checkbox');
+        
+        checkboxes.forEach(checkbox => {
+          checkbox.checked = selectAllCheckbox.checked;
+          if (selectAllCheckbox.checked) {
+            selectedRequests.add(checkbox.value);
+          } else {
+            selectedRequests.delete(checkbox.value);
+          }
+        });
+        
+        updateSelectionUI();
+      }
+      
+      // 개별 선택 처리
+      function toggleSelection(reqKey) {
+        if (selectedRequests.has(reqKey)) {
+          selectedRequests.delete(reqKey);
+        } else {
+          selectedRequests.add(reqKey);
+        }
+        
+        updateSelectionUI();
+      }
+      
+      // 선택 UI 업데이트
+      function updateSelectionUI() {
+        const selectedCount = selectedRequests.size;
+        const deleteCount = selectedCount;
+        
+        document.getElementById('selected-count').textContent = `선택됨: ${selectedCount}개`;
+        document.getElementById('delete-count').textContent = deleteCount;
+        document.getElementById('notify-count').textContent = selectedCount;
+        
+        const bulkDeleteBtn = document.getElementById('bulk-delete-btn');
+        const bulkNotifyBtn = document.getElementById('bulk-notify-btn');
+        
+        if (selectedCount > 0) {
+          bulkDeleteBtn.classList.remove('hidden');
+          bulkNotifyBtn.classList.remove('hidden');
+        } else {
+          bulkDeleteBtn.classList.add('hidden');
+          bulkNotifyBtn.classList.add('hidden');
+        }
+        
+        // 전체 선택 체크박스 상태 업데이트
+        const selectAllCheckbox = document.getElementById('select-all');
+        const checkboxes = document.querySelectorAll('.request-checkbox');
+        const allChecked = checkboxes.length > 0 && Array.from(checkboxes).every(cb => cb.checked);
+        selectAllCheckbox.checked = allChecked;
+      }
+      
+      // 일괄 삭제
+      function bulkDelete() {
+        if (selectedRequests.size === 0) return;
+        
+        const confirmMessage = `선택된 ${selectedRequests.size}개의 의뢰를 삭제하시겠습니까?\n\n⚠️ 삭제되는 데이터:\n• 의뢰 정보\n• 의뢰 결과\n• 주문 정보\n• 알림 발송 기록\n\n이 작업은 되돌릴 수 없습니다.`;
+        if (!confirm(confirmMessage)) return;
+        
+        let deletedCount = 0;
+        selectedRequests.forEach(reqKey => {
+          const reqNum = reqKey.replace('request-', '');
+          
+          // 모든 관련 데이터 삭제
+          localStorage.removeItem(reqKey); // 의뢰 정보
+          localStorage.removeItem('result-' + reqNum); // 의뢰 결과
+          localStorage.removeItem('order-' + reqNum); // 주문 정보
+          localStorage.removeItem('notify-' + reqNum); // 알림 발송 기록
+          
+          deletedCount++;
+        });
+        
+        // 선택 초기화
+        selectedRequests.clear();
+        document.getElementById('select-all').checked = false;
+        
+        // 리스트 새로고침
+        renderRequestList();
+        
+        alert(`${deletedCount}개의 의뢰와 관련 데이터가 완전히 삭제되었습니다.`);
+      }
+      
+      // 일괄 알림 발송
+      function bulkSendNotification() {
+        if (selectedRequests.size === 0) return;
+        
+        const notifyMethod = document.getElementById('notify-method').value;
+        const confirmMessage = `선택된 ${selectedRequests.size}개의 의뢰에 대해 고객에게 알림을 발송하시겠습니까?\n\n알림 방법: ${notifyMethod}`;
+        
+        if (!confirm(confirmMessage)) return;
+        
+        let successCount = 0;
+        let failCount = 0;
+        
+        selectedRequests.forEach(reqKey => {
+          const reqNum = reqKey.replace('request-', '');
+          const resultData = localStorage.getItem('result-' + reqNum);
+          
+          if (resultData) {
+            const request = JSON.parse(localStorage.getItem(reqKey));
+            const result = JSON.parse(resultData);
+            
+            // 실제 알림 발송
+            console.log(`=== 일괄 알림 발송: ${reqNum} ===`);
+            console.log('수신자:', request.userName, request.phone);
+            console.log('알림 방법:', notifyMethod);
+            
+            // 카카오톡 알림 (실제 API 연동)
+            if (notifyMethod === 'both' || notifyMethod === 'kakao') {
+              sendKakaoNotification(request.phone, request.userName, result);
+            }
+            
+            // SMS 알림 (실제 API 연동)
+            if (notifyMethod === 'both' || notifyMethod === 'sms') {
+              sendSMSNotification(request.phone, request.userName, result);
+            }
+            
+            // 알림 발송 상태 저장
+            localStorage.setItem('notify-' + reqNum, JSON.stringify({
+              sent: true,
+              sentAt: Date.now(),
+              method: notifyMethod,
+              recipient: request.userName
+            }));
+            
+            successCount++;
+          } else {
+            failCount++;
+          }
+        });
+        
+        // 선택 초기화
+        selectedRequests.clear();
+        document.getElementById('select-all').checked = false;
+        
+        // 리스트 새로고침
+        renderRequestList();
+        
+        alert(`알림 발송 완료!\n\n성공: ${successCount}개\n실패: ${failCount}개 (결과가 없는 의뢰)`);
+      }
+      
+      // 구매 정보 가져오기
+      function getPurchaseInfo(reqKey) {
+        const reqNum = reqKey.replace('request-', '');
+        const orderData = localStorage.getItem('order-' + reqNum);
+        return orderData ? JSON.parse(orderData) : null;
+      }
+      
+      // 구매 상태 텍스트 변환
+      function getPurchaseStatusText(status) {
+        const statusMap = {
+          'none': '구매하지 않음',
+          'ordered': '주문접수',
+          'paid': '결제완료', 
+          'preparing': '배송준비',
+          'shipping': '배송중',
+          'delivered': '배송완료'
+        };
+        return statusMap[status] || '구매하지 않음';
+      }
+      
+      // 구매 상태 색상 변환
+      function getPurchaseStatusColor(status) {
+        const colorMap = {
+          'none': 'text-gray-500',
+          'ordered': 'text-blue-600',
+          'paid': 'text-purple-600',
+          'preparing': 'text-orange-600',
+          'shipping': 'text-indigo-600',
+          'delivered': 'text-green-600'
+        };
+        return colorMap[status] || 'text-gray-500';
+      }
+      
+      // 구매 방식 텍스트 변환
+      function getPurchaseMethodText(method) {
+        const methodMap = {
+          'direct': 'PriceHunter 직접구매 (서비스 중단)',
+          'external': '최저가 쇼핑몰',
+          'none': '구매하지 않음'
+        };
+        return methodMap[method] || '구매하지 않음';
+      }
+      
+      // 자동 알림 발송 함수
+      function sendAutoNotification(request, result) {
+        const autoNotify = document.getElementById('auto-notify').checked;
+        const notifyMethod = document.getElementById('notify-method').value;
+        
+        if (!autoNotify) return;
+        
+        // 알림 메시지 생성
+        const message = `[PriceHunter] 의뢰 결과 완료\n\n의뢰번호: ${request.key.replace('request-', '')}\n제품명: ${request.name}\n최저가: ${result.price}\n\n결과 조회: https://pricehunter.kr/result-search.html`;
+        
+        // 실제 알림 발송 (시뮬레이션)
+        console.log('=== 자동 알림 발송 ===');
+        console.log('수신자:', request.userName, request.phone, request.email);
+        console.log('알림 방법:', notifyMethod);
+        console.log('메시지:', message);
+        
+        // 카카오톡 알림 (시뮬레이션)
+        if (notifyMethod === 'both' || notifyMethod === 'kakao') {
+          console.log('📱 카카오톡 알림 발송:', request.phone);
+          // 실제 구현 시: 카카오톡 API 연동
+        }
+        
+        // SMS 알림 (시뮬레이션)
+        if (notifyMethod === 'both' || notifyMethod === 'sms') {
+          console.log('📞 SMS 알림 발송:', request.phone);
+          // 실제 구현 시: SMS API 연동
+        }
+        
+        // 이메일 알림 (추가 옵션)
+        if (request.email) {
+          console.log('📧 이메일 알림 발송:', request.email);
+          // 실제 구현 시: 이메일 API 연동
+        }
+        
+        alert(`✅ 자동 알림이 발송되었습니다!\n\n수신자: ${request.userName}\n연락처: ${request.phone}\n알림 방법: ${notifyMethod}`);
+      }
+      
+      // 수동 알림 발송 함수
+      function sendManualNotification() {
+        if (!currentRequest) {
+          alert('의뢰 정보가 없습니다.');
+          return;
+        }
+        
+        const reqNum = currentReqKey.replace('request-', '');
+        const resultData = localStorage.getItem('result-' + reqNum);
+        
+        if (!resultData) {
+          alert('저장된 결과가 없습니다. 먼저 결과를 저장해주세요.');
+          return;
+        }
+        
+        const result = JSON.parse(resultData);
+        const notifyMethod = document.getElementById('notify-method').value;
+        
+        // 알림 메시지 생성
+        const message = `[PriceHunter] 의뢰 결과 완료\n\n의뢰번호: ${reqNum}\n제품명: ${currentRequest.name}\n최저가: ${result.price}\n\n결과 조회: https://pricehunter.kr/result-search.html`;
+        
+        // 확인 대화상자
+        const confirmMessage = `고객에게 알림을 발송하시겠습니까?\n\n수신자: ${currentRequest.userName}\n연락처: ${currentRequest.phone}\n알림 방법: ${notifyMethod}\n\n메시지:\n${message}`;
+        
+        if (!confirm(confirmMessage)) return;
+        
+        // 실제 알림 발송 (시뮬레이션)
+        console.log('=== 수동 알림 발송 ===');
+        console.log('수신자:', currentRequest.userName, currentRequest.phone, currentRequest.email);
+        console.log('알림 방법:', notifyMethod);
+        console.log('메시지:', message);
+        
+        // 카카오톡 알림 (시뮬레이션)
+        if (notifyMethod === 'both' || notifyMethod === 'kakao') {
+          console.log('📱 카카오톡 알림 발송:', currentRequest.phone);
+          // 실제 구현 시: 카카오톡 API 연동
+        }
+        
+        // SMS 알림 (시뮬레이션)
+        if (notifyMethod === 'both' || notifyMethod === 'sms') {
+          console.log('📞 SMS 알림 발송:', currentRequest.phone);
+          // 실제 구현 시: SMS API 연동
+        }
+        
+        // 이메일 알림 (추가 옵션)
+        if (currentRequest.email) {
+          console.log('📧 이메일 알림 발송:', currentRequest.email);
+          // 실제 구현 시: 이메일 API 연동
+        }
+        
+        // 알림 발송 상태 저장
+        localStorage.setItem('notify-' + reqNum, JSON.stringify({
+          sent: true,
+          sentAt: Date.now(),
+          method: notifyMethod,
+          recipient: currentRequest.userName
+        }));
+        
+        // 발송 완료 표시
+        document.getElementById('admin-msg').innerHTML = `
+          <div class="text-green-600 font-bold">✅ 알림 발송 완료!</div>
+          <div class="text-sm text-gray-600 mt-1">
+            수신자: ${currentRequest.userName} | 
+            연락처: ${currentRequest.phone} | 
+            방법: ${notifyMethod}
+          </div>
+        `;
+        
+        // 발송 버튼 비활성화
+        const notifyBtn = document.getElementById('send-notify-btn');
+        if (notifyBtn) {
+          notifyBtn.disabled = true;
+          notifyBtn.textContent = '발송 완료';
+          notifyBtn.className = 'px-4 py-2 bg-gray-400 text-white rounded-lg font-bold cursor-not-allowed';
+        }
+        
+        // 리스트 새로고침
+        setTimeout(() => {
+          renderRequestList();
+        }, 500);
+      }
+      
+      function renderRequestList() {
+        allRequests = getRequestList();
+        
+        console.log('=== 의뢰 목록 렌더링 ===');
+        console.log('전체 의뢰 수:', allRequests.length);
+        console.log('의뢰 목록:', allRequests);
+        
+        // 탭별 필터링
+        let filteredRequests = allRequests;
+        if (currentTab !== 'all') {
+          filteredRequests = allRequests.filter(req => req.userName === currentTab);
+        }
+        
+        // 진행상황별 필터링
+        if (currentFilter !== 'all') {
+          filteredRequests = filteredRequests.filter(req => {
+            const status = getRequestStatus(req);
+            return status.status === currentFilter;
+          });
+        }
+        
+        console.log('필터링된 의뢰 수:', filteredRequests.length);
+        console.log('현재 탭:', currentTab);
+        console.log('현재 필터:', currentFilter);
+        
+        // 우선순위 정렬 (신규의뢰 → 진행중 → 완료)
+        filteredRequests.sort((a, b) => {
+          const statusA = getRequestStatus(a);
+          const statusB = getRequestStatus(b);
+          const priority = { new: 3, progress: 2, complete: 1 };
+          return priority[statusB.status] - priority[statusA.status];
+        });
+        
+        const ul = document.getElementById('request-list');
+        ul.innerHTML = '';
+        
+        if (filteredRequests.length === 0) {
+          ul.innerHTML = '<li class="py-4 text-center text-gray-400">해당하는 의뢰가 없습니다.</li>';
+          return;
+        }
+        
+        filteredRequests.forEach(req => {
+          const li = document.createElement('li');
+          // 현재 선택된 의뢰인지 확인하여 스타일 적용
+          const isSelected = currentReqKey === req.key;
+          li.className = `py-3 px-4 hover:bg-pink-100 cursor-pointer flex items-center gap-2 flex-wrap ${isSelected ? 'bg-pink-200 border-l-4 border-pink-500' : ''}`;
+          
+          const reqNum = req.key.replace('request-', '');
+          const status = getRequestStatus(req);
+          const statusBadge = `<span class="px-2 py-1 rounded text-xs font-bold text-white ${status.color}">${status.text}</span>`;
+          
+          // 구매 정보 가져오기
+          const purchaseInfo = getPurchaseInfo(req.key);
+          const purchaseMethod = purchaseInfo ? purchaseInfo.method : 'none';
+          const purchaseStatus = purchaseInfo ? purchaseInfo.status : 'none';
+          
+          const purchaseMethodText = getPurchaseMethodText(purchaseMethod);
+          const purchaseStatusText = getPurchaseStatusText(purchaseStatus);
+          const purchaseStatusColor = getPurchaseStatusColor(purchaseStatus);
+          
+          // 알림 상태 확인
+          const notifyData = localStorage.getItem('notify-' + reqNum);
+          let notifyBadge = '';
+          if (notifyData) {
+            const notify = JSON.parse(notifyData);
+            if (notify.sent) {
+              const sentDate = new Date(notify.sentAt).toLocaleDateString();
+              notifyBadge = `<span class="px-2 py-1 rounded text-xs font-bold text-white bg-green-500" title="발송일: ${sentDate}">발송완료</span>`;
+            }
+          } else if (status.status === 'complete') {
+            notifyBadge = `<span class="px-2 py-1 rounded text-xs font-bold text-white bg-red-500">미발송</span>`;
+          }
+          
+          // 체크박스
+          const checkbox = `<input type="checkbox" class="request-checkbox w-4 h-4 text-pink-600 bg-gray-100 border-gray-300 rounded focus:ring-pink-500 focus:ring-2" value="${req.key}" ${selectedRequests.has(req.key) ? 'checked' : ''} onclick="event.stopPropagation(); toggleSelection('${req.key}')">`;
+          
+          li.innerHTML = `
+            <div class="w-8 flex justify-center">${checkbox}</div>
+            <div class="flex-1 truncate flex items-center" style="min-width: 0;">
+              <span class="font-semibold text-pink-600">${reqNum}</span> | 
+              <span class="text-gray-700">${req.userName || '익명'}</span>
+              <span class="ml-2 text-gray-400 text-xs">${isSelected ? '▼' : '▶'}</span>
+            </div>
+            <div class="w-1/6 text-center text-xs text-gray-400">${req.date ? new Date(req.date).toLocaleString() : ''}</div>
+            <div class="w-1/6 text-center">${statusBadge}</div>
+            <div class="w-1/6 text-center text-xs">
+              <span class="text-gray-600">${purchaseMethodText}</span>
+            </div>
+            <div class="w-1/6 text-center">
+              <span class="px-2 py-1 rounded text-xs font-bold ${purchaseStatusColor}">${purchaseStatusText}</span>
+            </div>
+            <div class="w-1/6 text-center">${notifyBadge}</div>
+            <div class="w-1/4 text-right text-sm text-gray-600 truncate flex items-center justify-between">
+              <span class="truncate">${req.name || ''}</span>
+              <button onclick="event.stopPropagation(); deleteSingleRequest('${req.key}')" class="ml-2 px-2 py-1 bg-red-500 text-white rounded text-xs hover:bg-red-600 transition" title="의뢰 삭제">
+                🗑️
+              </button>
+            </div>
+          `;
+          
+          li.onclick = function() { showDetail(req); };
+          ul.appendChild(li);
+        });
+        
+        // 전체 카운트 업데이트
+        updateCounts();
+        updateSelectionUI();
+      }
+      
+      // 카운트 업데이트
+      function updateCounts() {
+        const counts = { all: 0, new: 0, progress: 0, complete: 0 };
+        
+        allRequests.forEach(req => {
+          counts.all++;
+          const status = getRequestStatus(req);
+          counts[status.status]++;
+        });
+        
+        document.getElementById('count-all').textContent = counts.all;
+      }
+      
+      // 의뢰 상세 보기
+      function showDetail(req) {
+        currentReqKey = req.key;
+        currentRequest = req;
+        
+        console.log('=== 의뢰 상세 보기 ===');
+        console.log('선택된 의뢰:', req);
+        
+        // 상세 섹션 표시
+        const detailSection = document.getElementById('detail-section');
+        if (detailSection) {
+        detailSection.classList.remove('hidden');
+            } else {
+          console.error('detail-section 요소를 찾을 수 없습니다!');
+          return;
+        }
+        
+        // 의뢰 정보 표시 (null 체크 추가)
+        const detailNum = document.getElementById('detail-num');
+        const detailName = document.getElementById('detail-name');
+        const detailDesc = document.getElementById('detail-desc');
+        const detailPrice = document.getElementById('detail-price');
+        const detailDate = document.getElementById('detail-date');
+        const detailUser = document.getElementById('detail-user');
+        const detailEmail = document.getElementById('detail-email');
+        const detailPhone = document.getElementById('detail-phone');
+        
+        if (detailNum) detailNum.textContent = req.key.replace('request-', '');
+        if (detailName) detailName.textContent = req.name || '';
+        if (detailDesc) detailDesc.textContent = req.desc || '';
+        if (detailPrice) detailPrice.textContent = req.price || '';
+        if (detailDate) detailDate.textContent = req.date ? new Date(req.date).toLocaleString() : '';
+        if (detailUser) detailUser.textContent = req.userName || '익명';
+        if (detailEmail) detailEmail.textContent = req.email || '';
+        if (detailPhone) detailPhone.textContent = req.phone || '';
+        
+        // 기존 결과 데이터 로드
+        const reqNum = req.key.replace('request-', '');
+        const resultData = localStorage.getItem('result-' + reqNum);
+        
+        if (resultData) {
+          const data = JSON.parse(resultData);
+          const adminPrice = document.getElementById('admin-price');
+          const adminOrigin = document.getElementById('admin-origin');
+          const adminLink = document.getElementById('admin-link');
+          
+          if (adminPrice) adminPrice.value = data.price || '';
+          if (adminOrigin) adminOrigin.value = data.origin || '';
+          if (adminLink) adminLink.value = data.link || '';
+        
+        // 리치 에디터에 내용 로드
+        const richEditor = document.getElementById('rich-editor');
+          if (richEditor) {
+            richEditor.innerHTML = data.summary || '';
+          }
+          
+          // textarea에도 동기화
+          const textarea = document.getElementById('admin-summary');
+          if (textarea) {
+            textarea.value = data.summary || '';
+          }
+        } else {
+          // 새로운 결과 입력을 위한 초기화
+          const adminPrice = document.getElementById('admin-price');
+          const adminOrigin = document.getElementById('admin-origin');
+          const adminLink = document.getElementById('admin-link');
+          
+          if (adminPrice) adminPrice.value = '';
+          if (adminOrigin) adminOrigin.value = '';
+          if (adminLink) adminLink.value = '';
+          
+          const richEditor = document.getElementById('rich-editor');
+          if (richEditor) {
+          richEditor.innerHTML = '';
+          }
+          
+          const textarea = document.getElementById('admin-summary');
+          if (textarea) {
+            textarea.value = '';
+          }
+        }
+        
+        // 구매 상태 정보 로드
+        const purchaseInfo = getPurchaseInfo(req.key);
+        if (purchaseInfo) {
+          const purchaseManagement = document.getElementById('purchase-management');
+          const purchaseMethodDisplay = document.getElementById('purchase-method-display');
+          const purchaseStatus = document.getElementById('purchase-status');
+          const purchaseMemo = document.getElementById('purchase-memo');
+          
+          if (purchaseManagement) purchaseManagement.classList.remove('hidden');
+          if (purchaseMethodDisplay) purchaseMethodDisplay.textContent = getPurchaseMethodText(purchaseInfo.method);
+          if (purchaseStatus) purchaseStatus.value = purchaseInfo.status || 'none';
+          if (purchaseMemo) purchaseMemo.value = purchaseInfo.memo || '';
+        } else {
+          const purchaseManagement = document.getElementById('purchase-management');
+          if (purchaseManagement) purchaseManagement.classList.add('hidden');
+        }
+        
+        // 리스트에서 선택된 항목 스타일 업데이트
+        renderRequestList();
+      }
+      
+      // 답변 저장/삭제 시 summary 필드도 저장/불러오기
+      document.getElementById('result-form').onsubmit = function(e) {
+        e.preventDefault();
+        if (!currentReqKey || !currentRequest) return;
+        const reqNum = currentReqKey.replace('request-','');
+        
+        // 리치 에디터의 실제 내용을 가져오기 (최종 동기화)
+        const richEditor = document.getElementById('rich-editor');
+        let summaryContent = '';
+        
+        if (richEditor) {
+          // 저장 전 최종 동기화
+          summaryContent = richEditor.innerHTML;
+          // textarea에도 동기화
+          const textarea = document.getElementById('admin-summary');
+          if (textarea) {
+            textarea.value = summaryContent;
+          }
+        }
+        
+        // 입력 필드들 가져오기 (null 체크 추가)
+        const adminPrice = document.getElementById('admin-price');
+        const adminOrigin = document.getElementById('admin-origin');
+        const adminLink = document.getElementById('admin-link');
+        
+        const data = {
+          price: adminPrice ? adminPrice.value : '',
+          origin: adminOrigin ? adminOrigin.value : '',
+          summary: summaryContent,
+          link: adminLink ? adminLink.value : ''
+        };
+        
+        console.log('저장할 데이터:', data);
+        
+        // 여러 형식으로 저장하여 호환성 보장
+        localStorage.setItem('result-' + reqNum, JSON.stringify(data));
+        localStorage.setItem('result-PH-' + reqNum, JSON.stringify(data));
+        
+        console.log('결과 저장 완료:', {
+          key: 'result-' + reqNum,
+          data: data
+        });
+        
+        // 알림 발송 버튼 표시
+        const hasImages = summaryContent.includes('<img');
+        const imageInfo = hasImages ? ' (이미지 포함)' : '';
+        
+        document.getElementById('admin-msg').innerHTML = `
+          <div class="text-green-600 font-bold mb-2">✅ 결과가 저장되었습니다!${imageInfo}</div>
+          <button id="send-notify-btn" onclick="sendManualNotification()" class="px-4 py-2 bg-blue-500 text-white rounded-lg font-bold hover:bg-blue-600 transition">
+            고객에게 알림 발송
+          </button>
+        `;
+        
+        // 리스트 새로고침
+        setTimeout(() => {
+          renderRequestList();
+        }, 500);
+      };
+      
+      document.getElementById('admin-delete').onclick = function() {
+        if (!currentReqKey) return;
+        const reqNum = currentReqKey.replace('request-','');
+        localStorage.removeItem('result-' + reqNum);
+        localStorage.removeItem('result-PH-' + reqNum);
+        
+        const adminMsg = document.getElementById('admin-msg');
+        if (adminMsg) {
+          adminMsg.textContent = '삭제되었습니다!';
+        }
+        
+        // 리스트 새로고침
+        setTimeout(() => {
+          renderRequestList();
+        }, 500);
+      };
+      
+      // 구매 상태 업데이트
+      document.getElementById('update-purchase-status').onclick = function() {
+        if (!currentReqKey || !currentRequest) {
+          alert('의뢰를 먼저 선택해주세요.');
+          return;
+        }
+        
+        const reqNum = currentReqKey.replace('request-', '');
+        const status = document.getElementById('purchase-status').value;
+        const memo = document.getElementById('purchase-memo').value;
+        
+        // 기존 구매 정보 가져오기
+        const existingPurchase = getPurchaseInfo(currentReqKey) || {};
+        
+        // 구매 정보 업데이트
+        const purchaseInfo = {
+          ...existingPurchase,
+          status: status,
+          memo: memo,
+          updatedAt: Date.now(),
+          updatedBy: 'admin'
+        };
+        
+        localStorage.setItem('order-' + reqNum, JSON.stringify(purchaseInfo));
+        
+        alert('구매 상태가 업데이트되었습니다.');
+        
+        // 리스트 새로고침
+        renderRequestList();
+      };
+      
+      // 주문 상세보기
+      document.getElementById('view-order-details').onclick = function() {
+        if (!currentReqKey || !currentRequest) {
+          alert('의뢰를 먼저 선택해주세요.');
+          return;
+        }
+        
+        const reqNum = currentReqKey.replace('request-', '');
+        const purchaseInfo = getPurchaseInfo(currentReqKey);
+        const orderData = localStorage.getItem('order-' + reqNum);
+        
+        if (!purchaseInfo || purchaseInfo.method === 'none') {
+          alert('구매 정보가 없습니다.');
+          return;
+        }
+        
+        // 주문 상세 정보 표시
+        let orderDetails = `=== 주문 상세 정보 ===\n\n`;
+        orderDetails += `의뢰번호: ${reqNum}\n`;
+        orderDetails += `제품명: ${currentRequest.name}\n`;
+        orderDetails += `구매자: ${currentRequest.userName}\n`;
+        orderDetails += `연락처: ${currentRequest.phone}\n`;
+        orderDetails += `구매방식: ${getPurchaseMethodText(purchaseInfo.method)}\n`;
+        orderDetails += `구매상태: ${getPurchaseStatusText(purchaseInfo.status)}\n`;
+        
+        if (purchaseInfo.orderNumber) {
+          orderDetails += `주문번호: ${purchaseInfo.orderNumber}\n`;
+        }
+        
+        if (purchaseInfo.orderDate) {
+          orderDetails += `주문일: ${new Date(purchaseInfo.orderDate).toLocaleString()}\n`;
+        }
+        
+        if (purchaseInfo.memo) {
+          orderDetails += `관리자 메모: ${purchaseInfo.memo}\n`;
+        }
+        
+        if (purchaseInfo.updatedAt) {
+          orderDetails += `최종 업데이트: ${new Date(purchaseInfo.updatedAt).toLocaleString()}\n`;
+        }
+        
+        alert(orderDetails);
+      };
+      
+      // 리치 텍스트 에디터 기능
+      function initRichEditor() {
+        const editor = document.getElementById('rich-editor');
+        const textarea = document.getElementById('admin-summary');
+        
+        if (!editor) {
+          console.log('리치 에디터 요소를 찾을 수 없습니다.');
+          return;
+        }
+        
+        console.log('리치 에디터 초기화 시작');
+        
+        // 이미지 스타일 적용 함수
+        function applyImageStyle(img) {
+          img.style.maxWidth = '100%';
+          img.style.height = 'auto';
+          img.style.margin = '10px 0';
+          img.style.borderRadius = '8px';
+          img.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+          img.style.cursor = 'pointer';
+          img.title = '클릭하여 크기 조절';
+          
+          // 이미지 클릭 시 크기 조절
+          img.addEventListener('click', function() {
+            const currentWidth = this.style.width || '100%';
+            const currentHeight = this.style.height || 'auto';
+            
+            if (currentWidth === '100%') {
+              this.style.width = '50%';
+              this.style.height = 'auto';
+              this.title = '클릭하여 원래 크기로';
+            } else if (currentWidth === '50%') {
+              this.style.width = '200px';
+              this.style.height = 'auto';
+              this.title = '클릭하여 더 작게';
+            } else {
+              this.style.width = '100%';
+              this.style.height = 'auto';
+              this.title = '클릭하여 크기 조절';
+            }
+          });
+        }
+        
+        // 이미지 삽입 함수
+        function insertImage(src) {
+          const img = document.createElement('img');
+          img.src = src;
+          applyImageStyle(img);
+          
+          // 에디터에 이미지 삽입
+          const selection = window.getSelection();
+          if (selection.rangeCount > 0) {
+            const range = selection.getRangeAt(0);
+            range.deleteContents();
+            range.insertNode(img);
+          } else {
+            editor.appendChild(img);
+          }
+          
+          // 커서를 이미지 뒤로 이동
+          const newRange = document.createRange();
+          newRange.setStartAfter(img);
+          newRange.collapse(true);
+          selection.removeAllRanges();
+          selection.addRange(newRange);
+          
+          syncContent();
+          editor.focus();
+        }
+        
+        // 에디터 내용을 textarea에 동기화
+        function syncContent() {
+          if (textarea && editor) {
+            textarea.value = editor.innerHTML;
+          }
+        }
+        
+        // 저장 전 최종 동기화
+        function finalSync() {
+          if (editor) {
+            return editor.innerHTML;
+          }
+          return '';
+        }
+        
+        // 에디터 이벤트 리스너
+        editor.addEventListener('input', syncContent);
+        
+        // 드래그 앤 드롭 기능
+        editor.addEventListener('dragover', function(e) {
+          e.preventDefault();
+          editor.style.borderColor = '#3b82f6';
+          editor.style.backgroundColor = '#f0f9ff';
+        });
+        
+        editor.addEventListener('dragleave', function(e) {
+          e.preventDefault();
+          editor.style.borderColor = '#d1d5db';
+          editor.style.backgroundColor = '#ffffff';
+        });
+        
+        editor.addEventListener('drop', function(e) {
+          e.preventDefault();
+          editor.style.borderColor = '#d1d5db';
+          editor.style.backgroundColor = '#ffffff';
+          
+          const files = e.dataTransfer.files;
+          if (files.length > 0) {
+            const file = files[0];
+            if (file.type.startsWith('image/')) {
+              const reader = new FileReader();
+              reader.onload = function(e) {
+                insertImage(e.target.result);
+              };
+              reader.readAsDataURL(file);
+            }
+          }
+        });
+        
+        editor.addEventListener('paste', function(e) {
+          e.preventDefault();
+          
+          // 클립보드에서 이미지 확인
+          const items = e.clipboardData.items;
+          let hasImage = false;
+          
+          for (let i = 0; i < items.length; i++) {
+            if (items[i].type.indexOf('image') !== -1) {
+              hasImage = true;
+              const file = items[i].getAsFile();
+              const reader = new FileReader();
+              
+              reader.onload = function(e) {
+                insertImage(e.target.result);
+              };
+              
+              reader.readAsDataURL(file);
+              break;
+            }
+          }
+          
+          // 이미지가 없으면 텍스트로 처리
+          if (!hasImage) {
+            const text = e.clipboardData.getData('text/plain');
+            document.execCommand('insertText', false, text);
+          }
+        });
+        
+        // 글꼴 크기 변경 - 완전히 새로운 방법
+        const fontSizeSelect = document.getElementById('font-size');
+        if (fontSizeSelect) {
+          fontSizeSelect.addEventListener('change', function() {
+            const size = this.value;
+            console.log('글자크기 변경 시도:', size);
+            
+            // 에디터에 포커스
+          editor.focus();
+            
+            // 새로운 방법: 직접 HTML 삽입
+            const fontSizeSpan = `<span style="font-size: ${size}px;">`;
+            const closeSpan = '</span>';
+            
+            // 선택된 텍스트가 있는지 확인
+            const selection = window.getSelection();
+            if (selection.rangeCount > 0 && !selection.isCollapsed) {
+              // 텍스트가 선택된 경우
+              console.log('선택된 텍스트에 글자크기 적용');
+              
+              const range = selection.getRangeAt(0);
+              const selectedText = range.toString();
+              const newHTML = fontSizeSpan + selectedText + closeSpan;
+              
+              // 선택된 텍스트를 새로운 HTML로 교체
+              range.deleteContents();
+              const tempDiv = document.createElement('div');
+              tempDiv.innerHTML = newHTML;
+              range.insertNode(tempDiv.firstChild);
+              
+              console.log('선택된 텍스트에 글자크기 적용 완료');
+            } else {
+              // 선택된 텍스트가 없는 경우, 커서 위치에 샘플 텍스트 삽입
+              console.log('커서 위치에 글자크기 샘플 텍스트 삽입');
+              
+              const sampleText = fontSizeSpan + '새 텍스트' + closeSpan;
+              const tempDiv = document.createElement('div');
+              tempDiv.innerHTML = sampleText;
+              
+              const range = selection.getRangeAt(0);
+              range.insertNode(tempDiv.firstChild);
+              
+              // 커서를 텍스트 끝으로 이동
+              const newRange = document.createRange();
+              newRange.setStartAfter(tempDiv.firstChild);
+              newRange.collapse(true);
+              selection.removeAllRanges();
+              selection.addRange(newRange);
+              
+              console.log('커서 위치에 글자크기 샘플 텍스트 삽입 완료');
+            }
+            
+            editor.focus();
+            console.log('글자크기 변경 완료');
+          });
+        } else {
+          console.error('font-size 요소를 찾을 수 없습니다!');
+        }
+        
+        // 굵게
+        const boldBtn = document.getElementById('bold-btn');
+        if (boldBtn) {
+          boldBtn.addEventListener('click', function() {
+          document.execCommand('bold', false, null);
+          editor.focus();
+        });
+        }
+        
+        // 기울임
+        const italicBtn = document.getElementById('italic-btn');
+        if (italicBtn) {
+          italicBtn.addEventListener('click', function() {
+          document.execCommand('italic', false, null);
+          editor.focus();
+        });
+        }
+        
+        // 밑줄
+        const underlineBtn = document.getElementById('underline-btn');
+        if (underlineBtn) {
+          underlineBtn.addEventListener('click', function() {
+          document.execCommand('underline', false, null);
+          editor.focus();
+        });
+        }
+        
+        // 텍스트 색상
+        const textColorInput = document.getElementById('text-color');
+        if (textColorInput) {
+          textColorInput.addEventListener('change', function() {
+          document.execCommand('foreColor', false, this.value);
+          editor.focus();
+        });
+        }
+        
+        // 배경색
+        const bgColorInput = document.getElementById('bg-color');
+        if (bgColorInput) {
+          bgColorInput.addEventListener('change', function() {
+          document.execCommand('hiliteColor', false, this.value);
+          editor.focus();
+        });
+        }
+        
+        // 링크 추가
+        const linkBtn = document.getElementById('link-btn');
+        if (linkBtn) {
+          linkBtn.addEventListener('click', function() {
+          const url = prompt('링크 URL을 입력하세요:');
+          if (url) {
+            document.execCommand('createLink', false, url);
+          }
+          editor.focus();
+        });
+        }
+        
+        // 이미지 추가
+        const imageBtn = document.getElementById('image-btn');
+        if (imageBtn) {
+          imageBtn.addEventListener('click', function() {
+          // 이미지 업로드 input 생성
+          const fileInput = document.createElement('input');
+          fileInput.type = 'file';
+          fileInput.accept = 'image/*';
+          fileInput.style.display = 'none';
+          
+          fileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+              const reader = new FileReader();
+              reader.onload = function(e) {
+                insertImage(e.target.result);
+              };
+              reader.readAsDataURL(file);
+            }
+            document.body.removeChild(fileInput);
+          });
+          
+          document.body.appendChild(fileInput);
+          fileInput.click();
+        });
+        }
+        
+        // 정렬
+        const alignLeftBtn = document.getElementById('align-left');
+        if (alignLeftBtn) {
+          alignLeftBtn.addEventListener('click', function() {
+          document.execCommand('justifyLeft', false, null);
+          editor.focus();
+        });
+        }
+        
+        const alignCenterBtn = document.getElementById('align-center');
+        if (alignCenterBtn) {
+          alignCenterBtn.addEventListener('click', function() {
+          document.execCommand('justifyCenter', false, null);
+          editor.focus();
+        });
+        }
+        
+        const alignRightBtn = document.getElementById('align-right');
+        if (alignRightBtn) {
+          alignRightBtn.addEventListener('click', function() {
+          document.execCommand('justifyRight', false, null);
+          editor.focus();
+        });
+        }
+        
+        // 목록
+        const ulBtn = document.getElementById('ul-btn');
+        if (ulBtn) {
+          ulBtn.addEventListener('click', function() {
+          document.execCommand('insertUnorderedList', false, null);
+          editor.focus();
+        });
+        }
+        
+        const olBtn = document.getElementById('ol-btn');
+        if (olBtn) {
+          olBtn.addEventListener('click', function() {
+          document.execCommand('insertOrderedList', false, null);
+          editor.focus();
+        });
+        }
+        
+        // 에디터 내용을 textarea에 로드
+        function loadContent() {
+          if (textarea && textarea.value && editor) {
+            editor.innerHTML = textarea.value;
+            // 이미지 스타일 재적용
+            const images = editor.querySelectorAll('img');
+            images.forEach(img => {
+              applyImageStyle(img);
+            });
+          }
+        }
+        
+        // 초기 내용 로드
+        loadContent();
+        
+        console.log('리치 에디터 초기화 완료');
+      }
+      
+              // SMS 알림 발송 함수
+        async function sendSMSNotification(phone, userName, result) {
+          try {
+            // 네이버 클라우드 SMS API 설정
+            const serviceId = 'ncp:sms:kr:123456789012:pricehunter'; // 실제 서비스 ID로 변경 필요
+            const accessKey = 'YOUR_ACCESS_KEY'; // 실제 액세스 키로 변경 필요
+            const secretKey = 'YOUR_SECRET_KEY'; // 실제 시크릿 키로 변경 필요
+            
+            // SMS 내용 구성
+            const message = `[PriceHunter] ${userName}님, 의뢰하신 상품의 최저가 정보가 준비되었습니다. 
+            
+상품명: ${result.productName}
+최저가: ${result.lowestPrice}
+쇼핑몰: ${result.shopName}
+
+자세한 내용은 PriceHunter에서 확인해주세요.
+https://pricehunt24.com/result-search.html?req=${result.requestKey}`;
+
+            // 실제 SMS API 호출 (CORS 이슈로 인해 서버 사이드에서 처리 필요)
+            console.log('📞 SMS 발송 시도:', {
+              phone: phone,
+              message: message,
+              serviceId: serviceId
+            });
+
+            // 서버 사이드 API 호출 시뮬레이션
+            const response = await fetch('/api/send-sms', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                phone: phone,
+                message: message,
+                serviceId: serviceId,
+                accessKey: accessKey,
+                secretKey: secretKey
+              })
+            });
+
+            if (response.ok) {
+              console.log('✅ SMS 발송 성공:', phone);
+              return true;
+            } else {
+              console.error('❌ SMS 발송 실패:', phone);
+              return false;
+            }
+          } catch (error) {
+            console.error('❌ SMS 발송 오류:', error);
+            return false;
+          }
+        }
+
+        // 카카오톡 알림 발송 함수
+        async function sendKakaoNotification(phone, userName, result) {
+          try {
+            // 카카오톡 알림톡 API 설정
+            const apiKey = 'YOUR_KAKAO_API_KEY'; // 실제 API 키로 변경 필요
+            const templateId = 'pricehunter_notification'; // 실제 템플릿 ID로 변경 필요
+            
+            // 알림톡 내용 구성
+            const message = {
+              phone: phone,
+              templateId: templateId,
+              variables: {
+                userName: userName,
+                productName: result.productName,
+                lowestPrice: result.lowestPrice,
+                shopName: result.shopName,
+                requestKey: result.requestKey
+              }
+            };
+
+            console.log('📱 카카오톡 알림톡 발송 시도:', {
+              phone: phone,
+              templateId: templateId
+            });
+
+            // 서버 사이드 API 호출 시뮬레이션
+            const response = await fetch('/api/send-kakao', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(message)
+            });
+
+            if (response.ok) {
+              console.log('✅ 카카오톡 알림톡 발송 성공:', phone);
+              return true;
+            } else {
+              console.error('❌ 카카오톡 알림톡 발송 실패:', phone);
+              return false;
+            }
+          } catch (error) {
+            console.error('❌ 카카오톡 알림톡 발송 오류:', error);
+            return false;
+          }
+        }
+
+        // 의뢰 단일 삭제 함수
+        function deleteSingleRequest(reqKey) {
+          const reqNum = reqKey.replace('request-', '');
+          const confirmMessage = `의뢰번호 ${reqNum}를 삭제하시겠습니까?\n\n⚠️ 삭제되는 데이터:\n• 의뢰 정보\n• 의뢰 결과\n• 주문 정보\n• 알림 발송 기록\n\n이 작업은 되돌릴 수 없습니다.`;
+          
+          if (confirm(confirmMessage)) {
+            // 모든 관련 데이터 삭제
+            localStorage.removeItem(reqKey); // 의뢰 정보
+            localStorage.removeItem('result-' + reqNum); // 의뢰 결과
+            localStorage.removeItem('order-' + reqNum); // 주문 정보
+            localStorage.removeItem('notify-' + reqNum); // 알림 발송 기록
+            
+            // 현재 선택된 의뢰가 삭제된 경우 상세 섹션 숨기기
+            if (currentReqKey === reqKey) {
+              currentReqKey = null;
+              document.getElementById('detail-section').classList.add('hidden');
+            }
+            
+            alert(`의뢰번호 ${reqNum}와 관련 데이터가 완전히 삭제되었습니다.`);
+            renderRequestList();
+          }
+        }
+
+        // 테스트 데이터 정리 함수
+        function cleanupTestData() {
+          console.log('=== 관리자 페이지 테스트 데이터 정리 시작 ===');
+          const allKeys = Object.keys(localStorage);
+          let deletedCount = 0;
+          
+          allKeys.forEach(key => {
+            // 테스트 데이터 패턴들
+            const isTestData = 
+              key.includes('TEST') || 
+              key.startsWith('requestCount-') ||
+              key.includes('#PH-') ||
+              key.includes('result-#PH-') ||
+              key.includes('order-#PH-') ||
+              key.includes('notify-#PH-') ||
+              key.includes('inquiry-#PH-');
+            
+            if (isTestData) {
+              localStorage.removeItem(key);
+              deletedCount++;
+              console.log(`테스트 데이터 삭제: ${key}`);
+            }
+          });
+          
+          if (deletedCount > 0) {
+            console.log(`총 ${deletedCount}개의 테스트 데이터가 삭제되었습니다.`);
+            alert(`테스트 데이터 ${deletedCount}개가 삭제되었습니다.`);
+          } else {
+            console.log('삭제할 테스트 데이터가 없습니다.');
+          }
+          
+          // 리스트 새로고침
+          setTimeout(() => {
+            renderRequestList();
+          }, 500);
+        }
+
+        // 초기화
+        window.addEventListener('DOMContentLoaded', function() {
+          console.log('=== 관리자 페이지 초기화 시작 ===');
+          
+          // 테스트 데이터 정리는 수동으로만 실행 (자동 실행 제거)
+          // cleanupTestData();
+          
+          // 관리자 권한 확인
+          if (!isAdmin()) {
+            alert('관리자 권한이 필요합니다.');
+            window.location.href = 'index.html';
+            return;
+          }
+          
+          console.log('관리자 권한 확인 완료');
+          
+          // 탭 및 필터 초기화
+          currentTab = 'all';
+          currentFilter = 'all';
+          
+          console.log('탭/필터 초기화 완료');
+          
+          // 의뢰 목록 렌더링
+          renderRequestList();
+          
+          console.log('의뢰 목록 렌더링 완료');
+          
+          // 탭 생성
+          createUserTabs();
+          
+          console.log('사용자 탭 생성 완료');
+          
+          // 이벤트 리스너 등록 (null 체크 추가)
+          const selectAllElement = document.getElementById('select-all');
+          if (selectAllElement) {
+            selectAllElement.addEventListener('change', toggleSelectAll);
+            console.log('select-all 이벤트 리스너 등록 완료');
+          } else {
+            console.warn('select-all 요소를 찾을 수 없습니다.');
+          }
+          
+          // 검색 이벤트 리스너
+          const searchInputElement = document.getElementById('search-input');
+          if (searchInputElement) {
+            searchInputElement.addEventListener('input', function() {
+              setTimeout(renderRequestList, 300);
+            });
+            console.log('search-input 이벤트 리스너 등록 완료');
+          } else {
+            console.warn('search-input 요소를 찾을 수 없습니다.');
+          }
+          
+          // 폼 이벤트 리스너 등록
+          const resultForm = document.getElementById('result-form');
+          if (resultForm) {
+            resultForm.onsubmit = function(e) {
+          e.preventDefault();
+              if (!currentReqKey || !currentRequest) return;
+              const reqNum = currentReqKey.replace('request-','');
+              
+              // 리치 에디터의 실제 내용을 가져오기 (최종 동기화)
+              const richEditor = document.getElementById('rich-editor');
+              let summaryContent = '';
+              
+              if (richEditor) {
+                // 저장 전 최종 동기화
+                summaryContent = richEditor.innerHTML;
+                // textarea에도 동기화
+                const textarea = document.getElementById('admin-summary');
+                if (textarea) {
+                  textarea.value = summaryContent;
+                }
+              }
+              
+              // 입력 필드들 가져오기 (null 체크 추가)
+              const adminPrice = document.getElementById('admin-price');
+              const adminOrigin = document.getElementById('admin-origin');
+              const adminLink = document.getElementById('admin-link');
+              
+              const data = {
+                price: adminPrice ? adminPrice.value : '',
+                origin: adminOrigin ? adminOrigin.value : '',
+                summary: summaryContent,
+                link: adminLink ? adminLink.value : ''
+              };
+              
+              console.log('저장할 데이터:', data);
+              
+              // 여러 형식으로 저장하여 호환성 보장
+              localStorage.setItem('result-' + reqNum, JSON.stringify(data));
+              localStorage.setItem('result-PH-' + reqNum, JSON.stringify(data));
+              
+              console.log('결과 저장 완료:', {
+                key: 'result-' + reqNum,
+                data: data
+              });
+              
+              // 알림 발송 버튼 표시
+              const hasImages = summaryContent.includes('<img');
+              const imageInfo = hasImages ? ' (이미지 포함)' : '';
+              
+              const adminMsg = document.getElementById('admin-msg');
+              if (adminMsg) {
+                adminMsg.innerHTML = `
+                  <div class="text-green-600 font-bold mb-2">✅ 결과가 저장되었습니다!${imageInfo}</div>
+                  <button id="send-notify-btn" onclick="sendManualNotification()" class="px-4 py-2 bg-blue-500 text-white rounded-lg font-bold hover:bg-blue-600 transition">
+                    고객에게 알림 발송
+                  </button>
+                `;
+              }
+              
+              // 리스트 새로고침
+              setTimeout(() => {
+                renderRequestList();
+              }, 500);
+            };
+            console.log('result-form 이벤트 리스너 등록 완료');
+          } else {
+            console.warn('result-form 요소를 찾을 수 없습니다.');
+          }
+          
+          // 삭제 버튼 이벤트 리스너 등록
+          const adminDeleteBtn = document.getElementById('admin-delete');
+          if (adminDeleteBtn) {
+            adminDeleteBtn.onclick = function() {
+              if (!currentReqKey) return;
+              const reqNum = currentReqKey.replace('request-','');
+              localStorage.removeItem('result-' + reqNum);
+              localStorage.removeItem('result-PH-' + reqNum);
+              
+              const adminMsg = document.getElementById('admin-msg');
+              if (adminMsg) {
+                adminMsg.textContent = '삭제되었습니다!';
+              }
+              
+              // 리스트 새로고침
+              setTimeout(() => {
+                renderRequestList();
+              }, 500);
+            };
+            console.log('admin-delete 이벤트 리스너 등록 완료');
+          } else {
+            console.warn('admin-delete 요소를 찾을 수 없습니다.');
+          }
+          
+          // 리치 텍스트 에디터 초기화
+          initRichEditor();
+          
+          console.log('이벤트 리스너 등록 완료');
+          console.log('=== 관리자 페이지 초기화 완료 ===');
+        });
+    </script>
+  </body>
+</html> 
+              localStorage.removeItem(key);
+              deletedCount++;
+              console.log(`테스트 데이터 삭제: ${key}`);
+            }
+          });
+          
+          if (deletedCount > 0) {
+            console.log(`총 ${deletedCount}개의 테스트 데이터가 삭제되었습니다.`);
+            alert(`테스트 데이터 ${deletedCount}개가 삭제되었습니다.`);
+          } else {
+            console.log('삭제할 테스트 데이터가 없습니다.');
+          }
+          
+          // 리스트 새로고침
+          setTimeout(() => {
+            renderRequestList();
+          }, 500);
+        }
+
+        // 초기화
+        window.addEventListener('DOMContentLoaded', function() {
+          console.log('=== 관리자 페이지 초기화 시작 ===');
+          
+          // 테스트 데이터 정리는 수동으로만 실행 (자동 실행 제거)
+          // cleanupTestData();
+          
+          // 관리자 권한 확인
+          if (!isAdmin()) {
+            alert('관리자 권한이 필요합니다.');
+            window.location.href = 'index.html';
+            return;
+          }
+          
+          console.log('관리자 권한 확인 완료');
+          
+          // 탭 및 필터 초기화
+          currentTab = 'all';
+          currentFilter = 'all';
+          
+          console.log('탭/필터 초기화 완료');
+          
+          // 의뢰 목록 렌더링
+          renderRequestList();
+          
+          console.log('의뢰 목록 렌더링 완료');
+          
+          // 탭 생성
+          createUserTabs();
+          
+          console.log('사용자 탭 생성 완료');
+          
+          // 이벤트 리스너 등록 (null 체크 추가)
+          const selectAllElement = document.getElementById('select-all');
+          if (selectAllElement) {
+            selectAllElement.addEventListener('change', toggleSelectAll);
+            console.log('select-all 이벤트 리스너 등록 완료');
+          } else {
+            console.warn('select-all 요소를 찾을 수 없습니다.');
+          }
+          
+          // 검색 이벤트 리스너
+          const searchInputElement = document.getElementById('search-input');
+          if (searchInputElement) {
+            searchInputElement.addEventListener('input', function() {
+              setTimeout(renderRequestList, 300);
+            });
+            console.log('search-input 이벤트 리스너 등록 완료');
+          } else {
+            console.warn('search-input 요소를 찾을 수 없습니다.');
+          }
+          
+          // 폼 이벤트 리스너 등록
+          const resultForm = document.getElementById('result-form');
+          if (resultForm) {
+            resultForm.onsubmit = function(e) {
+          e.preventDefault();
+              if (!currentReqKey || !currentRequest) return;
+              const reqNum = currentReqKey.replace('request-','');
+              
+              // 리치 에디터의 실제 내용을 가져오기 (최종 동기화)
+              const richEditor = document.getElementById('rich-editor');
+              let summaryContent = '';
+              
+              if (richEditor) {
+                // 저장 전 최종 동기화
+                summaryContent = richEditor.innerHTML;
+                // textarea에도 동기화
+                const textarea = document.getElementById('admin-summary');
+                if (textarea) {
+                  textarea.value = summaryContent;
+                }
+              }
+              
+              // 입력 필드들 가져오기 (null 체크 추가)
+              const adminPrice = document.getElementById('admin-price');
+              const adminOrigin = document.getElementById('admin-origin');
+              const adminLink = document.getElementById('admin-link');
+              
+              const data = {
+                price: adminPrice ? adminPrice.value : '',
+                origin: adminOrigin ? adminOrigin.value : '',
+                summary: summaryContent,
+                link: adminLink ? adminLink.value : ''
+              };
+              
+              console.log('저장할 데이터:', data);
+              
+              // 여러 형식으로 저장하여 호환성 보장
+              localStorage.setItem('result-' + reqNum, JSON.stringify(data));
+              localStorage.setItem('result-PH-' + reqNum, JSON.stringify(data));
+              
+              console.log('결과 저장 완료:', {
+                key: 'result-' + reqNum,
+                data: data
+              });
+              
+              // 알림 발송 버튼 표시
+              const hasImages = summaryContent.includes('<img');
+              const imageInfo = hasImages ? ' (이미지 포함)' : '';
+              
+              const adminMsg = document.getElementById('admin-msg');
+              if (adminMsg) {
+                adminMsg.innerHTML = `
+                  <div class="text-green-600 font-bold mb-2">✅ 결과가 저장되었습니다!${imageInfo}</div>
+                  <button id="send-notify-btn" onclick="sendManualNotification()" class="px-4 py-2 bg-blue-500 text-white rounded-lg font-bold hover:bg-blue-600 transition">
+                    고객에게 알림 발송
+                  </button>
+                `;
+              }
+              
+              // 리스트 새로고침
+              setTimeout(() => {
+                renderRequestList();
+              }, 500);
+            };
+            console.log('result-form 이벤트 리스너 등록 완료');
+          } else {
+            console.warn('result-form 요소를 찾을 수 없습니다.');
+          }
+          
+          // 삭제 버튼 이벤트 리스너 등록
+          const adminDeleteBtn = document.getElementById('admin-delete');
+          if (adminDeleteBtn) {
+            adminDeleteBtn.onclick = function() {
+              if (!currentReqKey) return;
+              const reqNum = currentReqKey.replace('request-','');
+              localStorage.removeItem('result-' + reqNum);
+              localStorage.removeItem('result-PH-' + reqNum);
+              
+              const adminMsg = document.getElementById('admin-msg');
+              if (adminMsg) {
+                adminMsg.textContent = '삭제되었습니다!';
+              }
+              
+              // 리스트 새로고침
+              setTimeout(() => {
+                renderRequestList();
+              }, 500);
+            };
+            console.log('admin-delete 이벤트 리스너 등록 완료');
+          } else {
+            console.warn('admin-delete 요소를 찾을 수 없습니다.');
+          }
+          
+          // 리치 텍스트 에디터 초기화
+          initRichEditor();
+          
+          console.log('이벤트 리스너 등록 완료');
+          console.log('=== 관리자 페이지 초기화 완료 ===');
+        });
+    </script>
+  </body>
+</html> 
+              localStorage.removeItem(key);
+              deletedCount++;
+              console.log(`테스트 데이터 삭제: ${key}`);
+            }
+          });
+          
+          if (deletedCount > 0) {
+            console.log(`총 ${deletedCount}개의 테스트 데이터가 삭제되었습니다.`);
+            alert(`테스트 데이터 ${deletedCount}개가 삭제되었습니다.`);
+          } else {
+            console.log('삭제할 테스트 데이터가 없습니다.');
+          }
+          
+          // 리스트 새로고침
+          setTimeout(() => {
+            renderRequestList();
+          }, 500);
+        }
+
+        // 초기화
+        window.addEventListener('DOMContentLoaded', function() {
+          console.log('=== 관리자 페이지 초기화 시작 ===');
+          
+          // 테스트 데이터 정리는 수동으로만 실행 (자동 실행 제거)
+          // cleanupTestData();
+          
+          // 관리자 권한 확인
+          if (!isAdmin()) {
+            alert('관리자 권한이 필요합니다.');
+            window.location.href = 'index.html';
+            return;
+          }
+          
+          console.log('관리자 권한 확인 완료');
+          
+          // 탭 및 필터 초기화
+          currentTab = 'all';
+          currentFilter = 'all';
+          
+          console.log('탭/필터 초기화 완료');
+          
+          // 의뢰 목록 렌더링
+          renderRequestList();
+          
+          console.log('의뢰 목록 렌더링 완료');
+          
+          // 탭 생성
+          createUserTabs();
+          
+          console.log('사용자 탭 생성 완료');
+          
+          // 이벤트 리스너 등록 (null 체크 추가)
+          const selectAllElement = document.getElementById('select-all');
+          if (selectAllElement) {
+            selectAllElement.addEventListener('change', toggleSelectAll);
+            console.log('select-all 이벤트 리스너 등록 완료');
+          } else {
+            console.warn('select-all 요소를 찾을 수 없습니다.');
+          }
+          
+          // 검색 이벤트 리스너
+          const searchInputElement = document.getElementById('search-input');
+          if (searchInputElement) {
+            searchInputElement.addEventListener('input', function() {
+              setTimeout(renderRequestList, 300);
+            });
+            console.log('search-input 이벤트 리스너 등록 완료');
+          } else {
+            console.warn('search-input 요소를 찾을 수 없습니다.');
+          }
+          
+          // 폼 이벤트 리스너 등록
+          const resultForm = document.getElementById('result-form');
+          if (resultForm) {
+            resultForm.onsubmit = function(e) {
+          e.preventDefault();
+              if (!currentReqKey || !currentRequest) return;
+              const reqNum = currentReqKey.replace('request-','');
+              
+              // 리치 에디터의 실제 내용을 가져오기 (최종 동기화)
+              const richEditor = document.getElementById('rich-editor');
+              let summaryContent = '';
+              
+              if (richEditor) {
+                // 저장 전 최종 동기화
+                summaryContent = richEditor.innerHTML;
+                // textarea에도 동기화
+                const textarea = document.getElementById('admin-summary');
+                if (textarea) {
+                  textarea.value = summaryContent;
+                }
+              }
+              
+              // 입력 필드들 가져오기 (null 체크 추가)
+              const adminPrice = document.getElementById('admin-price');
+              const adminOrigin = document.getElementById('admin-origin');
+              const adminLink = document.getElementById('admin-link');
+              
+              const data = {
+                price: adminPrice ? adminPrice.value : '',
+                origin: adminOrigin ? adminOrigin.value : '',
+                summary: summaryContent,
+                link: adminLink ? adminLink.value : ''
+              };
+              
+              console.log('저장할 데이터:', data);
+              
+              // 여러 형식으로 저장하여 호환성 보장
+              localStorage.setItem('result-' + reqNum, JSON.stringify(data));
+              localStorage.setItem('result-PH-' + reqNum, JSON.stringify(data));
+              
+              console.log('결과 저장 완료:', {
+                key: 'result-' + reqNum,
+                data: data
+              });
+              
+              // 알림 발송 버튼 표시
+              const hasImages = summaryContent.includes('<img');
+              const imageInfo = hasImages ? ' (이미지 포함)' : '';
+              
+              const adminMsg = document.getElementById('admin-msg');
+              if (adminMsg) {
+                adminMsg.innerHTML = `
+                  <div class="text-green-600 font-bold mb-2">✅ 결과가 저장되었습니다!${imageInfo}</div>
+                  <button id="send-notify-btn" onclick="sendManualNotification()" class="px-4 py-2 bg-blue-500 text-white rounded-lg font-bold hover:bg-blue-600 transition">
+                    고객에게 알림 발송
+                  </button>
+                `;
+              }
+              
+              // 리스트 새로고침
+              setTimeout(() => {
+                renderRequestList();
+              }, 500);
+            };
+            console.log('result-form 이벤트 리스너 등록 완료');
+          } else {
+            console.warn('result-form 요소를 찾을 수 없습니다.');
+          }
+          
+          // 삭제 버튼 이벤트 리스너 등록
+          const adminDeleteBtn = document.getElementById('admin-delete');
+          if (adminDeleteBtn) {
+            adminDeleteBtn.onclick = function() {
+              if (!currentReqKey) return;
+              const reqNum = currentReqKey.replace('request-','');
+              localStorage.removeItem('result-' + reqNum);
+              localStorage.removeItem('result-PH-' + reqNum);
+              
+              const adminMsg = document.getElementById('admin-msg');
+              if (adminMsg) {
+                adminMsg.textContent = '삭제되었습니다!';
+              }
+              
+              // 리스트 새로고침
+              setTimeout(() => {
+                renderRequestList();
+              }, 500);
+            };
+            console.log('admin-delete 이벤트 리스너 등록 완료');
+          } else {
+            console.warn('admin-delete 요소를 찾을 수 없습니다.');
+          }
+          
+          // 리치 텍스트 에디터 초기화
+          initRichEditor();
+          
+          console.log('이벤트 리스너 등록 완료');
+          console.log('=== 관리자 페이지 초기화 완료 ===');
+        });
+    </script>
+  </body>
+</html> 
+              localStorage.removeItem(key);
+              deletedCount++;
+              console.log(`테스트 데이터 삭제: ${key}`);
+            }
+          });
+          
+          if (deletedCount > 0) {
+            console.log(`총 ${deletedCount}개의 테스트 데이터가 삭제되었습니다.`);
+            alert(`테스트 데이터 ${deletedCount}개가 삭제되었습니다.`);
+          } else {
+            console.log('삭제할 테스트 데이터가 없습니다.');
+          }
+          
+          // 리스트 새로고침
+          setTimeout(() => {
+            renderRequestList();
+          }, 500);
+      }
+      
+      // 초기화
+      window.addEventListener('DOMContentLoaded', function() {
+          console.log('=== 관리자 페이지 초기화 시작 ===');
+          
+          // 테스트 데이터 정리는 수동으로만 실행 (자동 실행 제거)
+          // cleanupTestData();
+          
+          // 관리자 권한 확인
+          if (!isAdmin()) {
+            alert('관리자 권한이 필요합니다.');
+            window.location.href = 'index.html';
+            return;
+          }
+          
+          console.log('관리자 권한 확인 완료');
+          
+          // 탭 및 필터 초기화
+          currentTab = 'all';
+          currentFilter = 'all';
+          
+          console.log('탭/필터 초기화 완료');
+          
+          // 의뢰 목록 렌더링
+        renderRequestList();
+          
+          console.log('의뢰 목록 렌더링 완료');
+          
+          // 탭 생성
+        createUserTabs();
+          
+          console.log('사용자 탭 생성 완료');
+          
+          // 이벤트 리스너 등록 (null 체크 추가)
+          const selectAllElement = document.getElementById('select-all');
+          if (selectAllElement) {
+            selectAllElement.addEventListener('change', toggleSelectAll);
+            console.log('select-all 이벤트 리스너 등록 완료');
+          } else {
+            console.warn('select-all 요소를 찾을 수 없습니다.');
+          }
+          
+          // 검색 이벤트 리스너
+          const searchInputElement = document.getElementById('search-input');
+          if (searchInputElement) {
+            searchInputElement.addEventListener('input', function() {
+              setTimeout(renderRequestList, 300);
+            });
+            console.log('search-input 이벤트 리스너 등록 완료');
+          } else {
+            console.warn('search-input 요소를 찾을 수 없습니다.');
+          }
+          
+          // 폼 이벤트 리스너 등록
+          const resultForm = document.getElementById('result-form');
+          if (resultForm) {
+            resultForm.onsubmit = function(e) {
+              e.preventDefault();
+              if (!currentReqKey || !currentRequest) return;
+              const reqNum = currentReqKey.replace('request-','');
+              
+              // 리치 에디터의 실제 내용을 가져오기 (최종 동기화)
+              const richEditor = document.getElementById('rich-editor');
+              let summaryContent = '';
+              
+              if (richEditor) {
+                // 저장 전 최종 동기화
+                summaryContent = richEditor.innerHTML;
+                // textarea에도 동기화
+                const textarea = document.getElementById('admin-summary');
+                if (textarea) {
+                  textarea.value = summaryContent;
+                }
+              }
+              
+              // 입력 필드들 가져오기 (null 체크 추가)
+              const adminPrice = document.getElementById('admin-price');
+              const adminOrigin = document.getElementById('admin-origin');
+              const adminLink = document.getElementById('admin-link');
+              
+              const data = {
+                price: adminPrice ? adminPrice.value : '',
+                origin: adminOrigin ? adminOrigin.value : '',
+                summary: summaryContent,
+                link: adminLink ? adminLink.value : ''
+              };
+              
+              console.log('저장할 데이터:', data);
+              
+              // 여러 형식으로 저장하여 호환성 보장
+              localStorage.setItem('result-' + reqNum, JSON.stringify(data));
+              localStorage.setItem('result-PH-' + reqNum, JSON.stringify(data));
+              
+              console.log('결과 저장 완료:', {
+                key: 'result-' + reqNum,
+                data: data
+              });
+              
+              // 알림 발송 버튼 표시
+              const hasImages = summaryContent.includes('<img');
+              const imageInfo = hasImages ? ' (이미지 포함)' : '';
+              
+              const adminMsg = document.getElementById('admin-msg');
+              if (adminMsg) {
+                adminMsg.innerHTML = `
+                  <div class="text-green-600 font-bold mb-2">✅ 결과가 저장되었습니다!${imageInfo}</div>
+                  <button id="send-notify-btn" onclick="sendManualNotification()" class="px-4 py-2 bg-blue-500 text-white rounded-lg font-bold hover:bg-blue-600 transition">
+                    고객에게 알림 발송
+                  </button>
+                `;
+              }
+              
+              // 리스트 새로고침
+              setTimeout(() => {
+                renderRequestList();
+              }, 500);
+            };
+            console.log('result-form 이벤트 리스너 등록 완료');
+          } else {
+            console.warn('result-form 요소를 찾을 수 없습니다.');
+          }
+          
+          // 삭제 버튼 이벤트 리스너 등록
+          const adminDeleteBtn = document.getElementById('admin-delete');
+          if (adminDeleteBtn) {
+            adminDeleteBtn.onclick = function() {
+              if (!currentReqKey) return;
+              const reqNum = currentReqKey.replace('request-','');
+              localStorage.removeItem('result-' + reqNum);
+              localStorage.removeItem('result-PH-' + reqNum);
+              
+              const adminMsg = document.getElementById('admin-msg');
+              if (adminMsg) {
+                adminMsg.textContent = '삭제되었습니다!';
+              }
+              
+              // 리스트 새로고침
+              setTimeout(() => {
+                renderRequestList();
+              }, 500);
+            };
+            console.log('admin-delete 이벤트 리스너 등록 완료');
+          } else {
+            console.warn('admin-delete 요소를 찾을 수 없습니다.');
+          }
+          
+          // 리치 텍스트 에디터 초기화
+        initRichEditor();
+          
+          console.log('이벤트 리스너 등록 완료');
+          console.log('=== 관리자 페이지 초기화 완료 ===');
+        });
+    </script>
+  </body>
+</html> 
+              localStorage.removeItem(key);
+              deletedCount++;
+              console.log(`테스트 데이터 삭제: ${key}`);
+            }
+          });
+          
+          if (deletedCount > 0) {
+            console.log(`총 ${deletedCount}개의 테스트 데이터가 삭제되었습니다.`);
+            alert(`테스트 데이터 ${deletedCount}개가 삭제되었습니다.`);
+          } else {
+            console.log('삭제할 테스트 데이터가 없습니다.');
+          }
+          
+          // 리스트 새로고침
+          setTimeout(() => {
+            renderRequestList();
+          }, 500);
+        }
+
+        // 초기화
+        window.addEventListener('DOMContentLoaded', function() {
+          console.log('=== 관리자 페이지 초기화 시작 ===');
+          
+          // 테스트 데이터 정리는 수동으로만 실행 (자동 실행 제거)
+          // cleanupTestData();
+          
+          // 관리자 권한 확인
+          if (!isAdmin()) {
+            alert('관리자 권한이 필요합니다.');
+            window.location.href = 'index.html';
+            return;
+          }
+          
+          console.log('관리자 권한 확인 완료');
+          
+          // 탭 및 필터 초기화
+          currentTab = 'all';
+          currentFilter = 'all';
+          
+          console.log('탭/필터 초기화 완료');
+          
+          // 의뢰 목록 렌더링
+          renderRequestList();
+          
+          console.log('의뢰 목록 렌더링 완료');
+          
+          // 탭 생성
+          createUserTabs();
+          
+          console.log('사용자 탭 생성 완료');
+          
+          // 이벤트 리스너 등록 (null 체크 추가)
+          const selectAllElement = document.getElementById('select-all');
+          if (selectAllElement) {
+            selectAllElement.addEventListener('change', toggleSelectAll);
+            console.log('select-all 이벤트 리스너 등록 완료');
+          } else {
+            console.warn('select-all 요소를 찾을 수 없습니다.');
+          }
+          
+          // 검색 이벤트 리스너
+          const searchInputElement = document.getElementById('search-input');
+          if (searchInputElement) {
+            searchInputElement.addEventListener('input', function() {
+              setTimeout(renderRequestList, 300);
+            });
+            console.log('search-input 이벤트 리스너 등록 완료');
+          } else {
+            console.warn('search-input 요소를 찾을 수 없습니다.');
+          }
+          
+          // 폼 이벤트 리스너 등록
+          const resultForm = document.getElementById('result-form');
+          if (resultForm) {
+            resultForm.onsubmit = function(e) {
+              e.preventDefault();
+              if (!currentReqKey || !currentRequest) return;
+              const reqNum = currentReqKey.replace('request-','');
+              
+              // 리치 에디터의 실제 내용을 가져오기 (최종 동기화)
+              const richEditor = document.getElementById('rich-editor');
+              let summaryContent = '';
+              
+              if (richEditor) {
+                // 저장 전 최종 동기화
+                summaryContent = richEditor.innerHTML;
+                // textarea에도 동기화
+                const textarea = document.getElementById('admin-summary');
+                if (textarea) {
+                  textarea.value = summaryContent;
+                }
+              }
+              
+              // 입력 필드들 가져오기 (null 체크 추가)
+              const adminPrice = document.getElementById('admin-price');
+              const adminOrigin = document.getElementById('admin-origin');
+              const adminLink = document.getElementById('admin-link');
+              
+              const data = {
+                price: adminPrice ? adminPrice.value : '',
+                origin: adminOrigin ? adminOrigin.value : '',
+                summary: summaryContent,
+                link: adminLink ? adminLink.value : ''
+              };
+              
+              console.log('저장할 데이터:', data);
+              
+              // 여러 형식으로 저장하여 호환성 보장
+              localStorage.setItem('result-' + reqNum, JSON.stringify(data));
+              localStorage.setItem('result-PH-' + reqNum, JSON.stringify(data));
+              
+              console.log('결과 저장 완료:', {
+                key: 'result-' + reqNum,
+                data: data
+              });
+              
+              // 알림 발송 버튼 표시
+              const hasImages = summaryContent.includes('<img');
+              const imageInfo = hasImages ? ' (이미지 포함)' : '';
+              
+              const adminMsg = document.getElementById('admin-msg');
+              if (adminMsg) {
+                adminMsg.innerHTML = `
+                  <div class="text-green-600 font-bold mb-2">✅ 결과가 저장되었습니다!${imageInfo}</div>
+                  <button id="send-notify-btn" onclick="sendManualNotification()" class="px-4 py-2 bg-blue-500 text-white rounded-lg font-bold hover:bg-blue-600 transition">
+                    고객에게 알림 발송
+                  </button>
+                `;
+              }
+              
+              // 리스트 새로고침
+              setTimeout(() => {
+                renderRequestList();
+              }, 500);
+            };
+            console.log('result-form 이벤트 리스너 등록 완료');
+          } else {
+            console.warn('result-form 요소를 찾을 수 없습니다.');
+          }
+          
+          // 삭제 버튼 이벤트 리스너 등록
+          const adminDeleteBtn = document.getElementById('admin-delete');
+          if (adminDeleteBtn) {
+            adminDeleteBtn.onclick = function() {
+              if (!currentReqKey) return;
+              const reqNum = currentReqKey.replace('request-','');
+              localStorage.removeItem('result-' + reqNum);
+              localStorage.removeItem('result-PH-' + reqNum);
+              
+              const adminMsg = document.getElementById('admin-msg');
+              if (adminMsg) {
+                adminMsg.textContent = '삭제되었습니다!';
+              }
+              
+              // 리스트 새로고침
+              setTimeout(() => {
+                renderRequestList();
+              }, 500);
+            };
+            console.log('admin-delete 이벤트 리스너 등록 완료');
+          } else {
+            console.warn('admin-delete 요소를 찾을 수 없습니다.');
+          }
+          
+          // 리치 텍스트 에디터 초기화
+          initRichEditor();
+          
+          console.log('이벤트 리스너 등록 완료');
+          console.log('=== 관리자 페이지 초기화 완료 ===');
+      });
+    </script>
+  </body>
+</html> 

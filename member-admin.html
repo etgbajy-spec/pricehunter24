@@ -769,6 +769,16 @@
                 deleteModal.classList.add('hidden');
             }
         });
+
+        // 모달 닫기 버튼 이벤트 리스너
+        document.getElementById('close-detail-modal').addEventListener('click', function() {
+            document.getElementById('member-detail-modal').classList.add('hidden');
+        });
+
+        // 삭제 모달 취소 버튼 이벤트 리스너
+        document.getElementById('cancel-delete').addEventListener('click', function() {
+            document.getElementById('delete-confirm-modal').classList.add('hidden');
+        });
     </script>
 </body>
 </html> 
