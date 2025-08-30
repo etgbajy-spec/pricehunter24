@@ -2531,13 +2531,38 @@
           try {
             const data = JSON.parse(e.target.result);
             
+            // 현재 사용자 인증 상태 백업
+            const currentUser = localStorage.getItem('user');
+            const currentUserEmail = localStorage.getItem('userEmail');
+            const isLoggedIn = localStorage.getItem('isLoggedIn');
+            const adminMode = localStorage.getItem('adminMode');
+            const isAdmin = localStorage.getItem('isAdmin');
+            const adminEmail = localStorage.getItem('adminEmail');
+            
             localStorage.clear();
             
+            // 비즈니스 데이터만 복원 (인증 데이터 제외)
             Object.keys(data).forEach(key => {
-              localStorage.setItem(key, data[key]);
+              // 사용자 인증 관련 키는 복원하지 않음
+              if (!key.includes('user') && 
+                  !key.includes('login') && 
+                  !key.includes('admin') && 
+                  !key.includes('auth') && 
+                  !key.includes('session') &&
+                  !key.includes('token')) {
+                localStorage.setItem(key, data[key]);
+              }
             });
             
-            alert('데이터 복원이 완료되었습니다. 페이지를 새로고침합니다.');
+            // 현재 사용자 인증 상태 복원
+            if (currentUser) localStorage.setItem('user', currentUser);
+            if (currentUserEmail) localStorage.setItem('userEmail', currentUserEmail);
+            if (isLoggedIn) localStorage.setItem('isLoggedIn', isLoggedIn);
+            if (adminMode) localStorage.setItem('adminMode', adminMode);
+            if (isAdmin) localStorage.setItem('isAdmin', isAdmin);
+            if (adminEmail) localStorage.setItem('adminEmail', adminEmail);
+            
+            alert('데이터 복원이 완료되었습니다. 사용자 인증 상태는 유지됩니다.');
             location.reload();
           } catch (error) {
             alert('데이터 파일 형식이 올바르지 않습니다.');
