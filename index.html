@@ -2398,6 +2398,24 @@ if (mypageBtn) {
         }
       }
     </script>
+    
+    <!-- 프로세스 애니메이션 스크립트 -->
+    <script>
+      window.addEventListener('DOMContentLoaded', function() {
+        // 프로세스 카드들을 순서대로 애니메이션
+        const processSteps = Array.from(document.querySelectorAll('.process-step'));
+        let idx = 0;
+        function showNext() {
+          if (idx < processSteps.length) {
+            processSteps[idx].classList.add('visible');
+            idx++;
+            setTimeout(showNext, 600); // 0.6초 간격
+          }
+        }
+        // 페이지 로드 후 1초 뒤에 시작
+        setTimeout(showNext, 1000);
+      });
+    </script>
   </body>
 </html>
 
