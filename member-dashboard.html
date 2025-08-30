@@ -1,0 +1,1005 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>회원 대시보드 | PriceHunter</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Noto Sans KR', 'Inter', sans-serif; }
+    .fade-in { animation: fadeIn 0.7s; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .spinner {
+      border: 4px solid #e5e7eb;
+      border-top: 4px solid #38bdf8;
+      border-radius: 50%;
+      width: 2.5rem;
+      height: 2.5rem;
+      animation: spin 1s linear infinite;
+      margin: 0 auto;
+    }
+    @keyframes spin { 100% { transform: rotate(360deg); } }
+    
+    /* 이미지 스타일링 */
+    #result-summary img {
+      max-width: 100%;
+      height: auto;
+      margin: 10px 0;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      display: block;
+    }
+    
+    /* 리치 텍스트 내용 스타일링 */
+    #result-summary {
+      line-height: 1.6;
+      word-wrap: break-word;
+    }
+    
+    #result-summary p {
+      margin: 8px 0;
+    }
+    
+    #result-summary strong {
+      font-weight: bold;
+    }
+    
+    #result-summary em {
+      font-style: italic;
+    }
+    
+    #result-summary u {
+      text-decoration: underline;
+    }
+    
+    /* 탭 스타일링 */
+    .tab-button {
+      transition: all 0.3s ease;
+    }
+    
+    .tab-button.active {
+      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+      color: white;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    }
+    
+    .tab-panel {
+      display: none;
+    }
+    
+    .tab-panel.active {
+      display: block;
+      animation: fadeIn 0.5s ease-in-out;
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 via-emerald-50 to-pink-50 min-h-screen">
+  <div class="max-w-4xl mx-auto px-4 py-8">
+    <!-- 헤더 -->
+    <div class="text-center mb-8">
+      <h1 class="text-3xl md:text-4xl font-extrabold text-blue-600 mb-2">회원 대시보드</h1>
+      <p class="text-gray-600">내 정보 관리 및 의뢰 결과 조회</p>
+    </div>
+
+    <!-- 탭 네비게이션 -->
+    <div class="flex justify-center mb-8">
+      <div class="bg-white rounded-2xl shadow-lg p-2 flex gap-2">
+        <button id="tab-info" class="tab-button px-6 py-3 rounded-xl font-semibold text-gray-700 hover:bg-blue-50 active">
+          👤 내 정보
+        </button>
+        <button id="tab-requests" class="tab-button px-6 py-3 rounded-xl font-semibold text-gray-700 hover:bg-blue-50">
+          📋 의뢰 내역
+        </button>
+        <button id="tab-inquiry" class="tab-button px-6 py-3 rounded-xl font-semibold text-gray-700 hover:bg-blue-50">
+          💬 1:1 문의
+        </button>
+      </div>
+    </div>
+
+    <!-- 탭 컨텐츠 -->
+    <div class="bg-white rounded-3xl shadow-2xl p-6 md:p-8">
+      <!-- 내 정보 탭 -->
+      <div id="panel-info" class="tab-panel active">
+        <div class="max-w-2xl mx-auto">
+          <h2 class="text-2xl font-bold text-gray-800 mb-6 text-center">내 정보 관리</h2>
+          
+          <!-- 내 정보 표시 -->
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 p-4 bg-blue-50 rounded-xl">
+            <div>
+              <div class="font-bold text-lg text-gray-800" id="mypage-name">이름</div>
+              <div class="text-gray-500 text-sm" id="mypage-email">이메일</div>
+            </div>
+            <button id="edit-info-btn" class="px-4 py-2 min-h-[44px] min-w-[44px] bg-blue-500 text-white rounded-lg shadow hover:bg-blue-600 focus:ring-2 focus:ring-blue-400 focus:outline-none transition">
+              정보 수정
+            </button>
+          </div>
+
+          <!-- 정보수정 폼 -->
+          <div id="info-form-container" class="hidden">
+            <form id="info-form" class="flex flex-col gap-4">
+              <div>
+                <label class="block text-gray-700 font-semibold mb-2">이름</label>
+                <input type="text" id="info-name" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none bg-gray-100 cursor-not-allowed" required readonly />
+              </div>
+              <div>
+                <label class="block text-gray-700 font-semibold mb-2">이메일</label>
+                <input type="email" id="info-email" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none" required />
+              </div>
+              <div>
+                <label class="block text-gray-700 font-semibold mb-2">휴대폰</label>
+                <input type="tel" id="info-phone" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none bg-gray-100 cursor-not-allowed" readonly />
+              </div>
+              <div>
+                <label class="block text-gray-700 font-semibold mb-2">카카오ID</label>
+                <input type="text" id="info-kakao" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none" />
+              </div>
+              <button type="submit" class="w-full py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold rounded-lg shadow hover:scale-105 transition-all duration-300 text-lg mt-4">
+                정보 저장
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- 의뢰 내역 탭 -->
+      <div id="panel-requests" class="tab-panel">
+        <div class="max-w-4xl mx-auto">
+          <h2 class="text-2xl font-bold text-gray-800 mb-6 text-center">의뢰 내역 및 결과 조회</h2>
+          
+          <!-- 검색 섹션 -->
+          <div class="mb-8 p-6 bg-blue-50 rounded-xl">
+            <label class="block text-gray-700 font-semibold mb-2">
+              의뢰번호 또는 휴대폰 번호로 결과를 조회할 수 있습니다.
+            </label>
+            <div class="flex flex-col md:flex-row gap-3">
+              <input id="search-input" type="text" class="flex-1 px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none transition text-lg" placeholder="#PH-000000 또는 010-1234-5678" />
+              <button id="search-btn" class="px-6 py-3 bg-gradient-to-r from-blue-400 to-emerald-400 text-white font-bold rounded-lg shadow-lg hover:scale-105 transition-all duration-300">
+                조회하기
+              </button>
+            </div>
+          </div>
+
+          <!-- 의뢰 리스트 -->
+          <div id="my-request-list-section" class="mb-8">
+            <div class="font-bold text-blue-700 mb-4 text-lg">📋 의뢰 내역 목록</div>
+            <ul id="my-request-list" class="bg-blue-50 rounded-xl shadow-inner divide-y divide-blue-100 text-left"></ul>
+          </div>
+
+          <!-- Loading Animation -->
+          <div id="loading" class="hidden my-8 text-center">
+            <div class="spinner"></div>
+            <div class="mt-2 text-blue-400 font-semibold">결과를 불러오는 중...</div>
+          </div>
+
+          <!-- Result Card -->
+          <div id="result-card" class="hidden w-full fade-in">
+            <div class="bg-white rounded-2xl shadow-lg p-6 mb-4 text-left border-2 border-blue-100">
+              <!-- 진행상황 배지 -->
+              <div class="mb-4 flex justify-between items-center">
+                <div id="status-badge" class="px-3 py-1 rounded-full text-sm font-bold text-white"></div>
+              </div>
+              
+              <!-- 결과 정보 -->
+              <div id="result-info" class="hidden">
+                <div class="mb-3">
+                  <div id="result-title" class="text-2xl font-bold text-gray-800 mb-3"></div>
+                </div>
+                <div class="mb-3 flex flex-col md:flex-row md:items-center md:justify-between">
+                  <div class="text-xl font-bold text-gray-800 mb-2 md:mb-0">최저가: <span id="result-price" class="text-emerald-600">₩123,000</span></div>
+                </div>
+                                 <div class="mb-2 text-gray-600">원산지/공급처: <span id="result-origin">대한민국 / PriceHunter 공식</span></div>
+                 <div class="mb-4">
+                   <div class="font-semibold text-gray-700 mb-2">검증 결과</div>
+                   <div id="result-summary" class="text-gray-700 bg-gray-50 rounded-xl p-4 min-h-[60px] overflow-hidden"></div>
+                 </div>
+                 <!-- 이미지 표시 영역 -->
+                 <div id="result-image-container" class="mb-4 hidden">
+                   <img id="result-image-display" class="max-w-full h-auto rounded-lg shadow-lg mx-auto" style="max-height: 400px;" alt="검증 결과 이미지">
+                 </div>
+                 
+                                   <!-- 링크 이동 버튼 -->
+                  <div id="action-buttons" class="mt-6 space-y-3 hidden">
+                    <div class="flex justify-center">
+                      <button id="link-button" class="px-8 py-3 bg-blue-500 text-white font-bold rounded-lg hover:bg-blue-600 transition text-center">
+                        🔗 링크로 이동하기
+                      </button>
+                    </div>
+                    <div class="text-xs text-gray-500 text-center">
+                      💡 링크로 이동하여 직접 구매하실 수 있습니다.
+                    </div>
+                  </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- No Result -->
+          <div id="no-result" class="hidden text-center py-12">
+            <div class="text-gray-500 text-lg">검색 결과가 없습니다.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 1:1 문의 탭 (기존 contact.html 기능 그대로 구현) -->
+      <div id="panel-inquiry" class="tab-panel">
+        <div class="max-w-4xl mx-auto">
+          <h2 class="text-2xl font-bold text-gray-800 mb-6 text-center">1:1 문의</h2>
+          
+          <!-- 문의 작성 폼 (기존 contact.html 그대로) -->
+          <div class="mb-8 p-6 bg-blue-50 rounded-xl">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">새 문의 작성</h3>
+            <form id="contact-form" class="space-y-4">
+              <div>
+                <label class="block text-gray-700 font-semibold mb-2" for="contact-subject">문의 제목</label>
+                <input type="text" id="contact-subject" name="contact-subject" required maxlength="60" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-pink-400 focus:outline-none transition" placeholder="예: 의뢰 전 궁금한 점, 검증 과정 문의, 가격 비교 방법 등" />
+              </div>
+              <div>
+                <label class="block text-gray-700 font-semibold mb-2" for="contact-message">문의 내용</label>
+                <textarea id="contact-message" name="contact-message" rows="5" required class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-pink-400 focus:outline-none transition" placeholder="의뢰하실 상품이나 서비스에 대해 궁금한 점을 자세히 입력해 주세요.&#10;&#10;예시:&#10;- 특정 상품의 최저가 검증이 가능한가요?&#10;- 검증 과정에서 어떤 정보를 제공해주시나요?&#10;- 의뢰 후 결과는 언제 받을 수 있나요?&#10;- 가격 비교는 어떤 기준으로 하나요?"></textarea>
+              </div>
+              <div>
+                <label class="block text-gray-700 font-semibold mb-2" for="contact-file">첨부파일 (선택, 이미지/문서 등)</label>
+                <input type="file" id="contact-file" name="contact-file" class="w-full" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt" />
+                <div id="filePreview" class="mt-2"></div>
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-gray-700 font-semibold mb-2" for="contact-name">이름</label>
+                  <input type="text" id="contact-name" name="contact-name" readonly class="w-full px-4 py-3 rounded-lg border border-gray-200 bg-gray-100 text-gray-500" />
+                </div>
+                <div>
+                  <label class="block text-gray-700 font-semibold mb-2" for="contact-email">이메일</label>
+                  <input type="email" id="contact-email" name="contact-email" readonly class="w-full px-4 py-3 rounded-lg border border-gray-200 bg-gray-100 text-gray-500" />
+                </div>
+              </div>
+              <button type="submit" class="w-full py-3 bg-gradient-to-r from-pink-400 to-amber-400 text-white font-bold rounded-lg shadow-lg hover:scale-105 hover:from-amber-400 hover:to-pink-400 transition-all duration-300 text-lg">문의 제출하기</button>
+            </form>
+            <div id="contact-success" class="hidden mt-6 p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-700 text-center font-bold">문의가 정상적으로 접수되었습니다!</div>
+          </div>
+
+          <!-- 문의 내역 (기존 contact.html 그대로) -->
+          <div class="mb-8">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">이전 문의 내역</h3>
+            <ul id="contact-history" class="space-y-3 text-left text-sm">
+              <!-- 문의 내역이 여기에 표시됩니다 -->
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 전역 변수
+    let currentReqKey = null;
+    let currentDisplayedReq = null;
+    let fileData = '';
+
+    // 탭 전환 기능
+    function switchTab(tabId) {
+      // 모든 탭 버튼 비활성화
+      document.querySelectorAll('.tab-button').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      
+      // 모든 탭 패널 숨김
+      document.querySelectorAll('.tab-panel').forEach(panel => {
+        panel.classList.remove('active');
+      });
+      
+      // 선택된 탭 활성화
+      document.getElementById(tabId).classList.add('active');
+      document.getElementById('tab-' + tabId.split('-')[1]).classList.add('active');
+    }
+
+    // 내 정보 표시
+    function renderMyInfo() {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      document.getElementById('mypage-name').textContent = user.name || '이름 없음';
+      document.getElementById('mypage-email').textContent = user.email || '이메일 없음';
+      document.getElementById('info-name').value = user.name || '';
+      document.getElementById('info-email').value = user.email || '';
+      document.getElementById('info-phone').value = user.phone || '';
+      document.getElementById('info-kakao').value = user.kakao || '';
+      
+      // 문의 폼에도 사용자 정보 자동 입력
+      document.getElementById('contact-name').value = user.name || '';
+      document.getElementById('contact-email').value = user.email || '';
+    }
+
+    // 의뢰 내역 목록 렌더링 (기존 페이지 기능 그대로)
+    function renderMyRequestList() {
+      const requestList = document.getElementById('my-request-list');
+      const requests = [];
+      
+      // localStorage에서 모든 의뢰 데이터 수집
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('request-')) {
+          try {
+            const requestData = JSON.parse(localStorage.getItem(key));
+            if (requestData) {
+              const reqNum = requestData.reqNum || requestData.key || key.replace('request-', '');
+              const userName = requestData.userName || requestData.name || '이름 없음';
+              const reqDate = requestData.reqDate || requestData.date || requestData.createdAt;
+              const productName = requestData.productName || requestData.name || requestData.title || '제품명 없음';
+              
+              if (reqNum) {
+                requests.push({
+                  key: key,
+                  data: {
+                    reqNum: reqNum,
+                    userName: userName,
+                    reqDate: reqDate,
+                    productName: productName,
+                    originalData: requestData
+                  }
+                });
+              }
+            }
+          } catch (e) {
+            console.log('의뢰 데이터 파싱 오류:', key, e);
+          }
+        }
+      }
+      
+      // 날짜순으로 정렬 (최신순)
+      requests.sort((a, b) => {
+        const dateA = new Date(a.data.reqDate || 0);
+        const dateB = new Date(b.data.reqDate || 0);
+        return dateB - dateA;
+      });
+      
+      if (requests.length === 0) {
+        requestList.innerHTML = '<li class="p-4 text-gray-500 text-center">의뢰 내역이 없습니다.</li>';
+        return;
+      }
+      
+      requestList.innerHTML = '';
+      requests.forEach(({ key, data }) => {
+        const reqNum = data.reqNum;
+        const userName = data.userName;
+        const reqDate = data.reqDate ? new Date(data.reqDate).toLocaleDateString('ko-KR') : '날짜 없음';
+        const productName = data.productName;
+        
+        // 결과 데이터 확인
+        let hasResult = false;
+        const possibleResultKeys = [
+          'result-' + reqNum,
+          'result-' + reqNum.replace('#', ''),
+          'result-' + reqNum.replace('#PH-', ''),
+          'result-' + reqNum.replace('PH-', ''),
+          'result-PH-' + reqNum.replace('#PH-', '').replace('#', ''),
+          'result-' + reqNum.replace('#', '').replace('PH-', '')
+        ];
+        
+        for (const resultKey of possibleResultKeys) {
+          try {
+            const resultData = JSON.parse(localStorage.getItem(resultKey));
+            if (resultData && (resultData.content || resultData.summary || resultData.title)) {
+              hasResult = true;
+              break;
+            }
+          } catch (e) {
+            console.log('결과 데이터 확인 오류:', resultKey, e);
+          }
+        }
+        
+        const listItem = document.createElement('li');
+        listItem.className = 'p-4 hover:bg-blue-100 cursor-pointer transition-colors';
+        listItem.innerHTML = `
+          <div class="flex justify-between items-start">
+            <div class="flex-1">
+              <div class="font-semibold text-gray-800">${reqNum}</div>
+              <div class="text-sm text-gray-600">${userName} | ${reqDate}</div>
+              <div class="text-sm text-gray-500 mt-1">${productName}</div>
+            </div>
+            <div class="ml-4 text-right">
+              ${hasResult ? '<span class="inline-block px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">결과 있음</span>' : '<span class="inline-block px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">처리 중</span>'}
+            </div>
+          </div>
+        `;
+        
+        listItem.onclick = () => {
+          if (currentReqKey === key && currentDisplayedReq === reqNum) {
+            hideResult();
+          } else {
+            showAdminResponse(reqNum);
+          }
+        };
+        
+        requestList.appendChild(listItem);
+      });
+    }
+
+    // 관리자 답변 표시 (기존 페이지 기능 그대로)
+    function showAdminResponse(reqNum) {
+      currentReqKey = 'request-' + reqNum;
+      currentDisplayedReq = reqNum;
+      
+      // 로딩 표시
+      document.getElementById('loading').classList.remove('hidden');
+      document.getElementById('result-card').classList.add('hidden');
+      document.getElementById('no-result').classList.add('hidden');
+      
+      // 결과 데이터 찾기
+      const possibleKeys = [
+        'result-' + reqNum,
+        'result-' + reqNum.replace('#', ''),
+        'result-' + reqNum.replace('#PH-', ''),
+        'result-' + reqNum.replace('PH-', ''),
+        'result-' + reqNum.replace('#', '').replace('PH-', '')
+      ];
+      
+      let resultData = null;
+      for (const key of possibleKeys) {
+        try {
+          const data = localStorage.getItem(key);
+          if (data) {
+            resultData = JSON.parse(data);
+            break;
+          }
+        } catch (e) {
+          console.log('결과 데이터 파싱 실패:', key, e);
+        }
+      }
+      
+      if (!resultData) {
+        document.getElementById('loading').classList.add('hidden');
+        document.getElementById('no-result').classList.remove('hidden');
+        return;
+      }
+      
+      // DOM 요소 표시
+      const resultInfo = document.getElementById('result-info');
+      resultInfo.classList.remove('hidden');
+      
+      // 제목 설정
+      const resultTitle = document.getElementById('result-title');
+      if (resultTitle && resultData.title) {
+        resultTitle.textContent = resultData.title;
+      }
+      
+      // 내용 설정
+      const content = resultData.content || resultData.summary || '결과 내용이 없습니다.';
+      document.getElementById('result-summary').innerHTML = content;
+      
+      // 가격 정보 설정
+      const resultPrice = document.getElementById('result-price');
+      if (resultPrice && resultData.price) {
+        resultPrice.textContent = resultData.price;
+      }
+      
+      // 원산지 정보 설정
+      const resultOrigin = document.getElementById('result-origin');
+      if (resultOrigin && resultData.origin) {
+        resultOrigin.textContent = resultData.origin;
+      }
+      
+      // 이미지 처리
+      const resultImageContainer = document.getElementById('result-image-container');
+      const resultImageDisplay = document.getElementById('result-image-display');
+      
+      let imageData = resultData.image;
+      if (!imageData && resultData.imageKey) {
+        try {
+          imageData = localStorage.getItem(resultData.imageKey);
+        } catch (e) {
+          console.error('별도 저장된 이미지 로드 실패:', e);
+        }
+      }
+      
+      // 이미지 키가 없으면 직접 찾기
+      if (!imageData) {
+        const cleanReqNum = reqNum.replace('#', '').replace('PH-', '');
+        const reqNumOnly = reqNum.replace('#PH-', '').replace('#', '');
+        const possibleImageKeys = [
+          `image-${reqNumOnly}`,
+          `image-${cleanReqNum}`,
+          `image-PH-${reqNumOnly}`,
+          `image-${reqNumOnly.replace('PH-', '')}`,
+          `image-${cleanReqNum.replace('PH-', '')}`,
+          `image-${reqNumOnly.replace('#', '')}`,
+          `image-${cleanReqNum.replace('#', '')}`,
+          `image-${reqNumOnly.replace('#PH-', '')}`,
+          `image-${cleanReqNum.replace('#PH-', '')}`
+        ];
+        
+        for (const imageKey of possibleImageKeys) {
+          try {
+            const foundImage = localStorage.getItem(imageKey);
+            if (foundImage && foundImage.startsWith('data:image/')) {
+              imageData = foundImage;
+              break;
+            }
+          } catch (e) {
+            console.log('이미지 키 검색 중 오류:', imageKey, e);
+          }
+        }
+        
+        // 전체 localStorage에서 이미지 검색
+        if (!imageData) {
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith('image-') && (key.includes(cleanReqNum) || key.includes(reqNumOnly))) {
+              try {
+                const foundImage = localStorage.getItem(key);
+                if (foundImage && foundImage.startsWith('data:image/')) {
+                  imageData = foundImage;
+                  break;
+                }
+              } catch (e) {
+                console.log('전체 검색 중 오류:', key, e);
+              }
+            }
+          }
+        }
+      }
+      
+      // 이미지 표시
+      if (imageData && resultImageContainer && resultImageDisplay) {
+        if (imageData.startsWith('data:image/')) {
+          resultImageDisplay.src = imageData;
+          resultImageDisplay.onload = () => {
+            resultImageContainer.classList.remove('hidden');
+          };
+          resultImageDisplay.onerror = () => {
+            resultImageContainer.classList.add('hidden');
+          };
+        } else {
+          resultImageContainer.classList.add('hidden');
+        }
+      } else {
+        if (resultImageContainer) {
+          resultImageContainer.classList.add('hidden');
+        }
+      }
+      
+      // 상태 배지 설정
+      const statusBadge = document.getElementById('status-badge');
+      if (statusBadge) {
+        statusBadge.textContent = '검증 완료';
+        statusBadge.className = 'px-3 py-1 rounded-full text-sm font-bold text-white bg-green-500';
+      }
+      
+                     // 링크 이동 버튼 처리
+        const actionButtons = document.getElementById('action-buttons');
+        const linkButton = document.getElementById('link-button');
+        
+        if (resultData.link || resultData.url) {
+          // 링크가 있으면 버튼 표시
+          actionButtons.classList.remove('hidden');
+          const linkUrl = resultData.link || resultData.url;
+          
+          // 링크 이동 버튼 이벤트 (확인창 포함)
+          linkButton.onclick = function() {
+            if (confirm('외부 링크로 이동하시겠습니까?\n\n이동할 사이트: ' + new URL(linkUrl).hostname)) {
+              window.open(linkUrl, '_blank');
+            }
+          };
+        } else {
+          // 링크가 없으면 버튼 숨김
+          actionButtons.classList.add('hidden');
+        }
+       
+       // 결과 카드 표시
+       document.getElementById('result-card').classList.remove('hidden');
+       
+       // 로딩 숨김
+       document.getElementById('loading').classList.add('hidden');
+       document.getElementById('no-result').classList.add('hidden');
+    }
+
+         // 결과 숨기기
+     function hideResult() {
+       currentReqKey = null;
+       currentDisplayedReq = null;
+       document.getElementById('result-card').classList.add('hidden');
+       document.getElementById('no-result').classList.add('hidden');
+       
+       const resultInfo = document.getElementById('result-info');
+       const resultSummary = document.getElementById('result-summary');
+       const actionButtons = document.getElementById('action-buttons');
+       if (resultInfo) resultInfo.classList.add('hidden');
+       if (resultSummary) resultSummary.classList.add('hidden');
+       if (actionButtons) actionButtons.classList.add('hidden');
+     }
+
+    // 문의/답변 내용 안전하게 렌더링 (기존 contact.html 그대로)
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    // 댓글 렌더링 함수 (기존 contact.html 그대로)
+    function renderComments(comments) {
+      if (!comments || comments.length === 0) return '';
+      return comments.map(comment => `
+        <div class='p-2 bg-white rounded border mb-2'>
+          <div class='font-bold text-blue-700 text-sm'>${escapeHtml(comment.author)}</div>
+          <div class='text-gray-800 text-sm'>${escapeHtml(comment.text)}</div>
+          <div class='text-gray-400 text-xs'>${new Date(comment.date).toLocaleString()}</div>
+        </div>
+      `).join('');
+    }
+
+    // 실시간 댓글 업데이트를 위한 함수 (기존 contact.html 그대로)
+    function updateCommentsInRealTime() {
+      const commentForms = document.querySelectorAll('.comment-form');
+      commentForms.forEach(form => {
+        const subject = form.getAttribute('data-subject');
+        const date = form.getAttribute('data-date');
+        
+        // inquiry-에서 최신 댓글 정보 가져오기
+        let inquiryKey = null;
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key.startsWith('inquiry-')) {
+            const obj = JSON.parse(localStorage.getItem(key));
+            if (obj && obj.subject === subject && obj.date === date) {
+              inquiryKey = key;
+              break;
+            }
+          }
+        }
+        
+        if (inquiryKey) {
+          const inquiry = JSON.parse(localStorage.getItem(inquiryKey));
+          const commentsHtml = renderComments(inquiry.comments || []);
+          const commentsContainer = form.previousElementSibling;
+          if (commentsContainer && commentsContainer.classList.contains('comments-list')) {
+            commentsContainer.innerHTML = commentsHtml;
+          }
+        }
+      });
+    }
+
+    // 문의 삭제 함수 (기존 contact.html 그대로)
+    function deleteInquiry(subject, date) {
+      if (!confirm('정말 이 문의를 삭제하시겠습니까?')) return;
+      
+      // contact-history에서 삭제
+      let history = JSON.parse(localStorage.getItem('contact-history') || '[]');
+      history = history.filter(item => !(item.subject === subject && item.date === date));
+      localStorage.setItem('contact-history', JSON.stringify(history));
+      
+      // inquiry-에서도 삭제
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key.startsWith('inquiry-')) {
+          const obj = JSON.parse(localStorage.getItem(key));
+          if (obj && obj.subject === subject && obj.date === date) {
+            localStorage.removeItem(key);
+            break;
+          }
+        }
+      }
+      
+      renderHistory();
+    }
+
+    // 날짜 포맷 함수 (기존 contact.html 그대로)
+    function formatDateTime(dateStr) {
+      if (!dateStr) return '날짜 없음';
+      
+      console.log('formatDateTime 입력:', dateStr, '타입:', typeof dateStr);
+      
+      let date;
+      
+      // 다양한 날짜 형식 처리
+      if (typeof dateStr === 'string') {
+        // 이미 한국어 형식인 경우 (예: "2025. 1. 30. 오전 4:55:37")
+        if (dateStr.includes('오전') || dateStr.includes('오후')) {
+          // 한국어 날짜 형식을 파싱
+          const match = dateStr.match(/(\d{4})\.\s*(\d{1,2})\.\s*(\d{1,2})\.\s*(오전|오후)\s*(\d{1,2}):(\d{1,2}):(\d{1,2})/);
+          if (match) {
+            const [, year, month, day, ampm, hour, minute, second] = match;
+            let hour24 = parseInt(hour);
+            if (ampm === '오후' && hour24 !== 12) hour24 += 12;
+            if (ampm === '오전' && hour24 === 12) hour24 = 0;
+            
+            date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), hour24, parseInt(minute), parseInt(second));
+            console.log('한국어 날짜 파싱 결과:', date);
+          }
+        } else {
+          // 일반적인 날짜 형식
+          date = new Date(dateStr);
+        }
+      } else if (typeof dateStr === 'number') {
+        // 타임스탬프인 경우
+        date = new Date(dateStr);
+      } else {
+        // 기타 경우
+        date = new Date(dateStr);
+      }
+      
+      // 유효하지 않은 날짜인지 확인
+      if (isNaN(date.getTime())) {
+        console.log('유효하지 않은 날짜:', dateStr);
+        return '날짜 형식 오류';
+      }
+      
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const h = String(date.getHours()).padStart(2, '0');
+      const min = String(date.getMinutes()).padStart(2, '0');
+      const result = `${y}-${m}-${day} ${h}:${min}`;
+      
+      console.log('formatDateTime 결과:', result);
+      return result;
+    }
+
+    // 문의 내역 렌더링 (기존 contact.html 그대로)
+    function renderHistory() {
+      const history = JSON.parse(localStorage.getItem('contact-history') || '[]');
+      const ul = document.getElementById('contact-history');
+      ul.innerHTML = '';
+      if (history.length === 0) {
+        ul.innerHTML = '<li class="text-gray-400">문의 내역이 없습니다.</li>';
+        return;
+      }
+      history.forEach(inq => {
+        // 답변 불러오기 (inquiry-...에서 answer 필드)
+        let answer = '';
+        // inquiry-로 저장된 것과 매칭 (subject+date로 찾기)
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key.startsWith('inquiry-')) {
+            const obj = JSON.parse(localStorage.getItem(key));
+            if (obj && obj.subject === inq.subject && obj.date === inq.date) {
+              answer = obj.answer || obj.reply || '';
+              break;
+            }
+          }
+        }
+        
+        // contact-history에서도 답변 확인
+        if (!answer && inq.answer) {
+          answer = inq.answer;
+        }
+        let fileHtml = '';
+        if (inq.file) {
+          if (inq.file.startsWith('data:image/')) {
+            fileHtml = `<div class='mb-2'><img src='${inq.file}' alt='첨부 이미지' class='max-h-32 rounded-xl border shadow w-full object-contain' /></div>`;
+          } else {
+            const fileName = inq.fileName || '첨부파일';
+            fileHtml = `<div class='mb-2 text-gray-600'>첨부파일: <a href='${inq.file}' download='${fileName}' class='text-blue-600 underline'>${fileName}</a></div>`;
+          }
+        }
+        ul.innerHTML += `
+          <li class='p-4 bg-blue-50 rounded-xl shadow mb-2 min-w-0'>
+            <div class='font-bold text-blue-700 mb-1'>${escapeHtml(inq.subject)}</div>
+            <div class='text-gray-700 mb-1 whitespace-pre-line'>${escapeHtml(inq.message || inq.content || '')}</div>
+            ${fileHtml}
+            <div class='text-xs text-gray-400 mb-2'>문의일시: ${formatDateTime(inq.date)}</div>
+            <div class='mt-2 p-3 rounded bg-white border'>
+              <span class='font-bold text-blue-700'>답변</span><br>
+              <span class='text-gray-800'>${answer ? escapeHtml(answer) : '<span class="text-gray-400">답변 대기중</span>'}</span>
+            </div>
+            <div class='mt-4'>
+              <div class='font-bold text-blue-700 mb-2'>추가 댓글</div>
+              <div class='comments-list'>${renderComments((inq.comments||[]))}</div>
+              <form class='comment-form' data-subject="${escapeHtml(inq.subject)}" data-date="${escapeHtml(inq.date)}">
+                <div class='flex gap-2'>
+                  <input type='text' name='comment' class='flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none' placeholder='댓글을 입력하세요' aria-label='댓글 입력' />
+                  <button type='submit' class='px-4 py-2 bg-emerald-500 text-white rounded-lg font-bold hover:bg-emerald-600 transition' aria-label='댓글 추가'>등록</button>
+                </div>
+              </form>
+            </div>
+            <button class='mt-2 py-1 px-3 bg-red-500 text-white rounded font-bold hover:bg-red-600 transition' aria-label='문의 삭제' onclick='deleteInquiry(${JSON.stringify(inq.subject)}, ${JSON.stringify(inq.date)})'>삭제</button>
+          </li>
+        `;
+      });
+    }
+
+    // 페이지 로드 시 초기화
+    document.addEventListener('DOMContentLoaded', function() {
+      // 내 정보 표시
+      renderMyInfo();
+      
+      // 의뢰 내역 목록 표시
+      renderMyRequestList();
+      
+      // 문의 내역 표시
+      renderHistory();
+      
+      // 탭 전환 이벤트
+      document.getElementById('tab-info').addEventListener('click', () => switchTab('panel-info'));
+      document.getElementById('tab-requests').addEventListener('click', () => switchTab('panel-requests'));
+      document.getElementById('tab-inquiry').addEventListener('click', () => switchTab('panel-inquiry'));
+      
+      // 정보수정 폼 토글
+      document.getElementById('edit-info-btn').addEventListener('click', function() {
+        const formContainer = document.getElementById('info-form-container');
+        formContainer.classList.toggle('hidden');
+        if (!formContainer.classList.contains('hidden')) {
+          document.getElementById('info-email').focus();
+        }
+      });
+      
+      // 정보수정 폼 저장
+      document.getElementById('info-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const user = {
+          name: document.getElementById('info-name').value,
+          email: document.getElementById('info-email').value,
+          phone: document.getElementById('info-phone').value,
+          kakao: document.getElementById('info-kakao').value
+        };
+        localStorage.setItem('user', JSON.stringify(user));
+        renderMyInfo();
+        document.getElementById('info-form-container').classList.add('hidden');
+        alert('정보가 저장되었습니다!');
+      });
+      
+      // 검색 기능
+      document.getElementById('search-btn').addEventListener('click', function() {
+        const searchInput = document.getElementById('search-input').value.trim();
+        if (searchInput) {
+          // 의뢰 번호로 검색
+          if (searchInput.startsWith('#') || searchInput.startsWith('PH-')) {
+            showAdminResponse(searchInput);
+          } else {
+            // 휴대폰 번호로 검색
+            searchByPhone(searchInput);
+          }
+        } else {
+          alert('검색어를 입력해주세요.');
+        }
+      });
+      
+      // 휴대폰 번호로 검색 기능
+      function searchByPhone(phoneNumber) {
+        const requests = [];
+        
+        // localStorage에서 모든 의뢰 데이터 수집
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && key.startsWith('request-')) {
+            try {
+              const requestData = JSON.parse(localStorage.getItem(key));
+              if (requestData) {
+                const reqPhone = requestData.phone || requestData.userPhone || requestData.contact || '';
+                if (reqPhone.includes(phoneNumber) || phoneNumber.includes(reqPhone)) {
+                  const reqNum = requestData.reqNum || requestData.key || key.replace('request-', '');
+                  if (reqNum) {
+                    requests.push(reqNum);
+                  }
+                }
+              }
+            } catch (e) {
+              console.log('의뢰 데이터 파싱 오류:', key, e);
+            }
+          }
+        }
+        
+        if (requests.length > 0) {
+          // 첫 번째 결과 표시
+          showAdminResponse(requests[0]);
+          
+          if (requests.length > 1) {
+            alert(`${requests.length}개의 의뢰를 찾았습니다. 첫 번째 결과를 표시합니다.`);
+          }
+        } else {
+          document.getElementById('loading').classList.add('hidden');
+          document.getElementById('no-result').classList.remove('hidden');
+          document.getElementById('result-card').classList.add('hidden');
+        }
+      }
+      
+      // 엔터키 검색
+      document.getElementById('search-input').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+          document.getElementById('search-btn').click();
+        }
+      });
+
+      // 파일 미리보기 (기존 contact.html 그대로)
+      const fileInput = document.getElementById('contact-file');
+      const filePreview = document.getElementById('filePreview');
+      if (fileInput) {
+        fileInput.addEventListener('change', function(event) {
+          filePreview.innerHTML = '';
+          const file = event.target.files[0];
+          if (file) {
+            if (file.type.startsWith('image/')) {
+              const reader = new FileReader();
+              reader.onload = function(e) {
+                filePreview.innerHTML = `<img src="${e.target.result}" alt="첨부 이미지" class="max-h-32 rounded-xl shadow-md border border-gray-200" />`;
+                fileData = e.target.result;
+              };
+              reader.readAsDataURL(file);
+            } else {
+              filePreview.innerHTML = `<span class='text-gray-600'>${file.name}</span>`;
+              fileData = '';
+            }
+          }
+        });
+      }
+
+      // 문의 제출 (기존 contact.html 그대로)
+      document.getElementById('contact-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const subject = document.getElementById('contact-subject').value.trim();
+        const message = document.getElementById('contact-message').value.trim();
+        const name = document.getElementById('contact-name').value;
+        const email = document.getElementById('contact-email').value;
+        const file = fileData;
+        if (!subject || !message) {
+          alert('제목과 내용을 모두 입력해 주세요.');
+          return;
+        }
+        // 문의 내역 저장 (localStorage, 최신순)
+        const inquiry = { subject, message, name, email, file, date: new Date().toLocaleString() };
+        let history = JSON.parse(localStorage.getItem('contact-history') || '[]');
+        history.unshift(inquiry);
+        if (history.length > 20) history = history.slice(0, 20);
+        localStorage.setItem('contact-history', JSON.stringify(history));
+        // inquiry-로도 저장 (관리자페이지용)
+        const inquiryKey = 'inquiry-' + Date.now();
+        localStorage.setItem(inquiryKey, JSON.stringify(inquiry));
+        document.getElementById('contact-success').classList.remove('hidden');
+        this.reset();
+        filePreview.innerHTML = '';
+        fileData = '';
+        renderHistory();
+      });
+
+      // 댓글 제출 이벤트 (기존 contact.html 그대로)
+      document.addEventListener('submit', function(e) {
+        if (e.target.classList.contains('comment-form')) {
+          e.preventDefault();
+          const subject = e.target.getAttribute('data-subject');
+          const date = e.target.getAttribute('data-date');
+          const input = e.target.querySelector('input[name="comment"]');
+          const text = input.value.trim();
+          if (!text) return false;
+          let history = JSON.parse(localStorage.getItem('contact-history') || '[]');
+          let found = null, foundIdx = -1;
+          for (let i = 0; i < history.length; i++) {
+            if (history[i].subject === subject && history[i].date === date) {
+              found = history[i];
+              foundIdx = i;
+              break;
+            }
+          }
+          if (!found) return false;
+          // inquiry-에서 comments 동기화
+          let inquiryKey = null;
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key.startsWith('inquiry-')) {
+              const obj = JSON.parse(localStorage.getItem(key));
+              if (obj && obj.subject === subject && obj.date === date) {
+                inquiryKey = key;
+                break;
+              }
+            }
+          }
+          if (!inquiryKey) return false;
+          const author = (JSON.parse(localStorage.getItem('user')||'{}').name) || '회원';
+          const inquiry = JSON.parse(localStorage.getItem(inquiryKey));
+          const comments = (inquiry.comments||[]).concat({author, text, date: Date.now()});
+          inquiry.comments = comments;
+          localStorage.setItem(inquiryKey, JSON.stringify(inquiry));
+          found.comments = comments;
+          history[foundIdx] = found;
+          localStorage.setItem('contact-history', JSON.stringify(history));
+          // 즉시 렌더링 갱신
+          renderHistory();
+          // 입력 필드 초기화
+          input.value = '';
+          return false;
+        }
+      });
+
+      // 실시간 댓글 업데이트 타이머 (3초마다)
+      setInterval(updateCommentsInRealTime, 3000);
+    });
+  </script>
+</body>
+</html>

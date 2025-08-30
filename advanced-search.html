@@ -519,9 +519,9 @@
             viewDetails(key) {
                 // 상세보기 페이지로 이동하거나 모달 표시
                 if (key.startsWith('request-')) {
-                    window.open(`result-search.html?req=${key}`, '_blank');
+                    window.open(`member-dashboard.html?req=${key}`, '_blank');
                 } else if (key.startsWith('result-')) {
-                    window.open(`result-search.html?req=${key.replace('result-', 'request-')}`, '_blank');
+                    window.open(`member-dashboard.html?req=${key.replace('result-', 'request-')}`, '_blank');
                 }
             }
         }
