@@ -443,8 +443,16 @@
                   🔄 문의 데이터 강제 새로고침
                 </button>
                 
-                <button onclick="debugDateData()" class="w-full px-4 py-2 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition">
+                <button onclick="debugDateData()" class="w-full px-4 py-2 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition mb-2">
                   📅 날짜 데이터 디버깅
+                </button>
+                
+                <button onclick="migrateData()" class="w-full px-4 py-2 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition mb-2">
+                  🔄 데이터 마이그레이션
+                </button>
+                
+                <button onclick="setupAutoBackup()" class="w-full px-4 py-2 bg-yellow-600 text-white rounded-lg font-semibold hover:bg-yellow-700 transition">
+                  ⚙️ 자동 백업 설정
                 </button>
               </div>
             </div>
@@ -1413,13 +1421,18 @@
         
         const backupData = {
           timestamp: new Date().toISOString(),
+          version: '1.0',
+          description: 'PriceHunter 전체 데이터 백업',
           data: {}
         };
         
         const allKeys = Object.keys(localStorage);
+        let backupCount = 0;
+        
         allKeys.forEach(key => {
           try {
             backupData.data[key] = localStorage.getItem(key);
+            backupCount++;
           } catch (e) {
             console.log(`❌ 백업 키 처리 실패: ${key}`, e);
           }
@@ -1435,7 +1448,109 @@
         link.click();
         
         URL.revokeObjectURL(url);
-        alert('💾 백업이 생성되었습니다.');
+        alert(`💾 백업이 생성되었습니다!\n- 총 ${backupCount}개 데이터 백업됨\n- 파일명: ${link.download}`);
+      }
+      
+      // 자동 백업 기능
+      function setupAutoBackup() {
+        // 매일 자정에 자동 백업
+        const now = new Date();
+        const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+        const timeUntilMidnight = tomorrow - now;
+        
+        setTimeout(() => {
+          createBackup();
+          // 24시간마다 반복
+          setInterval(createBackup, 24 * 60 * 60 * 1000);
+        }, timeUntilMidnight);
+        
+        console.log('🔄 자동 백업 설정 완료 (매일 자정)');
+      }
+      
+      // 데이터 마이그레이션 시스템
+      function migrateData() {
+        console.log('🔄 데이터 마이그레이션 시작...');
+        
+        // 1. 기존 데이터 백업
+        createBackup();
+        
+        // 2. 데이터 구조 업데이트
+        const migrationSteps = [
+          {
+            name: '사용자 데이터 정규화',
+            execute: () => {
+              const user = JSON.parse(localStorage.getItem('user') || '{}');
+              const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+              
+              // 통합된 사용자 데이터 생성
+              const unifiedUser = {
+                ...user,
+                ...currentUser,
+                lastUpdated: new Date().toISOString()
+              };
+              
+              localStorage.setItem('user', JSON.stringify(unifiedUser));
+              localStorage.setItem('currentUser', JSON.stringify(unifiedUser));
+            }
+          },
+          {
+            name: '문의 데이터 정규화',
+            execute: () => {
+              const allKeys = Object.keys(localStorage);
+              allKeys.forEach(key => {
+                if (key.startsWith('inquiry-')) {
+                  try {
+                    const data = JSON.parse(localStorage.getItem(key));
+                    if (data && !data.key) {
+                      data.key = key;
+                      data.id = key;
+                      localStorage.setItem(key, JSON.stringify(data));
+                    }
+                  } catch (e) {
+                    console.log(`문의 데이터 정규화 실패: ${key}`, e);
+                  }
+                }
+              });
+            }
+          },
+          {
+            name: '의뢰 데이터 정규화',
+            execute: () => {
+              const allKeys = Object.keys(localStorage);
+              allKeys.forEach(key => {
+                if (key.startsWith('request-')) {
+                  try {
+                    const data = JSON.parse(localStorage.getItem(key));
+                    if (data && !data.key) {
+                      data.key = key;
+                      data.id = key;
+                      localStorage.setItem(key, JSON.stringify(data));
+                    }
+                  } catch (e) {
+                    console.log(`의뢰 데이터 정규화 실패: ${key}`, e);
+                  }
+                }
+              });
+            }
+          }
+        ];
+        
+        // 마이그레이션 실행
+        migrationSteps.forEach((step, index) => {
+          console.log(`🔄 ${index + 1}. ${step.name} 실행 중...`);
+          try {
+            step.execute();
+            console.log(`✅ ${step.name} 완료`);
+          } catch (e) {
+            console.log(`❌ ${step.name} 실패:`, e);
+          }
+        });
+        
+        console.log('🔄 데이터 마이그레이션 완료');
+        alert('🔄 데이터 마이그레이션이 완료되었습니다!');
+        
+        // 페이지 새로고침
+        location.reload();
       }
       
       // 개별 문의 삭제 함수
