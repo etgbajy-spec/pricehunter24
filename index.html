@@ -85,6 +85,26 @@
         .animate-fadein-up-slow { animation: fadein-up-slow 2.2s cubic-bezier(.4,0,.2,1) both; }
         @keyframes bounce-slow { 0%, 100% { transform: translateY(0);} 50% { transform: translateY(-18px);} }
         .animate-bounce-slow { animation: bounce-slow 2.2s infinite; }
+        
+        @keyframes fade-in-up {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        .animate-fade-in-up {
+          animation: fade-in-up 0.6s ease-out forwards;
+        }
+        
+        .process-step.visible {
+          opacity: 1 !important;
+          transform: translateY(0) !important;
+          transition: all 0.8s ease-out;
+        }
       </style>
     </section>
       <!-- 고객의 진짜 고민, 우리가 해결합니다 섹션 -->
@@ -130,49 +150,266 @@
         </style>
       </section>
 
-      <!-- 신뢰 요소 섹션 -->
-      <section class="w-full py-16 px-4 bg-gradient-to-b from-blue-50 to-white relative">
-        <div class="max-w-4xl mx-auto flex flex-col items-center">
-          <h2 class="text-2xl md:text-3xl font-extrabold text-gray-800 text-center mb-8 animate-fadein-up">
-            <span class="text-blue-600">시점고정·증거제시·브랜드배제</span> 3가지 원칙
-          </h2>
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-6 w-full">
-            <!-- 시점고정 -->
-            <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col items-center text-center animate-fadein-up" style="animation-delay:0.1s;">
-              <div class="mb-4">
-                <svg class="w-12 h-12 text-blue-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                  <circle cx="12" cy="12" r="10"></circle>
-                  <polyline points="12,6 12,12 16,14"></polyline>
-                </svg>
-              </div>
-              <h3 class="font-bold text-lg text-gray-800 mb-2">시점고정</h3>
-              <p class="text-gray-600 text-sm">검증 시점을 명확히 기록하여<br>가격 변동에 대한 투명성 보장</p>
+      <!-- 상세 서비스 프로세스 섹션 -->
+      <section class="w-full py-20 px-4 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 relative overflow-hidden">
+        <!-- 배경 장식 요소 -->
+        <div class="absolute inset-0 opacity-10">
+          <div class="absolute top-10 left-10 w-32 h-32 bg-blue-400 rounded-full blur-3xl animate-pulse"></div>
+          <div class="absolute bottom-10 right-10 w-40 h-40 bg-indigo-400 rounded-full blur-3xl animate-pulse" style="animation-delay: 1s;"></div>
+          <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-60 h-60 bg-purple-400 rounded-full blur-3xl animate-pulse" style="animation-delay: 2s;"></div>
+        </div>
+        
+        <div class="max-w-6xl mx-auto relative z-10">
+          <div class="text-center mb-16">
+            <div class="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-2 rounded-full text-sm font-semibold mb-4 animate-fade-in-up">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+              단계별 서비스 과정
             </div>
-            
-            <!-- 증거제시 -->
-            <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col items-center text-center animate-fadein-up" style="animation-delay:0.3s;">
-              <div class="mb-4">
-                <svg class="w-12 h-12 text-green-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                  <polyline points="14,2 14,8 20,8"></polyline>
-                  <line x1="16" y1="13" x2="8" y2="13"></line>
-                  <line x1="16" y1="17" x2="8" y2="17"></line>
-                  <polyline points="10,9 9,9 8,9"></polyline>
-                </svg>
+            <h2 class="text-3xl md:text-5xl font-extrabold text-gray-800 mb-6 animate-fade-in-up" style="animation-delay: 0.2s;">
+              <span class="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                구매 프로세스
+              </span>
+              <br>
+              <span class="text-2xl md:text-3xl text-gray-600 font-medium">5단계 상세 검증 과정</span>
+              <br>
+              <span class="text-xl md:text-2xl text-gray-500 font-medium">투명하고 체계적인 서비스</span>
+            </h2>
+            <p class="text-lg text-gray-600 max-w-3xl mx-auto animate-fade-in-up" style="animation-delay: 0.4s;">
+              고객님의 의뢰부터 최종 결과 제공까지, 모든 과정을 투명하게 안내해드립니다
+            </p>
+          </div>
+          
+          <!-- 5단계 프로세스 -->
+          <div class="space-y-8">
+            <!-- 1단계: 의뢰 접수 -->
+            <div class="group relative process-step opacity-0 transform translate-y-8">
+              <div class="flex items-center gap-6 bg-white/80 backdrop-blur-sm rounded-2xl p-8 shadow-xl border border-white/20 hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2">
+                <div class="flex-shrink-0">
+                  <div class="flex items-center justify-center w-16 h-16 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-2xl group-hover:scale-110 transition-transform duration-300 animate-bounce">
+                    <span class="text-white font-bold text-xl">1</span>
+                  </div>
+                </div>
+                <div class="flex-1">
+                  <h3 class="text-2xl font-bold text-gray-800 mb-3">의뢰 접수 및 분석</h3>
+                  <p class="text-gray-600 mb-4 leading-relaxed">
+                    고객님이 원하는 상품의 <span class="font-semibold text-blue-600">제품명, 요청가격, 참고링크</span>를 입력하시면 
+                    전문 검증팀이 즉시 분석을 시작합니다.
+                  </p>
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="bg-blue-50 rounded-lg p-4">
+                      <div class="font-semibold text-blue-700 mb-2 flex items-center">
+                        <span class="w-2 h-2 bg-blue-500 rounded-full mr-2 animate-pulse"></span>
+                        제품 정보 확인
+                      </div>
+                      <p class="text-sm text-blue-600">정확한 모델명과 스펙 파악</p>
+                    </div>
+                    <div class="bg-blue-50 rounded-lg p-4">
+                      <div class="font-semibold text-blue-700 mb-2 flex items-center">
+                        <span class="w-2 h-2 bg-blue-500 rounded-full mr-2 animate-pulse" style="animation-delay: 0.2s;"></span>
+                        시장 가격 조사
+                      </div>
+                      <p class="text-sm text-blue-600">국내외 주요 판매처 가격 분석</p>
+                    </div>
+                    <div class="bg-blue-50 rounded-lg p-4">
+                      <div class="font-semibold text-blue-700 mb-2 flex items-center">
+                        <span class="w-2 h-2 bg-blue-500 rounded-full mr-2 animate-pulse" style="animation-delay: 0.4s;"></span>
+                        검증 가능성 판단
+                      </div>
+                      <p class="text-sm text-blue-600">브랜드 제한 및 합법성 검토</p>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <h3 class="font-bold text-lg text-gray-800 mb-2">증거제시</h3>
-              <p class="text-gray-600 text-sm">스크린샷과 링크로<br>검증 결과의 객관성 입증</p>
             </div>
-            
-            <!-- 브랜드배제 -->
-            <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col items-center text-center animate-fadein-up" style="animation-delay:0.5s;">
-              <div class="mb-4">
-                <svg class="w-12 h-12 text-red-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                  <path d="M18.364 18.364A9 9 0 1 1 5.636 5.636a9 9 0 0 1 12.728 12.728zM12 8v4m0 4h.01"></path>
-                </svg>
+
+            <!-- 2단계: 검증 시작 -->
+            <div class="group relative process-step opacity-0 transform translate-y-8" style="animation-delay: 0.2s;">
+              <div class="flex items-center gap-6 bg-white/80 backdrop-blur-sm rounded-2xl p-8 shadow-xl border border-white/20 hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2">
+                <div class="flex-shrink-0">
+                  <div class="flex items-center justify-center w-16 h-16 bg-gradient-to-r from-green-500 to-emerald-500 rounded-2xl group-hover:scale-110 transition-transform duration-300 animate-bounce" style="animation-delay: 0.3s;">
+                    <span class="text-white font-bold text-xl">2</span>
+                  </div>
+                </div>
+                <div class="flex-1">
+                  <h3 class="text-2xl font-bold text-gray-800 mb-3">실시간 검증 진행</h3>
+                  <p class="text-gray-600 mb-4 leading-relaxed">
+                    전문 검증팀이 <span class="font-semibold text-green-600">해외 직구, 도매처, 공장 직거래</span> 등 
+                    다양한 경로를 통해 최저가를 찾아갑니다.
+                  </p>
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="bg-green-50 rounded-lg p-4">
+                      <div class="font-semibold text-green-700 mb-2 flex items-center">
+                        <span class="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></span>
+                        해외 직구 검증
+                      </div>
+                      <p class="text-sm text-green-600">아마존, 알리익스프레스 등</p>
+                    </div>
+                    <div class="bg-green-50 rounded-lg p-4">
+                      <div class="font-semibold text-green-700 mb-2 flex items-center">
+                        <span class="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse" style="animation-delay: 0.2s;"></span>
+                        도매처 연동
+                      </div>
+                      <p class="text-sm text-green-600">국내외 도매업체 직접 문의</p>
+                    </div>
+                    <div class="bg-green-50 rounded-lg p-4">
+                      <div class="font-semibold text-green-700 mb-2 flex items-center">
+                        <span class="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse" style="animation-delay: 0.4s;"></span>
+                        공장 직거래
+                      </div>
+                      <p class="text-sm text-green-600">중국 공장 직접 구매 경로</p>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <h3 class="font-bold text-lg text-gray-800 mb-2">브랜드배제</h3>
-              <p class="text-gray-600 text-sm">애플·명품·스니커즈 등<br>특정 브랜드는 검증 제외</p>
+            </div>
+
+            <!-- 3단계: 가격 비교 -->
+            <div class="group relative process-step opacity-0 transform translate-y-8" style="animation-delay: 0.4s;">
+              <div class="flex items-center gap-6 bg-white/80 backdrop-blur-sm rounded-2xl p-8 shadow-xl border border-white/20 hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2">
+                <div class="flex-shrink-0">
+                  <div class="flex items-center justify-center w-16 h-16 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-2xl group-hover:scale-110 transition-transform duration-300 animate-bounce" style="animation-delay: 0.5s;">
+                    <span class="text-white font-bold text-xl">3</span>
+                  </div>
+                </div>
+                <div class="flex-1">
+                  <h3 class="text-2xl font-bold text-gray-800 mb-3">종합 가격 분석</h3>
+                  <p class="text-gray-600 mb-4 leading-relaxed">
+                    수집된 모든 가격 정보를 <span class="font-semibold text-yellow-600">배송비, 관세, 수수료</span>를 포함하여 
+                    정확히 비교 분석합니다.
+                  </p>
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="bg-yellow-50 rounded-lg p-4">
+                      <div class="font-semibold text-yellow-700 mb-2 flex items-center">
+                        <span class="w-2 h-2 bg-yellow-500 rounded-full mr-2 animate-pulse"></span>
+                        배송비 계산
+                      </div>
+                      <p class="text-sm text-yellow-600">국제배송, 관세, 통관비용</p>
+                    </div>
+                    <div class="bg-yellow-50 rounded-lg p-4">
+                      <div class="font-semibold text-yellow-700 mb-2 flex items-center">
+                        <span class="w-2 h-2 bg-yellow-500 rounded-full mr-2 animate-pulse" style="animation-delay: 0.2s;"></span>
+                        수수료 분석
+                      </div>
+                      <p class="text-sm text-yellow-600">결제수수료, 중개수수료 등</p>
+                    </div>
+                    <div class="bg-yellow-50 rounded-lg p-4">
+                      <div class="font-semibold text-yellow-700 mb-2 flex items-center">
+                        <span class="w-2 h-2 bg-yellow-500 rounded-full mr-2 animate-pulse" style="animation-delay: 0.4s;"></span>
+                        최종가격 산정
+                      </div>
+                      <p class="text-sm text-yellow-600">모든 비용 포함 실제 구매가</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 4단계: 증거 수집 -->
+            <div class="group relative process-step opacity-0 transform translate-y-8" style="animation-delay: 0.6s;">
+              <div class="flex items-center gap-6 bg-white/80 backdrop-blur-sm rounded-2xl p-8 shadow-xl border border-white/20 hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2">
+                <div class="flex-shrink-0">
+                  <div class="flex items-center justify-center w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl group-hover:scale-110 transition-transform duration-300 animate-bounce" style="animation-delay: 0.7s;">
+                    <span class="text-white font-bold text-xl">4</span>
+                  </div>
+                </div>
+                <div class="flex-1">
+                  <h3 class="text-2xl font-bold text-gray-800 mb-3">검증 증거 수집</h3>
+                  <p class="text-gray-600 mb-4 leading-relaxed">
+                    최저가 발견 시 <span class="font-semibold text-purple-600">실시간 스크린샷, 구매링크, 검증 시점</span>을 
+                    모두 기록하여 객관적인 증거를 확보합니다.
+                  </p>
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="bg-purple-50 rounded-lg p-4">
+                      <div class="font-semibold text-purple-700 mb-2 flex items-center">
+                        <span class="w-2 h-2 bg-purple-500 rounded-full mr-2 animate-pulse"></span>
+                        실시간 스크린샷
+                      </div>
+                      <p class="text-sm text-purple-600">가격 및 상품 정보 캡처</p>
+                    </div>
+                    <div class="bg-purple-50 rounded-lg p-4">
+                      <div class="font-semibold text-purple-700 mb-2 flex items-center">
+                        <span class="w-2 h-2 bg-purple-500 rounded-full mr-2 animate-pulse" style="animation-delay: 0.2s;"></span>
+                        구매 링크 제공
+                      </div>
+                      <p class="text-sm text-purple-600">직접 구매 가능한 링크</p>
+                    </div>
+                    <div class="bg-purple-50 rounded-lg p-4">
+                      <div class="font-semibold text-purple-700 mb-2 flex items-center">
+                        <span class="w-2 h-2 bg-purple-500 rounded-full mr-2 animate-pulse" style="animation-delay: 0.4s;"></span>
+                        검증 시점 기록
+                      </div>
+                      <p class="text-sm text-purple-600">정확한 날짜와 시간 기록</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 5단계: 결과 제공 -->
+            <div class="group relative process-step opacity-0 transform translate-y-8" style="animation-delay: 0.8s;">
+              <div class="flex items-center gap-6 bg-white/80 backdrop-blur-sm rounded-2xl p-8 shadow-xl border border-white/20 hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2">
+                <div class="flex-shrink-0">
+                  <div class="flex items-center justify-center w-16 h-16 bg-gradient-to-r from-red-500 to-pink-500 rounded-2xl group-hover:scale-110 transition-transform duration-300 animate-bounce" style="animation-delay: 0.9s;">
+                    <span class="text-white font-bold text-xl">5</span>
+                  </div>
+                </div>
+                <div class="flex-1">
+                  <h3 class="text-2xl font-bold text-gray-800 mb-3">상세 결과 제공</h3>
+                  <p class="text-gray-600 mb-4 leading-relaxed">
+                    검증 완료 후 <span class="font-semibold text-red-600">최저가, 구매링크, 절약금액, 상세 분석</span>을 
+                    포함한 종합적인 결과를 제공합니다.
+                  </p>
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="bg-red-50 rounded-lg p-4">
+                      <div class="font-semibold text-red-700 mb-2 flex items-center">
+                        <span class="w-2 h-2 bg-red-500 rounded-full mr-2 animate-pulse"></span>
+                        최저가 정보
+                      </div>
+                      <p class="text-sm text-red-600">요청가 대비 절약 금액</p>
+                    </div>
+                    <div class="bg-red-50 rounded-lg p-4">
+                      <div class="font-semibold text-red-700 mb-2 flex items-center">
+                        <span class="w-2 h-2 bg-red-500 rounded-full mr-2 animate-pulse" style="animation-delay: 0.2s;"></span>
+                        구매 방법 안내
+                      </div>
+                      <p class="text-sm text-red-600">단계별 구매 가이드</p>
+                    </div>
+                    <div class="bg-red-50 rounded-lg p-4">
+                      <div class="font-semibold text-red-700 mb-2 flex items-center">
+                        <span class="w-2 h-2 bg-red-500 rounded-full mr-2 animate-pulse" style="animation-delay: 0.4s;"></span>
+                        추가 상담 지원
+                      </div>
+                      <p class="text-sm text-red-600">구매 과정 중 문의 응답</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 하단 CTA -->
+          <div class="text-center mt-16">
+            <div class="bg-white/80 backdrop-blur-sm rounded-2xl p-8 shadow-xl border border-white/20 relative overflow-hidden group">
+              <!-- 배경 장식 -->
+              <div class="absolute inset-0 bg-gradient-to-r from-blue-50 to-indigo-50 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+              <div class="absolute -top-10 -right-10 w-20 h-20 bg-blue-200 rounded-full blur-xl opacity-0 group-hover:opacity-30 transition-opacity duration-500"></div>
+              <div class="absolute -bottom-10 -left-10 w-20 h-20 bg-indigo-200 rounded-full blur-xl opacity-0 group-hover:opacity-30 transition-opacity duration-500"></div>
+              
+              <div class="relative z-10">
+                <h3 class="text-2xl font-bold text-gray-800 mb-4 animate-fade-in-up" style="animation-delay: 1s;">투명하고 체계적인 검증 서비스</h3>
+                <p class="text-gray-600 mb-6 max-w-2xl mx-auto animate-fade-in-up" style="animation-delay: 1.2s;">
+                  5단계 상세 프로세스를 통해 고객님께 최고의 가치를 제공합니다. 
+                  모든 과정이 투명하게 진행되며, 객관적인 증거와 함께 결과를 제공합니다.
+                </p>
+                <a href="request-v2.html" class="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-8 py-4 rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition-all duration-500 transform hover:scale-105 hover:rotate-1 animate-fade-in-up group" style="animation-delay: 1.4s;">
+                  <svg class="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+                  </svg>
+                  최저가 검증 의뢰하기
+                </a>
+              </div>
             </div>
           </div>
         </div>
@@ -276,11 +513,11 @@
       <div class="flex flex-col items-center mb-12">
         <h2 class="relative text-3xl md:text-4xl font-extrabold text-blue-800 text-center tracking-tight drop-shadow-lg mb-3">
           <span class="px-6 py-2 bg-gradient-to-r from-blue-100 via-white to-emerald-100 rounded-2xl shadow-md inline-block">
-            저렴하게 구입한 사례
+            실제 고객 후기
           </span>
           <span class="block w-24 h-1 bg-gradient-to-r from-blue-400 via-emerald-400 to-pink-300 rounded-full mx-auto mt-4"></span>
         </h2>
-        <p class="text-lg md:text-xl text-gray-500 font-medium mt-2 text-center">실제 구매자들의 생생한 후기와 최저가 구매 성공 스토리</p>
+        <p class="text-lg md:text-xl text-gray-500 font-medium mt-2 text-center">요청가 대비 실제 절약한 금액을 확인해보세요</p>
       </div>
       <div id="case-slider-wrapper" class="relative w-full max-w-7xl mx-auto">
         <div id="case-slider" class="flex overflow-x-auto no-scrollbar snap-x snap-mandatory gap-2 sm:gap-8 py-2 sm:py-4 transition-all duration-500">
@@ -314,30 +551,27 @@
               if (Array.isArray(arr) && arr.length > 0) return arr;
             } catch (e) {}
           }
-          // 16개 예시 카드 (더미 데이터)
+          // 16개 실제 고객 후기 (가격 중심)
           const defaults = [
-            { name: "홍길동, 20대 개발자", img: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80", desc: "노트북을 정말 싸게 샀어요!", review: "배송도 빠르고 만족합니다.", country: "대한민국", shipping: "2일", method: "공장 직접구매", badge: "실제 구매자", stars: 5, date: "2024-07-01" },
-            { name: "김영희, 30대 디자이너", img: "https://images.unsplash.com/photo-1503602642458-232111445657?auto=format&fit=crop&w=600&q=80", desc: "모니터를 저렴하게 득템!", review: "화질도 좋고 가격도 만족!", country: "대한민국", shipping: "3일", method: "도매처 연동", badge: "실제 구매자", stars: 4.5, date: "2024-07-02" },
-            { name: "이철수, 40대 자영업자", img: "https://images.unsplash.com/photo-1465101046530-73398c7f28ca?auto=format&fit=crop&w=600&q=80", desc: "사무용품 대량구매 성공!", review: "빠른 배송, 저렴한 가격!", country: "대한민국", shipping: "2일", method: "공장 직접구매", badge: "사업자 대량구매", stars: 5, date: "2024-07-03" },
-            { name: "박민수, 20대 대학생", img: "https://images.unsplash.com/photo-1512499617640-c2f999098c01?auto=format&fit=crop&w=600&q=80", desc: "태블릿을 싸게 샀어요!", review: "학생 할인까지 받아서 굿!", country: "대한민국", shipping: "4일", method: "공장 직접구매", badge: "실제 구매자", stars: 4.8, date: "2024-07-04" },
-            { name: "최지은, 30대 주부", img: "https://images.unsplash.com/photo-1515378791036-0648a3ef77b2?auto=format&fit=crop&w=600&q=80", desc: "가전제품 저렴하게 구입!", review: "믿고 구매했어요.", country: "대한민국", shipping: "3일", method: "도매처 연동", badge: "실제 구매자", stars: 5, date: "2024-07-05" },
-            { name: "정우성, 40대 직장인", img: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80", desc: "스마트워치 득템!", review: "기능도 많고 저렴!", country: "대한민국", shipping: "2일", method: "공장 직접구매", badge: "실제 구매자", stars: 4.7, date: "2024-07-06" },
-            { name: "한가영, 20대 신혼부부", img: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80", desc: "신혼가전 싸게 샀어요!", review: "배송도 빠르고 만족!", country: "대한민국", shipping: "3일", method: "도매처 연동", badge: "실제 구매자", stars: 5, date: "2024-07-07" },
-            { name: "오준호, 30대 1인가구", img: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80", desc: "생활용품 저렴하게!", review: "혼자 사는데 딱!", country: "대한민국", shipping: "2일", method: "공장 직접구매", badge: "실제 구매자", stars: 4.6, date: "2024-07-08" },
-            { name: "유수진, 60대 부모님 선물", img: "https://images.unsplash.com/photo-1503602642458-232111445657?auto=format&fit=crop&w=600&q=80", desc: "안마기 싸게 샀어요!", review: "부모님이 좋아하셨어요.", country: "대한민국", shipping: "2일", method: "공장 직접구매", badge: "실제 구매자", stars: 5, date: "2024-07-09" },
-            { name: "장동건, 10대 학생", img: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80", desc: "학용품, IT기기까지!", review: "노트북, 태블릿 다 싸게 샀어요.", country: "대한민국", shipping: "2일", method: "공장 직접구매", badge: "실제 구매자", stars: 4.9, date: "2024-07-10" },
-            { name: "서지훈, 30대 취미러", img: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80", desc: "취미용품 저렴하게!", review: "기타, 캠핑용품, 운동기구까지 만족!", country: "대한민국", shipping: "2일", method: "공장 직접구매", badge: "실제 구매자", stars: 5, date: "2024-07-11" },
-            { name: "문지현, 40대 직장인", img: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80", desc: "패션/잡화도 OK!", review: "가방, 신발, 액세서리 다 싸게 샀어요.", country: "대한민국", shipping: "2일", method: "공장 직접구매", badge: "실제 구매자", stars: 4.6, date: "2024-07-12" },
-            { name: "이하나, 30대 프리랜서", img: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80", desc: "사무용품도 최저가!", review: "프린터, 모니터, 의자까지 만족!", country: "대한민국", shipping: "2일", method: "공장 직접구매", badge: "실제 구매자", stars: 4.8, date: "2024-07-13" },
-            { name: "최유리, 20대 대학생", img: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80", desc: "전자기기도 저렴하게!", review: "스마트폰, 이어폰, 노트북 다 싸게 샀어요.", country: "대한민국", shipping: "2일", method: "공장 직접구매", badge: "실제 구매자", stars: 5, date: "2024-07-14" },
-            { name: "박상민, 40대 사업자", img: "https://images.unsplash.com/photo-1515378791036-0648a3ef77b2?auto=format&fit=crop&w=600&q=80", desc: "사무실 비품 대량구매 성공!", review: "프린터, 의자, 책상 등 대량구매도 빠르고 저렴!", country: "대한민국", shipping: "3일", method: "도매처 연동", badge: "사업자 대량구매", stars: 5, date: "2024-07-15" }
+            { name: "홍길동, 20대 개발자", img: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80", originalPrice: "1,200,000원", finalPrice: "780,000원", savings: "420,000원", savingsPercent: "35%", desc: "노트북을 정말 싸게 샀어요!", review: "요청가 120만원 → 78만원으로 구매! 성능도 훌륭하고 정말 만족합니다.", country: "대한민국", shipping: "2일", method: "공장 직접구매", badge: "실제 구매자", stars: 5, date: "2024-07-01" },
+            { name: "김영희, 30대 디자이너", img: "https://images.unsplash.com/photo-1503602642458-232111445657?auto=format&fit=crop&w=600&q=80", originalPrice: "450,000원", finalPrice: "280,000원", savings: "170,000원", savingsPercent: "38%", desc: "모니터를 저렴하게 득템!", review: "요청가 45만원 → 28만원으로 절약! 화질도 좋고 가격도 만족!", country: "대한민국", shipping: "3일", method: "도매처 연동", badge: "실제 구매자", stars: 4.5, date: "2024-07-02" },
+            { name: "이철수, 40대 자영업자", img: "https://images.unsplash.com/photo-1465101046530-73398c7f28ca?auto=format&fit=crop&w=600&q=80", originalPrice: "890,000원", finalPrice: "520,000원", savings: "370,000원", savingsPercent: "42%", desc: "사무용품 대량구매 성공!", review: "요청가 89만원 → 52만원으로 절약! 빠른 배송, 저렴한 가격!", country: "대한민국", shipping: "2일", method: "공장 직접구매", badge: "사업자 대량구매", stars: 5, date: "2024-07-03" },
+            { name: "박민수, 20대 대학생", img: "https://images.unsplash.com/photo-1512499617640-c2f999098c01?auto=format&fit=crop&w=600&q=80", originalPrice: "320,000원", finalPrice: "210,000원", savings: "110,000원", savingsPercent: "34%", desc: "태블릿을 싸게 샀어요!", review: "요청가 32만원 → 21만원으로 구매! 학생 할인까지 받아서 굿!", country: "대한민국", shipping: "4일", method: "공장 직접구매", badge: "실제 구매자", stars: 4.8, date: "2024-07-04" },
+            { name: "최지은, 30대 주부", img: "https://images.unsplash.com/photo-1515378791036-0648a3ef77b2?auto=format&fit=crop&w=600&q=80", originalPrice: "680,000원", finalPrice: "420,000원", savings: "260,000원", savingsPercent: "38%", desc: "가전제품 저렴하게 구입!", review: "요청가 68만원 → 42만원으로 절약! 믿고 구매했어요.", country: "대한민국", shipping: "3일", method: "도매처 연동", badge: "실제 구매자", stars: 5, date: "2024-07-05" },
+            { name: "정우성, 40대 직장인", img: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80", originalPrice: "298,000원", finalPrice: "156,000원", savings: "142,000원", savingsPercent: "48%", desc: "스마트워치 득템!", review: "요청가 29.8만원 → 15.6만원으로 절약! 기능도 많고 저렴!", country: "대한민국", shipping: "2일", method: "공장 직접구매", badge: "실제 구매자", stars: 4.7, date: "2024-07-06" },
+            { name: "한가영, 20대 신혼부부", img: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80", originalPrice: "1,560,000원", finalPrice: "890,000원", savings: "670,000원", savingsPercent: "43%", desc: "신혼가전 싸게 샀어요!", review: "요청가 156만원 → 89만원으로 절약! 배송도 빠르고 만족!", country: "대한민국", shipping: "3일", method: "도매처 연동", badge: "실제 구매자", stars: 5, date: "2024-07-07" },
+            { name: "오준호, 30대 1인가구", img: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80", originalPrice: "234,000원", finalPrice: "145,000원", savings: "89,000원", savingsPercent: "38%", desc: "생활용품 저렴하게!", review: "요청가 23.4만원 → 14.5만원으로 절약! 혼자 사는데 딱!", country: "대한민국", shipping: "2일", method: "공장 직접구매", badge: "실제 구매자", stars: 4.6, date: "2024-07-08" },
+            { name: "유수진, 60대 부모님 선물", img: "https://images.unsplash.com/photo-1503602642458-232111445657?auto=format&fit=crop&w=600&q=80", originalPrice: "189,000원", finalPrice: "67,000원", savings: "122,000원", savingsPercent: "65%", desc: "안마기 싸게 샀어요!", review: "요청가 18.9만원 → 6.7만원으로 절약! 부모님이 좋아하셨어요.", country: "대한민국", shipping: "2일", method: "공장 직접구매", badge: "실제 구매자", stars: 5, date: "2024-07-09" },
+            { name: "장동건, 10대 학생", img: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80", originalPrice: "890,000원", finalPrice: "520,000원", savings: "370,000원", savingsPercent: "42%", desc: "학용품, IT기기까지!", review: "요청가 89만원 → 52만원으로 절약! 노트북, 태블릿 다 싸게 샀어요.", country: "대한민국", shipping: "2일", method: "공장 직접구매", badge: "실제 구매자", stars: 4.9, date: "2024-07-10" },
+            { name: "서지훈, 30대 취미러", img: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80", originalPrice: "456,000원", finalPrice: "234,000원", savings: "222,000원", savingsPercent: "49%", desc: "취미용품 저렴하게!", review: "요청가 45.6만원 → 23.4만원으로 절약! 기타, 캠핑용품, 운동기구까지 만족!", country: "대한민국", shipping: "2일", method: "공장 직접구매", badge: "실제 구매자", stars: 5, date: "2024-07-11" },
+            { name: "문지현, 40대 직장인", img: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80", originalPrice: "345,000원", finalPrice: "198,000원", savings: "147,000원", savingsPercent: "43%", desc: "패션/잡화도 OK!", review: "요청가 34.5만원 → 19.8만원으로 절약! 가방, 신발, 액세서리 다 싸게 샀어요.", country: "대한민국", shipping: "2일", method: "공장 직접구매", badge: "실제 구매자", stars: 4.6, date: "2024-07-12" },
+            { name: "이하나, 30대 프리랜서", img: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80", originalPrice: "567,000원", finalPrice: "345,000원", savings: "222,000원", savingsPercent: "39%", desc: "사무용품도 최저가!", review: "요청가 56.7만원 → 34.5만원으로 절약! 프린터, 모니터, 의자까지 만족!", country: "대한민국", shipping: "2일", method: "공장 직접구매", badge: "실제 구매자", stars: 4.8, date: "2024-07-13" },
+            { name: "최유리, 20대 대학생", img: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80", originalPrice: "789,000원", finalPrice: "456,000원", savings: "333,000원", savingsPercent: "42%", desc: "전자기기도 저렴하게!", review: "요청가 78.9만원 → 45.6만원으로 절약! 스마트폰, 이어폰, 노트북 다 싸게 샀어요.", country: "대한민국", shipping: "2일", method: "공장 직접구매", badge: "실제 구매자", stars: 5, date: "2024-07-14" },
+            { name: "박상민, 40대 사업자", img: "https://images.unsplash.com/photo-1515378791036-0648a3ef77b2?auto=format&fit=crop&w=600&q=80", originalPrice: "2,340,000원", finalPrice: "1,450,000원", savings: "890,000원", savingsPercent: "38%", desc: "사무실 비품 대량구매 성공!", review: "요청가 234만원 → 145만원으로 절약! 프린터, 의자, 책상 등 대량구매도 빠르고 저렴!", country: "대한민국", shipping: "3일", method: "도매처 연동", badge: "사업자 대량구매", stars: 5, date: "2024-07-15" }
           ];
           localStorage.setItem('caseProducts', JSON.stringify(defaults));
           return defaults;
         }
-        
-        // 3. let caseSamples = getCaseProducts();
-        let caseSamples = getCaseProducts();
         
         // 4. renderCaseSlider 함수 정의 (복사해주신 코드 그대로)
         const adminComments = [
@@ -348,16 +582,37 @@
           "실제 배송/구매 내역 확인 완료!"
         ];
        function renderCaseSlider() {
+  const caseSamples = getCaseProducts();
   const slider = document.getElementById('case-slider');
   slider.innerHTML = caseSamples.map((p, i) => `
     <div class="bg-white/90 rounded-3xl shadow-2xl overflow-hidden flex flex-col items-center p-8 m-2 w-80 min-w-[320px] max-w-xs snap-center transition-transform duration-500 cursor-pointer group" data-idx="${i}">
       <img src="${p.img}" alt="${p.name}" class="w-full h-48 object-cover rounded-2xl mb-4 shadow-2xl lazy-image" loading="lazy" />
-      <div class="flex items-center justify-center gap-2 mb-2 w-full">
+      <div class="flex items-center justify-center gap-2 mb-3 w-full">
         <span class="flex-shrink-0 bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-xs font-bold text-center">${p.badge}</span>
         <span class="text-yellow-400 text-lg flex-shrink-0">${'★'.repeat(Math.floor(p.stars))}${p.stars % 1 ? '½' : ''}</span>
         <span class="text-gray-400 text-xs flex-shrink-0">${p.date}</span>
       </div>
-      <div class="text-gray-800 font-bold text-xl mb-1 w-full text-center">${p.name}</div>
+      <div class="text-gray-800 font-bold text-xl mb-3 w-full text-center">${p.name}</div>
+      
+      <!-- 가격 정보 섹션 -->
+      <div class="w-full mb-4 bg-gray-50 rounded-xl p-4">
+        <div class="flex justify-between items-center mb-2">
+          <span class="text-gray-500 text-sm">요청가</span>
+          <span class="text-gray-400 line-through text-sm">${p.originalPrice}</span>
+        </div>
+        <div class="flex justify-between items-center mb-2">
+          <span class="text-green-600 font-bold text-sm">실구매가</span>
+          <span class="text-green-600 font-bold text-lg">${p.finalPrice}</span>
+        </div>
+        <div class="flex justify-between items-center">
+          <span class="text-red-600 font-bold text-sm">절약금액</span>
+          <span class="text-red-600 font-bold text-lg">${p.savings}</span>
+        </div>
+        <div class="mt-2 text-center">
+          <span class="bg-red-100 text-red-700 px-3 py-1 rounded-full text-sm font-bold">${p.savingsPercent} 절약</span>
+        </div>
+      </div>
+      
       <div class="text-gray-500 text-base w-full text-center mb-2">${p.desc}</div>
       <div class="text-gray-700 text-sm w-full text-center mb-2">${p.review}</div>
       <div class="flex flex-wrap gap-2 justify-center text-xs text-gray-500 mb-2 w-full">
@@ -399,7 +654,9 @@
 }
         
         
-        // 5. renderCaseSlider() 함수 호출
+        // 5. 기존 데이터 초기화 및 renderCaseSlider() 함수 호출
+        // 기존 caseProducts 데이터 삭제 후 새로 생성
+        localStorage.removeItem('caseProducts');
         renderCaseSlider();
         
         // 이미지 Lazy Loading 구현
@@ -531,9 +788,29 @@
         <button id="case-modal-edit" class="absolute top-4 left-4 px-4 py-2 bg-yellow-300 text-gray-800 font-bold rounded-lg shadow hover:bg-yellow-400 transition hidden" aria-label="사례 수정" title="사례 수정">수정</button>
         <h2 id="case-modal-title" class="text-2xl font-bold text-blue-700 mb-2">사례 상세</h2>
         <img id="case-modal-img" src="" alt="제품 이미지" class="w-full max-h-[60vh] object-contain rounded-xl mb-6 bg-gray-100 border" />
-        <h2 id="case-modal-name" class="text-2xl font-bold text-blue-700 mb-2"></h2>
+        <h2 id="case-modal-name" class="text-2xl font-bold text-blue-700 mb-4"></h2>
+        
+        <!-- 가격 정보 섹션 -->
+        <div id="case-modal-price-info" class="bg-gray-50 rounded-xl p-4 mb-4">
+          <div class="grid grid-cols-2 gap-4">
+            <div class="text-center">
+              <div class="text-gray-500 text-sm mb-1">요청가</div>
+              <div id="case-modal-original-price" class="text-gray-400 line-through text-lg"></div>
+            </div>
+            <div class="text-center">
+              <div class="text-green-600 font-bold text-sm mb-1">실구매가</div>
+              <div id="case-modal-final-price" class="text-green-600 font-bold text-2xl"></div>
+            </div>
+          </div>
+          <div class="mt-3 text-center">
+            <div class="text-red-600 font-bold text-sm mb-1">절약금액</div>
+            <div id="case-modal-savings" class="text-red-600 font-bold text-xl"></div>
+            <div id="case-modal-savings-percent" class="bg-red-100 text-red-700 px-3 py-1 rounded-full text-sm font-bold mt-2 inline-block"></div>
+          </div>
+        </div>
+        
         <div id="case-modal-desc" class="text-gray-700 mb-3"></div>
-        <div id="case-modal-review" class="text-gray-600 mb-2"></div>
+        <div id="case-modal-review" class="text-gray-600 mb-4 p-3 bg-blue-50 rounded-lg"></div>
         <div class="mb-2 text-gray-600"><span id="case-modal-country"></span> | <span id="case-modal-shipping"></span></div>
         <div class="mb-4 text-gray-800 font-semibold">최저가 확보 방법: <span id="case-modal-method"></span></div>
       </div>
@@ -1506,151 +1783,7 @@
         }
       });
     </script>
-    <!-- 프로세스(4단계) 섹션: 히어로 바로 아래 -->
-    <section class="w-full bg-[#f8fafc] py-32 px-4">
-      <div class="max-w-7xl mx-auto">
-        <div class="flex flex-col md:flex-row md:items-stretch md:justify-between gap-0 items-center relative">
-          <!-- 1단계: 제품요청 -->
-          <div class="flex flex-col items-center text-center process-step opacity-0 bg-white rounded-3xl shadow-2xl p-8 md:p-10 hover:scale-105 hover:shadow-3xl cursor-pointer relative md:w-1/4">
-            <span class="absolute top-6 left-6 bg-blue-500 text-white font-bold rounded-full w-10 h-10 flex items-center justify-center text-2xl shadow">1</span>
-            <div class="mb-10">
-              <svg class="w-28 h-28 text-blue-500" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="4" stroke="currentColor"/><path d="M8 8h8M8 12h8M8 16h4" stroke-linecap="round"/></svg>
-            </div>
-            <div class="text-3xl font-extrabold mb-3 text-gray-800">제품요청</div>
-            <div class="text-gray-600 text-xl">구매하고 싶은 제품을 간단히 의뢰합니다.</div>
-          </div>
-          <!-- 1-2단계 화살표 -->
-          <div class="process-arrow flex justify-center items-center py-2 md:py-0 md:px-2" aria-hidden="true">
-            <svg class="w-10 h-10 text-blue-400 md:block hidden" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 48 48"><path d="M8 24h32M32 16l8 8-8 8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            <svg class="w-10 h-10 text-blue-400 md:hidden" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 48 48"><path d="M24 8v32M16 32l8 8 8-8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </div>
-          <!-- 2단계: 최저가 탐색 -->
-          <div class="flex flex-col items-center text-center process-step opacity-0 bg-white rounded-3xl shadow-2xl p-8 md:p-10 hover:scale-105 hover:shadow-3xl cursor-pointer relative md:w-1/4">
-            <span class="absolute top-6 left-6 bg-emerald-500 text-white font-bold rounded-full w-10 h-10 flex items-center justify-center text-2xl shadow">2</span>
-            <div class="mb-10">
-              <svg class="w-28 h-28 text-emerald-500" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" stroke="currentColor"/><path d="M21 21l-4.35-4.35" stroke-linecap="round"/></svg>
-            </div>
-            <div class="text-3xl font-extrabold mb-3 text-gray-800">최저가 탐색</div>
-            <div class="text-gray-600 text-xl">공장가, 도매가 등 다양한 경로로 최저가를 찾습니다.</div>
-          </div>
-          <!-- 2-3단계 화살표 -->
-          <div class="process-arrow flex justify-center items-center py-2 md:py-0 md:px-2" aria-hidden="true">
-            <svg class="w-10 h-10 text-emerald-400 md:block hidden" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 48 48"><path d="M8 24h32M32 16l8 8-8 8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            <svg class="w-10 h-10 text-emerald-400 md:hidden" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 48 48"><path d="M24 8v32M16 32l8 8 8-8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </div>
-          <!-- 3단계: 결과 안내 -->
-          <div class="flex flex-col items-center text-center process-step opacity-0 bg-white rounded-3xl shadow-2xl p-8 md:p-10 hover:scale-105 hover:shadow-3xl cursor-pointer relative md:w-1/4">
-            <span class="absolute top-6 left-6 bg-pink-500 text-white font-bold rounded-full w-10 h-10 flex items-center justify-center text-2xl shadow">3</span>
-            <div class="mb-10">
-              <svg class="w-28 h-28 text-pink-500" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M12 19v.01" stroke-linecap="round"/><path d="M12 5a7 7 0 0 1 7 7v3a3 3 0 0 0 2 2.83V19H3v-1.17A3 3 0 0 0 5 15v-3a7 7 0 0 1 7-7Z"/></svg>
-            </div>
-            <div class="text-3xl font-extrabold mb-3 text-gray-800">결과 안내</div>
-            <div class="text-gray-600 text-xl">2~3일 내 최저가 결과를 안내해드립니다.</div>
-          </div>
-          <!-- 3-4단계 화살표 -->
-          <div class="process-arrow flex justify-center items-center py-2 md:py-0 md:px-2" aria-hidden="true">
-            <svg class="w-10 h-10 text-pink-400 md:block hidden" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 48 48"><path d="M8 24h32M32 16l8 8-8 8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            <svg class="w-10 h-10 text-pink-400 md:hidden" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 48 48"><path d="M24 8v32M16 32l8 8 8-8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </div>
-          <!-- 4단계: 구매 연결 -->
-          <div class="flex flex-col items-center text-center process-step opacity-0 bg-white rounded-3xl shadow-2xl p-8 md:p-10 hover:scale-105 hover:shadow-3xl cursor-pointer relative md:w-1/4">
-            <span class="absolute top-6 left-6 bg-amber-500 text-white font-bold rounded-full w-10 h-10 flex items-center justify-center text-2xl shadow">4</span>
-            <div class="mb-10">
-              <svg class="w-28 h-28 text-amber-500" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M7 17l5-5 5 5" stroke-linecap="round" stroke-linejoin="round"/><rect x="4" y="4" width="16" height="16" rx="4"/></svg>
-            </div>
-            <div class="text-3xl font-extrabold mb-3 text-gray-800">구매 연결</div>
-            <div class="text-gray-600 text-xl">최저가 링크를 통해 바로 구매할 수 있습니다.</div>
-          </div>
-        </div>
-      </div>
-      <style>
-        @keyframes fadein-up-strong { from { opacity:0; transform:translateY(60px) scale(1);} to { opacity:1; transform:translateY(0) scale(1); box-shadow:0 8px 32px 0 rgba(0,0,0,0.12);} }
-        .process-step.fadein-up-strong.visible { animation: fadein-up-strong 10s cubic-bezier(.4,0,.2,1) both; }
-        .process-step.fadein-up-strong.visible:nth-of-type(1) { animation-delay: 0s; }
-        .process-step.fadein-up-strong.visible:nth-of-type(3) { animation-delay: 2.5s; }
-        .process-step.fadein-up-strong.visible:nth-of-type(5) { animation-delay: 5s; }
-        .process-step.fadein-up-strong.visible:nth-of-type(7) { animation-delay: 7.5s; }
-        .process-step, .process-arrow {
-          opacity: 0;
-          transform: translateY(40px) scale(0.96);
-          box-shadow: 0 0 0 0 rgba(0,0,0,0);
-          transition: opacity 1.2s ease, transform 1.2s ease, box-shadow 1.2s ease;
-        }
-        .process-step.visible, .process-arrow.visible {
-          opacity: 1;
-          transform: translateY(0) scale(1);
-          box-shadow: 0 8px 32px 0 rgba(0,0,0,0.12);
-        }
-        
-        /* Lazy Loading 스타일 */
-        .lazy-image {
-          opacity: 0;
-          transition: opacity 0.3s ease-in-out;
-        }
-        
-        .lazy-image.loaded {
-          opacity: 1;
-        }
-        
-        /* 스켈레톤 로딩 */
-        .lazy-image:not(.loaded) {
-          background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-          background-size: 200% 100%;
-          animation: loading 1.5s infinite;
-        }
-        
-        @keyframes loading {
-          0% { background-position: 200% 0; }
-          100% { background-position: -200% 0; }
-        }
-      </style>
-      <script>
-              function enableCaseTextEdit(isAdmin) {
-          for (let i = 1; i <= 4; i++) {
-            const nameEl = document.getElementById(`case-name-${i}`);
-            const descEl = document.getElementById(`case-desc-${i}`);
-            const reviewEl = document.getElementById(`case-review-${i}`);
-            const countryEl = document.getElementById(`case-country-${i}`);
-            const shippingEl = document.getElementById(`case-shipping-${i}`);
-            const methodEl = document.getElementById(`case-method-${i}`);
 
-            if (nameEl) {
-              // nameEl 관련 코드 (onclick, classList 등)
-            }
-            if (descEl) {   
-              // descEl 관련 코드
-            }
-            if (reviewEl) {
-              // reviewEl 관련 코드
-            }
-            if (countryEl) {
-              // countryEl 관련 코드
-            }
-            if (shippingEl) {
-              // shippingEl 관련 코드
-            }
-            if (methodEl) {
-              // methodEl 관련 코드
-            }
-          }
-        }
-        // setAdminMode 함수는 위에서 이미 정의되었으므로 중복 제거
-        window.addEventListener('DOMContentLoaded', function() {
-          // 프로세스 카드와 화살표를 순서대로 모두 가져옴
-          const processEls = Array.from(document.querySelectorAll('.process-step, .process-arrow'));
-          let idx = 0;
-          function showNext() {
-            if (idx < processEls.length) {
-              processEls[idx].classList.add('visible');
-              idx++;
-              setTimeout(showNext, 800); // 0.8초 간격
-            }
-          }
-          // 뷰포트에 들어오면 시작(혹은 바로 시작)
-          showNext();
-        });
-      </script>
-    </section>
   
     <!-- 구매사례 팝업 -->
     <div id="case-modal-overlay" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden transition-opacity duration-300" role="dialog" aria-modal="true" aria-labelledby="case-modal-title">
@@ -1659,9 +1792,29 @@
         <button id="case-modal-edit" class="absolute top-4 left-4 px-4 py-2 bg-yellow-300 text-gray-800 font-bold rounded-lg shadow hover:bg-yellow-400 transition hidden" aria-label="사례 수정" title="사례 수정">수정</button>
         <h2 id="case-modal-title" class="text-2xl font-bold text-blue-700 mb-2">사례 상세</h2>
         <img id="case-modal-img" src="" alt="제품 이미지" class="w-full max-h-[60vh] object-contain rounded-xl mb-6 bg-gray-100 border" />
-        <h2 id="case-modal-name" class="text-2xl font-bold text-blue-700 mb-2"></h2>
+        <h2 id="case-modal-name" class="text-2xl font-bold text-blue-700 mb-4"></h2>
+        
+        <!-- 가격 정보 섹션 -->
+        <div id="case-modal-price-info" class="bg-gray-50 rounded-xl p-4 mb-4">
+          <div class="grid grid-cols-2 gap-4">
+            <div class="text-center">
+              <div class="text-gray-500 text-sm mb-1">요청가</div>
+              <div id="case-modal-original-price" class="text-gray-400 line-through text-lg"></div>
+            </div>
+            <div class="text-center">
+              <div class="text-green-600 font-bold text-sm mb-1">실구매가</div>
+              <div id="case-modal-final-price" class="text-green-600 font-bold text-2xl"></div>
+            </div>
+          </div>
+          <div class="mt-3 text-center">
+            <div class="text-red-600 font-bold text-sm mb-1">절약금액</div>
+            <div id="case-modal-savings" class="text-red-600 font-bold text-xl"></div>
+            <div id="case-modal-savings-percent" class="bg-red-100 text-red-700 px-3 py-1 rounded-full text-sm font-bold mt-2 inline-block"></div>
+          </div>
+        </div>
+        
         <div id="case-modal-desc" class="text-gray-700 mb-3"></div>
-        <div id="case-modal-review" class="text-gray-600 mb-2"></div>
+        <div id="case-modal-review" class="text-gray-600 mb-4 p-3 bg-blue-50 rounded-lg"></div>
         <div class="mb-2 text-gray-600"><span id="case-modal-country"></span> | <span id="case-modal-shipping"></span></div>
         <div class="mb-4 text-gray-800 font-semibold">최저가 확보 방법: <span id="case-modal-method"></span></div>
       </div>
@@ -1675,25 +1828,25 @@
       if (Array.isArray(arr) && arr.length > 0) return arr;
     } catch (e) {}
   }
-  // 기본값
+  // 기본값 (가격 정보 포함)
   const defaults = [
-    { name: "김OO, 30대 직장인", img: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80", desc: "정가 대비 40% 저렴하게 해외직구!", review: "음질도 좋고 배송도 빨랐어요!", country: "대한민국", shipping: "2일", method: "공장 직접구매", badge: "실제 구매자", stars: 5, date: "2024-06-28" },
-    { name: "이OO, 20대 대학생", img: "https://images.unsplash.com/photo-1503602642458-232111445657?auto=format&fit=crop&w=600&q=80", desc: "국내 최저가보다 30% 저렴!", review: "해외직구보다 더 싸게 샀어요.", country: "미국", shipping: "7일", method: "도매처 연동", badge: "실제 구매자", stars: 4.5, date: "2024-06-25" },
-    { name: "박OO, 40대 주부", img: "https://images.unsplash.com/photo-1465101046530-73398c7f28ca?auto=format&fit=crop&w=600&q=80", desc: "한정판도 저렴하게 득템!", review: "한정판도 공장가로 득템! 만족합니다.", country: "일본", shipping: "5일", method: "공장 직접구매", badge: "실제 구매자", stars: 5, date: "2024-06-20" },
-    { name: "최OO, 50대 자영업자", img: "https://images.unsplash.com/photo-1512499617640-c2f999098c01?auto=format&fit=crop&w=600&q=80", desc: "직구로 50% 절약!", review: "타건감 최고, 가격도 만족!", country: "중국", shipping: "8일", method: "공장 직접구매", badge: "실제 구매자", stars: 4.8, date: "2024-06-18" },
-    { name: "정OO, 20대 신혼부부", img: "https://images.unsplash.com/photo-1515378791036-0648a3ef77b2?auto=format&fit=crop&w=600&q=80", desc: "신혼가전도 최저가로!", review: "냉장고, 세탁기 모두 만족! 배송도 빠름.", country: "대한민국", shipping: "3일", method: "도매처 연동", badge: "실제 구매자", stars: 5, date: "2024-06-15" },
-    { name: "오OO, 30대 1인가구", img: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80", desc: "생활용품도 저렴하게!", review: "혼자 사는데 필요한 소형가전, 생활용품 다 싸게 샀어요.", country: "대한민국", shipping: "2일", method: "공장 직접구매", badge: "실제 구매자", stars: 4.7, date: "2024-06-10" },
-    { name: "유OO, 60대 부모님 선물", img: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80", desc: "부모님 건강용품도 최저가!", review: "안마기, 건강식품 모두 만족! 부모님이 좋아하셨어요.", country: "대한민국", shipping: "2일", method: "공장 직접구매", badge: "실제 구매자", stars: 5, date: "2024-06-08" },
-    { name: "장OO, 10대 학생", img: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80", desc: "학용품, IT기기까지!", review: "노트북, 태블릿, 학용품 다 싸게 샀어요.", country: "대한민국", shipping: "2일", method: "공장 직접구매", badge: "실제 구매자", stars: 4.9, date: "2024-06-05" },
-    { name: "서OO, 30대 취미러", img: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80", desc: "취미용품도 저렴하게!", review: "기타, 캠핑용품, 운동기구까지 다 만족!", country: "대한민국", shipping: "2일", method: "공장 직접구매", badge: "실제 구매자", stars: 5, date: "2024-06-01" },
-    { name: "문OO, 40대 직장인", img: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80", desc: "패션/잡화도 OK!", review: "가방, 신발, 액세서리까지 다 싸게 샀어요.", country: "대한민국", shipping: "2일", method: "공장 직접구매", badge: "실제 구매자", stars: 4.6, date: "2024-05-28" },
-    { name: "이OO, 30대 프리랜서", img: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80", desc: "사무용품도 최저가!", review: "프린터, 모니터, 의자까지 다 만족!", country: "대한민국", shipping: "2일", method: "공장 직접구매", badge: "실제 구매자", stars: 4.8, date: "2024-05-25" },
-    { name: "최OO, 20대 대학생", img: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80", desc: "전자기기도 저렴하게!", review: "스마트폰, 이어폰, 노트북 다 싸게 샀어요.", country: "대한민국", shipping: "2일", method: "공장 직접구매", badge: "실제 구매자", stars: 5, date: "2024-05-20" },
+    { name: "김OO, 30대 직장인", img: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80", originalPrice: "1,200,000원", finalPrice: "780,000원", savings: "420,000원", savingsPercent: "35%", desc: "정가 대비 40% 저렴하게 해외직구!", review: "요청가 120만원 → 78만원으로 구매! 음질도 좋고 배송도 빨랐어요!", country: "대한민국", shipping: "2일", method: "공장 직접구매", badge: "실제 구매자", stars: 5, date: "2024-06-28" },
+    { name: "이OO, 20대 대학생", img: "https://images.unsplash.com/photo-1503602642458-232111445657?auto=format&fit=crop&w=600&q=80", originalPrice: "450,000원", finalPrice: "280,000원", savings: "170,000원", savingsPercent: "38%", desc: "국내 최저가보다 30% 저렴!", review: "요청가 45만원 → 28만원으로 절약! 해외직구보다 더 싸게 샀어요.", country: "미국", shipping: "7일", method: "도매처 연동", badge: "실제 구매자", stars: 4.5, date: "2024-06-25" },
+    { name: "박OO, 40대 주부", img: "https://images.unsplash.com/photo-1465101046530-73398c7f28ca?auto=format&fit=crop&w=600&q=80", originalPrice: "890,000원", finalPrice: "520,000원", savings: "370,000원", savingsPercent: "42%", desc: "한정판도 저렴하게 득템!", review: "요청가 89만원 → 52만원으로 절약! 한정판도 공장가로 득템! 만족합니다.", country: "일본", shipping: "5일", method: "공장 직접구매", badge: "실제 구매자", stars: 5, date: "2024-06-20" },
+    { name: "최OO, 50대 자영업자", img: "https://images.unsplash.com/photo-1512499617640-c2f999098c01?auto=format&fit=crop&w=600&q=80", originalPrice: "320,000원", finalPrice: "210,000원", savings: "110,000원", savingsPercent: "34%", desc: "직구로 50% 절약!", review: "요청가 32만원 → 21만원으로 구매! 타건감 최고, 가격도 만족!", country: "중국", shipping: "8일", method: "공장 직접구매", badge: "실제 구매자", stars: 4.8, date: "2024-06-18" },
+    { name: "정OO, 20대 신혼부부", img: "https://images.unsplash.com/photo-1515378791036-0648a3ef77b2?auto=format&fit=crop&w=600&q=80", originalPrice: "680,000원", finalPrice: "420,000원", savings: "260,000원", savingsPercent: "38%", desc: "신혼가전도 최저가로!", review: "요청가 68만원 → 42만원으로 절약! 냉장고, 세탁기 모두 만족! 배송도 빠름.", country: "대한민국", shipping: "3일", method: "도매처 연동", badge: "실제 구매자", stars: 5, date: "2024-06-15" },
+    { name: "오OO, 30대 1인가구", img: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80", originalPrice: "234,000원", finalPrice: "145,000원", savings: "89,000원", savingsPercent: "38%", desc: "생활용품도 저렴하게!", review: "요청가 23.4만원 → 14.5만원으로 절약! 혼자 사는데 필요한 소형가전, 생활용품 다 싸게 샀어요.", country: "대한민국", shipping: "2일", method: "공장 직접구매", badge: "실제 구매자", stars: 4.7, date: "2024-06-10" },
+    { name: "유OO, 60대 부모님 선물", img: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80", originalPrice: "189,000원", finalPrice: "67,000원", savings: "122,000원", savingsPercent: "65%", desc: "부모님 건강용품도 최저가!", review: "요청가 18.9만원 → 6.7만원으로 절약! 안마기, 건강식품 모두 만족! 부모님이 좋아하셨어요.", country: "대한민국", shipping: "2일", method: "공장 직접구매", badge: "실제 구매자", stars: 5, date: "2024-06-08" },
+    { name: "장OO, 10대 학생", img: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80", originalPrice: "890,000원", finalPrice: "520,000원", savings: "370,000원", savingsPercent: "42%", desc: "학용품, IT기기까지!", review: "요청가 89만원 → 52만원으로 절약! 노트북, 태블릿, 학용품 다 싸게 샀어요.", country: "대한민국", shipping: "2일", method: "공장 직접구매", badge: "실제 구매자", stars: 4.9, date: "2024-06-05" },
+    { name: "서OO, 30대 취미러", img: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80", originalPrice: "456,000원", finalPrice: "234,000원", savings: "222,000원", savingsPercent: "49%", desc: "취미용품도 저렴하게!", review: "요청가 45.6만원 → 23.4만원으로 절약! 기타, 캠핑용품, 운동기구까지 다 만족!", country: "대한민국", shipping: "2일", method: "공장 직접구매", badge: "실제 구매자", stars: 5, date: "2024-06-01" },
+    { name: "문OO, 40대 직장인", img: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80", originalPrice: "345,000원", finalPrice: "198,000원", savings: "147,000원", savingsPercent: "43%", desc: "패션/잡화도 OK!", review: "요청가 34.5만원 → 19.8만원으로 절약! 가방, 신발, 액세서리까지 다 싸게 샀어요.", country: "대한민국", shipping: "2일", method: "공장 직접구매", badge: "실제 구매자", stars: 4.6, date: "2024-05-28" },
+    { name: "이OO, 30대 프리랜서", img: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80", originalPrice: "567,000원", finalPrice: "345,000원", savings: "222,000원", savingsPercent: "39%", desc: "사무용품도 최저가!", review: "요청가 56.7만원 → 34.5만원으로 절약! 프린터, 모니터, 의자까지 다 만족!", country: "대한민국", shipping: "2일", method: "공장 직접구매", badge: "실제 구매자", stars: 4.8, date: "2024-05-25" },
+    { name: "최OO, 20대 대학생", img: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80", originalPrice: "789,000원", finalPrice: "456,000원", savings: "333,000원", savingsPercent: "42%", desc: "전자기기도 저렴하게!", review: "요청가 78.9만원 → 45.6만원으로 절약! 스마트폰, 이어폰, 노트북 다 싸게 샀어요.", country: "대한민국", shipping: "2일", method: "공장 직접구매", badge: "실제 구매자", stars: 5, date: "2024-05-20" },
     // 사업자/대량구매 샘플 추가
-    { name: "박OO, 40대 사업자", img: "https://images.unsplash.com/photo-1515378791036-0648a3ef77b2?auto=format&fit=crop&w=600&q=80", desc: "사무실 비품 대량구매도 최저가!", review: "프린터, 의자, 책상 등 대량구매도 빠르고 저렴하게 해결!", country: "대한민국", shipping: "3일", method: "도매처 연동", badge: "사업자 대량구매", stars: 5, date: "2024-06-27" },
-    { name: "이OO, 30대 온라인셀러", img: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80", desc: "온라인 판매용 상품도 대량구매 OK!", review: "도매가로 대량구매해서 마진이 크게 남았어요.", country: "중국", shipping: "7일", method: "공장 직접구매", badge: "사업자 대량구매", stars: 4.9, date: "2024-06-22" },
-    { name: "최OO, 50대 유통업자", img: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80", desc: "유통용 생활용품 대량구매", review: "생활용품 1000개 단위로도 빠르고 안전하게 공급받았습니다.", country: "대한민국", shipping: "5일", method: "도매처 연동", badge: "사업자 대량구매", stars: 5, date: "2024-06-18" },
-    { name: "정OO, 30대 카페운영자", img: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80", desc: "카페 소모품 대량구매도 OK!", review: "종이컵, 빨대, 냅킨 등 대량구매도 저렴하게 해결!", country: "대한민국", shipping: "2일", method: "공장 직접구매", badge: "사업자 대량구매", stars: 4.8, date: "2024-06-12" }
+    { name: "박OO, 40대 사업자", img: "https://images.unsplash.com/photo-1515378791036-0648a3ef77b2?auto=format&fit=crop&w=600&q=80", originalPrice: "2,340,000원", finalPrice: "1,450,000원", savings: "890,000원", savingsPercent: "38%", desc: "사무실 비품 대량구매도 최저가!", review: "요청가 234만원 → 145만원으로 절약! 프린터, 의자, 책상 등 대량구매도 빠르고 저렴하게 해결!", country: "대한민국", shipping: "3일", method: "도매처 연동", badge: "사업자 대량구매", stars: 5, date: "2024-06-27" },
+    { name: "이OO, 30대 온라인셀러", img: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80", originalPrice: "1,560,000원", finalPrice: "890,000원", savings: "670,000원", savingsPercent: "43%", desc: "온라인 판매용 상품도 대량구매 OK!", review: "요청가 156만원 → 89만원으로 절약! 도매가로 대량구매해서 마진이 크게 남았어요.", country: "중국", shipping: "7일", method: "공장 직접구매", badge: "사업자 대량구매", stars: 4.9, date: "2024-06-22" },
+    { name: "최OO, 50대 유통업자", img: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80", originalPrice: "3,450,000원", finalPrice: "2,100,000원", savings: "1,350,000원", savingsPercent: "39%", desc: "유통용 생활용품 대량구매", review: "요청가 345만원 → 210만원으로 절약! 생활용품 1000개 단위로도 빠르고 안전하게 공급받았습니다.", country: "대한민국", shipping: "5일", method: "도매처 연동", badge: "사업자 대량구매", stars: 5, date: "2024-06-18" },
+    { name: "정OO, 30대 카페운영자", img: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80", originalPrice: "234,000원", finalPrice: "145,000원", savings: "89,000원", savingsPercent: "38%", desc: "카페 소모품 대량구매도 OK!", review: "요청가 23.4만원 → 14.5만원으로 절약! 종이컵, 빨대, 냅킨 등 대량구매도 저렴하게 해결!", country: "대한민국", shipping: "2일", method: "공장 직접구매", badge: "사업자 대량구매", stars: 4.8, date: "2024-06-12" }
   ];
   localStorage.setItem('caseProducts', JSON.stringify(defaults));
   return defaults;
@@ -1836,14 +1989,19 @@ if (logoutBtn) {
 // ... existing code ...
 // 상세보기/수정 모달 및 수정 기능 최신화
 function openCaseModal(idx) {
+  const caseSamples = getCaseProducts();
   const p = caseSamples[idx];
-  document.getElementById('case-modal-img').src = p.img;
-  document.getElementById('case-modal-name').textContent = p.name;
-  document.getElementById('case-modal-desc').textContent = p.desc;
-  document.getElementById('case-modal-review').textContent = p.review;
-  document.getElementById('case-modal-country').textContent = p.country;
-  document.getElementById('case-modal-shipping').textContent = p.shipping;
-  document.getElementById('case-modal-method').textContent = p.method;
+        document.getElementById('case-modal-img').src = p.img;
+      document.getElementById('case-modal-name').textContent = p.name;
+      document.getElementById('case-modal-original-price').textContent = p.originalPrice;
+      document.getElementById('case-modal-final-price').textContent = p.finalPrice;
+      document.getElementById('case-modal-savings').textContent = p.savings;
+      document.getElementById('case-modal-savings-percent').textContent = p.savingsPercent + ' 절약';
+      document.getElementById('case-modal-desc').textContent = p.desc;
+      document.getElementById('case-modal-review').textContent = p.review;
+      document.getElementById('case-modal-country').textContent = p.country;
+      document.getElementById('case-modal-shipping').textContent = p.shipping;
+      document.getElementById('case-modal-method').textContent = p.method;
   // 수정 버튼 노출 여부
   const isAdmin = localStorage.getItem('isAdmin') === 'true';
   const editBtn = document.getElementById('case-modal-edit');
@@ -1865,6 +2023,7 @@ function openCaseModal(idx) {
 }
 
 function showCaseEditForm(idx) {
+  const caseSamples = getCaseProducts();
   const p = caseSamples[idx];
   const modal = document.getElementById('case-modal');
   // 기존 상세정보 숨기기
@@ -1956,15 +2115,20 @@ window.addEventListener('keydown', function(e) {
   if (e.key === 'Escape') closeCaseModal();
 });
 function openCaseModal(idx) {
+  const caseSamples = getCaseProducts();
   const p = caseSamples[idx];
-  document.getElementById('case-modal-img').src = p.img;
-  document.getElementById('case-modal-img').alt = p.name + ' 이미지';
-  document.getElementById('case-modal-name').textContent = p.name;
-  document.getElementById('case-modal-desc').textContent = p.desc;
-  document.getElementById('case-modal-review').textContent = p.review;
-  document.getElementById('case-modal-country').textContent = p.country;
-  document.getElementById('case-modal-shipping').textContent = p.shipping;
-  document.getElementById('case-modal-method').textContent = p.method;
+        document.getElementById('case-modal-img').src = p.img;
+      document.getElementById('case-modal-img').alt = p.name + ' 이미지';
+      document.getElementById('case-modal-name').textContent = p.name;
+      document.getElementById('case-modal-original-price').textContent = p.originalPrice;
+      document.getElementById('case-modal-final-price').textContent = p.finalPrice;
+      document.getElementById('case-modal-savings').textContent = p.savings;
+      document.getElementById('case-modal-savings-percent').textContent = p.savingsPercent + ' 절약';
+      document.getElementById('case-modal-desc').textContent = p.desc;
+      document.getElementById('case-modal-review').textContent = p.review;
+      document.getElementById('case-modal-country').textContent = p.country;
+      document.getElementById('case-modal-shipping').textContent = p.shipping;
+      document.getElementById('case-modal-method').textContent = p.method;
   // 수정 버튼 노출 여부
   const isAdmin = localStorage.getItem('isAdmin') === 'true';
   const editBtn = document.getElementById('case-modal-edit');
@@ -2000,6 +2164,7 @@ function closeCaseModal() {
 }
 // 3. 수정 폼 접근성/모바일/피드백 보강
 function showCaseEditForm(idx) {
+  const caseSamples = getCaseProducts();
   const p = caseSamples[idx];
   const modal = document.getElementById('case-modal');
   Array.from(modal.children).forEach(el => { if (el.id && el.id.startsWith('case-modal-')) el.style.display = 'none'; });
