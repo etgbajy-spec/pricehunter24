@@ -456,9 +456,27 @@
     // 카카오 로그인 설정
     const KAKAO_CONFIG = {
       clientId: '6917a034b74fafd0ac80ab855af5ed6d',
-      redirectUri: window.location.href,
+      redirectUri: '',
       scope: 'profile_nickname,account_email,profile_image'
     };
+
+    // 환경별 redirect_uri 설정
+    function setKakaoRedirectUri() {
+      const isLocal = window.location.protocol === 'file:' || 
+                     window.location.hostname === 'localhost' || 
+                     window.location.hostname === '127.0.0.1';
+      
+      if (isLocal) {
+        KAKAO_CONFIG.redirectUri = window.location.href;
+      } else if (window.location.hostname === 'pricehunt24.com') {
+        KAKAO_CONFIG.redirectUri = 'https://pricehunt24.com/register.html';
+      } else {
+        // 다른 도메인인 경우 현재 URL 사용
+        KAKAO_CONFIG.redirectUri = window.location.origin + '/register.html';
+      }
+      
+      console.log('카카오 redirect_uri 설정:', KAKAO_CONFIG.redirectUri);
+    }
 
     // 환경 상태 업데이트
     function updateEnvironmentStatus(message, type) {
@@ -521,6 +539,13 @@
     function executeKakaoLogin() {
       try {
         console.log('카카오 로그인 시작...');
+        
+        // redirect_uri 재확인
+        if (!KAKAO_CONFIG.redirectUri) {
+          setKakaoRedirectUri();
+        }
+        
+        console.log('사용할 redirect_uri:', KAKAO_CONFIG.redirectUri);
         
         const authParams = new URLSearchParams({
           client_id: KAKAO_CONFIG.clientId,
@@ -736,6 +761,9 @@
 
     // 페이지 로드 시 초기화
     document.addEventListener('DOMContentLoaded', function() {
+      // 카카오 redirect_uri 설정
+      setKakaoRedirectUri();
+      
       // 환경 감지
       detectEnvironment();
       
