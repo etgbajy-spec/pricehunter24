@@ -145,9 +145,14 @@
               <div class="font-bold text-lg text-gray-800" id="mypage-name">이름</div>
               <div class="text-gray-500 text-sm" id="mypage-email">이메일</div>
             </div>
-            <button id="edit-info-btn" class="px-4 py-2 min-h-[44px] min-w-[44px] bg-blue-500 text-white rounded-lg shadow hover:bg-blue-600 focus:ring-2 focus:ring-blue-400 focus:outline-none transition">
-              정보 수정
-            </button>
+            <div class="flex gap-2">
+              <button id="edit-info-btn" class="px-4 py-2 min-h-[44px] min-w-[44px] bg-blue-500 text-white rounded-lg shadow hover:bg-blue-600 focus:ring-2 focus:ring-blue-400 focus:outline-none transition">
+                정보 수정
+              </button>
+              <button id="withdraw-btn" class="px-4 py-2 min-h-[44px] bg-red-500 text-white rounded-lg shadow hover:bg-red-600 focus:ring-2 focus:ring-red-400 focus:outline-none transition">
+                회원탈퇴
+              </button>
+            </div>
           </div>
 
           <!-- 정보수정 폼 -->
@@ -1151,6 +1156,17 @@
           document.getElementById('info-email').focus();
         }
       });
+
+      // 회원탈퇴 버튼 이벤트 리스너
+      document.getElementById('withdraw-btn').addEventListener('click', function() {
+        openWithdrawModal();
+      });
+      
+      // 회원탈퇴 확인 체크박스 이벤트 리스너
+      document.getElementById('withdraw-confirm').addEventListener('change', function() {
+        const confirmBtn = document.getElementById('withdraw-confirm-btn');
+        confirmBtn.disabled = !this.checked;
+      });
       
       // 정보수정 폼 저장
       document.getElementById('info-form').addEventListener('submit', function(e) {
@@ -1331,6 +1347,62 @@
       // 실시간 댓글 업데이트 타이머 (3초마다)
       setInterval(updateCommentsInRealTime, 3000);
     });
+
+    // 회원탈퇴 모달 열기/닫기
+    function openWithdrawModal() {
+      document.getElementById('withdraw-modal').classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+      // 체크박스 초기화
+      document.getElementById('withdraw-confirm').checked = false;
+      document.getElementById('withdraw-confirm-btn').disabled = true;
+    }
+
+    function closeWithdrawModal() {
+      document.getElementById('withdraw-modal').classList.add('hidden');
+      document.body.style.overflow = 'auto';
+    }
+    
+    // 회원탈퇴 확인 함수
+    function confirmWithdraw() {
+      if (document.getElementById('withdraw-confirm').checked) {
+        // localStorage에서 사용자 정보 삭제
+        localStorage.removeItem('user');
+        localStorage.removeItem('loggedIn');
+        
+        // 회원탈퇴 완료 메시지
+        alert('회원탈퇴가 완료되었습니다.\n그동안 이용해주셔서 감사했습니다.');
+        
+        // 메인 페이지로 이동
+        window.location.href = 'index.html';
+      } else {
+        alert('회원탈퇴에 동의해주세요.');
+      }
+    }
   </script>
+
+  <!-- 회원탈퇴 확인 모달 -->
+  <div id="withdraw-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl p-8 max-w-md mx-4 text-center">
+      <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+        <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+        </svg>
+      </div>
+      <h3 class="text-xl font-bold text-gray-800 mb-4">회원탈퇴 확인</h3>
+      <p class="text-gray-600 mb-6">정말로 회원탈퇴를 하시겠습니까?<br><span class="text-red-600 font-semibold">이 작업은 되돌릴 수 없습니다.</span></p>
+      
+      <div class="space-y-4 mb-6">
+        <div class="flex items-center gap-3">
+          <input type="checkbox" id="withdraw-confirm" class="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500" required />
+          <label for="withdraw-confirm" class="text-gray-700">회원탈퇴에 동의합니다</label>
+        </div>
+      </div>
+      
+      <div class="flex gap-3">
+        <button onclick="closeWithdrawModal()" class="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 py-3 px-6 rounded-lg font-semibold transition">취소</button>
+        <button onclick="confirmWithdraw()" id="withdraw-confirm-btn" disabled class="flex-1 bg-red-600 hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white py-3 px-6 rounded-lg font-semibold transition">회원탈퇴</button>
+      </div>
+    </div>
+  </div>
 </body>
 </html>
