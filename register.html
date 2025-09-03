@@ -470,8 +470,20 @@
     // 카카오 SDK 초기화
     Kakao.init('6917a034b74fafd0ac80ab855af5ed6d');
     
-    // 페이지 로드 시 애니메이션
+    // 페이지 로드 시 애니메이션 및 카카오 로그인 처리
     document.addEventListener('DOMContentLoaded', function() {
+      // 카카오 로그인 후 인가 코드 처리
+      const urlParams = new URLSearchParams(window.location.search);
+      const authCode = urlParams.get('code');
+      
+      if (authCode) {
+        // 인가 코드가 있으면 사용자 정보 요청
+        console.log('카카오 인가 코드 받음:', authCode);
+        handleKakaoAuthCode(authCode);
+        
+        // URL에서 코드 제거
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
       // 약관 체크박스 연동
       const agreeAll = document.getElementById('agree-all');
       const agreeTerms = document.getElementById('agree-terms');
@@ -578,12 +590,12 @@
         }, 1000);
       }
 
-      // 카카오톡 로그인 (실제 연동)
-      document.getElementById('kakao-login').addEventListener('click', function() {
-        if (typeof Kakao !== 'undefined') {
-                                // 카카오 로그인 실행 (더 안전한 방식)
-            Kakao.Auth.login({
-              redirectUri: 'http://localhost:8000/register.html',
+             // 카카오톡 로그인 (실제 연동)
+       document.getElementById('kakao-login').addEventListener('click', function() {
+         if (typeof Kakao !== 'undefined') {
+           // 카카오 로그인 실행 (팝업 방식)
+           Kakao.Auth.login({
+             throughTalk: false, // 팝업 방식
              success: function(authObj) {
                console.log('카카오 로그인 성공:', authObj);
                
@@ -610,21 +622,21 @@
                  }
                });
              },
-                           fail: function(err) {
-                console.error('카카오 로그인 실패:', err);
-                if (err.error === 'KOE006') {
-                  alert('카카오 앱 플랫폼 설정이 필요합니다.\n\n1. Web 플랫폼: http://localhost:8000 추가\n2. Redirect URI: http://localhost:8000/register.html 추가');
-                } else if (err.error === 'KOE009') {
-                  alert('카카오 앱 설정에 문제가 있습니다. 관리자에게 문의해주세요.');
-                } else {
-                  alert('카카오 로그인에 실패했습니다: ' + (err.error_description || err.error));
-                }
-              }
+             fail: function(err) {
+               console.error('카카오 로그인 실패:', err);
+               if (err.error === 'KOE006') {
+                 alert('카카오 앱 플랫폼 설정이 필요합니다.\n\n1. Web 플랫폼: http://localhost:8000 추가\n2. Redirect URI: http://localhost:8000/register.html 추가');
+               } else if (err.error === 'KOE009') {
+                 alert('카카오 앱 설정에 문제가 있습니다. 관리자에게 문의해주세요.');
+               } else {
+                 alert('카카오 로그인에 실패했습니다: ' + (err.error_description || err.error));
+               }
+             }
            });
-        } else {
-          alert('카카오 SDK가 로드되지 않았습니다.');
-        }
-      });
+         } else {
+           alert('카카오 SDK가 로드되지 않았습니다.');
+         }
+       });
 
       // 회원가입 폼 제출
       document.getElementById('signup-form').addEventListener('submit', function(e) {
@@ -668,8 +680,34 @@
         document.getElementById('success-message').classList.remove('hidden');
       });
       
-      // 카카오 회원가입 처리 함수
-      function handleKakaoSignup(user) {
+             // 카카오 인가 코드 처리 함수
+       function handleKakaoAuthCode(authCode) {
+         // 사용자 정보 요청
+         Kakao.API.request({
+           url: '/v2/user/me',
+           success: function(res) {
+             console.log('사용자 정보:', res);
+             
+             const user = {
+               id: res.id,
+               name: res.properties.nickname,
+               email: res.kakao_account.email,
+               profileImage: res.properties.profile_image,
+               loginType: 'kakao'
+             };
+             
+             // 회원가입 처리
+             handleKakaoSignup(user);
+           },
+           fail: function(error) {
+             console.error('사용자 정보 요청 실패:', error);
+             alert('사용자 정보를 가져오는데 실패했습니다.');
+           }
+         });
+       }
+       
+       // 카카오 회원가입 처리 함수
+       function handleKakaoSignup(user) {
         // 기존 회원인지 확인
         const existingUser = JSON.parse(localStorage.getItem('user') || 'null');
         
