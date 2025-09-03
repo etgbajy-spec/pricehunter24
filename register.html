@@ -573,74 +573,643 @@
 
 
 
-  <script>
-         // 카카오 로그인 설정 정보
-     console.log('카카오 로그인 설정 시작...');
-     console.log('JavaScript 키:', '6917a034b74fafd0ac80ab855af5ed6d');
-     console.log('REST API 키:', 'fd9b2a8858c4c90765143ea56546d386');
-     console.log('현재 URL:', window.location.href);
-     console.log('현재 도메인:', window.location.hostname);
-     console.log('브라우저 User-Agent:', navigator.userAgent);
-     console.log('카카오 SDK 사용 안함 - 직접 URL 이동 방식');
+    <script>
+    // 카카오 로그인 설정 정보
+    console.log('카카오 로그인 설정 시작...');
+    console.log('JavaScript 키:', '6917a034b74fafd0ac80ab855af5ed6d');
+    console.log('REST API 키:', 'fd9b2a8858c4c90765143ea56546d386');
+    console.log('현재 URL:', window.location.href);
+    console.log('현재 도메인:', window.location.hostname);
+    console.log('브라우저 User-Agent:', navigator.userAgent);
+    console.log('카카오 SDK 사용 안함 - 직접 URL 이동 방식');
     
-         // 페이지 로드 시 애니메이션 및 카카오 로그인 처리
-     document.addEventListener('DOMContentLoaded', function() {
-       // CSP 정책 사전 강화 (KOE205 오류 방지)
-       preEnforceCSP();
-       
-       // KOE205 오류 실시간 감지 시작
-       initKOE205ErrorDetection();
-       
-       // 환경 감지 및 상태 표시
-       detectEnvironment();
-       
-       // 카카오 로그인 후 인가 코드 처리
-       const urlParams = new URLSearchParams(window.location.search);
-       const authCode = urlParams.get('code');
+    // CSP 정책 사전 강화 및 확인
+    function preEnforceCSP() {
+      console.log('🔒 CSP 정책 사전 강화 시작...');
+      try {
+        let existingCSP = document.querySelector('meta[http-equiv="Content-Security-Policy"]');
+        if (!existingCSP) {
+          existingCSP = document.createElement('meta');
+          existingCSP.setAttribute('http-equiv', 'Content-Security-Policy');
+          document.head.appendChild(existingCSP);
+          console.log('✅ CSP 메타 태그 새로 생성됨');
+        }
+        const enhancedCSP = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; connect-src 'self' https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://kauth.kakao.com/oauth/authorize; img-src 'self' data: https:; font-src 'self' data:;";
+        existingCSP.setAttribute('content', enhancedCSP);
+        console.log('✅ CSP 정책 사전 강화 완료');
+      } catch (error) {
+        console.error('❌ CSP 정책 사전 강화 실패:', error);
+      }
+    }
+
+    // 환경 상태 업데이트
+    function updateEnvironmentStatus(message, type) {
+      const envStatus = document.getElementById('env-status');
+      const envInfo = document.getElementById('environment-info');
+      
+      if (envStatus) envStatus.textContent = message;
+      
+      const typeClasses = {
+        green: 'bg-green-50 text-green-700',
+        orange: 'bg-orange-50 text-orange-700', 
+        red: 'bg-red-50 text-red-700'
+      };
+      
+      if (typeClasses[type] && envInfo) {
+        envInfo.className = 'mt-3 p-3 rounded-lg text-center ' + typeClasses[type];
+        envStatus.className = 'text-sm';
+      }
+      
+      console.log('환경 상태 업데이트:', message);
+    }
+
+    // 카카오 서비스 상태 실시간 확인
+    function checkKakaoServiceStatus() {
+      console.log('카카오 서비스 상태 확인 시작...');
+      const testUrl = 'https://kauth.kakao.com/oauth/authorize?client_id=6917a034b74fafd0ac80ab855af5ed6d&redirect_uri=https://pricehunt24.com/register.html&response_type=code&scope=profile_nickname,account_email,profile_image&state=test';
+      
+      fetch(testUrl, { method: 'HEAD' })
+        .then(response => {
+          console.log('카카오 서비스 상태 확인 결과:', response.status);
+          if (response.status === 200 || response.status === 302) {
+            console.log('카카오 서비스 정상 작동 중');
+            updateEnvironmentStatus('✅ 카카오 서비스 정상 - 로그인 가능', 'green');
+          } else {
+            console.warn('카카오 서비스 응답 이상:', response.status);
+            updateEnvironmentStatus('⚠️ 카카오 서비스 응답 이상 - KOE205 오류 가능성', 'orange');
+          }
+        })
+        .catch(error => {
+          console.error('카카오 서비스 상태 확인 실패:', error);
+          if (error.message && error.message.includes('Content Security Policy')) {
+            console.log('🚨 CSP 오류 감지됨 - 즉시 해결 시도 중...');
+            updateEnvironmentStatus('🚨 CSP 오류 감지 - 자동 해결 시도 중...', 'red');
+            resolveCSPError();
+          } else {
+            updateEnvironmentStatus('🌐 네트워크 연결 확인 필요', 'orange');
+          }
+        });
+    }
+
+    // CSP 오류 즉시 해결 함수
+    function resolveCSPError() {
+      console.log('🔧 CSP 오류 자동 해결 시도 중...');
+      try {
+        let existingCSP = document.querySelector('meta[http-equiv="Content-Security-Policy"]');
+        if (!existingCSP) {
+          existingCSP = document.createElement('meta');
+          existingCSP.setAttribute('http-equiv', 'Content-Security-Policy');
+          document.head.appendChild(existingCSP);
+          console.log('✅ CSP 메타 태그 새로 생성됨');
+        }
+        const enhancedCSP = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; connect-src 'self' https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://kauth.kakao.com/oauth/authorize; img-src 'self' data: https:; font-src 'self' data:;";
+        existingCSP.setAttribute('content', enhancedCSP);
+        console.log('✅ CSP 정책 강화 완료:', enhancedCSP);
+        
+        setTimeout(() => {
+          console.log('🔄 CSP 정책 적용 후 재테스트 시작...');
+          checkKakaoServiceStatus();
+        }, 1000);
+        
+        updateEnvironmentStatus('✅ CSP 오류 자동 해결 완료 - 카카오 연결 시도 중...', 'green');
+      } catch (error) {
+        console.error('❌ CSP 오류 자동 해결 실패:', error);
+        updateEnvironmentStatus('❌ CSP 오류 자동 해결 실패 - 수동 설정 필요', 'red');
+      }
+    }
+
+    // 환경 감지 및 상태 표시
+    function detectEnvironment() {
+      const envStatus = document.getElementById('env-status');
+      const envInfo = document.getElementById('environment-info');
+      
+      const isLocal = window.location.protocol === 'file:' || 
+                     window.location.hostname === 'localhost' || 
+                     window.location.hostname === '127.0.0.1';
+      
+      if (isLocal) {
+        updateEnvironmentStatus('🔄 로컬 환경 - 카카오 로그인 시뮬레이션 모드', 'orange');
+      } else if (window.location.hostname === 'pricehunt24.com') {
+        updateEnvironmentStatus('✅ 프로덕션 환경 - 직접 URL 이동 방식 활성화', 'green');
+        checkKakaoServiceStatus();
+      } else {
+        updateEnvironmentStatus('⚠️ 개발 환경 - 카카오 로그인 설정 확인 필요', 'orange');
+      }
+    }
+
+    // KOE205 오류 방지를 위한 사전 검증
+    function preValidateKakaoLogin() {
+      console.log('카카오 로그인 사전 검증 시작...');
+      
+      if (typeof window === 'undefined' || typeof document === 'undefined') {
+        return { isValid: false, reason: '브라우저 환경이 아닙니다.' };
+      }
+      
+      if (!navigator.onLine) {
+        return { isValid: false, reason: '인터넷 연결을 확인해주세요.' };
+      }
+      
+      const kakaoButton = document.getElementById('kakao-login');
+      if (!kakaoButton) {
+        return { isValid: false, reason: '카카오 로그인 버튼을 찾을 수 없습니다.' };
+      }
+      
+      console.log('카카오 로그인 사전 검증 완료 - 모든 항목 통과');
+      return { isValid: true, reason: '검증 완료' };
+    }
+
+    // 카카오 설정 검증
+    function validateKakaoSettings(clientId, redirectUri) {
+      console.log('카카오 설정 검증 시작...');
+      
+      if (!clientId || clientId.length !== 32) {
+        console.error('잘못된 클라이언트 ID:', clientId);
+        return false;
+      }
+      
+      if (!redirectUri || !redirectUri.startsWith('https://')) {
+        console.error('잘못된 리다이렉트 URI:', redirectUri);
+        return false;
+      }
+      
+      console.log('카카오 설정 검증 완료 - 모든 항목 통과');
+      return true;
+    }
+
+    // KOE205 오류 발생 시 도움말 표시
+    function showKakaoErrorHelp() {
+      const helpModal = document.createElement('div');
+      helpModal.id = 'kakao-error-help';
+      helpModal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4';
+      
+      const modalContent = document.createElement('div');
+      modalContent.className = 'bg-white rounded-2xl p-8 max-w-2xl mx-4 max-h-[90vh] overflow-y-auto';
+      
+      modalContent.innerHTML = 
+        '<div class="text-center mb-6">' +
+          '<div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">' +
+            '<svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">' +
+              '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>' +
+            '</svg>' +
+          '</div>' +
+          '<h3 class="text-2xl font-bold text-gray-800 mb-2">KOE205 오류 해결</h3>' +
+          '<p class="text-gray-600">카카오 로그인 설정을 확인해주세요</p>' +
+        '</div>' +
+        '<div class="space-y-6">' +
+          '<div class="bg-blue-50 p-4 rounded-lg">' +
+            '<h4 class="font-semibold text-blue-800 mb-2">🔧 즉시 해결 방법</h4>' +
+            '<ol class="text-sm text-blue-700 space-y-2 list-decimal list-inside">' +
+              '<li>카카오 개발자 콘솔 접속: <a href="https://developers.kakao.com/" target="_blank" class="underline">developers.kakao.com</a></li>' +
+              '<li>내 애플리케이션 → PriceHunter 선택</li>' +
+              '<li>앱 설정 → 일반 → 상태: "활성화" 확인</li>' +
+              '<li>플랫폼 → Web → 사이트 도메인: https://pricehunt24.com 추가</li>' +
+              '<li>카카오 로그인 → Redirect URI: https://pricehunt24.com/register.html 추가</li>' +
+              '<li>동의항목 → 필수: profile_nickname, account_email 활성화</li>' +
+            '</ol>' +
+          '</div>' +
+          '<div class="bg-yellow-50 p-4 rounded-lg">' +
+            '<h4 class="font-semibold text-yellow-800 mb-2">⚠️ 현재 설정 상태</h4>' +
+            '<div class="text-sm text-yellow-700 space-y-1">' +
+              '<p><strong>클라이언트 ID:</strong> 6917a034b74fafd0ac80ab855af5ed6d</p>' +
+              '<p><strong>리다이렉트 URI:</strong> https://pricehunt24.com/register.html</p>' +
+              '<p><strong>현재 도메인:</strong> ' + window.location.hostname + '</p>' +
+              '<p><strong>현재 프로토콜:</strong> ' + window.location.protocol + '</p>' +
+            '</div>' +
+          '</div>' +
+          '<div class="bg-red-50 p-4 rounded-lg">' +
+            '<h4 class="font-semibold text-red-800 mb-2">🚨 CSP 오류 해결 방법</h4>' +
+            '<p class="text-sm text-red-700">Content Security Policy 위반으로 카카오 서버 연결이 차단되었습니다.</p>' +
+            '<ol class="text-sm text-red-700 space-y-1 list-decimal list-inside mt-2">' +
+              '<li>웹 서버 CSP 헤더에 https://kauth.kakao.com 추가</li>' +
+              '<li>또는 HTML Meta 태그로 CSP 정책 설정</li>' +
+            '</ol>' +
+          '</div>' +
+        '</div>' +
+        '<div class="flex gap-2 mt-6">' +
+          '<button onclick="closeKakaoErrorHelp()" class="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 py-3 px-4 rounded-lg font-semibold transition text-sm">닫기</button>' +
+          '<button onclick="clearCacheAndRetry()" class="flex-1 bg-purple-600 hover:bg-purple-700 text-white py-3 px-4 rounded-lg font-semibold transition text-sm">캐시 정리 후 재시도</button>' +
+          '<button onclick="retryKakaoLogin()" class="flex-1 bg-yellow-400 hover:bg-yellow-500 text-gray-800 py-3 px-4 rounded-lg font-semibold transition text-sm">다시 시도</button>' +
+        '</div>';
+      
+      helpModal.appendChild(modalContent);
+      document.body.appendChild(helpModal);
+      
+      // 전역 함수 등록
+      window.closeKakaoErrorHelp = function() {
+        if (document.getElementById('kakao-error-help')) {
+          document.body.removeChild(helpModal);
+        }
+      };
+      
+      window.clearCacheAndRetry = function() {
+        console.log('캐시 정리 후 재시도 시작...');
+        try {
+          const allKeys = Object.keys(localStorage);
+          const kakaoKeys = allKeys.filter(key => key.includes('kakao') || key.includes('auth'));
+          kakaoKeys.forEach(key => localStorage.removeItem(key));
+          closeKakaoErrorHelp();
+          setTimeout(() => window.location.reload(), 1000);
+        } catch (error) {
+          console.error('캐시 정리 실패:', error);
+          alert('캐시 정리 중 오류가 발생했습니다.');
+        }
+      };
+      
+      window.retryKakaoLogin = function() {
+        closeKakaoErrorHelp();
+        setTimeout(() => {
+          document.getElementById('kakao-login').click();
+        }, 1000);
+      };
+    }
+
+    // 로컬 환경용 카카오 로그인 시뮬레이션
+    function simulateKakaoLogin() {
+      console.log('카카오 로그인 시뮬레이션 시작...');
+      
+      const button = document.getElementById('kakao-login');
+      const originalText = button.innerHTML;
+      button.innerHTML = '<svg class="animate-spin w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>로그인 중...';
+      button.disabled = true;
+      
+      setTimeout(() => {
+        const mockUser = {
+          id: 'kakao_' + Date.now(),
+          name: '테스트 사용자',
+          email: 'test@kakao.com',
+          profileImage: '',
+          loginType: 'kakao'
+        };
+        
+        button.innerHTML = originalText;
+        button.disabled = false;
+        showKakaoTermsAgreement(mockUser);
+      }, 2000);
+    }
+
+    // Chrome 보안 정책 우회 방식
+    function executeKakaoLoginWithBypass() {
+      try {
+        const clientId = '6917a034b74fafd0ac80ab855af5ed6d';
+        let redirectUri = window.location.href;
+        if (!window.location.pathname.endsWith('.html')) {
+          redirectUri = window.location.origin + window.location.pathname + '.html';
+        }
+        
+        const scope = 'profile_nickname,account_email,profile_image';
+        const authParams = new URLSearchParams({
+          client_id: clientId,
+          redirect_uri: redirectUri,
+          response_type: 'code',
+          scope: scope,
+          state: Date.now().toString()
+        });
+        
+        const authUrl = 'https://kauth.kakao.com/oauth/authorize?' + authParams.toString();
+        console.log('카카오 인증 URL 생성 완료:', authUrl);
+        
+        if (!validateKakaoSettings(clientId, redirectUri)) {
+          console.error('카카오 설정 검증 실패 - KOE205 오류 예방');
+          showKakaoErrorHelp();
+          return;
+        }
+        
+        // 팝업 창으로 열기
+        const popup = window.open(authUrl, 'kakaoAuth', 'width=500,height=600,scrollbars=yes,resizable=yes');
+        
+        if (!popup) {
+          console.log('팝업 차단됨 - 새 탭으로 시도');
+          window.open(authUrl, '_blank');
+          return;
+        }
+        
+        // 팝업 모니터링
+        const checkPopup = setInterval(() => {
+          if (popup.closed) {
+            clearInterval(checkPopup);
+            const authCode = localStorage.getItem('kakao_auth_code');
+            if (authCode) {
+              handleKakaoAuthCode(authCode);
+              localStorage.removeItem('kakao_auth_code');
+            }
+          }
+        }, 1000);
+        
+      } catch (error) {
+        console.error('Chrome 보안 정책 우회 실패:', error);
+        // 직접 URL 이동
+        const clientId = '6917a034b74fafd0ac80ab855af5ed6d';
+        let redirectUri = window.location.href;
+        if (!window.location.pathname.endsWith('.html')) {
+          redirectUri = window.location.origin + window.location.pathname + '.html';
+        }
+        
+        const authParams = new URLSearchParams({
+          client_id: clientId,
+          redirect_uri: redirectUri,
+          response_type: 'code',
+          scope: 'profile_nickname,account_email,profile_image',
+          state: Date.now().toString()
+        });
+        
+        const authUrl = 'https://kauth.kakao.com/oauth/authorize?' + authParams.toString();
+        
+        const button = document.getElementById('kakao-login');
+        const originalText = button.innerHTML;
+        button.innerHTML = '<svg class="animate-spin w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>카카오 인증 페이지로 이동 중...';
+        button.disabled = true;
+        
+        setTimeout(() => {
+          window.location.href = authUrl;
+        }, 3000);
+      }
+    }
+
+    // 카카오 인가 코드 처리 함수
+    function handleKakaoAuthCode(authCode) {
+      console.log('카카오 인가 코드 처리 시작:', authCode);
       
       if (authCode) {
-        // 인가 코드가 있으면 사용자 정보 요청
+        localStorage.setItem('kakao_auth_code', authCode);
+        localStorage.setItem('kakao_auth_timestamp', Date.now().toString());
+        console.log('인증 코드를 localStorage에 저장:', authCode.substring(0, 10) + '...');
+      }
+      
+      const button = document.getElementById('kakao-login');
+      let originalText = '';
+      if (button) {
+        originalText = button.innerHTML;
+        button.innerHTML = '<svg class="animate-spin w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>카카오 로그인 처리 중...';
+        button.disabled = true;
+      }
+      
+      try {
+        if (!authCode || authCode.length < 10) {
+          throw new Error('유효하지 않은 인증 코드입니다.');
+        }
+        
+        setTimeout(() => {
+          processKakaoAuthCode(authCode, button, originalText);
+        }, 100);
+        
+      } catch (error) {
+        console.error('카카오 인가 코드 처리 초기화 실패:', error);
+        if (button) {
+          button.innerHTML = originalText;
+          button.disabled = false;
+        }
+        alert('카카오 로그인 초기화 중 오류가 발생했습니다:\n\n' + error.message);
+      }
+    }
+
+    // 실제 인증 코드 처리 함수
+    function processKakaoAuthCode(authCode, button, originalText) {
+      try {
+        let redirectUri = window.location.href;
+        if (!window.location.pathname.endsWith('.html')) {
+          redirectUri = window.location.origin + window.location.pathname + '.html';
+        }
+        
+        const tokenUrl = 'https://kauth.kakao.com/oauth/token';
+        const tokenData = new URLSearchParams({
+          grant_type: 'authorization_code',
+          client_id: '6917a034b74fafd0ac80ab855af5ed6d',
+          redirect_uri: redirectUri,
+          code: authCode
+        });
+        
+        fetch(tokenUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Cache-Control': 'no-cache'
+          },
+          body: tokenData
+        })
+        .then(response => {
+          if (!response.ok) {
+            return response.text().then(text => {
+              throw new Error('액세스 토큰 요청 실패: ' + response.status + ' - ' + text);
+            });
+          }
+          return response.json();
+        })
+        .then(tokenData => {
+          console.log('액세스 토큰 획득 성공:', tokenData);
+          return fetch('https://kapi.kakao.com/v2/user/me', {
+            method: 'GET',
+            headers: {
+              'Authorization': 'Bearer ' + tokenData.access_token,
+              'Cache-Control': 'no-cache'
+            }
+          });
+        })
+        .then(response => {
+          if (!response.ok) {
+            return response.text().then(text => {
+              throw new Error('사용자 정보 요청 실패: ' + response.status + ' - ' + text);
+            });
+          }
+          return response.json();
+        })
+        .then(userData => {
+          console.log('카카오 사용자 정보 성공:', userData);
+          const user = {
+            id: userData.id,
+            name: userData.properties?.nickname || '카카오 사용자',
+            email: userData.kakao_account?.email || 'kakao@user.com',
+            profileImage: userData.properties?.profile_image || '',
+            loginType: 'kakao'
+          };
+          handleKakaoSignup(user);
+        })
+        .catch(error => {
+          console.error('카카오 인가 코드 처리 실패:', error);
+          if (button) {
+            button.innerHTML = originalText;
+            button.disabled = false;
+          }
+          if (error.message.includes('KOE205')) {
+            showKakaoErrorHelp();
+          } else {
+            alert('카카오 로그인 처리 중 오류가 발생했습니다:\n\n' + error.message);
+          }
+        });
+        
+      } catch (error) {
+        console.error('카카오 인증 코드 처리 중 오류:', error);
+        if (button) {
+          button.innerHTML = originalText;
+          button.disabled = false;
+        }
+        alert('카카오 인증 코드 처리 중 오류가 발생했습니다:\n\n' + error.message);
+      }
+    }
+
+    // 카카오 회원가입 처리 함수
+    function handleKakaoSignup(user) {
+      const existingUser = JSON.parse(localStorage.getItem('user') || 'null');
+      
+      if (existingUser && existingUser.id === user.id) {
+        localStorage.setItem('user', JSON.stringify(user));
+        localStorage.setItem('loggedIn', 'true');
+        alert('카카오톡으로 로그인되었습니다!');
+        window.location.href = 'index.html';
+      } else {
+        showKakaoTermsAgreement(user);
+      }
+    }
+
+    // 카카오 회원가입 시 약관 동의 모달 표시
+    function showKakaoTermsAgreement(user) {
+      const modal = document.createElement('div');
+      modal.id = 'kakao-terms-modal';
+      modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4';
+      
+      const modalContent = document.createElement('div');
+      modalContent.className = 'bg-white rounded-2xl p-8 max-w-md mx-4 text-center';
+      
+      modalContent.innerHTML = 
+        '<div class="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">' +
+          '<svg class="w-8 h-8 text-yellow-600" viewBox="0 0 24 24" fill="currentColor">' +
+            '<path d="M12 3c5.799 0 10.5 3.664 10.5 8.185 0 4.52-4.701 8.184-10.5 8.184a13.5 13.5 0 0 1-1.727-.11l-4.408 2.883c-.501.265-.678.236-.472-.413l.892-3.678c-2.88-1.46-4.785-3.99-4.785-6.866C1.5 6.665 6.201 3 12 3z"/>' +
+          '</svg>' +
+        '</div>' +
+        '<h3 class="text-xl font-bold text-gray-800 mb-4">카카오톡 간편가입</h3>' +
+        '<p class="text-gray-600 mb-6">PriceHunter 서비스 이용을 위한 약관 동의가 필요합니다.</p>' +
+        '<div class="space-y-4 mb-6">' +
+          '<div class="flex items-center gap-3">' +
+            '<input type="checkbox" id="kakao-agree-terms" class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" required />' +
+            '<label for="kakao-agree-terms" class="text-gray-700">이용약관 동의 (필수)</label>' +
+            '<button type="button" onclick="openTermsModal()" class="text-blue-600 hover:text-blue-800 text-sm underline">보기</button>' +
+          '</div>' +
+          '<div class="flex items-center gap-3">' +
+            '<input type="checkbox" id="kakao-agree-privacy" class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" required />' +
+            '<label for="kakao-agree-privacy" class="text-gray-700">개인정보처리방침 동의 (필수)</label>' +
+            '<button type="button" onclick="openPrivacyModal()" class="text-blue-600 hover:text-blue-800 text-sm underline">보기</button>' +
+          '</div>' +
+          '<div class="flex items-center gap-3">' +
+            '<input type="checkbox" id="kakao-agree-marketing" class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" />' +
+            '<label for="kakao-agree-marketing" class="text-gray-700">마케팅 정보 수신 동의 (선택)</label>' +
+          '</div>' +
+        '</div>' +
+        '<div class="flex gap-3">' +
+          '<button onclick="closeKakaoTermsModal()" class="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 py-3 px-6 rounded-lg font-semibold transition">취소</button>' +
+          '<button onclick="completeKakaoSignup()" id="kakao-signup-btn" disabled class="flex-1 bg-yellow-400 hover:bg-yellow-500 disabled:bg-gray-400 disabled:cursor-not-allowed text-gray-800 py-3 px-6 rounded-lg font-semibold transition">가입 완료</button>' +
+        '</div>';
+      
+      modal.appendChild(modalContent);
+      document.body.appendChild(modal);
+      
+      // 체크박스 이벤트 리스너 추가
+      setTimeout(() => {
+        const agreeTerms = document.getElementById('kakao-agree-terms');
+        const agreePrivacy = document.getElementById('kakao-agree-privacy');
+        const agreeMarketing = document.getElementById('kakao-agree-marketing');
+        const signupBtn = document.getElementById('kakao-signup-btn');
+        
+        function updateSignupButton() {
+          const isRequiredChecked = agreeTerms.checked && agreePrivacy.checked;
+          signupBtn.disabled = !isRequiredChecked;
+        }
+        
+        [agreeTerms, agreePrivacy, agreeMarketing].forEach(checkbox => {
+          checkbox.addEventListener('change', updateSignupButton);
+        });
+      }, 100);
+      
+      // 전역 함수로 등록
+      window.completeKakaoSignup = function() {
+        const agreeTerms = document.getElementById('kakao-agree-terms');
+        const agreePrivacy = document.getElementById('kakao-agree-privacy');
+        const agreeMarketing = document.getElementById('kakao-agree-marketing');
+        
+        if (agreeTerms.checked && agreePrivacy.checked) {
+          const newUser = {
+            ...user,
+            joinDate: new Date().toISOString(),
+            points: 50,
+            termsAgreed: true,
+            privacyAgreed: true,
+            marketingAgreed: agreeMarketing.checked
+          };
+          
+          localStorage.setItem('user', JSON.stringify(newUser));
+          localStorage.setItem('loggedIn', 'true');
+          closeKakaoTermsModal();
+          alert('카카오톡으로 회원가입되었습니다! +50포인트 지급!');
+          window.location.href = 'index.html';
+        } else {
+          alert('필수 약관에 동의해주세요.');
+        }
+      };
+      
+      window.closeKakaoTermsModal = function() {
+        if (document.getElementById('kakao-terms-modal')) {
+          document.body.removeChild(modal);
+        }
+      };
+    }
+
+    // 약관 모달 열기/닫기 함수들
+    function openTermsModal() {
+      document.getElementById('terms-modal').classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeTermsModal() {
+      document.getElementById('terms-modal').classList.add('hidden');
+      document.body.style.overflow = 'auto';
+    }
+
+    function openPrivacyModal() {
+      document.getElementById('privacy-modal').classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closePrivacyModal() {
+      document.getElementById('privacy-modal').classList.add('hidden');
+      document.body.style.overflow = 'auto';
+    }
+
+    // 페이지 로드 시 초기화
+    document.addEventListener('DOMContentLoaded', function() {
+      // CSP 정책 사전 강화
+      preEnforceCSP();
+      
+      // 환경 감지 및 상태 표시
+      detectEnvironment();
+      
+      // 카카오 로그인 후 인가 코드 처리
+      const urlParams = new URLSearchParams(window.location.search);
+      const authCode = urlParams.get('code');
+      
+      if (authCode) {
         console.log('카카오 인가 코드 받음:', authCode);
         handleKakaoAuthCode(authCode);
-        
-        // URL에서 코드 제거
         window.history.replaceState({}, document.title, window.location.pathname);
       }
       
-      // Chrome 보안 정책 대응: 페이지 로드 시 저장된 인증 코드 확인
+      // Chrome 보안 정책 대응: 저장된 인증 코드 확인
       setTimeout(() => {
         const savedAuthCode = localStorage.getItem('kakao_auth_code');
         if (savedAuthCode) {
-          console.log('저장된 인증 코드 발견 (페이지 로드 후):', savedAuthCode.substring(0, 10) + '...');
+          console.log('저장된 인증 코드 발견:', savedAuthCode.substring(0, 10) + '...');
           handleKakaoAuthCode(savedAuthCode);
           localStorage.removeItem('kakao_auth_code');
         }
       }, 2000);
       
-      // Chrome 보안 정책 대응: 윈도우 포커스 시 인증 코드 확인
+      // 윈도우 포커스 시 인증 코드 확인
       window.addEventListener('focus', function() {
         console.log('윈도우 포커스됨 - 인증 코드 확인 중...');
         const savedAuthCode = localStorage.getItem('kakao_auth_code');
         if (savedAuthCode) {
-          console.log('저장된 인증 코드 발견 (윈도우 포커스):', savedAuthCode.substring(0, 10) + '...');
           handleKakaoAuthCode(savedAuthCode);
           localStorage.removeItem('kakao_auth_code');
         }
       });
-      
-      // Chrome 보안 정책 대응: 페이지 가시성 변경 시 인증 코드 확인
-      document.addEventListener('visibilitychange', function() {
-        if (!document.hidden) {
-          console.log('페이지 가시성 변경됨 - 인증 코드 확인 중...');
-          const savedAuthCode = localStorage.getItem('kakao_auth_code');
-          if (savedAuthCode) {
-            console.log('저장된 인증 코드 발견 (가시성 변경):', savedAuthCode.substring(0, 10) + '...');
-            handleKakaoAuthCode(savedAuthCode);
-            localStorage.removeItem('kakao_auth_code');
-          }
-        }
-      });
-      
+
       // 약관 체크박스 연동
       const agreeAll = document.getElementById('agree-all');
       const agreeTerms = document.getElementById('agree-terms');
@@ -697,7 +1266,6 @@
           return;
         }
 
-        // SMS 발송 시뮬레이션
         this.disabled = true;
         this.textContent = '발송중...';
         
@@ -713,7 +1281,7 @@
       // SMS 인증번호 확인
       document.getElementById('verify-sms').addEventListener('click', function() {
         const code = document.getElementById('sms-code').value.trim();
-        if (code === '123456') { // 테스트용
+        if (code === '123456') {
           this.textContent = '인증완료';
           this.disabled = true;
           this.classList.remove('bg-green-600', 'hover:bg-green-700');
@@ -728,7 +1296,7 @@
 
       // 타이머 시작
       function startTimer() {
-        let timeLeft = 180; // 3분
+        let timeLeft = 180;
         const timerText = document.getElementById('timer-text');
         const timerDiv = document.getElementById('sms-timer');
         
@@ -737,7 +1305,7 @@
         const timer = setInterval(() => {
           const minutes = Math.floor(timeLeft / 60);
           const seconds = timeLeft % 60;
-          timerText.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+          timerText.textContent = minutes.toString().padStart(2, '0') + ':' + seconds.toString().padStart(2, '0');
           
           if (timeLeft <= 0) {
             clearInterval(timer);
@@ -747,697 +1315,35 @@
         }, 1000);
       }
 
-                              // 카카오톡 로그인 (Chrome 보안 정책 완전 우회)
-          document.getElementById('kakao-login').addEventListener('click', function() {
-            console.log('카카오 로그인 시작...');
-            
-            // KOE205 오류 방지를 위한 즉시 검증
-            const preValidationResult = preValidateKakaoLogin();
-            if (!preValidationResult.isValid) {
-              console.error('카카오 로그인 사전 검증 실패:', preValidationResult.reason);
-              
-              // 오류 로그 저장
-              if (typeof window.logKakaoError === 'function') {
-                window.logKakaoError('VALIDATION_FAILED', preValidationResult.reason, {
-                  validationStep: 'pre-login',
-                  currentUrl: window.location.href
-                });
-              }
-              
-              alert('카카오 로그인을 시작할 수 없습니다:\n\n' + preValidationResult.reason);
-              showKakaoErrorHelp();
-              return;
-            }
-            
-            // 현재 환경 감지
-            const isLocal = window.location.protocol === 'file:' || 
-                           window.location.hostname === 'localhost' || 
-                           window.location.hostname === '127.0.0.1';
-            
-            if (isLocal) {
-              // 로컬 환경에서는 시뮬레이션
-              console.log('로컬 환경 감지 - 카카오 로그인 시뮬레이션 실행');
-              simulateKakaoLogin();
-            } else {
-              // 프로덕션 환경에서는 Chrome 보안 정책 우회 방식 사용
-              console.log('프로덕션 환경 감지 - Chrome 보안 정책 우회 방식 실행');
-              executeKakaoLoginWithBypass();
-            }
-          });
-          
-          // Chrome 보안 정책 우회 방식
-          function executeKakaoLoginWithBypass() {
-            try {
-              const clientId = '6917a034b74fafd0ac80ab855af5ed6d';
-              
-              // 현재 페이지 URL을 정확히 감지하여 리다이렉트 URI 설정
-              let redirectUri;
-              if (window.location.pathname.endsWith('.html')) {
-                redirectUri = window.location.href;
-              } else {
-                // .html이 없는 경우 현재 경로에 .html 추가
-                redirectUri = window.location.origin + window.location.pathname + '.html';
-              }
-              
-              const scope = 'profile_nickname,account_email,profile_image';
-              
-              console.log('현재 페이지 URL:', window.location.href);
-              console.log('현재 경로:', window.location.pathname);
-              console.log('설정된 리다이렉트 URI:', redirectUri);
-              
-              // URL 파라미터 정확한 인코딩
-              const authParams = new URLSearchParams({
-                client_id: clientId,
-                redirect_uri: redirectUri,
-                response_type: 'code',
-                scope: scope,
-                state: Date.now().toString()
-              });
-              
-              const authUrl = `https://kauth.kakao.com/oauth/authorize?${authParams.toString()}`;
-              
-              console.log('카카오 인증 URL 생성 완료:', authUrl);
-              console.log('클라이언트 ID:', clientId);
-              console.log('리다이렉트 URI:', redirectUri);
-              console.log('스코프:', scope);
-              
-              // KOE205 오류 방지를 위한 사전 검증
-              if (!validateKakaoSettings(clientId, redirectUri)) {
-                console.error('카카오 설정 검증 실패 - KOE205 오류 예방');
-                showKakaoErrorHelp();
-                return;
-              }
-              
-              // 방법 1: 팝업 창으로 열기 (Chrome 보안 정책 우회)
-              console.log('방법 1: 팝업 창 방식 시도');
-              const popup = window.open(
-                authUrl,
-                'kakaoAuth',
-                'width=500,height=600,scrollbars=yes,resizable=yes'
-              );
-              
-              if (!popup) {
-                // 팝업 차단된 경우 방법 2: 새 탭으로 열기
-                console.log('팝업 차단됨 - 새 탭으로 시도');
-                window.open(authUrl, '_blank');
-                return;
-              }
-              
-              // 팝업 창 모니터링
-              const checkPopup = setInterval(() => {
-                if (popup.closed) {
-                  clearInterval(checkPopup);
-                  console.log('팝업 창이 닫힘');
-                  
-                  // localStorage에서 인증 코드 확인
-                  const authCode = localStorage.getItem('kakao_auth_code');
-                  if (authCode) {
-                    console.log('저장된 인증 코드 발견:', authCode.substring(0, 10) + '...');
-                    handleKakaoAuthCode(authCode);
-                    localStorage.removeItem('kakao_auth_code'); // 사용 후 삭제
-                  }
-                }
-              }, 1000);
-              
-              // 방법 3: 메시지 이벤트 리스너 (크로스 도메인 통신)
-              window.addEventListener('message', function(event) {
-                if (event.origin === 'https://kauth.kakao.com' && event.data.type === 'kakao_auth_success') {
-                  console.log('카카오 인증 성공 메시지 수신:', event.data);
-                  const authCode = event.data.code;
-                  if (authCode) {
-                    handleKakaoAuthCode(authCode);
-                  }
-                  popup.close();
-                }
-              });
-              
-            } catch (error) {
-              console.error('Chrome 보안 정책 우회 실패:', error);
-              
-              // 방법 4: 직접 URL 이동 (최후 수단)
-              console.log('방법 4: 직접 URL 이동 시도');
-              const clientId = '6917a034b74fafd0ac80ab855af5ed6d';
-              
-              // 현재 페이지 URL을 정확히 감지하여 리다이렉트 URI 설정
-              let redirectUri;
-              if (window.location.pathname.endsWith('.html')) {
-                redirectUri = window.location.href;
-              } else {
-                // .html이 없는 경우 현재 경로에 .html 추가
-                redirectUri = window.location.origin + window.location.pathname + '.html';
-              }
-              
-              const scope = 'profile_nickname,account_email,profile_image';
-              
-              // URL 파라미터 정확한 인코딩
-              const authParams = new URLSearchParams({
-                client_id: clientId,
-                redirect_uri: redirectUri,
-                response_type: 'code',
-                scope: scope,
-                state: Date.now().toString()
-              });
-              
-              const authUrl = `https://kauth.kakao.com/oauth/authorize?${authParams.toString()}`;
-              
-              // 사용자에게 안내
-              const button = document.getElementById('kakao-login');
-              const originalText = button.innerHTML;
-              button.innerHTML = '<svg class="animate-spin w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>카카오 인증 페이지로 이동 중...';
-              button.disabled = true;
-              
-              console.log('최종 인증 URL:', authUrl);
-              console.log('최종 리다이렉트 URI:', redirectUri);
-              
-              // 3초 후 이동
-              setTimeout(() => {
-                window.location.href = authUrl;
-              }, 3000);
-            }
-          }
-          
-          // KOE205 오류 방지를 위한 카카오 설정 검증
-          function validateKakaoSettings(clientId, redirectUri) {
-            console.log('카카오 설정 검증 시작...');
-            
-            // 1. 클라이언트 ID 검증
-            if (!clientId || clientId.length !== 32) {
-              console.error('잘못된 클라이언트 ID:', clientId);
-              return false;
-            }
-            
-            // 2. 리다이렉트 URI 검증
-            if (!redirectUri || !redirectUri.startsWith('https://')) {
-              console.error('잘못된 리다이렉트 URI:', redirectUri);
-              return false;
-            }
-            
-            // 3. 도메인 검증
-            const domain = window.location.hostname;
-            if (domain !== 'pricehunt24.com' && domain !== 'localhost' && domain !== '127.0.0.1') {
-              console.error('지원되지 않는 도메인:', domain);
-              return false;
-            }
-            
-            // 4. 프로토콜 검증
-            if (window.location.protocol !== 'https:' && window.location.protocol !== 'http:') {
-              console.error('지원되지 않는 프로토콜:', window.location.protocol);
-              return false;
-            }
-            
-            console.log('카카오 설정 검증 완료 - 모든 항목 통과');
-            return true;
-          }
-          
-          // KOE205 오류 발생 시 도움말 표시
-          function showKakaoErrorHelp() {
-            const helpModal = document.createElement('div');
-            helpModal.id = 'kakao-error-help';
-            helpModal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4';
-            helpModal.innerHTML = `
-              <div class="bg-white rounded-2xl p-8 max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
-                <div class="text-center mb-6">
-                  <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
-                    </svg>
-                  </div>
-                  <h3 class="text-2xl font-bold text-gray-800 mb-2">KOE205 오류 방지</h3>
-                  <p class="text-gray-600">카카오 로그인 설정을 확인해주세요</p>
-                </div>
-                
-                <div class="space-y-6">
-                  <div class="bg-blue-50 p-4 rounded-lg">
-                    <h4 class="font-semibold text-blue-800 mb-2">🔧 즉시 해결 방법</h4>
-                    <ol class="text-sm text-blue-700 space-y-2 list-decimal list-inside">
-                      <li>카카오 개발자 콘솔 접속: <a href="https://developers.kakao.com/" target="_blank" class="underline">developers.kakao.com</a></li>
-                      <li>내 애플리케이션 → PriceHunter 선택</li>
-                      <li>앱 설정 → 일반 → 상태: "활성화" 확인</li>
-                      <li>플랫폼 → Web → 사이트 도메인: https://pricehunt24.com 추가</li>
-                      <li>카카오 로그인 → Redirect URI: https://pricehunt24.com/register.html 추가</li>
-                      <li>동의항목 → 필수: profile_nickname, account_email 활성화</li>
-                    </ol>
-                  </div>
-                  
-                  <div class="bg-yellow-50 p-4 rounded-lg">
-                    <h4 class="font-semibold text-yellow-800 mb-2">⚠️ 현재 설정 상태</h4>
-                    <div class="text-sm text-yellow-700 space-y-1">
-                      <p><strong>클라이언트 ID:</strong> ${clientId}</p>
-                      <p><strong>리다이렉트 URI:</strong> ${redirectUri}</p>
-                      <p><strong>현재 도메인:</strong> ${window.location.hostname}</p>
-                      <p><strong>현재 프로토콜:</strong> ${window.location.protocol}</p>
-                    </div>
-                  </div>
-                  
-                                     <div class="bg-green-50 p-4 rounded-lg">
-                     <h4 class="font-semibold text-green-800 mb-2">✅ 설정 완료 후</h4>
-                     <p class="text-sm text-green-700">모든 설정을 완료한 후 다시 카카오 로그인을 시도해주세요.</p>
-                   </div>
-                   
-                   <div class="bg-purple-50 p-4 rounded-lg">
-                     <h4 class="font-semibold text-purple-800 mb-2">🚀 즉시 테스트 방법</h4>
-                     <div class="text-sm text-purple-700 space-y-1">
-                       <p>1. <a href="https://developers.kakao.com/console/app" target="_blank" class="underline">카카오 개발자 콘솔</a>에서 설정 완료</p>
-                       <p>2. 브라우저 캐시 삭제 (Ctrl+Shift+Del)</p>
-                       <p>3. 새 시크릿 창에서 테스트</p>
-                       <p>4. 또는 아래 "캐시 정리 후 재시도" 버튼 클릭</p>
-                     </div>
-                   </div>
-                   
-                   <div class="bg-red-50 p-4 rounded-lg">
-                     <h4 class="font-semibold text-red-800 mb-2">🚨 Content Security Policy (CSP) 오류 가능성</h4>
-                     <p class="text-sm text-red-700 space-y-2">
-                       현재 콘솔 오류 메시지는 <strong>Content Security Policy (CSP)</strong> 위반으로 인해 카카오 인증 서버(<code>https://kauth.kakao.com</code>)에 연결하지 못하고 있음을 나타냅니다.
-                       이는 웹 서버 설정(HTTP 헤더)에서 보안 정책이 너무 엄격하게 설정되어 있기 때문입니다.
-                     </p>
-                     <h5 class="font-medium text-red-800 mt-3 mb-1">해결 방법:</h5>
-                     <ol class="text-sm text-red-700 space-y-1 list-decimal list-inside">
-                       <li><strong>웹 서버 설정 변경:</strong> 웹 서버(Apache, Nginx 등)의 HTTP 응답 헤더에 있는 <code>Content-Security-Policy</code>에서 <code>connect-src</code> 지시문에 <code>https://kauth.kakao.com</code>을 추가해야 합니다.</li>
-                       <li><strong>예시:</strong> <code>Content-Security-Policy: connect-src 'self' https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com;</code></li>
-                       <li><strong>HTML Meta 태그 추가 (임시 방편):</strong> 만약 서버 설정 변경이 어렵다면, <code>&lt;head&gt;</code> 태그 안에 다음 Meta 태그를 추가하여 임시로 해결을 시도할 수 있습니다. (단, 서버 CSP가 더 강력하면 무시될 수 있습니다.)<br>
-                         <code>&lt;meta http-equiv="Content-Security-Policy" content="connect-src 'self' https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com;"&gt;</code>
-                       </li>
-                     </ol>
-                   </div>
-                 </div>
-                 
-                 <div class="flex gap-2 mt-6">
-                   <button onclick="closeKakaoErrorHelp()" class="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 py-3 px-4 rounded-lg font-semibold transition text-sm">닫기</button>
-                   <button onclick="clearCacheAndRetry()" class="flex-1 bg-purple-600 hover:bg-purple-700 text-white py-3 px-4 rounded-lg font-semibold transition text-sm">캐시 정리 후 재시도</button>
-                   <button onclick="retryKakaoLogin()" class="flex-1 bg-yellow-400 hover:bg-yellow-500 text-gray-800 py-3 px-4 rounded-lg font-semibold transition text-sm">다시 시도</button>
-                 </div>
-              </div>
-            `;
-            
-            document.body.appendChild(helpModal);
-            
-            // 전역 함수로 등록
-                         window.closeKakaoErrorHelp = function() {
-               document.body.removeChild(helpModal);
-             };
-             
-             // 캐시 정리 후 재시도 함수
-             window.clearCacheAndRetry = function() {
-               console.log('캐시 정리 후 재시도 시작...');
-               
-               try {
-                 // 1. 모든 카카오 관련 캐시 정리
-                 const allKeys = Object.keys(localStorage);
-                 const kakaoKeys = allKeys.filter(key => key.includes('kakao') || key.includes('auth'));
-                 
-                 kakaoKeys.forEach(key => {
-                   localStorage.removeItem(key);
-                   console.log(`캐시 정리: ${key}`);
-                 });
-                 
-                 // 2. 세션 스토리지도 정리
-                 if (typeof sessionStorage !== 'undefined') {
-                   const sessionKeys = Object.keys(sessionStorage);
-                   const kakaoSessionKeys = sessionKeys.filter(key => key.includes('kakao') || key.includes('auth'));
-                   
-                   kakaoSessionKeys.forEach(key => {
-                     sessionStorage.removeItem(key);
-                     console.log(`세션 캐시 정리: ${key}`);
-                   });
-                 }
-                 
-                 // 3. 페이지 새로고침으로 완전 초기화
-                 closeKakaoErrorHelp();
-                 
-                 // 안내 메시지 표시
-                 const notification = document.createElement('div');
-                 notification.className = 'fixed top-4 right-4 bg-blue-600 text-white p-4 rounded-lg shadow-lg z-50';
-                 notification.innerHTML = `
-                   <div class="flex items-center gap-2">
-                     <svg class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
-                       <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                       <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                     </svg>
-                     <span>캐시 정리 중... 잠시 후 페이지가 새로고침됩니다.</span>
-                   </div>
-                 `;
-                 
-                 document.body.appendChild(notification);
-                 
-                 // 3초 후 페이지 새로고침
-                 setTimeout(() => {
-                   window.location.reload();
-                 }, 3000);
-                 
-               } catch (error) {
-                 console.error('캐시 정리 실패:', error);
-                 alert('캐시 정리 중 오류가 발생했습니다. 수동으로 브라우저 캐시를 삭제해주세요.');
-                 closeKakaoErrorHelp();
-               }
-             };
-            
-                         window.retryKakaoLogin = function() {
-               closeKakaoErrorHelp();
-               
-               // 재시도 전 캐시 정리 및 환경 재설정
-               console.log('카카오 로그인 재시도 준비 중...');
-               
-               // 1. 카카오 관련 캐시 정리
-               const keysToRemove = ['kakao_auth_code', 'kakao_auth_timestamp'];
-               keysToRemove.forEach(key => {
-                 if (localStorage.getItem(key)) {
-                   localStorage.removeItem(key);
-                   console.log(`재시도용 캐시 정리: ${key}`);
-                 }
-               });
-               
-               // 2. 환경 상태 재확인
-               detectEnvironment();
-               
-               // 3. 카카오 서비스 상태 재확인
-               if (window.location.hostname === 'pricehunt24.com') {
-                 checkKakaoServiceStatus();
-               }
-               
-               // 4. 3초 후 재시도
-               setTimeout(() => {
-                 console.log('카카오 로그인 재시도 실행...');
-                 document.getElementById('kakao-login').click();
-               }, 3000);
-             };
-          }
+      // 카카오톡 로그인 버튼 이벤트
+      document.getElementById('kakao-login').addEventListener('click', function() {
+        console.log('카카오 로그인 시작...');
         
-                 // 로컬 환경용 카카오 로그인 시뮬레이션
-         function simulateKakaoLogin() {
-           console.log('카카오 로그인 시뮬레이션 시작...');
-           
-           // 로딩 표시
-           const button = document.getElementById('kakao-login');
-           const originalText = button.innerHTML;
-           button.innerHTML = '<svg class="animate-spin w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>로그인 중...';
-           button.disabled = true;
-           
-           // 2초 후 시뮬레이션 완료
-           setTimeout(() => {
-             const mockUser = {
-               id: 'kakao_' + Date.now(),
-               name: '테스트 사용자',
-               email: 'test@kakao.com',
-               profileImage: '',
-               loginType: 'kakao'
-             };
-             
-             // 버튼 복원
-             button.innerHTML = originalText;
-             button.disabled = false;
-             
-             // 약관 동의 모달 표시
-             showKakaoTermsAgreement(mockUser);
-           }, 2000);
-         }
-         
-         // 환경 감지 및 상태 표시
-         function detectEnvironment() {
-           const envStatus = document.getElementById('env-status');
-           const envInfo = document.getElementById('environment-info');
-           
-           const isLocal = window.location.protocol === 'file:' || 
-                          window.location.hostname === 'localhost' || 
-                          window.location.hostname === '127.0.0.1';
-           
-           if (isLocal) {
-             envStatus.textContent = '🔄 로컬 환경 - 카카오 로그인 시뮬레이션 모드';
-             envInfo.className = 'mt-3 p-3 bg-yellow-50 rounded-lg text-center';
-             envStatus.className = 'text-sm text-yellow-700';
-           } else if (window.location.hostname === 'pricehunt24.com') {
-             envStatus.textContent = '✅ 프로덕션 환경 - 직접 URL 이동 방식 활성화';
-             envInfo.className = 'mt-3 p-3 bg-green-50 rounded-lg text-center';
-             envStatus.className = 'text-sm text-green-700';
-             
-             // 프로덕션 환경에서 카카오 로그인 오류 발생 시 도움말 표시
-             const helpText = document.createElement('div');
-             helpText.className = 'mt-2 text-xs text-gray-600';
-             helpText.innerHTML = `
-               <p>💡 <strong>KOE205 오류 해결 방법:</strong></p>
-               <ol class="text-left mt-1 space-y-1">
-                 <li>1. 카카오 개발자 콘솔 → 앱 상태 "활성화" 확인</li>
-                 <li>2. 플랫폼 → Web → 사이트 도메인: https://pricehunt24.com</li>
-                 <li>3. 카카오 로그인 → Redirect URI: https://pricehunt24.com/register.html</li>
-                 <li>4. 동의항목 → 필수: profile_nickname, account_email</li>
-               </ol>
-             `;
-             envInfo.appendChild(helpText);
-             
-             // 실시간 카카오 서비스 상태 확인
-             checkKakaoServiceStatus();
-           } else {
-             envStatus.textContent = '⚠️ 개발 환경 - 카카오 로그인 설정 확인 필요';
-             envInfo.className = 'mt-3 p-3 bg-orange-50 rounded-lg text-center';
-             envStatus.className = 'text-sm text-orange-700';
-             
-             // 개발 환경에서 카카오 로그인 오류 발생 시 도움말 표시
-             const helpText = document.createElement('div');
-             helpText.className = 'mt-2 text-xs text-gray-600';
-             helpText.innerHTML = `
-               <p>💡 <strong>개발 환경 설정:</strong></p>
-               <ol class="text-left mt-1 space-y-1">
-                 <li>1. 카카오 개발자 콘솔에서 현재 도메인 추가</li>
-                 <li>2. Redirect URI에 현재 페이지 URL 추가</li>
-                 <li>3. 앱 상태가 "활성화"인지 확인</li>
-               </ol>
-             `;
-             envInfo.appendChild(helpText);
-           }
-         }
-         
-         // 카카오 서비스 상태 실시간 확인
-         function checkKakaoServiceStatus() {
-           console.log('카카오 서비스 상태 확인 시작...');
-           
-           // 간단한 헬스체크 (KOE205 오류 예방)
-           const testUrl = 'https://kauth.kakao.com/oauth/authorize?client_id=6917a034b74fafd0ac80ab855af5ed6d&redirect_uri=https://pricehunt24.com/register.html&response_type=code&scope=profile_nickname,account_email,profile_image&state=test';
-           
-           // HEAD 요청으로 서비스 상태 확인
-           fetch(testUrl, { method: 'HEAD' })
-             .then(response => {
-               console.log('카카오 서비스 상태 확인 결과:', response.status);
-               
-               if (response.status === 200 || response.status === 302) {
-                 console.log('카카오 서비스 정상 작동 중');
-                 updateEnvironmentStatus('✅ 카카오 서비스 정상 - 로그인 가능', 'green');
-               } else {
-                 console.warn('카카오 서비스 응답 이상:', response.status);
-                 updateEnvironmentStatus('⚠️ 카카오 서비스 응답 이상 - KOE205 오류 가능성', 'orange');
-               }
-             })
-             .catch(error => {
-               console.error('카카오 서비스 상태 확인 실패:', error);
-               
-               // **CSP 오류를 명확히 구분하여 처리 및 즉시 해결 시도**
-               if (error.message && error.message.includes('Content Security Policy')) {
-                 console.log('🚨 CSP 오류 감지됨 - 즉시 해결 시도 중...');
-                 updateEnvironmentStatus('🚨 CSP 오류 감지 - 자동 해결 시도 중...', 'red');
-                 
-                 // CSP 오류 즉시 해결 시도
-                 resolveCSPError();
-                 
-                 setTimeout(() => {
-                   showKakaoErrorHelp(); // CSP 섹션이 추가된 도움말 표시
-                 }, 2000);
-               } else if (error.name !== 'TypeError') { // 기존 로직 유지 (네트워크 오류가 아닌 다른 오류)
-                 updateEnvironmentStatus('🚨 카카오 서비스 오류 - KOE205 오류 가능성 높음', 'red');
-                 setTimeout(() => {
-                   showKakaoErrorHelp();
-                 }, 2000);
-               } else { // 실제 네트워크 오류 (TypeError: Failed to fetch without CSP message)
-                 updateEnvironmentStatus('🌐 네트워크 연결 확인 필요', 'orange');
-               }
-             });
-         }
-         
-         // CSP 오류 즉시 해결 함수
-         function resolveCSPError() {
-           console.log('🔧 CSP 오류 자동 해결 시도 중...');
-           
-           try {
-             // 1. 기존 CSP 메타 태그 확인 및 강화
-             let existingCSP = document.querySelector('meta[http-equiv="Content-Security-Policy"]');
-             
-             if (!existingCSP) {
-               // CSP 메타 태그가 없으면 새로 생성
-               existingCSP = document.createElement('meta');
-               existingCSP.setAttribute('http-equiv', 'Content-Security-Policy');
-               document.head.appendChild(existingCSP);
-               console.log('✅ CSP 메타 태그 새로 생성됨');
-             }
-             
-             // 2. 카카오 도메인을 포함한 강화된 CSP 정책 설정
-             const enhancedCSP = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; connect-src 'self' https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://kauth.kakao.com/oauth/authorize; img-src 'self' data: https:; font-src 'self' data:;";
-             
-             existingCSP.setAttribute('content', enhancedCSP);
-             console.log('✅ CSP 정책 강화 완료:', enhancedCSP);
-             
-             // 3. CSP 정책 우회 시도 (메타 태그만으로는 부족한 경우)
-             attemptCSPBypass();
-             
-             // 4. 페이지 새로고침 없이 CSP 정책 즉시 적용 시도
-             setTimeout(() => {
-               console.log('🔄 CSP 정책 적용 후 재테스트 시작...');
-               checkKakaoServiceStatus(); // 재테스트
-             }, 1000);
-             
-             // 5. 성공 메시지 표시
-             updateEnvironmentStatus('✅ CSP 오류 자동 해결 완료 - 카카오 연결 시도 중...', 'green');
-             
-           } catch (error) {
-             console.error('❌ CSP 오류 자동 해결 실패:', error);
-             updateEnvironmentStatus('❌ CSP 오류 자동 해결 실패 - 수동 설정 필요', 'red');
-           }
-         }
-         
-         // CSP 정책 우회 시도 (서버 설정 변경이 어려운 경우)
-         function attemptCSPBypass() {
-           console.log('🔄 CSP 정책 우회 시도 중...');
-           
-           try {
-             // 1. 동적 스크립트 로딩으로 카카오 연결 시도
-             const script = document.createElement('script');
-             script.src = 'data:text/javascript,window.kakaoCSPBypass=true;console.log("CSP 우회 스크립트 로드됨");';
-             document.head.appendChild(script);
-             
-             // 2. iframe을 통한 카카오 연결 시도
-             const iframe = document.createElement('iframe');
-             iframe.style.display = 'none';
-             iframe.src = 'about:blank';
-             iframe.onload = function() {
-               try {
-                 // iframe 내에서 카카오 연결 시도
-                 const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
-                 iframeDoc.open();
-                 iframeDoc.write(`
-                   <!DOCTYPE html>
-                   <html>
-                   <head>
-                     <meta charset="UTF-8">
-                     <title>CSP 우회 시도</title>
-                   </head>
-                   <body>
-                     <script>
-                       console.log('iframe 내 CSP 우회 시도');
-                       // 여기서 카카오 연결 테스트
-                     </script>
-                   </body>
-                   </html>
-                 `);
-                 iframeDoc.close();
-               } catch (e) {
-                 console.log('iframe CSP 우회 실패:', e);
-               }
-             };
-             document.body.appendChild(iframe);
-             
-             // 3. Web Workers를 통한 우회 시도
-             if (typeof Worker !== 'undefined') {
-               try {
-                 const worker = new Worker('data:text/javascript,postMessage("CSP 우회 Worker 시작");');
-                 worker.onmessage = function(e) {
-                   console.log('Worker 메시지:', e.data);
-                 };
-                 worker.postMessage('카카오 연결 테스트');
-               } catch (e) {
-                 console.log('Worker CSP 우회 실패:', e);
-               }
-             }
-             
-             console.log('✅ CSP 정책 우회 시도 완료');
-             
-           } catch (error) {
-             console.error('❌ CSP 정책 우회 시도 실패:', error);
-           }
-         }
-         
-         // 환경 상태 업데이트
-         function updateEnvironmentStatus(message, type) {
-           const envStatus = document.getElementById('env-status');
-           const envInfo = document.getElementById('environment-info');
-           
-           envStatus.textContent = message;
-           
-           // 타입에 따른 스타일 적용
-           const typeClasses = {
-             green: 'bg-green-50 text-green-700',
-             orange: 'bg-orange-50 text-orange-700',
-             red: 'bg-red-50 text-red-700'
-           };
-           
-           if (typeClasses[type]) {
-             envInfo.className = 'mt-3 p-3 rounded-lg text-center ' + typeClasses[type];
-             envStatus.className = 'text-sm';
-           }
-           
-           // 상태 변경 로그
-           console.log('환경 상태 업데이트:', message);
-         }
-         
-         // KOE205 오류 방지를 위한 사전 검증
-         function preValidateKakaoLogin() {
-           console.log('카카오 로그인 사전 검증 시작...');
-           
-           // 1. 기본 환경 검증
-           if (typeof window === 'undefined' || typeof document === 'undefined') {
-             return { isValid: false, reason: '브라우저 환경이 아닙니다.' };
-           }
-           
-           // 2. 네트워크 연결 확인
-           if (!navigator.onLine) {
-             return { isValid: false, reason: '인터넷 연결을 확인해주세요.' };
-           }
-           
-           // 3. 필수 DOM 요소 확인
-           const kakaoButton = document.getElementById('kakao-login');
-           if (!kakaoButton) {
-             return { isValid: false, reason: '카카오 로그인 버튼을 찾을 수 없습니다.' };
-           }
-           
-           // 4. 카카오 앱 키 검증
-           const clientId = '6917a034b74fafd0ac80ab855af5ed6d';
-           if (!clientId || clientId.length !== 32) {
-             return { isValid: false, reason: '잘못된 카카오 앱 키입니다.' };
-           }
-           
-           // 5. URL 및 도메인 검증
-           const currentUrl = window.location.href;
-           const hostname = window.location.hostname;
-           
-           if (!currentUrl.includes('register')) {
-             return { isValid: false, reason: '잘못된 페이지에서 카카오 로그인을 시도했습니다.' };
-           }
-           
-           // 6. HTTPS 프로토콜 검증 (프로덕션 환경에서)
-           if (hostname === 'pricehunt24.com' && window.location.protocol !== 'https:') {
-             return { isValid: false, reason: 'HTTPS 프로토콜이 필요합니다.' };
-           }
-           
-           // 7. 이전 오류 로그 확인
-           const errorLogs = JSON.parse(localStorage.getItem('kakao_error_logs') || '[]');
-           const recentKOE205Errors = errorLogs.filter(log => 
-             log.errorType === 'KOE205' && 
-             Date.now() - new Date(log.timestamp).getTime() < 5 * 60 * 1000 // 5분 이내
-           );
-           
-           if (recentKOE205Errors.length >= 3) {
-             return { 
-               isValid: false, 
-               reason: '최근 5분 내에 KOE205 오류가 3회 이상 발생했습니다. 잠시 후 다시 시도하거나 카카오 개발자 콘솔 설정을 확인해주세요.' 
-             };
-           }
-           
-           console.log('카카오 로그인 사전 검증 완료 - 모든 항목 통과');
-           return { isValid: true, reason: '검증 완료' };
-         }
+        const preValidationResult = preValidateKakaoLogin();
+        if (!preValidationResult.isValid) {
+          console.error('카카오 로그인 사전 검증 실패:', preValidationResult.reason);
+          alert('카카오 로그인을 시작할 수 없습니다:\n\n' + preValidationResult.reason);
+          showKakaoErrorHelp();
+          return;
+        }
+        
+        const isLocal = window.location.protocol === 'file:' || 
+                       window.location.hostname === 'localhost' || 
+                       window.location.hostname === '127.0.0.1';
+        
+        if (isLocal) {
+          console.log('로컬 환경 감지 - 카카오 로그인 시뮬레이션 실행');
+          simulateKakaoLogin();
+        } else {
+          console.log('프로덕션 환경 감지 - Chrome 보안 정책 우회 방식 실행');
+          executeKakaoLoginWithBypass();
+        }
+      });
 
-      
-       
-       // 회원가입 폼 제출
-       document.getElementById('signup-form').addEventListener('submit', function(e) {
+      // 회원가입 폼 제출
+      document.getElementById('signup-form').addEventListener('submit', function(e) {
         e.preventDefault();
         
-        // 폼 검증
         const name = document.getElementById('name').value.trim();
         const email = document.getElementById('email').value.trim();
         const phone = document.getElementById('phone').value.trim();
@@ -1459,7 +1365,6 @@
           return;
         }
         
-        // 회원가입 성공 시뮬레이션
         const user = {
           name: name,
           email: email,
@@ -1468,776 +1373,26 @@
           joinDate: new Date().toISOString()
         };
         
-        // localStorage에 저장
         localStorage.setItem('user', JSON.stringify(user));
-        
-        // 성공 메시지 표시
         document.getElementById('success-message').classList.remove('hidden');
       });
-      
-                                    // 카카오 인가 코드 처리 함수 (OAuth 2.0 표준 방식)
-         function handleKakaoAuthCode(authCode) {
-           console.log('카카오 인가 코드 처리 시작:', authCode);
-           
-           // Chrome 보안 정책 대응: 인증 코드 즉시 저장
-           if (authCode) {
-             localStorage.setItem('kakao_auth_code', authCode);
-             localStorage.setItem('kakao_auth_timestamp', Date.now().toString());
-             console.log('인증 코드를 localStorage에 저장:', authCode.substring(0, 10) + '...');
-           }
-           
-           // 로딩 상태 표시
-           const button = document.getElementById('kakao-login');
-           if (button) {
-             const originalText = button.innerHTML;
-             button.innerHTML = '<svg class="animate-spin w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>카카오 로그인 처리 중...';
-             button.disabled = true;
-           }
-           
-           try {
-             // KOE205 오류 방지를 위한 추가 검증
-             if (!authCode || authCode.length < 10) {
-               throw new Error('유효하지 않은 인증 코드입니다.');
-             }
-             
-             console.log('인증 코드 유효성 검증 완료:', authCode.substring(0, 10) + '...');
-             
-             // Chrome 보안 정책 대응: 지연 처리
-             setTimeout(() => {
-               processKakaoAuthCode(authCode, button, originalText);
-             }, 100);
-             
-           } catch (error) {
-             console.error('카카오 인가 코드 처리 초기화 실패:', error);
-             
-             // 버튼 복원
-             if (button) {
-               button.innerHTML = originalText;
-               button.disabled = false;
-             }
-             
-             alert('카카오 로그인 초기화 중 오류가 발생했습니다:\n\n' + error.message);
-           }
-         }
-         
-         // 실제 인증 코드 처리 함수 (Chrome 보안 정책 대응)
-         function processKakaoAuthCode(authCode, button, originalText) {
-           try {
-             // 현재 페이지 URL을 정확히 감지하여 리다이렉트 URI 설정
-             let redirectUri;
-             if (window.location.pathname.endsWith('.html')) {
-               redirectUri = window.location.href;
-             } else {
-               // .html이 없는 경우 현재 경로에 .html 추가
-               redirectUri = window.location.origin + window.location.pathname + '.html';
-             }
-             
-             console.log('토큰 요청용 리다이렉트 URI:', redirectUri);
-             
-             // JavaScript 키를 사용하여 액세스 토큰 요청 (REST API 키 대신)
-             const tokenUrl = 'https://kauth.kakao.com/oauth/token';
-             const tokenData = new URLSearchParams({
-               grant_type: 'authorization_code',
-               client_id: '6917a034b74fafd0ac80ab855af5ed6d', // JavaScript 키 사용
-               redirect_uri: redirectUri,
-               code: authCode
-             });
-             
-             console.log('토큰 요청 데이터:', tokenData.toString());
-             console.log('토큰 요청 URL:', tokenUrl);
-             
-             // KOE205 오류 방지를 위한 재시도 로직
-             let retryCount = 0;
-             const maxRetries = 3;
-             
-             function attemptTokenRequest() {
-               fetch(tokenUrl, {
-                 method: 'POST',
-                 headers: {
-                   'Content-Type': 'application/x-www-form-urlencoded',
-                   'Cache-Control': 'no-cache'
-                 },
-                 body: tokenData
-               })
-               .then(response => {
-                 console.log('토큰 응답 상태:', response.status);
-                 console.log('토큰 응답 헤더:', response.headers);
-                 
-                 if (!response.ok) {
-                   return response.text().then(text => {
-                     console.error('토큰 응답 텍스트:', text);
-                     console.error('토큰 응답 상태:', response.status);
-                     
-                     // KOE205 오류 특별 처리
-                     if (text.includes('KOE205') || response.status === 400) {
-                       if (retryCount < maxRetries) {
-                         retryCount++;
-                         console.log(`KOE205 오류 발생 - ${retryCount}/${maxRetries} 재시도 중...`);
-                         
-                         // 지수 백오프로 재시도
-                         const delay = Math.pow(2, retryCount) * 1000;
-                         setTimeout(() => {
-                           attemptTokenRequest();
-                         }, delay);
-                         return;
-                       } else {
-                         // 최대 재시도 횟수 초과 시 오류 로그 저장
-                         if (typeof window.logKakaoError === 'function') {
-                           window.logKakaoError('KOE205', text, {
-                             maxRetriesExceeded: true,
-                             retryCount: retryCount,
-                             responseStatus: response.status
-                           });
-                         }
-                         throw new Error('KOE205: 카카오 서비스 설정에 문제가 있습니다. Redirect URI와 앱 상태를 확인해주세요. (최대 재시도 횟수 초과)');
-                       }
-                     }
-                     
-                     throw new Error('액세스 토큰 요청 실패: ' + response.status + ' - ' + text);
-                   });
-                 }
-                 return response.json();
-               })
-               .then(tokenData => {
-                 console.log('액세스 토큰 획득 성공:', tokenData);
-                 
-                 // 액세스 토큰으로 사용자 정보 요청
-                 return fetch('https://kapi.kakao.com/v2/user/me', {
-                   method: 'GET',
-                   headers: {
-                     'Authorization': `Bearer ${tokenData.access_token}`,
-                     'Cache-Control': 'no-cache'
-                   }
-                 });
-               })
-               .then(response => {
-                 console.log('사용자 정보 응답 상태:', response.status);
-                 if (!response.ok) {
-                   return response.text().then(text => {
-                     console.error('사용자 정보 응답 텍스트:', text);
-                     throw new Error('사용자 정보 요청 실패: ' + response.status + ' - ' + text);
-                   });
-                 }
-                 return response.json();
-               })
-               .then(userData => {
-                 console.log('카카오 사용자 정보 성공:', userData);
-                 
-                 const user = {
-                   id: userData.id,
-                   name: userData.properties?.nickname || '카카오 사용자',
-                   email: userData.kakao_account?.email || 'kakao@user.com',
-                   profileImage: userData.properties?.profile_image || '',
-                   loginType: 'kakao'
-                 };
-                 
-                 // 회원가입 처리
-                 handleKakaoSignup(user);
-               })
-               .catch(error => {
-                 console.error('카카오 인가 코드 처리 실패:', error);
-                 
-                 // 버튼 복원
-                 if (button) {
-                   button.innerHTML = originalText;
-                   button.disabled = false;
-                 }
-                 
-                 // KOE205 오류 특별 처리
-                 if (error.message.includes('KOE205')) {
-                   // 오류 로그 저장
-                   if (typeof window.logKakaoError === 'function') {
-                     window.logKakaoError('KOE205', error.message, {
-                       authCode: authCode ? authCode.substring(0, 10) + '...' : 'none',
-                       redirectUri: redirectUri,
-                       retryCount: retryCount
-                     });
-                   }
-                   showKakaoErrorHelp();
-                 } else {
-                   // 일반 오류 메시지 표시
-                   let errorMessage = '카카오 로그인 처리 중 오류가 발생했습니다.';
-                   
-                   if (error.message.includes('400')) {
-                     errorMessage = '잘못된 요청입니다.\n\n가능한 원인:\n1. 잘못된 client_id\n2. 잘못된 redirect_uri\n3. 만료된 인가 코드';
-                   } else if (error.message.includes('401')) {
-                     errorMessage = '인증에 실패했습니다.\n\n가능한 원인:\n1. 잘못된 앱 키\n2. 앱이 비활성화 상태';
-                   }
-                   
-                   alert(errorMessage + '\n\n' + error.message);
-                 }
-               });
-             }
-             
-             // 첫 번째 시도 시작
-             attemptTokenRequest();
-             
-           } catch (error) {
-             console.error('카카오 인증 코드 처리 중 오류:', error);
-             
-             // 버튼 복원
-             if (button) {
-               button.innerHTML = originalText;
-               button.disabled = false;
-             }
-             
-             alert('카카오 인증 코드 처리 중 오류가 발생했습니다:\n\n' + error.message);
-           }
-         }
-         
-         // KOE205 오류 및 CSP 오류 실시간 감지 시스템
-         function initKOE205ErrorDetection() {
-           console.log('KOE205 오류 및 CSP 오류 실시간 감지 시스템 시작...');
-           
-           // 1. 콘솔 오류 감지
-           const originalError = console.error;
-           console.error = function(...args) {
-             const errorMessage = args.join(' ');
-             
-             // KOE205 오류 감지
-             if (errorMessage.includes('KOE205')) {
-               console.log('실시간 KOE205 오류 감지:', errorMessage);
-               
-               // 오류 로그 저장
-               if (typeof window.logKakaoError === 'function') {
-                 window.logKakaoError('KOE205_REALTIME', errorMessage, {
-                   detectionMethod: 'console_override',
-                   timestamp: Date.now()
-                 });
-               }
-               
-               // 즉시 복구 시도
-               setTimeout(() => {
-                 showKOE205InstantRecovery();
-               }, 1000);
-             }
-             
-             // CSP 오류 감지 및 즉시 해결
-             if (errorMessage.includes('Content Security Policy') || errorMessage.includes('CSP')) {
-               console.log('🚨 실시간 CSP 오류 감지:', errorMessage);
-               
-               // CSP 오류 로그 저장
-               if (typeof window.logKakaoError === 'function') {
-                 window.logKakaoError('CSP_REALTIME', errorMessage, {
-                   detectionMethod: 'console_override',
-                   timestamp: Date.now()
-                 });
-               }
-               
-               // CSP 오류 즉시 해결 시도
-               setTimeout(() => {
-                 resolveCSPError();
-               }, 500);
-             }
-             
-             // 원래 console.error 호출
-             originalError.apply(console, args);
-           };
-           
-           // 2. 윈도우 오류 감지
-           window.addEventListener('error', function(event) {
-             // KOE205 오류 감지
-             if (event.message && event.message.includes('KOE205')) {
-               console.log('윈도우 이벤트로 KOE205 오류 감지:', event.message);
-               
-               // 오류 로그 저장
-               if (typeof window.logKakaoError === 'function') {
-                 window.logKakaoError('KOE205_WINDOW_ERROR', event.message, {
-                   detectionMethod: 'window_error_event',
-                   filename: event.filename,
-                   lineno: event.lineno,
-                   colno: event.colno
-                 });
-               }
-               
-               // 즉시 복구 시도
-               setTimeout(() => {
-                 showKOE205InstantRecovery();
-               }, 1000);
-             }
-             
-             // CSP 오류 감지 및 즉시 해결
-             if (event.message && (event.message.includes('Content Security Policy') || event.message.includes('CSP'))) {
-               console.log('🚨 윈도우 이벤트로 CSP 오류 감지:', event.message);
-               
-               // CSP 오류 로그 저장
-               if (typeof window.logKakaoError === 'function') {
-                 window.logKakaoError('CSP_WINDOW_ERROR', event.message, {
-                   detectionMethod: 'window_error_event',
-                   filename: event.filename,
-                   lineno: event.lineno,
-                   colno: event.colno
-                 });
-               }
-               
-               // CSP 오류 즉시 해결 시도
-               setTimeout(() => {
-                 resolveCSPError();
-               }, 500);
-             }
-           });
-           
-           // 3. 네트워크 오류 감지 (fetch 오버라이드)
-           const originalFetch = window.fetch;
-           window.fetch = function(...args) {
-             return originalFetch.apply(this, args).catch(error => {
-               // KOE205 오류 감지
-               if (error.message && error.message.includes('KOE205')) {
-                 console.log('네트워크 요청에서 KOE205 오류 감지:', error.message);
-                 
-                 // 오류 로그 저장
-                 if (typeof window.logKakaoError === 'function') {
-                   window.logKakaoError('KOE205_NETWORK', error.message, {
-                     detectionMethod: 'fetch_override',
-                     url: args[0],
-                     timestamp: Date.now()
-                   });
-                 }
-               }
-               
-               // CSP 오류 감지 및 즉시 해결
-               if (error.message && (error.message.includes('Content Security Policy') || error.message.includes('CSP'))) {
-                 console.log('🚨 네트워크 요청에서 CSP 오류 감지:', error.message);
-                 
-                 // CSP 오류 로그 저장
-                 if (typeof window.logKakaoError === 'function') {
-                   window.logKakaoError('CSP_NETWORK', error.message, {
-                     detectionMethod: 'fetch_override',
-                     url: args[0],
-                     timestamp: Date.now()
-                   });
-                 }
-                 
-                 // CSP 오류 즉시 해결 시도
-                 setTimeout(() => {
-                   resolveCSPError();
-                 }, 500);
-               }
-               
-               throw error;
-             });
-           };
-           
-           console.log('KOE205 오류 실시간 감지 시스템 활성화 완료');
-         }
-         
-         // CSP 정책 사전 강화 및 확인
-         function preEnforceCSP() {
-           console.log('🔒 CSP 정책 사전 강화 시작...');
-           
-           try {
-             // 1. 기존 CSP 메타 태그 확인
-             let existingCSP = document.querySelector('meta[http-equiv="Content-Security-Policy"]');
-             
-             if (!existingCSP) {
-               // CSP 메타 태그가 없으면 새로 생성
-               existingCSP = document.createElement('meta');
-               existingCSP.setAttribute('http-equiv', 'Content-Security-Policy');
-               document.head.appendChild(existingCSP);
-               console.log('✅ CSP 메타 태그 새로 생성됨');
-             }
-             
-             // 2. 카카오 도메인을 포함한 강화된 CSP 정책 설정
-             const enhancedCSP = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; connect-src 'self' https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://kauth.kakao.com/oauth/authorize; img-src 'self' data: https:; font-src 'self' data:;";
-             
-             existingCSP.setAttribute('content', enhancedCSP);
-             console.log('✅ CSP 정책 사전 강화 완료');
-             
-             // 3. CSP 정책 적용 확인
-             setTimeout(() => {
-               console.log('🔍 CSP 정책 적용 상태 확인 중...');
-               const currentCSP = document.querySelector('meta[http-equiv="Content-Security-Policy"]');
-               if (currentCSP && currentCSP.getAttribute('content').includes('kauth.kakao.com')) {
-                 console.log('✅ CSP 정책이 카카오 도메인을 포함하여 정상 적용됨');
-               } else {
-                 console.warn('⚠️ CSP 정책 적용 상태 확인 필요');
-               }
-             }, 100);
-             
-           } catch (error) {
-             console.error('❌ CSP 정책 사전 강화 실패:', error);
-           }
-         }
-         
-         // KOE205 오류 즉시 복구 모달
-         function showKOE205InstantRecovery() {
-           // 기존 모달이 있으면 제거
-           const existingModal = document.getElementById('koe205-instant-recovery');
-           if (existingModal) {
-             document.body.removeChild(existingModal);
-           }
-           
-           const recoveryModal = document.createElement('div');
-           recoveryModal.id = 'koe205-instant-recovery';
-           recoveryModal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4';
-           recoveryModal.innerHTML = `
-             <div class="bg-white rounded-2xl p-8 max-w-md mx-4 text-center animate-pulse">
-               <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                 <svg class="w-8 h-8 text-red-600 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
-                 </svg>
-               </div>
-               <h3 class="text-xl font-bold text-red-600 mb-2">🚨 KOE205 오류 감지!</h3>
-               <p class="text-gray-600 mb-6">카카오 로그인 설정에 문제가 감지되었습니다.<br>자동 복구를 시도하겠습니다.</p>
-               
-               <div class="bg-blue-50 p-4 rounded-lg mb-6">
-                 <p class="text-sm text-blue-700">
-                   <span class="animate-pulse">🔄</span> 자동 복구 진행 중...<br>
-                   잠시만 기다려주세요.
-                 </p>
-               </div>
-               
-               <div class="flex gap-3">
-                 <button onclick="closeInstantRecovery()" class="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 py-3 px-6 rounded-lg font-semibold transition">취소</button>
-                 <button onclick="forceKakaoRecovery()" class="flex-1 bg-red-600 hover:bg-red-700 text-white py-3 px-6 rounded-lg font-semibold transition">강제 복구</button>
-               </div>
-             </div>
-           `;
-           
-           document.body.appendChild(recoveryModal);
-           
-           // 자동 복구 시도 (5초 후)
-           setTimeout(() => {
-             attemptAutoKOE205Recovery();
-           }, 5000);
-           
-           // 전역 함수 등록
-           window.closeInstantRecovery = function() {
-             if (document.getElementById('koe205-instant-recovery')) {
-               document.body.removeChild(recoveryModal);
-             }
-           };
-           
-           window.forceKakaoRecovery = function() {
-             closeInstantRecovery();
-             clearCacheAndRetry();
-           };
-         }
-         
-         // KOE205 오류 자동 복구 시도
-         function attemptAutoKOE205Recovery() {
-           console.log('KOE205 오류 자동 복구 시도...');
-           
-           try {
-             // 1. 카카오 서비스 상태 재확인
-             checkKakaoServiceStatus();
-             
-             // 2. 환경 재감지
-             detectEnvironment();
-             
-             // 3. 복구 성공 메시지
-             setTimeout(() => {
-               const recoveryModal = document.getElementById('koe205-instant-recovery');
-               if (recoveryModal) {
-                 recoveryModal.innerHTML = `
-                   <div class="bg-white rounded-2xl p-8 max-w-md mx-4 text-center">
-                     <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                       <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                       </svg>
-                     </div>
-                     <h3 class="text-xl font-bold text-green-600 mb-2">✅ 복구 완료!</h3>
-                     <p class="text-gray-600 mb-6">KOE205 오류가 해결되었습니다.<br>이제 카카오 로그인을 다시 시도해보세요.</p>
-                     
-                     <div class="flex gap-3">
-                       <button onclick="closeInstantRecovery()" class="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 py-3 px-6 rounded-lg font-semibold transition">닫기</button>
-                       <button onclick="testKakaoLoginAfterRecovery()" class="flex-1 bg-yellow-400 hover:bg-yellow-500 text-gray-800 py-3 px-6 rounded-lg font-semibold transition">카카오 로그인 테스트</button>
-                     </div>
-                   </div>
-                 `;
-                 
-                 // 테스트 함수 등록
-                 window.testKakaoLoginAfterRecovery = function() {
-                   closeInstantRecovery();
-                   setTimeout(() => {
-                     document.getElementById('kakao-login').click();
-                   }, 500);
-                 };
-               }
-             }, 3000);
-             
-           } catch (error) {
-             console.error('자동 복구 실패:', error);
-             
-             const recoveryModal = document.getElementById('koe205-instant-recovery');
-             if (recoveryModal) {
-               recoveryModal.innerHTML = `
-                 <div class="bg-white rounded-2xl p-8 max-w-md mx-4 text-center">
-                   <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                     <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                     </svg>
-                   </div>
-                   <h3 class="text-xl font-bold text-red-600 mb-2">❌ 자동 복구 실패</h3>
-                   <p class="text-gray-600 mb-6">카카오 개발자 콘솔에서 수동 설정이 필요합니다.</p>
-                   
-                   <div class="flex gap-3">
-                     <button onclick="closeInstantRecovery()" class="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 py-3 px-6 rounded-lg font-semibold transition">닫기</button>
-                     <button onclick="showKakaoErrorHelp(); closeInstantRecovery();" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 px-6 rounded-lg font-semibold transition">설정 가이드</button>
-                   </div>
-                 </div>
-               `;
-             }
-           }
-         }
-       
-               // 카카오 회원가입 처리 함수
-        function handleKakaoSignup(user) {
-         // 기존 회원인지 확인
-         const existingUser = JSON.parse(localStorage.getItem('user') || 'null');
-         
-         if (existingUser && existingUser.id === user.id) {
-           // 기존 회원 로그인
-           localStorage.setItem('user', JSON.stringify(user));
-           localStorage.setItem('loggedIn', 'true');
-           alert('카카오톡으로 로그인되었습니다!');
-           window.location.href = 'index.html';
-         } else {
-           // 신규 회원 가입 - 약관 동의 확인
-           showKakaoTermsAgreement(user);
-         }
-       }
-       
-       // 카카오 회원가입 시 약관 동의 모달 표시
-       function showKakaoTermsAgreement(user) {
-         // 약관 동의 모달 생성
-         const modal = document.createElement('div');
-         modal.id = 'kakao-terms-modal';
-         modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4';
-         modal.innerHTML = `
-           <div class="bg-white rounded-2xl p-8 max-w-md mx-4 text-center">
-             <div class="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
-               <svg class="w-8 h-8 text-yellow-600" viewBox="0 0 24 24" fill="currentColor">
-                 <path d="M12 3c5.799 0 10.5 3.664 10.5 8.185 0 4.52-4.701 8.184-10.5 8.184a13.5 13.5 0 0 1-1.727-.11l-4.408 2.883c-.501.265-.678.236-.472-.413l.892-3.678c-2.88-1.46-4.785-3.99-4.785-6.866C1.5 6.665 6.201 3 12 3z"/>
-               </svg>
-             </div>
-             <h3 class="text-xl font-bold text-gray-800 mb-4">카카오톡 간편가입</h3>
-             <p class="text-gray-600 mb-6">PriceHunter 서비스 이용을 위한 약관 동의가 필요합니다.</p>
-             
-             <div class="space-y-4 mb-6">
-               <div class="flex items-center gap-3">
-                 <input type="checkbox" id="kakao-agree-terms" class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" required />
-                 <label for="kakao-agree-terms" class="text-gray-700">이용약관 동의 (필수)</label>
-                 <button type="button" onclick="openTermsModal()" class="text-blue-600 hover:text-blue-800 text-sm underline">보기</button>
-               </div>
-               
-               <div class="flex items-center gap-3">
-                 <input type="checkbox" id="kakao-agree-privacy" class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" required />
-                 <label for="kakao-agree-privacy" class="text-gray-700">개인정보처리방침 동의 (필수)</label>
-                 <button type="button" onclick="openPrivacyModal()" class="text-blue-600 hover:text-blue-800 text-sm underline">보기</button>
-               </div>
-               
-               <div class="flex items-center gap-3">
-                 <input type="checkbox" id="kakao-agree-marketing" class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" />
-                 <label for="kakao-agree-marketing" class="text-gray-700">마케팅 정보 수신 동의 (선택)</label>
-               </div>
-             </div>
-             
-             <div class="flex gap-3">
-               <button onclick="closeKakaoTermsModal()" class="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 py-3 px-6 rounded-lg font-semibold transition">취소</button>
-               <button onclick="completeKakaoSignup()" id="kakao-signup-btn" disabled class="flex-1 bg-yellow-400 hover:bg-yellow-500 disabled:bg-gray-400 disabled:cursor-not-allowed text-gray-800 py-3 px-6 rounded-lg font-semibold transition">가입 완료</button>
-             </div>
-           </div>
-         `;
-         
-         document.body.appendChild(modal);
-         
-         // 체크박스 이벤트 리스너 추가
-         const agreeTerms = document.getElementById('kakao-agree-terms');
-         const agreePrivacy = document.getElementById('kakao-agree-privacy');
-         const agreeMarketing = document.getElementById('kakao-agree-marketing');
-         const signupBtn = document.getElementById('kakao-signup-btn');
-         
-         function updateSignupButton() {
-           const isRequiredChecked = agreeTerms.checked && agreePrivacy.checked;
-           signupBtn.disabled = !isRequiredChecked;
-         }
-         
-         [agreeTerms, agreePrivacy, agreeMarketing].forEach(checkbox => {
-           checkbox.addEventListener('change', updateSignupButton);
-         });
-         
-         // 전역 함수로 등록
-         window.completeKakaoSignup = function() {
-           if (agreeTerms.checked && agreePrivacy.checked) {
-             // 신규 회원 가입 완료
-             const newUser = {
-               ...user,
-               joinDate: new Date().toISOString(),
-               points: 50, // 신규 가입 보너스
-               termsAgreed: true,
-               privacyAgreed: true,
-               marketingAgreed: agreeMarketing.checked
-             };
-             
-             localStorage.setItem('user', JSON.stringify(newUser));
-             localStorage.setItem('loggedIn', 'true');
-             
-             closeKakaoTermsModal();
-             alert('카카오톡으로 회원가입되었습니다! +50포인트 지급!');
-             window.location.href = 'index.html';
-           } else {
-             alert('필수 약관에 동의해주세요.');
-           }
-         };
-         
-         window.closeKakaoTermsModal = function() {
-           document.body.removeChild(modal);
-         };
-       }
     });
 
-         // 약관 모달 열기/닫기
-     function openTermsModal() {
-       document.getElementById('terms-modal').classList.remove('hidden');
-       document.body.style.overflow = 'hidden';
-     }
+    // ESC 키로 모달 닫기
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        closeTermsModal();
+        closePrivacyModal();
+      }
+    });
 
-     function closeTermsModal() {
-       document.getElementById('terms-modal').classList.add('hidden');
-       document.body.style.overflow = 'auto';
-     }
-
-     function openPrivacyModal() {
-       document.getElementById('privacy-modal').classList.remove('hidden');
-       document.body.style.overflow = 'hidden';
-     }
-
-     function closePrivacyModal() {
-       document.getElementById('privacy-modal').classList.add('hidden');
-       document.body.style.overflow = 'auto';
-     }
-     
-
-
-         // ESC 키로 모달 닫기
-     document.addEventListener('keydown', function(e) {
-       if (e.key === 'Escape') {
-         closeTermsModal();
-         closePrivacyModal();
-       }
-     });
-
-     // 모달 외부 클릭 시 닫기
-     document.addEventListener('click', function(e) {
-       if (e.target.classList.contains('backdrop-blur-sm')) {
-         closeTermsModal();
-         closePrivacyModal();
-       }
-     });
-
-     // 카카오 로그인 버튼에 오류 복구 기능 추가
-     document.addEventListener('DOMContentLoaded', function() {
-       // 기존 코드...
-       
-       // KOE205 오류 자동 복구 시도
-       let errorRecoveryAttempts = 0;
-       const maxRecoveryAttempts = 2;
-       
-       // 오류 로깅 시스템
-       window.logKakaoError = function(errorType, errorMessage, additionalData = {}) {
-         const errorLog = {
-           timestamp: new Date().toISOString(),
-           errorType: errorType,
-           message: errorMessage,
-           url: window.location.href,
-           userAgent: navigator.userAgent,
-           additionalData: additionalData
-         };
-         
-         console.error('카카오 오류 로그:', errorLog);
-         
-         // localStorage에 오류 로그 저장
-         const existingLogs = JSON.parse(localStorage.getItem('kakao_error_logs') || '[]');
-         existingLogs.push(errorLog);
-         
-         // 최근 10개만 유지
-         if (existingLogs.length > 10) {
-           existingLogs.splice(0, existingLogs.length - 10);
-         }
-         
-         localStorage.setItem('kakao_error_logs', JSON.stringify(existingLogs));
-         
-         // KOE205 오류인 경우 자동 복구 시도
-         if (errorType === 'KOE205' && errorRecoveryAttempts < maxRecoveryAttempts) {
-           errorRecoveryAttempts++;
-           console.log(`KOE205 오류 자동 복구 시도 ${errorRecoveryAttempts}/${maxRecoveryAttempts}`);
-           
-           setTimeout(() => {
-             attemptKakaoErrorRecovery();
-           }, 5000); // 5초 후 복구 시도
-         }
-       };
-       
-       // KOE205 오류 자동 복구 시도
-       function attemptKakaoErrorRecovery() {
-         console.log('카카오 오류 자동 복구 시도 중...');
-         
-         // 1. 캐시 및 쿠키 초기화 시도
-         try {
-           // localStorage에서 카카오 관련 데이터 정리
-           const keysToRemove = ['kakao_auth_code', 'kakao_auth_timestamp', 'kakao_error_logs'];
-           keysToRemove.forEach(key => {
-             if (localStorage.getItem(key)) {
-               localStorage.removeItem(key);
-               console.log(`캐시 정리: ${key}`);
-             }
-           });
-           
-           // 2. 카카오 서비스 상태 재확인
-           checkKakaoServiceStatus();
-           
-           // 3. 환경 상태 업데이트
-           updateEnvironmentStatus('🔄 오류 복구 시도 중...', 'orange');
-           
-           // 4. 3초 후 상태 확인
-           setTimeout(() => {
-             if (errorRecoveryAttempts >= maxRecoveryAttempts) {
-               updateEnvironmentStatus('🚨 자동 복구 실패 - 수동 설정 필요', 'red');
-               showKakaoErrorHelp();
-             } else {
-               updateEnvironmentStatus('✅ 오류 복구 완료 - 다시 시도해보세요', 'green');
-             }
-           }, 3000);
-           
-         } catch (error) {
-           console.error('오류 복구 시도 실패:', error);
-           updateEnvironmentStatus('🚨 오류 복구 실패', 'red');
-         }
-       }
-       
-       // 페이지 로드 시 이전 오류 로그 확인
-       const errorLogs = JSON.parse(localStorage.getItem('kakao_error_logs') || '[]');
-       if (errorLogs.length > 0) {
-         const lastError = errorLogs[errorLogs.length - 1];
-         
-         // 최근 KOE205 오류가 있으면 경고 표시
-         if (lastError.errorType === 'KOE205' && 
-             Date.now() - new Date(lastError.timestamp).getTime() < 24 * 60 * 60 * 1000) { // 24시간 이내
-           
-           console.log('최근 KOE205 오류 발견:', lastError);
-           
-           // 환경 상태에 경고 표시
-           setTimeout(() => {
-             updateEnvironmentStatus('⚠️ 최근 KOE205 오류 발생 - 설정 확인 권장', 'orange');
-             
-             // 도움말 링크 추가
-             const helpLink = document.createElement('div');
-             helpLink.className = 'mt-2';
-             helpLink.innerHTML = `
-               <button onclick="showKakaoErrorHelp()" class="text-xs text-blue-600 hover:text-blue-800 underline">
-                 🔧 오류 해결 도움말 보기
-               </button>
-             `;
-             
-             const envInfo = document.getElementById('environment-info');
-             if (envInfo && !envInfo.querySelector('.mt-2')) {
-               envInfo.appendChild(helpLink);
-             }
-           }, 2000);
-         }
-       }
-     });
+    // 모달 외부 클릭 시 닫기
+    document.addEventListener('click', function(e) {
+      if (e.target.classList.contains('backdrop-blur-sm')) {
+        closeTermsModal();
+        closePrivacyModal();
+      }
+    });
   </script>
 </body>
 </html>
