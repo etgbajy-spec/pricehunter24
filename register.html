@@ -22,11 +22,28 @@
      - 필수: profile_nickname, account_email
      - 선택: profile_image
      
-     **KOE205 오류 해결:**
-     - 카카오 개발자 콘솔에서 앱 상태 확인
-     - 플랫폼 설정 (Web: https://pricehunt24.com)
-     - Redirect URI 설정 (https://pricehunt24.com/register.html)
-     - 동의항목 설정 및 앱 활성화 상태 확인
+     **KOE205 오류 해결 (완전 가이드):**
+     
+     **1단계: 앱 상태 확인**
+     - 카카오 개발자 콘솔 → 앱 선택 → 앱 설정 → 일반
+     - 상태: "활성화" 확인
+     - 서비스 URL: https://pricehunt24.com 설정
+     
+     **2단계: 플랫폼 설정**
+     - 플랫폼 → Web → 사이트 도메인
+     - https://pricehunt24.com 추가
+     
+     **3단계: 카카오 로그인 설정**
+     - 카카오 로그인 → 활성화 설정 → "활성화" 상태
+     - Redirect URI: https://pricehunt24.com/register.html 추가
+     
+     **4단계: 동의항목 설정**
+     - 동의항목 → 필수: profile_nickname, account_email
+     - 동의항목 → 선택: profile_image
+     
+     **5단계: 앱 키 확인**
+     - 앱 키 → JavaScript 키: 6917a034b74fafd0ac80ab855af5ed6d
+     - 앱 키 → REST API 키: fd9b2a8858c4c90765143ea56546d386
    -->
   <script src="https://cdn.tailwindcss.com"></script>
   
@@ -482,8 +499,14 @@
 
 
   <script>
-    // 카카오 SDK 초기화
-    Kakao.init('6917a034b74fafd0ac80ab855af5ed6d');
+         // 카카오 SDK 초기화
+     console.log('카카오 SDK 초기화 시작...');
+     try {
+       Kakao.init('6917a034b74fafd0ac80ab855af5ed6d');
+       console.log('카카오 SDK 초기화 성공!');
+     } catch (error) {
+       console.error('카카오 SDK 초기화 실패:', error);
+     }
     
     // 페이지 로드 시 애니메이션 및 카카오 로그인 처리
     document.addEventListener('DOMContentLoaded', function() {
@@ -605,90 +628,22 @@
         }, 1000);
       }
 
-             // 카카오톡 로그인 (실제 연동)
-       document.getElementById('kakao-login').addEventListener('click', function() {
-         if (typeof Kakao !== 'undefined') {
-                       // 카카오 로그인 실행 (팝업 방식)
+                     // 카카오톡 로그인 (완전 재작성)
+        document.getElementById('kakao-login').addEventListener('click', function() {
+          if (typeof Kakao !== 'undefined') {
+            console.log('카카오 로그인 시작...');
+            
+            // 카카오 로그인 실행 (리다이렉트 방식)
             Kakao.Auth.login({
-              throughTalk: false, // 팝업 방식
-              scope: 'profile_nickname,account_email,profile_image', // 동의 항목 명시
-              redirectUri: 'https://pricehunt24.com/register.html', // 실제 운영 사이트 URL
-                           success: function(authObj) {
-                console.log('카카오 로그인 성공:', authObj);
-                
-                // Kakao.API.request() 대신 fetch 사용하여 프레임 오류 우회
-                fetch('https://kapi.kakao.com/v2/user/me', {
-                  method: 'GET',
-                  headers: {
-                    'Authorization': `Bearer ${authObj.access_token}`,
-                    'Content-Type': 'application/x-www-form-urlencoded'
-                  }
-                })
-                .then(response => {
-                  if (!response.ok) {
-                    throw new Error('사용자 정보 요청 실패');
-                  }
-                  return response.json();
-                })
-                                 .then(userData => {
-                   console.log('카카오 사용자 정보 상세:', {
-                     id: userData.id,
-                     nickname: userData.properties?.nickname,
-                     email: userData.kakao_account?.email,
-                     profileImage: userData.properties?.profile_image,
-                     connectedAt: userData.connected_at,
-                     scope: userData.scope
-                   });
-                   
-                   const user = {
-                     id: userData.id,
-                     name: userData.properties?.nickname || '카카오 사용자',
-                     email: userData.kakao_account?.email || 'kakao@user.com',
-                     profileImage: userData.properties?.profile_image || '',
-                     loginType: 'kakao',
-                     connectedAt: userData.connected_at
-                   };
-                   
-                   // 회원가입 처리
-                   handleKakaoSignup(user);
-                 })
-                .catch(error => {
-                  console.error('사용자 정보 요청 실패:', error);
-                  
-                  // 오류 발생 시 기본 정보로 처리
-                  const user = {
-                    id: 'kakao_' + Date.now(),
-                    name: '카카오 사용자',
-                    email: 'kakao@user.com',
-                    profileImage: '',
-                    loginType: 'kakao'
-                  };
-                  
-                  // 회원가입 처리
-                  handleKakaoSignup(user);
-                });
-              },
-                           fail: function(err) {
-                console.error('카카오 로그인 실패:', err);
-                                 if (err.error === 'KOE006') {
-                   alert('카카오 앱 플랫폼 설정이 필요합니다.\n\n1. Web 플랫폼: https://pricehunt24.com 추가\n2. Redirect URI: https://pricehunt24.com/register.html 추가');
-                                  } else if (err.error === 'KOE205') {
-                    alert('카카오 앱 서비스 설정에 오류가 있습니다.\n\n해결 방법:\n1. 카카오 개발자 콘솔에서 앱 상태 확인\n2. 플랫폼 설정 (Web: https://pricehunt24.com)\n3. Redirect URI 설정 (https://pricehunt24.com/register.html)\n4. 동의항목 설정 (닉네임, 이메일, 프로필사진)\n5. 앱 활성화 상태 확인');
-                 } else if (err.error === 'KOE009') {
-                   alert('카카오 앱 설정에 문제가 있습니다. 관리자에게 문의해주세요.');
-                 } else if (err.error === 'access_denied') {
-                  alert('카카오 로그인이 취소되었습니다.');
-                } else if (err.error === 'popup_closed') {
-                  alert('팝업이 닫혔습니다. 다시 시도해주세요.');
-                } else {
-                  alert('카카오 로그인에 실패했습니다: ' + (err.error_description || err.error));
-                }
-              }
-           });
-         } else {
-           alert('카카오 SDK가 로드되지 않았습니다.');
-         }
-       });
+              throughTalk: false,
+              scope: 'profile_nickname,account_email,profile_image',
+              redirectUri: 'https://pricehunt24.com/register.html',
+              state: 'kakao_signup'
+            });
+          } else {
+            alert('카카오 SDK가 로드되지 않았습니다.');
+          }
+        });
 
       
        
@@ -734,31 +689,69 @@
         document.getElementById('success-message').classList.remove('hidden');
       });
       
-             // 카카오 인가 코드 처리 함수
-       function handleKakaoAuthCode(authCode) {
-         // 사용자 정보 요청
-         Kakao.API.request({
-           url: '/v2/user/me',
-           success: function(res) {
-             console.log('사용자 정보:', res);
-             
-             const user = {
-               id: res.id,
-               name: res.properties.nickname,
-               email: res.kakao_account.email,
-               profileImage: res.properties.profile_image,
-               loginType: 'kakao'
-             };
-             
-             // 회원가입 처리
-             handleKakaoSignup(user);
-           },
-           fail: function(error) {
-             console.error('사용자 정보 요청 실패:', error);
-             alert('사용자 정보를 가져오는데 실패했습니다.');
-           }
-         });
-       }
+                           // 카카오 인가 코드 처리 함수 (개선)
+        function handleKakaoAuthCode(authCode) {
+          console.log('카카오 인가 코드 처리 시작:', authCode);
+          
+          // 인가 코드로 액세스 토큰 요청
+          const tokenUrl = 'https://kauth.kakao.com/oauth/token';
+          const tokenData = new URLSearchParams({
+            grant_type: 'authorization_code',
+            client_id: '6917a034b74fafd0ac80ab855af5ed6d',
+            redirect_uri: 'https://pricehunt24.com/register.html',
+            code: authCode
+          });
+          
+          fetch(tokenUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: tokenData
+          })
+          .then(response => {
+            if (!response.ok) {
+              throw new Error('액세스 토큰 요청 실패: ' + response.status);
+            }
+            return response.json();
+          })
+          .then(tokenData => {
+            console.log('액세스 토큰 획득:', tokenData);
+            
+            // 액세스 토큰으로 사용자 정보 요청
+            return fetch('https://kapi.kakao.com/v2/user/me', {
+              method: 'GET',
+              headers: {
+                'Authorization': `Bearer ${tokenData.access_token}`,
+                'Content-Type': 'application/x-www-form-urlencoded'
+              }
+            });
+          })
+          .then(response => {
+            if (!response.ok) {
+              throw new Error('사용자 정보 요청 실패: ' + response.status);
+            }
+            return response.json();
+          })
+          .then(userData => {
+            console.log('카카오 사용자 정보:', userData);
+            
+            const user = {
+              id: userData.id,
+              name: userData.properties?.nickname || '카카오 사용자',
+              email: userData.kakao_account?.email || 'kakao@user.com',
+              profileImage: userData.properties?.profile_image || '',
+              loginType: 'kakao'
+            };
+            
+            // 회원가입 처리
+            handleKakaoSignup(user);
+          })
+          .catch(error => {
+            console.error('카카오 인가 코드 처리 실패:', error);
+            alert('카카오 로그인 처리 중 오류가 발생했습니다: ' + error.message);
+          });
+        }
        
                // 카카오 회원가입 처리 함수
         function handleKakaoSignup(user) {
