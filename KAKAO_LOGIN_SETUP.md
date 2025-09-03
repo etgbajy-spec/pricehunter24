@@ -1,188 +1,167 @@
-# 카카오 로그인 실제 연동 설정 가이드
+# 카카오톡 로그인 연동 설정 가이드
 
-## 🎯 목표
-PriceHunter 웹사이트에 카카오 로그인 기능을 실제로 연동하여 사용자가 카카오 계정으로 간편하게 가입/로그인할 수 있도록 설정
+## 1. 카카오 개발자 계정 설정
 
-## 📋 1단계: 카카오 개발자 콘솔 설정
-
-### 1.1 카카오 개발자 계정 생성
-1. **카카오 개발자 콘솔 접속**: https://developers.kakao.com/
-2. **로그인**: 카카오 계정으로 로그인
-3. **애플리케이션 생성**: "내 애플리케이션" → "애플리케이션 추가하기"
+### 1.1 개발자 계정 생성
+1. [Kakao Developers](https://developers.kakao.com/) 접속
+2. 카카오 계정으로 로그인
+3. "내 애플리케이션" → "애플리케이션 추가하기"
 
 ### 1.2 애플리케이션 정보 설정
 ```
 앱 이름: PriceHunter
 회사명: PriceHunter
-사업자명: [실제 사업자명]
+사업자명: PriceHunter
 ```
 
 ### 1.3 플랫폼 설정
-1. **웹 플랫폼 추가**:
-   - 사이트 도메인: `http://localhost:3000` (개발용)
-   - 사이트 도메인: `https://pricehunt24.com` (운영용)
-   - 사이트 도메인: `https://pricehunter.netlify.app` (배포용)
+- **Web 플랫폼 추가**
+  - 사이트 도메인: `http://localhost:8000` (개발용)
+  - 사이트 도메인: `https://yourdomain.com` (운영용)
 
-2. **JavaScript 키 복사**: 앱 키 섹션에서 JavaScript 키 복사
+## 2. JavaScript SDK 연동
 
-### 1.4 카카오 로그인 설정
-1. **카카오 로그인 활성화**: "카카오 로그인" → "활성화 설정" → "활성화"
-2. **Redirect URI 설정**:
-   - `http://localhost:3000/` (개발용)
-   - `https://pricehunt24.com/` (운영용)
-   - `https://pricehunter.netlify.app/` (배포용)
+### 2.1 HTML에 SDK 추가
+```html
+<script src="https://developers.kakao.com/sdk/js/kakao.js"></script>
+```
 
-### 1.5 동의항목 설정
-**현재 설정 가능한 동의항목**:
-- [x] **이름 (profile_nickname)**: 필수
-- [x] **프로필 사진 (profile_image)**: 선택
-- [x] **계정 (account_email)**: 선택 (가능한 경우)
+### 2.2 초기화 코드
+```javascript
+// 카카오 SDK 초기화
+Kakao.init('YOUR_JAVASCRIPT_KEY');
 
-**사업자 인증 후 추가 가능한 동의항목**:
-- [ ] **생년월일 (birthday)**: 필수
-- [ ] **휴대폰번호 (phone_number)**: 필수
-- [ ] **성별 (gender)**: 선택
-- [ ] **연령대 (age_range)**: 선택
+// 카카오 로그인 함수
+function kakaoLogin() {
+  Kakao.Auth.login({
+    success: function(authObj) {
+      // 로그인 성공 시 사용자 정보 요청
+      Kakao.API.request({
+        url: '/v2/user/me',
+        success: function(res) {
+          const user = {
+            id: res.id,
+            name: res.properties.nickname,
+            email: res.kakao_account.email,
+            profileImage: res.properties.profile_image,
+            loginType: 'kakao'
+          };
+          
+          // 회원가입 처리
+          handleKakaoSignup(user);
+        },
+        fail: function(error) {
+          console.error('사용자 정보 요청 실패:', error);
+        }
+      });
+    },
+    fail: function(err) {
+      console.error('카카오 로그인 실패:', err);
+    }
+  });
+}
+```
 
-## 🔧 2단계: 코드 설정
+### 2.3 회원가입 처리
+```javascript
+function handleKakaoSignup(user) {
+  // 기존 회원인지 확인
+  const existingUser = JSON.parse(localStorage.getItem('user') || 'null');
+  
+  if (existingUser && existingUser.id === user.id) {
+    // 기존 회원 로그인
+    localStorage.setItem('user', JSON.stringify(user));
+    localStorage.setItem('loggedIn', 'true');
+    showToast('카카오톡으로 로그인되었습니다!', 'success');
+    updateAuthUI();
+  } else {
+    // 신규 회원 가입
+    const newUser = {
+      ...user,
+      joinDate: new Date().toISOString(),
+      points: 50 // 신규 가입 보너스
+    };
+    
+    localStorage.setItem('user', JSON.stringify(newUser));
+    localStorage.setItem('loggedIn', 'true');
+    showToast('카카오톡으로 회원가입되었습니다! +50포인트 지급!', 'success');
+    updateAuthUI();
+  }
+}
+```
 
-### 2.1 JavaScript 키 업데이트
-**파일**: `pricehunter-production/index.html`
+## 3. 보안 설정
+
+### 3.1 도메인 제한
+- 카카오 개발자 콘솔에서 허용 도메인 설정
+- HTTPS 필수 (운영 환경)
+
+### 3.2 앱 키 보안
+- JavaScript 키는 공개되어도 안전
+- Admin 키는 절대 클라이언트에 노출 금지
+
+## 4. 사용자 동의 항목
+
+### 4.1 필수 동의
+- 닉네임 (profile_nickname)
+- 프로필 사진 (profile_image)
+- 이메일 (account_email)
+
+### 4.2 선택 동의
+- 성별 (gender)
+- 연령대 (age_range)
+- 생일 (birthday)
+
+## 5. 에러 처리
+
+### 5.1 일반적인 에러
+```javascript
+Kakao.Auth.login({
+  success: function(authObj) {
+    // 성공 처리
+  },
+  fail: function(err) {
+    switch (err.error) {
+      case 'access_denied':
+        alert('사용자가 로그인을 취소했습니다.');
+        break;
+      case 'invalid_grant':
+        alert('인증이 만료되었습니다. 다시 시도해주세요.');
+        break;
+      default:
+        alert('로그인 중 오류가 발생했습니다.');
+    }
+  }
+});
+```
+
+## 6. 테스트
+
+### 6.1 개발 환경
+- `http://localhost:8000`에서 테스트
+- 카카오톡 앱 설치 필요
+
+### 6.2 운영 환경
+- HTTPS 도메인에서만 동작
+- 실제 카카오 계정으로 테스트
+
+## 7. 주의사항
+
+1. **개인정보 처리**: 카카오에서 받은 정보는 개인정보처리방침에 명시
+2. **회원 탈퇴**: 카카오 연동 해제 시 회원 탈퇴 처리
+3. **데이터 동기화**: 카카오 프로필 변경 시 자동 업데이트 고려
+
+## 8. 완성된 코드 예시
 
 ```javascript
-// 2120번째 줄 근처에서 변경
-window.Kakao.init('실제_JavaScript_키_입력');
+// register.html에 추가할 코드
+document.getElementById('kakao-login').addEventListener('click', function() {
+  if (typeof Kakao !== 'undefined') {
+    kakaoLogin();
+  } else {
+    alert('카카오 SDK가 로드되지 않았습니다.');
+  }
+});
 ```
 
-### 2.2 현재 설정된 키 확인
-```javascript
-// 현재 설정된 키 (테스트용)
-'6917a034b74fafd0ac80ab855af5ed6d'
-```
-
-## 🧪 3단계: 테스트 및 검증
-
-### 3.1 로컬 테스트
-1. **서버 실행**:
-   ```bash
-   cd pricehunter-production
-   python -m http.server 3000
-   ```
-
-2. **브라우저 접속**: `http://localhost:3000`
-
-3. **카카오 로그인 테스트**:
-   - "카카오로 시작하기" 버튼 클릭
-   - 카카오 로그인 팝업 확인
-   - 사용자 정보 수집 확인
-
-### 3.2 콘솔 로그 확인
-```javascript
-// 브라우저 개발자 도구에서 확인
-console.log('카카오 SDK 로딩 상태:', window.kakaoSDKLoaded);
-console.log('카카오 초기화 상태:', window.Kakao?.isInitialized());
-```
-
-## 🚀 4단계: 운영 환경 배포
-
-### 4.1 도메인 설정
-1. **실제 도메인 등록**: 카카오 개발자 콘솔에서 실제 도메인 추가
-2. **HTTPS 필수**: 운영 환경에서는 HTTPS 필수
-3. **Redirect URI 업데이트**: 실제 도메인으로 변경
-
-### 4.2 사업자 인증 (권장)
-1. **사업자등록증 업로드**: 카카오 개발자 콘솔에서 사업자 인증
-2. **승인 대기**: 1-3일 소요
-3. **추가 동의항목 설정**: 승인 후 생년월일, 휴대폰번호 등 추가
-
-## ⚠️ 주의사항
-
-### 4.1 개발 단계 제한
-- **일일 사용자 제한**: 100명
-- **제한된 동의항목**: 기본 정보만 수집 가능
-- **테스트 목적**: 실제 서비스에는 사업자 인증 필요
-
-### 4.2 보안 고려사항
-- **JavaScript 키 노출**: 클라이언트 사이드에서 노출되므로 도메인 제한 필수
-- **HTTPS 필수**: 운영 환경에서는 반드시 HTTPS 사용
-- **도메인 제한**: 허용된 도메인에서만 사용 가능
-
-### 4.3 사용자 경험
-- **카카오톡 설치 필수**: 사용자에게 카카오톡 설치 필요
-- **추가 정보 입력**: 카카오에서 제공하지 않는 정보는 별도 입력 요청
-- **로그인 실패 대응**: 일반 로그인으로 대체 가능하도록 구현
-
-## 🔍 문제 해결
-
-### 자주 발생하는 문제
-
-#### 1. CSP (Content Security Policy) 오류
-```
-Refused to load the script 'https://t1.kakaocdn.net/kakao_js_sdk/v1/kakao.js'
-```
-**해결**: 동적 스크립트 로딩 방식으로 변경 (이미 구현됨)
-
-#### 2. 도메인 불일치 오류
-```
-Invalid redirect URI
-```
-**해결**: 카카오 개발자 콘솔에서 정확한 도메인 등록
-
-#### 3. 동의항목 권한 오류
-```
-권한이 없습니다
-```
-**해결**: 사업자 인증 진행 또는 제한된 동의항목만 사용
-
-#### 4. 카카오 SDK 로딩 실패
-```
-Kakao is not defined
-```
-**해결**: 네트워크 연결 확인 및 fallback 메커니즘 활용
-
-## 📊 5단계: 모니터링 및 최적화
-
-### 5.1 사용 통계
-- **로그인 성공률**: 목표 95% 이상
-- **사용자 만족도**: 추가 정보 입력 완료율
-- **오류 발생률**: 카카오 로그인 실패율
-
-### 5.2 성능 최적화
-- **SDK 로딩 시간**: 3초 이내
-- **로그인 응답 시간**: 5초 이내
-- **사용자 경험**: 원활한 로그인 플로우
-
-## 📞 지원
-
-- **카카오 개발자 고객센터**: https://developers.kakao.com/support
-- **카카오 로그인 문서**: https://developers.kakao.com/docs/latest/ko/kakaologin/common
-- **카카오 개발자 포럼**: https://devtalk.kakao.com/
-
----
-
-## ✅ 완료 체크리스트
-
-### 개발 단계:
-- [ ] 카카오 개발자 계정 생성
-- [ ] 애플리케이션 생성 및 설정
-- [ ] JavaScript 키 발급
-- [ ] 플랫폼 설정 (웹)
-- [ ] 카카오 로그인 활성화
-- [ ] Redirect URI 설정
-- [ ] 동의항목 설정 (기본)
-- [ ] 코드 업데이트 (JavaScript 키)
-- [ ] 로컬 테스트 성공
-- [ ] 콘솔 로그 확인
-
-### 운영 단계:
-- [ ] 실제 도메인 등록
-- [ ] HTTPS 설정
-- [ ] 사업자 인증 (권장)
-- [ ] 추가 동의항목 설정
-- [ ] 운영 환경 테스트
-- [ ] 모니터링 설정
-- [ ] 사용자 피드백 수집
-
-**🎯 목표**: 안정적이고 사용자 친화적인 카카오 로그인 구현
-**⏰ 예상 소요 시간**: 2-3시간 (개발 단계)
-**💰 예상 비용**: 무료 (사업자 인증 시 별도 비용 없음)
+이 가이드를 따라하면 카카오톡 간편가입 기능을 완벽하게 연동할 수 있습니다!

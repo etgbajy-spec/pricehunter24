@@ -44,6 +44,23 @@
   </style>
 </head>
 <body class="bg-gradient-to-br from-pink-50 via-blue-50 to-emerald-50 min-h-screen flex flex-col items-center justify-center py-4 md:py-12">
+  <!-- 로그인 체크 오버레이 -->
+  <div id="login-overlay" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+    <div class="bg-white rounded-2xl p-8 max-w-md mx-4 text-center">
+      <div class="w-16 h-16 bg-pink-100 rounded-full flex items-center justify-center mx-auto mb-4">
+        <svg class="w-8 h-8 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+        </svg>
+      </div>
+      <h3 class="text-xl font-bold text-gray-800 mb-2">로그인이 필요합니다</h3>
+      <p class="text-gray-600 mb-6">1:1 문의를 이용하려면 먼저 로그인해 주세요.</p>
+      <div class="flex gap-3">
+        <button onclick="goToLogin()" class="flex-1 bg-pink-500 text-white py-2 px-4 rounded-lg font-semibold hover:bg-pink-600 transition">로그인</button>
+        <button onclick="goToRegister()" class="flex-1 bg-gray-500 text-white py-2 px-4 rounded-lg font-semibold hover:bg-gray-600 transition">회원가입</button>
+      </div>
+    </div>
+  </div>
+
   <div class="w-full max-w-lg bg-white/90 rounded-2xl shadow-2xl p-4 md:p-8 lg:p-10 backdrop-blur-md">
     <h2 class="text-2xl sm:text-3xl md:text-4xl font-bold text-pink-700 mb-4 md:mb-6 text-center">1:1 문의하기</h2>
     <form class="space-y-6" id="contact-form">
@@ -79,11 +96,33 @@
     </div>
   </div>
   <script>
-    // 로그인 정보 자동 입력
-    const user = JSON.parse(localStorage.getItem('user') || 'null');
-    if (user) {
+    // 페이지 로드 시 로그인 체크
+    document.addEventListener('DOMContentLoaded', function() {
+      checkLoginStatus();
+    });
+
+    // 로그인 상태 확인
+    function checkLoginStatus() {
+      const user = JSON.parse(localStorage.getItem('user') || 'null');
+      if (!user) {
+        document.getElementById('login-overlay').classList.remove('hidden');
+        return;
+      }
+      
+      // 로그인된 경우 폼 표시
+      document.getElementById('login-overlay').classList.add('hidden');
       document.getElementById('contact-name').value = user.name || '';
       document.getElementById('contact-email').value = user.email || '';
+    }
+
+    // 로그인 페이지로 이동
+    function goToLogin() {
+      window.location.href = 'index.html#login';
+    }
+
+    // 회원가입 페이지로 이동
+    function goToRegister() {
+      window.location.href = 'index.html#register';
     }
     // 파일 미리보기
     const fileInput = document.getElementById('contact-file');

@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>회원가입 - PriceHunter</title>
+  
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-N7R437NT77"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-N7R437NT77');
+  </script>
+  
+  <!-- 개발용: cdn.tailwindcss.com, 프로덕션용: 로컬 파일로 변경 권장 -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- 카카오 SDK 추가 -->
+  <script src="https://developers.kakao.com/sdk/js/kakao.js"></script>
+  
+  <style>
+    /* 텍스트 선택 허용 (드래그 가능) */
+    body {
+      -webkit-user-select: text;
+      -moz-user-select: text;
+      -ms-user-select: text;
+      user-select: text;
+    }
+    
+    /* 버튼과 링크, 입력 필드는 텍스트 선택 허용 */
+    button, a, input, textarea, select {
+      -webkit-user-select: text;
+      -moz-user-select: text;
+      -ms-user-select: text;
+      user-select: text;
+    }
+    
+    /* 커서 깜빡임 방지 */
+    body, div, p, h1, h2, h3, h4, h5, h6, span, label {
+      caret-color: transparent;
+    }
+    
+    /* 입력 요소는 커서 표시 */
+    input, textarea {
+      caret-color: auto;
+    }
+
+    /* 애니메이션 */
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .animate-fade-in-up {
+      animation: fadeInUp 0.6s ease-out;
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-pink-50 via-blue-50 to-emerald-50 min-h-screen">
+  <!-- 헤더 -->
+  <header class="bg-white/80 backdrop-blur-md border-b border-gray-200 sticky top-0 z-40">
+    <div class="max-w-6xl mx-auto px-4 py-4">
+      <div class="flex items-center justify-between">
+        <a href="index.html" class="flex items-center gap-3 group">
+          <svg class="w-8 h-8 text-blue-600 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <rect x="4" y="4" width="16" height="16" rx="4" stroke="currentColor"/>
+            <path d="M8 8h8M8 12h8M8 16h4" stroke-linecap="round"/>
+          </svg>
+          <span class="text-2xl font-bold text-gray-800 group-hover:text-blue-600 transition">PriceHunter</span>
+        </a>
+        <a href="index.html" class="text-gray-600 hover:text-blue-600 transition font-medium">
+          홈으로 돌아가기
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- 메인 콘텐츠 -->
+  <main class="max-w-2xl mx-auto px-4 py-8">
+    <!-- 제목 -->
+    <div class="text-center mb-8 animate-fade-in-up">
+      <h1 class="text-3xl sm:text-4xl font-bold text-gray-800 mb-4">회원가입</h1>
+      <p class="text-gray-600 text-lg">PriceHunter와 함께 최고의 가격을 찾아보세요</p>
+    </div>
+
+    <!-- 가입 방법 선택 -->
+    <div class="bg-white rounded-2xl shadow-xl p-6 mb-8 animate-fade-in-up" style="animation-delay: 0.2s;">
+      <h2 class="text-xl font-bold text-gray-800 mb-6 text-center">가입 방법을 선택해주세요</h2>
+      
+      <!-- 카카오톡 간편가입 -->
+      <div class="mb-6">
+        <button id="kakao-login" class="w-full bg-yellow-400 hover:bg-yellow-500 text-gray-800 font-bold py-4 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 flex items-center justify-center gap-3">
+          <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 3c5.799 0 10.5 3.664 10.5 8.185 0 4.52-4.701 8.184-10.5 8.184a13.5 13.5 0 0 1-1.727-.11l-4.408 2.883c-.501.265-.678.236-.472-.413l.892-3.678c-2.88-1.46-4.785-3.99-4.785-6.866C1.5 6.665 6.201 3 12 3z"/>
+          </svg>
+          카카오톡으로 간편가입
+        </button>
+        <p class="text-sm text-gray-500 text-center mt-2">카카오톡 계정으로 빠르게 가입하세요</p>
+      </div>
+
+      <!-- 구분선 -->
+      <div class="flex items-center mb-6">
+        <div class="flex-1 border-t border-gray-300"></div>
+        <span class="px-4 text-gray-500 text-sm">또는</span>
+        <div class="flex-1 border-t border-gray-300"></div>
+      </div>
+
+      <!-- 일반 회원가입 -->
+      <div>
+        <button id="normal-register" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 flex items-center justify-center gap-3">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+          </svg>
+          일반 회원가입
+        </button>
+        <p class="text-sm text-gray-500 text-center mt-2">이메일과 SMS 인증으로 가입하세요</p>
+      </div>
+    </div>
+
+    <!-- 일반 회원가입 폼 (숨김) -->
+    <div id="register-form" class="bg-white rounded-2xl shadow-xl p-6 hidden animate-fade-in-up">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-xl font-bold text-gray-800">일반 회원가입</h2>
+        <button id="close-form" class="text-gray-400 hover:text-gray-600 transition">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+
+      <form id="signup-form" class="space-y-6">
+        <!-- 이름 -->
+        <div>
+          <label class="block text-gray-700 font-semibold mb-2" for="name">이름 *</label>
+          <input type="text" id="name" name="name" required class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none transition" placeholder="실명을 입력해주세요" />
+        </div>
+
+        <!-- 이메일 -->
+        <div>
+          <label class="block text-gray-700 font-semibold mb-2" for="email">이메일 주소 *</label>
+          <input type="email" id="email" name="email" required class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none transition" placeholder="example@email.com" />
+        </div>
+
+        <!-- 휴대폰 번호 -->
+        <div>
+          <label class="block text-gray-700 font-semibold mb-2" for="phone">휴대폰 번호 *</label>
+          <div class="flex gap-3">
+            <input type="tel" id="phone" name="phone" required class="flex-1 px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none transition" placeholder="01012345678" maxlength="11" />
+            <button type="button" id="send-sms" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition whitespace-nowrap">인증번호 발송</button>
+          </div>
+        </div>
+
+        <!-- SMS 인증번호 -->
+        <div id="sms-verification" class="hidden">
+          <label class="block text-gray-700 font-semibold mb-2" for="sms-code">인증번호 *</label>
+          <div class="flex gap-3">
+            <input type="text" id="sms-code" name="sms-code" class="flex-1 px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none transition" placeholder="6자리 인증번호" maxlength="6" />
+            <button type="button" id="verify-sms" class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-semibold transition whitespace-nowrap">인증확인</button>
+          </div>
+          <div id="sms-timer" class="text-sm text-gray-500 mt-2 hidden">
+            <span id="timer-text">03:00</span> 후 재발송 가능
+          </div>
+        </div>
+
+        <!-- 비밀번호 -->
+        <div>
+          <label class="block text-gray-700 font-semibold mb-2" for="password">비밀번호 *</label>
+          <input type="password" id="password" name="password" required class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none transition" placeholder="8자 이상, 영문/숫자/특수문자 조합" />
+          <div class="text-sm text-gray-500 mt-1">영문, 숫자, 특수문자를 포함하여 8자 이상</div>
+        </div>
+
+        <!-- 비밀번호 확인 -->
+        <div>
+          <label class="block text-gray-700 font-semibold mb-2" for="password-confirm">비밀번호 확인 *</label>
+          <input type="password" id="password-confirm" name="password-confirm" required class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none transition" placeholder="비밀번호를 한 번 더 입력해주세요" />
+        </div>
+
+        <!-- 약관 동의 -->
+        <div class="space-y-4">
+          <h3 class="text-lg font-semibold text-gray-800">약관 동의</h3>
+          
+          <!-- 전체 동의 -->
+          <div class="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
+            <input type="checkbox" id="agree-all" class="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500" />
+            <label for="agree-all" class="text-lg font-semibold text-gray-800">모든 약관에 동의합니다</label>
+          </div>
+
+          <!-- 개별 약관 -->
+          <div class="space-y-3">
+            <div class="flex items-center gap-3">
+              <input type="checkbox" id="agree-terms" class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" required />
+              <label for="agree-terms" class="text-gray-700">이용약관 동의 (필수)</label>
+              <button type="button" onclick="openTermsModal()" class="text-blue-600 hover:text-blue-800 text-sm underline">보기</button>
+            </div>
+            
+            <div class="flex items-center gap-3">
+              <input type="checkbox" id="agree-privacy" class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" required />
+              <label for="agree-privacy" class="text-gray-700">개인정보처리방침 동의 (필수)</label>
+              <button type="button" onclick="openPrivacyModal()" class="text-blue-600 hover:text-blue-800 text-sm underline">보기</button>
+            </div>
+            
+            <div class="flex items-center gap-3">
+              <input type="checkbox" id="agree-marketing" class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" />
+              <label for="agree-marketing" class="text-gray-700">마케팅 정보 수신 동의 (선택)</label>
+            </div>
+          </div>
+        </div>
+
+        <!-- 가입 버튼 -->
+        <button type="submit" id="signup-button" disabled class="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold py-4 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 disabled:transform-none">
+          회원가입 완료
+        </button>
+      </form>
+    </div>
+
+    <!-- 로그인 링크 -->
+    <div class="text-center mt-8 animate-fade-in-up" style="animation-delay: 0.4s;">
+      <p class="text-gray-600">
+        이미 계정이 있으신가요? 
+        <a href="index.html#login" class="text-blue-600 hover:text-blue-800 font-semibold underline">로그인하기</a>
+      </p>
+    </div>
+  </main>
+
+  <!-- 약관 모달들 -->
+  <!-- 이용약관 모달 -->
+  <div id="terms-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden">
+    <div class="min-h-screen flex items-center justify-center p-4">
+      <div class="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        <div class="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+          <h2 class="text-2xl font-bold text-gray-800">이용약관</h2>
+          <button onclick="closeTermsModal()" class="text-gray-400 hover:text-gray-600 transition">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+        <div class="px-6 py-6 text-gray-700 leading-relaxed">
+          <div class="space-y-6">
+            <section>
+              <h3 class="text-lg font-semibold text-gray-800 mb-3">제1조 (목적)</h3>
+              <p>이 약관은 PriceHunter(이하 "회사")가 제공하는 최저가 검증 서비스(이하 "서비스")의 이용과 관련하여 회사와 회원 간의 권리, 의무 및 책임사항, 기타 필요한 사항을 규정함을 목적으로 합니다.</p>
+            </section>
+
+            <section>
+              <h3 class="text-lg font-semibold text-gray-800 mb-3">제2조 (정의)</h3>
+              <div class="space-y-3">
+                <div>
+                  <h4 class="font-medium text-gray-800">1. "서비스"란</h4>
+                  <p class="text-sm">회사가 제공하는 최저가 검증 및 가격 비교 중개 서비스를 의미합니다.</p>
+                </div>
+                <div>
+                  <h4 class="font-medium text-gray-800">2. "회원"이란</h4>
+                  <p class="text-sm">회사와 서비스 이용계약을 체결하고 회사가 제공하는 서비스를 이용하는 고객을 의미합니다.</p>
+                </div>
+                <div>
+                  <h4 class="font-medium text-gray-800">3. "의뢰"란</h4>
+                  <p class="text-sm">회원이 회사에 특정 상품의 최저가 검증을 요청하는 행위를 의미합니다.</p>
+                </div>
+              </div>
+            </section>
+
+            <section>
+              <h3 class="text-lg font-semibold text-gray-800 mb-3">제3조 (약관의 효력 및 변경)</h3>
+              <div class="space-y-3">
+                <p>1. 이 약관은 서비스 화면에 게시하거나 기타의 방법으로 회원에게 공지함으로써 효력이 발생합니다.</p>
+                <p>2. 회사는 필요한 경우 관련법령을 위배하지 않는 범위에서 이 약관을 변경할 수 있습니다.</p>
+                <p>3. 약관이 변경되는 경우, 변경사항의 시행일자 7일 전부터 공지사항을 통해 공지합니다.</p>
+              </div>
+            </section>
+
+            <section>
+              <h3 class="text-lg font-semibold text-gray-800 mb-3">제4조 (서비스의 제공)</h3>
+              <div class="space-y-3">
+                <p>1. 회사는 다음과 같은 서비스를 제공합니다:</p>
+                <ul class="list-disc list-inside ml-4 space-y-1">
+                  <li>최저가 검증 및 가격 비교 서비스</li>
+                  <li>구매 링크 제공</li>
+                  <li>절약 금액 계산</li>
+                  <li>상품 정보 및 후기 제공</li>
+                </ul>
+                <p>2. 서비스는 연중무휴, 1일 24시간 제공함을 원칙으로 합니다.</p>
+              </div>
+            </section>
+
+            <section>
+              <h3 class="text-lg font-semibold text-gray-800 mb-3">제5조 (서비스 이용)</h3>
+              <div class="space-y-3">
+                <p>1. 서비스 이용을 위해서는 회원가입이 필요합니다.</p>
+                <p>2. 회원은 본인인증을 통해 신원을 확인해야 합니다.</p>
+                <p>3. 의뢰 시에는 상품명, 요청가격, 상세설명 등을 정확히 입력해야 합니다.</p>
+                <p>4. 회사는 의뢰 접수 후 검증 과정을 거쳐 결과를 제공합니다.</p>
+              </div>
+            </section>
+
+            <section>
+              <h3 class="text-lg font-semibold text-gray-800 mb-3">제6조 (회원의 의무)</h3>
+              <div class="space-y-3">
+                <p>1. 회원은 다음 행위를 하여서는 안 됩니다:</p>
+                <ul class="list-disc list-inside ml-4 space-y-1">
+                  <li>허위 정보 제공</li>
+                  <li>타인의 권리 침해</li>
+                  <li>서비스의 정상적인 운영 방해</li>
+                  <li>불법적인 목적으로 서비스 이용</li>
+                </ul>
+                <p>2. 회원은 관계법령, 이 약관의 규정, 이용안내 및 서비스상에 공지한 주의사항을 준수해야 합니다.</p>
+              </div>
+            </section>
+
+            <section>
+              <h3 class="text-lg font-semibold text-gray-800 mb-3">제7조 (회사의 의무)</h3>
+              <div class="space-y-3">
+                <p>1. 회사는 안정적이고 지속적인 서비스 제공을 위해 최선을 다합니다.</p>
+                <p>2. 회사는 회원의 개인정보를 보호하기 위해 보안 시스템을 구축하고 개인정보처리방침을 공시하고 준수합니다.</p>
+                <p>3. 회사는 서비스 이용과 관련하여 회원으로부터 제기된 의견이나 불만이 정당하다고 객관적으로 인정될 경우에는 적절한 절차를 거쳐 즉시 처리하여야 합니다.</p>
+              </div>
+            </section>
+
+            <section>
+              <h3 class="text-lg font-semibold text-gray-800 mb-3">제8조 (책임제한)</h3>
+              <div class="space-y-3">
+                <p>1. 회사는 천재지변 또는 이에 준하는 불가항력으로 인하여 서비스를 제공할 수 없는 경우에는 서비스 제공에 관한 책임이 면제됩니다.</p>
+                <p>2. 회사는 회원의 귀책사유로 인한 서비스 이용의 장애에 대하여는 책임을 지지 않습니다.</p>
+                <p>3. 회사는 회원이 서비스를 이용하여 기대하는 수익을 상실한 것에 대하여 책임을 지지 않습니다.</p>
+              </div>
+            </section>
+
+            <section>
+              <h3 class="text-lg font-semibold text-gray-800 mb-3">제9조 (분쟁해결)</h3>
+              <p>1. 회사는 이용자가 제기하는 정당한 의견이나 불만을 반영하고 그 피해를 보상처리하기 위하여 피해보상처리기구를 설치·운영합니다.</p>
+              <p>2. 회사와 이용자 간에 발생한 전자상거래 분쟁에 관하여는 소비자분쟁조정위원회의 조정에 따를 수 있습니다.</p>
+            </section>
+
+            <section>
+              <h3 class="text-lg font-semibold text-gray-800 mb-3">제10조 (재판권 및 준거법)</h3>
+              <p>1. 회사와 이용자 간에 발생한 분쟁에 관하여는 대한민국 법원에 소송을 제기할 수 있습니다.</p>
+              <p>2. 회사와 이용자 간에 제기된 소송에는 대한민국 법을 적용합니다.</p>
+              <p class="mt-3 text-sm text-gray-600">시행일: 2024년 1월 1일</p>
+            </section>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 개인정보처리방침 모달 -->
+  <div id="privacy-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden">
+    <div class="min-h-screen flex items-center justify-center p-4">
+      <div class="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        <div class="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+          <h2 class="text-2xl font-bold text-gray-800">개인정보처리방침</h2>
+          <button onclick="closePrivacyModal()" class="text-gray-400 hover:text-gray-600 transition">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+        <div class="px-6 py-6 text-gray-700 leading-relaxed">
+          <div class="space-y-6">
+            <section>
+              <h3 class="text-lg font-semibold text-gray-800 mb-3">1. 개인정보의 처리 목적</h3>
+              <p class="mb-3">PriceHunter는 다음의 목적을 위하여 개인정보를 처리하고 있으며, 이와 관련하여 개인정보보호법 제15조 및 제17조에 따라 안전하게 보호하고 있습니다.</p>
+              <ul class="list-disc list-inside space-y-2 ml-4">
+                <li>서비스 제공 및 계정 관리</li>
+                <li>고객 문의 및 상담 응대</li>
+                <li>서비스 개선 및 신규 서비스 개발</li>
+                <li>마케팅 및 광고 활용 (사전 동의 시)</li>
+              </ul>
+            </section>
+
+            <section>
+              <h3 class="text-lg font-semibold text-gray-800 mb-3">2. 수집하는 개인정보 항목</h3>
+              <div class="space-y-3">
+                <div>
+                  <h4 class="font-medium text-gray-800">필수 항목</h4>
+                  <ul class="list-disc list-inside ml-4 text-sm">
+                    <li>이름, 이메일 주소, 휴대폰 번호</li>
+                    <li>본인인증 정보 (SMS 인증 또는 카카오톡 인증)</li>
+                  </ul>
+                </div>
+                <div>
+                  <h4 class="font-medium text-gray-800">선택 항목</h4>
+                  <ul class="list-disc list-inside ml-4 text-sm">
+                    <li>프로필 이미지, 추가 연락처</li>
+                    <li>서비스 이용 기록 및 선호도</li>
+                    <li>마케팅 정보 수신 동의 여부</li>
+                  </ul>
+                </div>
+              </div>
+            </section>
+
+            <section>
+              <h3 class="text-lg font-semibold text-gray-800 mb-3">3. 개인정보의 보유 및 이용기간</h3>
+              <p class="mb-3">회원 탈퇴 시까지 (단, 관계법령에 따라 보존이 필요한 경우 해당 기간까지)</p>
+              <ul class="list-disc list-inside space-y-2 ml-4">
+                <li>계약 또는 청약철회 등에 관한 기록: 5년</li>
+                <li>대금결제 및 재화 등의 공급에 관한 기록: 5년</li>
+                <li>소비자의 불만 또는 분쟁처리에 관한 기록: 3년</li>
+              </ul>
+            </section>
+
+            <section>
+              <h3 class="text-lg font-semibold text-gray-800 mb-3">4. 개인정보의 제3자 제공</h3>
+              <p class="mb-3">PriceHunter는 원칙적으로 개인정보를 제3자에게 제공하지 않습니다. 다만, 다음의 경우에는 예외로 합니다.</p>
+              <ul class="list-disc list-inside space-y-2 ml-4">
+                <li>사전에 개인정보 처리방침에 공개한 경우</li>
+                <li>관계법령의 규정에 의거하거나, 수사 목적으로 법령에 정해진 절차와 방법에 따라 수사기관의 요구가 있는 경우</li>
+                <li>개인정보주체의 사전 동의가 있는 경우</li>
+              </ul>
+            </section>
+
+            <section>
+              <h3 class="text-lg font-semibold text-gray-800 mb-3">5. 개인정보의 파기</h3>
+              <p class="mb-3">개인정보 보유기간의 경과, 처리목적 달성 등 개인정보가 불필요하게 되었을 때에는 지체없이 해당 개인정보를 파기합니다.</p>
+              <div class="space-y-3">
+                <div>
+                  <h4 class="font-medium text-gray-800">전자적 파일 형태</h4>
+                  <p class="text-sm">복구 및 재생이 불가능한 방법으로 영구 삭제</p>
+                </div>
+                <div>
+                  <h4 class="font-medium text-gray-800">종이에 출력된 개인정보</h4>
+                  <p class="text-sm">분쇄기로 분쇄하거나 소각</p>
+                </div>
+              </div>
+            </section>
+
+            <section>
+              <h3 class="text-lg font-semibold text-gray-800 mb-3">6. 개인정보 보호책임자</h3>
+              <div class="bg-gray-50 p-4 rounded-lg">
+                <p class="mb-2"><strong>이름:</strong> 허진영 (개인정보보호책임자)</p>
+                <p class="mb-2"><strong>연락처:</strong> support@pricehunter.co.kr</p>
+                <p><strong>주소:</strong> 서울특별시 강남구 테헤란로 123, 456호</p>
+              </div>
+            </section>
+
+            <section>
+              <h3 class="text-lg font-semibold text-gray-800 mb-3">7. 개인정보 처리방침 변경</h3>
+              <p>이 개인정보처리방침은 시행일로부터 적용되며, 법령 및 방침에 따른 변경내용의 추가, 삭제 및 정정이 있는 경우에는 변경사항의 시행 7일 전부터 공지사항을 통하여 고지할 것입니다.</p>
+              <p class="mt-3 text-sm text-gray-600">시행일: 2024년 1월 1일</p>
+            </section>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 성공 메시지 -->
+  <div id="success-message" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl p-8 max-w-md mx-4 text-center">
+      <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+        <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+        </svg>
+      </div>
+      <h3 class="text-xl font-bold text-gray-800 mb-2">회원가입 완료!</h3>
+      <p class="text-gray-600 mb-6">PriceHunter 회원이 되신 것을 환영합니다!</p>
+      <a href="index.html#login" class="inline-block bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 transition">로그인하기</a>
+    </div>
+  </div>
+
+  <script>
+    // 카카오 SDK 초기화
+    Kakao.init('6917a034b74fafd0ac80ab855af5ed6d');
+    
+    // 페이지 로드 시 애니메이션
+    document.addEventListener('DOMContentLoaded', function() {
+      // 약관 체크박스 연동
+      const agreeAll = document.getElementById('agree-all');
+      const agreeTerms = document.getElementById('agree-terms');
+      const agreePrivacy = document.getElementById('agree-privacy');
+      const agreeMarketing = document.getElementById('agree-marketing');
+      const signupButton = document.getElementById('signup-button');
+
+      // 전체 동의 체크박스
+      agreeAll.addEventListener('change', function() {
+        agreeTerms.checked = this.checked;
+        agreePrivacy.checked = this.checked;
+        agreeMarketing.checked = this.checked;
+        updateSignupButton();
+      });
+
+      // 개별 체크박스
+      [agreeTerms, agreePrivacy, agreeMarketing].forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+          if (!this.checked) {
+            agreeAll.checked = false;
+          } else if (agreeTerms.checked && agreePrivacy.checked) {
+            agreeAll.checked = true;
+          }
+          updateSignupButton();
+        });
+      });
+
+      // 가입 버튼 상태 업데이트
+      function updateSignupButton() {
+        const isRequiredChecked = agreeTerms.checked && agreePrivacy.checked;
+        signupButton.disabled = !isRequiredChecked;
+      }
+
+      // 일반 회원가입 폼 표시
+      document.getElementById('normal-register').addEventListener('click', function() {
+        document.getElementById('register-form').classList.remove('hidden');
+        this.scrollIntoView({ behavior: 'smooth' });
+      });
+
+      // 폼 닫기
+      document.getElementById('close-form').addEventListener('click', function() {
+        document.getElementById('register-form').classList.add('hidden');
+      });
+
+      // SMS 인증번호 발송
+      document.getElementById('send-sms').addEventListener('click', function() {
+        const phone = document.getElementById('phone').value.trim();
+        if (!phone) {
+          alert('휴대폰 번호를 입력해주세요.');
+          return;
+        }
+        if (phone.length !== 11) {
+          alert('올바른 휴대폰 번호를 입력해주세요.');
+          return;
+        }
+
+        // SMS 발송 시뮬레이션
+        this.disabled = true;
+        this.textContent = '발송중...';
+        
+        setTimeout(() => {
+          this.textContent = '재발송';
+          this.disabled = false;
+          document.getElementById('sms-verification').classList.remove('hidden');
+          startTimer();
+          alert('인증번호가 발송되었습니다. (테스트용: 123456)');
+        }, 2000);
+      });
+
+      // SMS 인증번호 확인
+      document.getElementById('verify-sms').addEventListener('click', function() {
+        const code = document.getElementById('sms-code').value.trim();
+        if (code === '123456') { // 테스트용
+          this.textContent = '인증완료';
+          this.disabled = true;
+          this.classList.remove('bg-green-600', 'hover:bg-green-700');
+          this.classList.add('bg-gray-500');
+          document.getElementById('sms-code').disabled = true;
+          document.getElementById('sms-timer').classList.add('hidden');
+          alert('인증이 완료되었습니다.');
+        } else {
+          alert('올바른 인증번호를 입력해주세요.');
+        }
+      });
+
+      // 타이머 시작
+      function startTimer() {
+        let timeLeft = 180; // 3분
+        const timerText = document.getElementById('timer-text');
+        const timerDiv = document.getElementById('sms-timer');
+        
+        timerDiv.classList.remove('hidden');
+        
+        const timer = setInterval(() => {
+          const minutes = Math.floor(timeLeft / 60);
+          const seconds = timeLeft % 60;
+          timerText.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+          
+          if (timeLeft <= 0) {
+            clearInterval(timer);
+            timerDiv.classList.add('hidden');
+          }
+          timeLeft--;
+        }, 1000);
+      }
+
+      // 카카오톡 로그인 (실제 연동)
+      document.getElementById('kakao-login').addEventListener('click', function() {
+        if (typeof Kakao !== 'undefined') {
+                                // 카카오 로그인 실행 (더 안전한 방식)
+            Kakao.Auth.login({
+              redirectUri: 'http://localhost:8000/register.html',
+             success: function(authObj) {
+               console.log('카카오 로그인 성공:', authObj);
+               
+               // 사용자 정보 요청
+               Kakao.API.request({
+                 url: '/v2/user/me',
+                 success: function(res) {
+                   console.log('사용자 정보:', res);
+                   
+                   const user = {
+                     id: res.id,
+                     name: res.properties.nickname,
+                     email: res.kakao_account.email,
+                     profileImage: res.properties.profile_image,
+                     loginType: 'kakao'
+                   };
+                   
+                   // 회원가입 처리
+                   handleKakaoSignup(user);
+                 },
+                 fail: function(error) {
+                   console.error('사용자 정보 요청 실패:', error);
+                   alert('사용자 정보를 가져오는데 실패했습니다.');
+                 }
+               });
+             },
+                           fail: function(err) {
+                console.error('카카오 로그인 실패:', err);
+                if (err.error === 'KOE006') {
+                  alert('카카오 앱 플랫폼 설정이 필요합니다.\n\n1. Web 플랫폼: http://localhost:8000 추가\n2. Redirect URI: http://localhost:8000/register.html 추가');
+                } else if (err.error === 'KOE009') {
+                  alert('카카오 앱 설정에 문제가 있습니다. 관리자에게 문의해주세요.');
+                } else {
+                  alert('카카오 로그인에 실패했습니다: ' + (err.error_description || err.error));
+                }
+              }
+           });
+        } else {
+          alert('카카오 SDK가 로드되지 않았습니다.');
+        }
+      });
+
+      // 회원가입 폼 제출
+      document.getElementById('signup-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // 폼 검증
+        const name = document.getElementById('name').value.trim();
+        const email = document.getElementById('email').value.trim();
+        const phone = document.getElementById('phone').value.trim();
+        const password = document.getElementById('password').value;
+        const passwordConfirm = document.getElementById('password-confirm').value;
+        
+        if (!name || !email || !phone || !password || !passwordConfirm) {
+          alert('모든 필수 항목을 입력해주세요.');
+          return;
+        }
+        
+        if (password !== passwordConfirm) {
+          alert('비밀번호가 일치하지 않습니다.');
+          return;
+        }
+        
+        if (password.length < 8) {
+          alert('비밀번호는 8자 이상이어야 합니다.');
+          return;
+        }
+        
+        // 회원가입 성공 시뮬레이션
+        const user = {
+          name: name,
+          email: email,
+          phone: phone,
+          password: password,
+          joinDate: new Date().toISOString()
+        };
+        
+        // localStorage에 저장
+        localStorage.setItem('user', JSON.stringify(user));
+        
+        // 성공 메시지 표시
+        document.getElementById('success-message').classList.remove('hidden');
+      });
+      
+      // 카카오 회원가입 처리 함수
+      function handleKakaoSignup(user) {
+        // 기존 회원인지 확인
+        const existingUser = JSON.parse(localStorage.getItem('user') || 'null');
+        
+        if (existingUser && existingUser.id === user.id) {
+          // 기존 회원 로그인
+          localStorage.setItem('user', JSON.stringify(user));
+          localStorage.setItem('loggedIn', 'true');
+          alert('카카오톡으로 로그인되었습니다!');
+          window.location.href = 'index.html';
+        } else {
+          // 신규 회원 가입
+          const newUser = {
+            ...user,
+            joinDate: new Date().toISOString(),
+            points: 50 // 신규 가입 보너스
+          };
+          
+          localStorage.setItem('user', JSON.stringify(newUser));
+          localStorage.setItem('loggedIn', 'true');
+          alert('카카오톡으로 회원가입되었습니다! +50포인트 지급!');
+          window.location.href = 'index.html';
+        }
+      }
+    });
+
+    // 약관 모달 열기/닫기
+    function openTermsModal() {
+      document.getElementById('terms-modal').classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeTermsModal() {
+      document.getElementById('terms-modal').classList.add('hidden');
+      document.body.style.overflow = 'auto';
+    }
+
+    function openPrivacyModal() {
+      document.getElementById('privacy-modal').classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closePrivacyModal() {
+      document.getElementById('privacy-modal').classList.add('hidden');
+      document.body.style.overflow = 'auto';
+    }
+
+    // ESC 키로 모달 닫기
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        closeTermsModal();
+        closePrivacyModal();
+      }
+    });
+
+    // 모달 외부 클릭 시 닫기
+    document.addEventListener('click', function(e) {
+      if (e.target.classList.contains('backdrop-blur-sm')) {
+        closeTermsModal();
+        closePrivacyModal();
+      }
+    });
+  </script>
+</body>
+</html>
