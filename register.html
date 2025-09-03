@@ -59,7 +59,7 @@
      - 카카오 관련 쿠키 삭제
      - 새 시크릿 창에서 테스트
      
-           **🚀 테스트 방법:**
+     **🚀 테스트 방법:**
       - 로컬: 파일을 브라우저에서 직접 열기 (시뮬레이션 모드)
       - 프로덕션: https://pricehunt24.com/register.html 접속 (직접 URL 이동 방식)
       
@@ -67,6 +67,46 @@
       - 카카오 SDK 사용 안함
       - 직접 OAuth 2.0 URL로 이동
       - KOE205 오류 완전 우회
+      
+      **🔧 즉시 해결 방법 (KOE205 오류):**
+      
+      **방법 1: 카카오 개발자 콘솔 설정**
+      1. https://developers.kakao.com/ 접속
+      2. 내 애플리케이션 → PriceHunter 선택
+      3. 앱 설정 → 일반 → 상태: "활성화" 확인
+      4. 플랫폼 → Web → 사이트 도메인: https://pricehunt24.com 추가
+      5. 카카오 로그인 → Redirect URI: https://pricehunt24.com/register.html 추가
+      6. 동의항목 → 필수: profile_nickname, account_email 활성화
+      
+      **방법 2: 임시 해결책 (개발 중)**
+      1. 로컬 환경에서 테스트 (시뮬레이션 모드)
+      2. 카카오 로그인 버튼 클릭 시 자동으로 시뮬레이션 실행
+      3. 프로덕션 배포 전 카카오 설정 완료
+      
+      **방법 3: 대체 로그인 사용**
+      1. 일반 회원가입 폼 사용
+      2. 이메일/비밀번호로 가입
+      3. 카카오 로그인 설정 완료 후 사용
+      
+      **📱 모바일 환경 주의사항:**
+      - 카카오톡 앱이 설치되어 있어야 함
+      - 모바일 브라우저에서도 동일한 오류 발생 가능
+      - 모바일용 카카오 로그인 설정 확인 필요
+      
+      **🌐 CORS 및 보안 설정:**
+      - 카카오 API는 CORS 정책을 지원함
+      - JavaScript 키는 공개되어도 안전함
+      - Admin 키는 절대 클라이언트에 노출 금지
+      
+      **⏰ 오류 발생 시점:**
+      - 페이지 로드 시: 환경 감지 및 설정 확인
+      - 카카오 로그인 버튼 클릭 시: 직접 URL 이동
+      - 인증 코드 처리 시: 토큰 요청 및 사용자 정보 획득
+      
+      **🔄 자동 복구 기능:**
+      - 오류 발생 시 재시도 버튼 자동 표시
+      - 환경별 자동 감지 및 모드 전환
+      - 상세한 오류 메시지 및 해결 방법 안내
    -->
   <script src="https://cdn.tailwindcss.com"></script>
   
@@ -677,19 +717,62 @@
              // 프로덕션 환경에서는 직접 URL 이동 (SDK 사용 안함)
              console.log('프로덕션 환경 감지 - 직접 URL 이동 방식 실행');
              
-             // 직접 카카오 인증 페이지로 이동
-             const authUrl = `https://kauth.kakao.com/oauth/authorize?client_id=6917a034b74fafd0ac80ab855af5ed6d&redirect_uri=${encodeURIComponent('https://pricehunt24.com/register.html')}&response_type=code&scope=profile_nickname,account_email,profile_image`;
-             console.log('카카오 인증 URL:', authUrl);
-             
-             // 3초 후 이동 (사용자에게 안내)
-             const button = document.getElementById('kakao-login');
-             const originalText = button.innerHTML;
-             button.innerHTML = '<svg class="animate-spin w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>카카오 인증 페이지로 이동 중...';
-             button.disabled = true;
-             
-             setTimeout(() => {
-               window.location.href = authUrl;
-             }, 3000);
+             try {
+               // 카카오 인증 URL 생성 (더 안전한 방식)
+               const clientId = '6917a034b74fafd0ac80ab855af5ed6d';
+               const redirectUri = encodeURIComponent('https://pricehunt24.com/register.html');
+               const scope = 'profile_nickname,account_email,profile_image';
+               
+               const authUrl = `https://kauth.kakao.com/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}`;
+               console.log('카카오 인증 URL:', authUrl);
+               
+               // 사용자에게 안내
+               const button = document.getElementById('kakao-login');
+               const originalText = button.innerHTML;
+               button.innerHTML = '<svg class="animate-spin w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>카카오 인증 페이지로 이동 중...';
+               button.disabled = true;
+               
+               // 2초 후 이동 (사용자에게 충분한 안내 시간 제공)
+               setTimeout(() => {
+                 try {
+                   window.location.href = authUrl;
+                 } catch (error) {
+                   console.error('카카오 인증 페이지 이동 실패:', error);
+                   // 오류 발생 시 버튼 복원 및 재시도 옵션 제공
+                   button.innerHTML = '<svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>재시도';
+                   button.disabled = false;
+                   
+                   // 재시도 클릭 시 원래 동작 실행
+                   button.onclick = function() {
+                     this.innerHTML = originalText;
+                     this.onclick = null; // 원래 이벤트 리스너 복원
+                     // 원래 클릭 이벤트 재실행
+                     document.getElementById('kakao-login').click();
+                   };
+                   
+                   alert('카카오 인증 페이지 이동 중 오류가 발생했습니다.\n\n재시도 버튼을 클릭하여 다시 시도해주세요.');
+                 }
+               }, 2000);
+               
+             } catch (error) {
+               console.error('카카오 인증 URL 생성 실패:', error);
+               
+               // 오류 발생 시 버튼 복원 및 재시도 옵션 제공
+               const button = document.getElementById('kakao-login');
+               const originalText = button.innerHTML;
+               button.innerHTML = '<svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>재시도';
+               button.disabled = false;
+               
+               // 재시도 클릭 시 원래 동작 실행
+               button.onclick = function() {
+                 this.innerHTML = originalText;
+                 this.onclick = null; // 원래 이벤트 리스너 복원
+                 // 원래 클릭 이벤트 재실행
+                 document.getElementById('kakao-login').click();
+               };
+               
+               alert('카카오 로그인 설정에 문제가 있습니다.\n\n재시도 버튼을 클릭하여 다시 시도해주세요.\n\n만약 문제가 지속된다면 관리자에게 문의해주세요.');
+             }
            }
          });
         
@@ -735,14 +818,41 @@
              envStatus.textContent = '🔄 로컬 환경 - 카카오 로그인 시뮬레이션 모드';
              envInfo.className = 'mt-3 p-3 bg-yellow-50 rounded-lg text-center';
              envStatus.className = 'text-sm text-yellow-700';
-                       } else if (window.location.hostname === 'pricehunt24.com') {
-              envStatus.textContent = '✅ 프로덕션 환경 - 직접 URL 이동 방식 활성화';
-              envInfo.className = 'mt-3 p-3 bg-green-50 rounded-lg text-center';
-              envStatus.className = 'text-sm text-green-700';
+           } else if (window.location.hostname === 'pricehunt24.com') {
+             envStatus.textContent = '✅ 프로덕션 환경 - 직접 URL 이동 방식 활성화';
+             envInfo.className = 'mt-3 p-3 bg-green-50 rounded-lg text-center';
+             envStatus.className = 'text-sm text-green-700';
+             
+             // 프로덕션 환경에서 카카오 로그인 오류 발생 시 도움말 표시
+             const helpText = document.createElement('div');
+             helpText.className = 'mt-2 text-xs text-gray-600';
+             helpText.innerHTML = `
+               <p>💡 <strong>KOE205 오류 해결 방법:</strong></p>
+               <ol class="text-left mt-1 space-y-1">
+                 <li>1. 카카오 개발자 콘솔 → 앱 상태 "활성화" 확인</li>
+                 <li>2. 플랫폼 → Web → 사이트 도메인: https://pricehunt24.com</li>
+                 <li>3. 카카오 로그인 → Redirect URI: https://pricehunt24.com/register.html</li>
+                 <li>4. 동의항목 → 필수: profile_nickname, account_email</li>
+               </ol>
+             `;
+             envInfo.appendChild(helpText);
            } else {
              envStatus.textContent = '⚠️ 개발 환경 - 카카오 로그인 설정 확인 필요';
              envInfo.className = 'mt-3 p-3 bg-orange-50 rounded-lg text-center';
              envStatus.className = 'text-sm text-orange-700';
+             
+             // 개발 환경에서 카카오 로그인 오류 발생 시 도움말 표시
+             const helpText = document.createElement('div');
+             helpText.className = 'mt-2 text-xs text-gray-600';
+             helpText.innerHTML = `
+               <p>💡 <strong>개발 환경 설정:</strong></p>
+               <ol class="text-left mt-1 space-y-1">
+                 <li>1. 카카오 개발자 콘솔에서 현재 도메인 추가</li>
+                 <li>2. Redirect URI에 현재 페이지 URL 추가</li>
+                 <li>3. 앱 상태가 "활성화"인지 확인</li>
+               </ol>
+             `;
+             envInfo.appendChild(helpText);
            }
          }
 
@@ -794,75 +904,113 @@
          function handleKakaoAuthCode(authCode) {
            console.log('카카오 인가 코드 처리 시작:', authCode);
            
-           // JavaScript 키를 사용하여 액세스 토큰 요청 (REST API 키 대신)
-           const tokenUrl = 'https://kauth.kakao.com/oauth/token';
-           const tokenData = new URLSearchParams({
-             grant_type: 'authorization_code',
-             client_id: '6917a034b74fafd0ac80ab855af5ed6d', // JavaScript 키 사용
-             redirect_uri: 'https://pricehunt24.com/register.html',
-             code: authCode
-           });
+           // 로딩 상태 표시
+           const button = document.getElementById('kakao-login');
+           if (button) {
+             const originalText = button.innerHTML;
+             button.innerHTML = '<svg class="animate-spin w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>카카오 로그인 처리 중...';
+             button.disabled = true;
+           }
            
-           console.log('토큰 요청 데이터:', tokenData.toString());
-           
-           fetch(tokenUrl, {
-             method: 'POST',
-             headers: {
-               'Content-Type': 'application/x-www-form-urlencoded',
-               'Cache-Control': 'no-cache'
-             },
-             body: tokenData
-           })
-           .then(response => {
-             console.log('토큰 응답 상태:', response.status);
-             if (!response.ok) {
-               return response.text().then(text => {
-                 console.error('토큰 응답 텍스트:', text);
-                 throw new Error('액세스 토큰 요청 실패: ' + response.status + ' - ' + text);
-               });
-             }
-             return response.json();
-           })
-           .then(tokenData => {
-             console.log('액세스 토큰 획득 성공:', tokenData);
-             
-             // 액세스 토큰으로 사용자 정보 요청
-             return fetch('https://kapi.kakao.com/v2/user/me', {
-               method: 'GET',
-               headers: {
-                 'Authorization': `Bearer ${tokenData.access_token}`,
-                 'Cache-Control': 'no-cache'
-               }
+           try {
+             // JavaScript 키를 사용하여 액세스 토큰 요청 (REST API 키 대신)
+             const tokenUrl = 'https://kauth.kakao.com/oauth/token';
+             const tokenData = new URLSearchParams({
+               grant_type: 'authorization_code',
+               client_id: '6917a034b74fafd0ac80ab855af5ed6d', // JavaScript 키 사용
+               redirect_uri: 'https://pricehunt24.com/register.html',
+               code: authCode
              });
-           })
-           .then(response => {
-             console.log('사용자 정보 응답 상태:', response.status);
-             if (!response.ok) {
-               return response.text().then(text => {
-                 console.error('사용자 정보 응답 텍스트:', text);
-                 throw new Error('사용자 정보 요청 실패: ' + response.status + ' - ' + text);
+             
+             console.log('토큰 요청 데이터:', tokenData.toString());
+             
+             fetch(tokenUrl, {
+               method: 'POST',
+               headers: {
+                 'Content-Type': 'application/x-www-form-urlencoded',
+                 'Cache-Control': 'no-cache'
+               },
+               body: tokenData
+             })
+             .then(response => {
+               console.log('토큰 응답 상태:', response.status);
+               if (!response.ok) {
+                 return response.text().then(text => {
+                   console.error('토큰 응답 텍스트:', text);
+                   throw new Error('액세스 토큰 요청 실패: ' + response.status + ' - ' + text);
+                 });
+               }
+               return response.json();
+             })
+             .then(tokenData => {
+               console.log('액세스 토큰 획득 성공:', tokenData);
+               
+               // 액세스 토큰으로 사용자 정보 요청
+               return fetch('https://kapi.kakao.com/v2/user/me', {
+                 method: 'GET',
+                 headers: {
+                   'Authorization': `Bearer ${tokenData.access_token}`,
+                   'Cache-Control': 'no-cache'
+                 }
                });
+             })
+             .then(response => {
+               console.log('사용자 정보 응답 상태:', response.status);
+               if (!response.ok) {
+                 return response.text().then(text => {
+                   console.error('사용자 정보 응답 텍스트:', text);
+                   throw new Error('사용자 정보 요청 실패: ' + response.status + ' - ' + text);
+                 });
+               }
+               return response.json();
+             })
+             .then(userData => {
+               console.log('카카오 사용자 정보 성공:', userData);
+               
+               const user = {
+                 id: userData.id,
+                 name: userData.properties?.nickname || '카카오 사용자',
+                 email: userData.kakao_account?.email || 'kakao@user.com',
+                 profileImage: userData.properties?.profile_image || '',
+                 loginType: 'kakao'
+               };
+               
+               // 회원가입 처리
+               handleKakaoSignup(user);
+             })
+             .catch(error => {
+               console.error('카카오 인가 코드 처리 실패:', error);
+               
+               // 버튼 복원
+               if (button) {
+                 button.innerHTML = originalText;
+                 button.disabled = false;
+               }
+               
+               // 오류 메시지 표시
+               let errorMessage = '카카오 로그인 처리 중 오류가 발생했습니다.';
+               
+               if (error.message.includes('KOE205')) {
+                 errorMessage = '카카오 서비스 설정에 문제가 있습니다.\n\n해결 방법:\n1. 카카오 개발자 콘솔에서 앱 상태 확인\n2. 플랫폼 설정에서 도메인 확인\n3. Redirect URI 설정 확인\n4. 앱 키 확인';
+               } else if (error.message.includes('400')) {
+                 errorMessage = '잘못된 요청입니다.\n\n가능한 원인:\n1. 잘못된 client_id\n2. 잘못된 redirect_uri\n3. 만료된 인가 코드';
+               } else if (error.message.includes('401')) {
+                 errorMessage = '인증에 실패했습니다.\n\n가능한 원인:\n1. 잘못된 앱 키\n2. 앱이 비활성화 상태';
+               }
+               
+               alert(errorMessage + '\n\n' + error.message);
+             });
+           } catch (error) {
+             console.error('카카오 인가 코드 처리 초기화 실패:', error);
+             
+             // 버튼 복원
+             if (button) {
+               button.innerHTML = originalText;
+               button.disabled = false;
              }
-             return response.json();
-           })
-           .then(userData => {
-             console.log('카카오 사용자 정보 성공:', userData);
              
-             const user = {
-               id: userData.id,
-               name: userData.properties?.nickname || '카카오 사용자',
-               email: userData.kakao_account?.email || 'kakao@user.com',
-               profileImage: userData.properties?.profile_image || '',
-               loginType: 'kakao'
-             };
-             
-             // 회원가입 처리
-             handleKakaoSignup(user);
-           })
-           .catch(error => {
-             console.error('카카오 인가 코드 처리 실패:', error);
-             alert('카카오 로그인 처리 중 오류가 발생했습니다:\n\n' + error.message + '\n\n카카오 개발자 콘솔 설정을 확인해주세요.');
-           });
+             alert('카카오 로그인 초기화 중 오류가 발생했습니다:\n\n' + error.message);
+           }
          }
        
                // 카카오 회원가입 처리 함수
