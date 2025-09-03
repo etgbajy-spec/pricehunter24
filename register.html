@@ -89,19 +89,25 @@
            <p class="text-sm text-blue-700">
              <span id="env-status">환경 확인 중...</span>
            </p>
-           <!-- 카카오 개발자 콘솔 설정 안내 -->
-           <div id="kakao-setup-guide" class="mt-3 p-3 bg-yellow-50 rounded-lg text-left text-xs text-yellow-800 hidden">
-             <h4 class="font-semibold mb-2">🔧 카카오 개발자 콘솔 설정 확인</h4>
-             <div class="space-y-1">
-               <p><strong>1. 플랫폼 설정:</strong> Web 플랫폼 추가</p>
-               <p><strong>2. 사이트 도메인:</strong> pricehunt24.com</p>
-               <p><strong>3. Redirect URI:</strong> https://pricehunt24.com/register.html</p>
-               <p><strong>4. 동의항목:</strong> 프로필 정보, 이메일 필수</p>
-             </div>
-             <button onclick="showDetailedKakaoSetup()" class="mt-2 text-blue-600 hover:text-blue-800 underline text-xs">
-               자세한 설정 방법 보기
-             </button>
-           </div>
+                       <!-- 카카오 개발자 콘솔 설정 안내 -->
+            <div id="kakao-setup-guide" class="mt-3 p-3 bg-yellow-50 rounded-lg text-left text-xs text-yellow-800 hidden">
+              <h4 class="font-semibold mb-2">🔧 카카오 개발자 콘솔 설정 확인</h4>
+              <div class="space-y-1">
+                <p><strong>1. 플랫폼 설정:</strong> Web 플랫폼 추가</p>
+                <p><strong>2. 사이트 도메인:</strong> pricehunt24.com</p>
+                <p><strong>3. Redirect URI:</strong> https://pricehunt24.com/register.html</p>
+                <p><strong>4. 동의항목:</strong> 프로필 정보, 이메일 필수</p>
+              </div>
+              <div class="mt-2 p-2 bg-red-50 rounded text-red-700 text-xs">
+                <strong>🚨 400 오류 발생 시 즉시 확인:</strong>
+                <p>• 앱 상태가 "활성화"인지 확인</p>
+                <p>• JavaScript 키가 정확한지 확인</p>
+                <p>• 도메인 제한 설정 확인</p>
+              </div>
+              <button onclick="showDetailedKakaoSetup()" class="mt-2 text-blue-600 hover:text-blue-800 underline text-xs">
+                자세한 설정 방법 보기
+              </button>
+            </div>
          </div>
       </div>
 
@@ -680,16 +686,32 @@
           console.warn('카카오 개발자 콘솔에 등록된 값과 정확히 일치해야 합니다.');
         }
         
+        // OAuth 파라미터 단순화 (400 오류 해결)
         const authParams = new URLSearchParams({
           client_id: KAKAO_CONFIG.clientId,
           redirect_uri: KAKAO_CONFIG.redirectUri,
           response_type: 'code',
-          scope: KAKAO_CONFIG.scope,
-          state: Date.now().toString()
+          scope: 'profile_nickname,account_email',
+          state: 'kakao_login'
         });
         
         const authUrl = 'https://kauth.kakao.com/oauth/authorize?' + authParams.toString();
         console.log('카카오 인증 URL:', authUrl);
+        
+        // OAuth 파라미터 상세 검증
+        console.log('🔍 OAuth 파라미터 검증:');
+        console.log('- client_id:', KAKAO_CONFIG.clientId);
+        console.log('- redirect_uri:', KAKAO_CONFIG.redirectUri);
+        console.log('- response_type: code');
+        console.log('- scope: profile_nickname,account_email');
+        console.log('- state: kakao_login');
+        
+        // 카카오 개발자 콘솔 설정 확인 안내
+        console.log('⚠️ 400 오류 발생 시 확인사항:');
+        console.log('1. 카카오 개발자 콘솔에서 앱이 활성화 상태인지 확인');
+        console.log('2. JavaScript 키가 정확한지 확인');
+        console.log('3. 플랫폼 설정에서 도메인이 허용되었는지 확인');
+        console.log('4. Redirect URI가 정확히 등록되었는지 확인');
         
         // 카카오 인증 페이지로 이동
         window.location.href = authUrl;
