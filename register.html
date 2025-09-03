@@ -239,20 +239,20 @@
         <!-- 이름 -->
         <div>
           <label class="block text-gray-700 font-semibold mb-2" for="name">이름 *</label>
-          <input type="text" id="name" name="name" required class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none transition" placeholder="실명을 입력해주세요" />
+          <input type="text" id="name" name="name" required autocomplete="name" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none transition" placeholder="실명을 입력해주세요" />
         </div>
 
         <!-- 이메일 -->
         <div>
           <label class="block text-gray-700 font-semibold mb-2" for="email">이메일 주소 *</label>
-          <input type="email" id="email" name="email" required class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none transition" placeholder="example@email.com" />
+          <input type="email" id="email" name="email" required autocomplete="email" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none transition" placeholder="example@email.com" />
         </div>
 
         <!-- 휴대폰 번호 -->
         <div>
           <label class="block text-gray-700 font-semibold mb-2" for="phone">휴대폰 번호 *</label>
           <div class="flex gap-3">
-            <input type="tel" id="phone" name="phone" required class="flex-1 px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none transition" placeholder="01012345678" maxlength="11" />
+            <input type="tel" id="phone" name="phone" required autocomplete="tel" class="flex-1 px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none transition" placeholder="01012345678" maxlength="11" />
             <button type="button" id="send-sms" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition whitespace-nowrap">인증번호 발송</button>
           </div>
         </div>
@@ -261,7 +261,7 @@
         <div id="sms-verification" class="hidden">
           <label class="block text-gray-700 font-semibold mb-2" for="sms-code">인증번호 *</label>
           <div class="flex gap-3">
-            <input type="text" id="sms-code" name="sms-code" class="flex-1 px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none transition" placeholder="6자리 인증번호" maxlength="6" />
+            <input type="text" id="sms-code" name="sms-code" autocomplete="one-time-code" class="flex-1 px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none transition" placeholder="6자리 인증번호" maxlength="6" />
             <button type="button" id="verify-sms" class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-semibold transition whitespace-nowrap">인증확인</button>
           </div>
           <div id="sms-timer" class="text-sm text-gray-500 mt-2 hidden">
@@ -272,14 +272,14 @@
         <!-- 비밀번호 -->
         <div>
           <label class="block text-gray-700 font-semibold mb-2" for="password">비밀번호 *</label>
-          <input type="password" id="password" name="password" required class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none transition" placeholder="8자 이상, 영문/숫자/특수문자 조합" />
+          <input type="password" id="password" name="password" required autocomplete="new-password" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none transition" placeholder="8자 이상, 영문/숫자/특수문자 조합" />
           <div class="text-sm text-gray-500 mt-1">영문, 숫자, 특수문자를 포함하여 8자 이상</div>
         </div>
 
         <!-- 비밀번호 확인 -->
         <div>
           <label class="block text-gray-700 font-semibold mb-2" for="password-confirm">비밀번호 확인 *</label>
-          <input type="password" id="password-confirm" name="password-confirm" required class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none transition" placeholder="비밀번호를 한 번 더 입력해주세요" />
+          <input type="password" id="password-confirm" name="password-confirm" required autocomplete="new-password" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none transition" placeholder="비밀번호를 한 번 더 입력해주세요" />
         </div>
 
         <!-- 약관 동의 -->
@@ -759,13 +759,29 @@
           function executeKakaoLoginWithBypass() {
             try {
               const clientId = '6917a034b74fafd0ac80ab855af5ed6d';
-              const redirectUri = encodeURIComponent('https://pricehunt24.com/register.html');
+              const redirectUri = 'https://pricehunt24.com/register.html';
               const scope = 'profile_nickname,account_email,profile_image';
+              
+              // URL 파라미터 정확한 인코딩
+              const authParams = new URLSearchParams({
+                client_id: clientId,
+                redirect_uri: redirectUri,
+                response_type: 'code',
+                scope: scope,
+                state: Date.now().toString()
+              });
+              
+              const authUrl = `https://kauth.kakao.com/oauth/authorize?${authParams.toString()}`;
+              
+              console.log('카카오 인증 URL 생성 완료:', authUrl);
+              console.log('클라이언트 ID:', clientId);
+              console.log('리다이렉트 URI:', redirectUri);
+              console.log('스코프:', scope);
               
               // 방법 1: 팝업 창으로 열기 (Chrome 보안 정책 우회)
               console.log('방법 1: 팝업 창 방식 시도');
               const popup = window.open(
-                `https://kauth.kakao.com/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&state=${Date.now()}`,
+                authUrl,
                 'kakaoAuth',
                 'width=500,height=600,scrollbars=yes,resizable=yes'
               );
@@ -773,76 +789,7 @@
               if (!popup) {
                 // 팝업 차단된 경우 방법 2: 새 탭으로 열기
                 console.log('팝업 차단됨 - 새 탭으로 시도');
-                window.open(
-                  `https://kauth.kakao.com/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&state=${Date.now()}`,
-                  '_blank'
-                );
-                return;
-              }
-              
-              // 팝업 창 모니터링
-              const checkPopup = setInterval(() => {
-                if (popup.closed) {
-                  clearInterval(checkPopup);
-                  console.log('팝업 창이 닫힘');
-                  
-                  // localStorage에서 인증 코드 확인
-                  const authCode = localStorage.getItem('kakao_auth_code');
-                  if (authCode) {
-                    console.log('저장된 인증 코드 발견:', authCode.substring(0, 10) + '...');
-                    handleKakaoAuthCode(authCode);
-                    localStorage.removeItem('kakao_auth_code'); // 사용 후 삭제
-                  }
-                }
-              }, 1000);
-              
-              // 방법 3: 메시지 이벤트 리스너 (크로스 도메인 통신)
-              window.addEventListener('message', function(event) {
-                if (event.origin === 'https://kauth.kakao.com' && event.data.type === 'kakao_auth_success') {
-                  console.log('카카오 인증 성공 메시지 수신:', event.data);
-                  const authCode = event.data.code;
-                  if (authCode) {
-                    handleKakaoAuthCode(authCode);
-                  }
-                  popup.close();
-                }
-              });
-              
-            } catch (error) {
-              console.error('Chrome 보안 정책 우회 실패:', error);
-              
-              // 방법 4: 직접 URL 이동 (최후 수단)
-              alert('팝업 방식이 실패했습니다. 새 페이지로 이동합니다.');
-              const clientId = '6917a034b74fafd0ac80ab855af5ed6d';
-              const redirectUri = encodeURIComponent('https://pricehunt24.com/register.html');
-              const scope = 'profile_nickname,account_email,profile_image';
-              
-              window.location.href = `https://kauth.kakao.com/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&state=${Date.now()}`;
-            }
-          }
-          
-          // Chrome 보안 정책 우회를 위한 추가 방법들
-          function executeKakaoLoginWithBypass() {
-            try {
-              const clientId = '6917a034b74fafd0ac80ab855af5ed6d';
-              const redirectUri = encodeURIComponent('https://pricehunt24.com/register.html');
-              const scope = 'profile_nickname,account_email,profile_image';
-              
-              // 방법 1: 팝업 창으로 열기 (CSP 우회)
-              console.log('방법 1: 팝업 창 방식 시도');
-              const popup = window.open(
-                `https://kauth.kakao.com/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&state=${Date.now()}`,
-                'kakaoAuth',
-                'width=500,height=600,scrollbars=yes,resizable=yes'
-              );
-              
-              if (!popup) {
-                // 팝업 차단된 경우 방법 2: 새 탭으로 열기
-                console.log('팝업 차단됨 - 새 탭으로 시도');
-                window.open(
-                  `https://kauth.kakao.com/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&state=${Date.now()}`,
-                  '_blank'
-                );
+                window.open(authUrl, '_blank');
                 return;
               }
               
@@ -880,8 +827,19 @@
               // 방법 4: 직접 URL 이동 (최후 수단)
               console.log('방법 4: 직접 URL 이동 시도');
               const clientId = '6917a034b74fafd0ac80ab855af5ed6d';
-              const redirectUri = encodeURIComponent('https://pricehunt24.com/register.html');
+              const redirectUri = 'https://pricehunt24.com/register.html';
               const scope = 'profile_nickname,account_email,profile_image';
+              
+              // URL 파라미터 정확한 인코딩
+              const authParams = new URLSearchParams({
+                client_id: clientId,
+                redirect_uri: redirectUri,
+                response_type: 'code',
+                scope: scope,
+                state: Date.now().toString()
+              });
+              
+              const authUrl = `https://kauth.kakao.com/oauth/authorize?${authParams.toString()}`;
               
               // 사용자에게 안내
               const button = document.getElementById('kakao-login');
@@ -889,9 +847,112 @@
               button.innerHTML = '<svg class="animate-spin w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>카카오 인증 페이지로 이동 중...';
               button.disabled = true;
               
+              console.log('최종 인증 URL:', authUrl);
+              
               // 3초 후 이동
               setTimeout(() => {
-                window.location.href = `https://kauth.kakao.com/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&state=${Date.now()}`;
+                window.location.href = authUrl;
+              }, 3000);
+            }
+          }
+          
+          // Chrome 보안 정책 우회를 위한 추가 방법들
+          function executeKakaoLoginWithBypass() {
+            try {
+              const clientId = '6917a034b74fafd0ac80ab855af5ed6d';
+              const redirectUri = 'https://pricehunt24.com/register.html';
+              const scope = 'profile_nickname,account_email,profile_image';
+              
+              // URL 파라미터 정확한 인코딩
+              const authParams = new URLSearchParams({
+                client_id: clientId,
+                redirect_uri: redirectUri,
+                response_type: 'code',
+                scope: scope,
+                state: Date.now().toString()
+              });
+              
+              const authUrl = `https://kauth.kakao.com/oauth/authorize?${authParams.toString()}`;
+              
+              console.log('카카오 인증 URL 생성 완료:', authUrl);
+              console.log('클라이언트 ID:', clientId);
+              console.log('리다이렉트 URI:', redirectUri);
+              console.log('스코프:', scope);
+              
+              // 방법 1: 팝업 창으로 열기 (Chrome 보안 정책 우회)
+              console.log('방법 1: 팝업 창 방식 시도');
+              const popup = window.open(
+                authUrl,
+                'kakaoAuth',
+                'width=500,height=600,scrollbars=yes,resizable=yes'
+              );
+              
+              if (!popup) {
+                // 팝업 차단된 경우 방법 2: 새 탭으로 열기
+                console.log('팝업 차단됨 - 새 탭으로 시도');
+                window.open(authUrl, '_blank');
+                return;
+              }
+              
+              // 팝업 창 모니터링
+              const checkPopup = setInterval(() => {
+                if (popup.closed) {
+                  clearInterval(checkPopup);
+                  console.log('팝업 창이 닫힘');
+                  
+                  // localStorage에서 인증 코드 확인
+                  const authCode = localStorage.getItem('kakao_auth_code');
+                  if (authCode) {
+                    console.log('저장된 인증 코드 발견:', authCode.substring(0, 10) + '...');
+                    handleKakaoAuthCode(authCode);
+                    localStorage.removeItem('kakao_auth_code'); // 사용 후 삭제
+                  }
+                }
+              }, 1000);
+              
+              // 방법 3: 메시지 이벤트 리스너 (크로스 도메인 통신)
+              window.addEventListener('message', function(event) {
+                if (event.origin === 'https://kauth.kakao.com' && event.data.type === 'kakao_auth_success') {
+                  console.log('카카오 인증 성공 메시지 수신:', event.data);
+                  const authCode = event.data.code;
+                  if (authCode) {
+                    handleKakaoAuthCode(authCode);
+                  }
+                  popup.close();
+                }
+              });
+              
+            } catch (error) {
+              console.error('Chrome 보안 정책 우회 실패:', error);
+              
+              // 방법 4: 직접 URL 이동 (최후 수단)
+              console.log('방법 4: 직접 URL 이동 시도');
+              const clientId = '6917a034b74fafd0ac80ab855af5ed6d';
+              const redirectUri = 'https://pricehunt24.com/register.html';
+              const scope = 'profile_nickname,account_email,profile_image';
+              
+              // URL 파라미터 정확한 인코딩
+              const authParams = new URLSearchParams({
+                client_id: clientId,
+                redirect_uri: redirectUri,
+                response_type: 'code',
+                scope: scope,
+                state: Date.now().toString()
+              });
+              
+              const authUrl = `https://kauth.kakao.com/oauth/authorize?${authParams.toString()}`;
+              
+              // 사용자에게 안내
+              const button = document.getElementById('kakao-login');
+              const originalText = button.innerHTML;
+              button.innerHTML = '<svg class="animate-spin w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>카카오 인증 페이지로 이동 중...';
+              button.disabled = true;
+              
+              console.log('최종 인증 URL:', authUrl);
+              
+              // 3초 후 이동
+              setTimeout(() => {
+                window.location.href = authUrl;
               }, 3000);
             }
           }
