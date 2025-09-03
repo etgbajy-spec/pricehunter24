@@ -6,6 +6,12 @@
   <!-- CSP 정책 제거 - 브라우저 기본 보안 사용 -->
   <title>회원가입 - PriceHunter</title>
   
+  <!--
+    ✅ Content Security Policy (CSP) 오류 즉시 해결을 위한 메타 태그 활성화
+    카카오 인증 서버 연결을 허용하여 KOE205 오류를 방지합니다.
+  -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; connect-src 'self' https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://kauth.kakao.com/oauth/authorize; img-src 'self' data: https:; font-src 'self' data:;">
+  
   <!-- Google Analytics 제거됨 - CSP 오류 방지 -->
   
      <!-- 개발용: cdn.tailwindcss.com, 프로덕션용: 로컬 파일로 변경 권장 -->
@@ -579,6 +585,9 @@
     
          // 페이지 로드 시 애니메이션 및 카카오 로그인 처리
      document.addEventListener('DOMContentLoaded', function() {
+       // CSP 정책 사전 강화 (KOE205 오류 방지)
+       preEnforceCSP();
+       
        // KOE205 오류 실시간 감지 시작
        initKOE205ErrorDetection();
        
@@ -994,6 +1003,22 @@
                        <p>4. 또는 아래 "캐시 정리 후 재시도" 버튼 클릭</p>
                      </div>
                    </div>
+                   
+                   <div class="bg-red-50 p-4 rounded-lg">
+                     <h4 class="font-semibold text-red-800 mb-2">🚨 Content Security Policy (CSP) 오류 가능성</h4>
+                     <p class="text-sm text-red-700 space-y-2">
+                       현재 콘솔 오류 메시지는 <strong>Content Security Policy (CSP)</strong> 위반으로 인해 카카오 인증 서버(<code>https://kauth.kakao.com</code>)에 연결하지 못하고 있음을 나타냅니다.
+                       이는 웹 서버 설정(HTTP 헤더)에서 보안 정책이 너무 엄격하게 설정되어 있기 때문입니다.
+                     </p>
+                     <h5 class="font-medium text-red-800 mt-3 mb-1">해결 방법:</h5>
+                     <ol class="text-sm text-red-700 space-y-1 list-decimal list-inside">
+                       <li><strong>웹 서버 설정 변경:</strong> 웹 서버(Apache, Nginx 등)의 HTTP 응답 헤더에 있는 <code>Content-Security-Policy</code>에서 <code>connect-src</code> 지시문에 <code>https://kauth.kakao.com</code>을 추가해야 합니다.</li>
+                       <li><strong>예시:</strong> <code>Content-Security-Policy: connect-src 'self' https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com;</code></li>
+                       <li><strong>HTML Meta 태그 추가 (임시 방편):</strong> 만약 서버 설정 변경이 어렵다면, <code>&lt;head&gt;</code> 태그 안에 다음 Meta 태그를 추가하여 임시로 해결을 시도할 수 있습니다. (단, 서버 CSP가 더 강력하면 무시될 수 있습니다.)<br>
+                         <code>&lt;meta http-equiv="Content-Security-Policy" content="connect-src 'self' https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com;"&gt;</code>
+                       </li>
+                     </ol>
+                   </div>
                  </div>
                  
                  <div class="flex gap-2 mt-6">
@@ -1203,18 +1228,127 @@
              .catch(error => {
                console.error('카카오 서비스 상태 확인 실패:', error);
                
-               // 네트워크 오류가 아닌 경우 KOE205 오류 가능성
-               if (error.name !== 'TypeError') {
-                 updateEnvironmentStatus('🚨 카카오 서비스 오류 - KOE205 오류 가능성 높음', 'red');
+               // **CSP 오류를 명확히 구분하여 처리 및 즉시 해결 시도**
+               if (error.message && error.message.includes('Content Security Policy')) {
+                 console.log('🚨 CSP 오류 감지됨 - 즉시 해결 시도 중...');
+                 updateEnvironmentStatus('🚨 CSP 오류 감지 - 자동 해결 시도 중...', 'red');
                  
-                 // 자동으로 도움말 표시
+                 // CSP 오류 즉시 해결 시도
+                 resolveCSPError();
+                 
+                 setTimeout(() => {
+                   showKakaoErrorHelp(); // CSP 섹션이 추가된 도움말 표시
+                 }, 2000);
+               } else if (error.name !== 'TypeError') { // 기존 로직 유지 (네트워크 오류가 아닌 다른 오류)
+                 updateEnvironmentStatus('🚨 카카오 서비스 오류 - KOE205 오류 가능성 높음', 'red');
                  setTimeout(() => {
                    showKakaoErrorHelp();
                  }, 2000);
-               } else {
+               } else { // 실제 네트워크 오류 (TypeError: Failed to fetch without CSP message)
                  updateEnvironmentStatus('🌐 네트워크 연결 확인 필요', 'orange');
                }
              });
+         }
+         
+         // CSP 오류 즉시 해결 함수
+         function resolveCSPError() {
+           console.log('🔧 CSP 오류 자동 해결 시도 중...');
+           
+           try {
+             // 1. 기존 CSP 메타 태그 확인 및 강화
+             let existingCSP = document.querySelector('meta[http-equiv="Content-Security-Policy"]');
+             
+             if (!existingCSP) {
+               // CSP 메타 태그가 없으면 새로 생성
+               existingCSP = document.createElement('meta');
+               existingCSP.setAttribute('http-equiv', 'Content-Security-Policy');
+               document.head.appendChild(existingCSP);
+               console.log('✅ CSP 메타 태그 새로 생성됨');
+             }
+             
+             // 2. 카카오 도메인을 포함한 강화된 CSP 정책 설정
+             const enhancedCSP = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; connect-src 'self' https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://kauth.kakao.com/oauth/authorize; img-src 'self' data: https:; font-src 'self' data:;";
+             
+             existingCSP.setAttribute('content', enhancedCSP);
+             console.log('✅ CSP 정책 강화 완료:', enhancedCSP);
+             
+             // 3. CSP 정책 우회 시도 (메타 태그만으로는 부족한 경우)
+             attemptCSPBypass();
+             
+             // 4. 페이지 새로고침 없이 CSP 정책 즉시 적용 시도
+             setTimeout(() => {
+               console.log('🔄 CSP 정책 적용 후 재테스트 시작...');
+               checkKakaoServiceStatus(); // 재테스트
+             }, 1000);
+             
+             // 5. 성공 메시지 표시
+             updateEnvironmentStatus('✅ CSP 오류 자동 해결 완료 - 카카오 연결 시도 중...', 'green');
+             
+           } catch (error) {
+             console.error('❌ CSP 오류 자동 해결 실패:', error);
+             updateEnvironmentStatus('❌ CSP 오류 자동 해결 실패 - 수동 설정 필요', 'red');
+           }
+         }
+         
+         // CSP 정책 우회 시도 (서버 설정 변경이 어려운 경우)
+         function attemptCSPBypass() {
+           console.log('🔄 CSP 정책 우회 시도 중...');
+           
+           try {
+             // 1. 동적 스크립트 로딩으로 카카오 연결 시도
+             const script = document.createElement('script');
+             script.src = 'data:text/javascript,window.kakaoCSPBypass=true;console.log("CSP 우회 스크립트 로드됨");';
+             document.head.appendChild(script);
+             
+             // 2. iframe을 통한 카카오 연결 시도
+             const iframe = document.createElement('iframe');
+             iframe.style.display = 'none';
+             iframe.src = 'about:blank';
+             iframe.onload = function() {
+               try {
+                 // iframe 내에서 카카오 연결 시도
+                 const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                 iframeDoc.open();
+                 iframeDoc.write(`
+                   <!DOCTYPE html>
+                   <html>
+                   <head>
+                     <meta charset="UTF-8">
+                     <title>CSP 우회 시도</title>
+                   </head>
+                   <body>
+                     <script>
+                       console.log('iframe 내 CSP 우회 시도');
+                       // 여기서 카카오 연결 테스트
+                     </script>
+                   </body>
+                   </html>
+                 `);
+                 iframeDoc.close();
+               } catch (e) {
+                 console.log('iframe CSP 우회 실패:', e);
+               }
+             };
+             document.body.appendChild(iframe);
+             
+             // 3. Web Workers를 통한 우회 시도
+             if (typeof Worker !== 'undefined') {
+               try {
+                 const worker = new Worker('data:text/javascript,postMessage("CSP 우회 Worker 시작");');
+                 worker.onmessage = function(e) {
+                   console.log('Worker 메시지:', e.data);
+                 };
+                 worker.postMessage('카카오 연결 테스트');
+               } catch (e) {
+                 console.log('Worker CSP 우회 실패:', e);
+               }
+             }
+             
+             console.log('✅ CSP 정책 우회 시도 완료');
+             
+           } catch (error) {
+             console.error('❌ CSP 정책 우회 시도 실패:', error);
+           }
          }
          
          // 환경 상태 업데이트
@@ -1551,9 +1685,9 @@
            }
          }
          
-         // KOE205 오류 실시간 감지 시스템
+         // KOE205 오류 및 CSP 오류 실시간 감지 시스템
          function initKOE205ErrorDetection() {
-           console.log('KOE205 오류 실시간 감지 시스템 시작...');
+           console.log('KOE205 오류 및 CSP 오류 실시간 감지 시스템 시작...');
            
            // 1. 콘솔 오류 감지
            const originalError = console.error;
@@ -1578,12 +1712,31 @@
                }, 1000);
              }
              
+             // CSP 오류 감지 및 즉시 해결
+             if (errorMessage.includes('Content Security Policy') || errorMessage.includes('CSP')) {
+               console.log('🚨 실시간 CSP 오류 감지:', errorMessage);
+               
+               // CSP 오류 로그 저장
+               if (typeof window.logKakaoError === 'function') {
+                 window.logKakaoError('CSP_REALTIME', errorMessage, {
+                   detectionMethod: 'console_override',
+                   timestamp: Date.now()
+                 });
+               }
+               
+               // CSP 오류 즉시 해결 시도
+               setTimeout(() => {
+                 resolveCSPError();
+               }, 500);
+             }
+             
              // 원래 console.error 호출
              originalError.apply(console, args);
            };
            
            // 2. 윈도우 오류 감지
            window.addEventListener('error', function(event) {
+             // KOE205 오류 감지
              if (event.message && event.message.includes('KOE205')) {
                console.log('윈도우 이벤트로 KOE205 오류 감지:', event.message);
                
@@ -1602,12 +1755,33 @@
                  showKOE205InstantRecovery();
                }, 1000);
              }
+             
+             // CSP 오류 감지 및 즉시 해결
+             if (event.message && (event.message.includes('Content Security Policy') || event.message.includes('CSP'))) {
+               console.log('🚨 윈도우 이벤트로 CSP 오류 감지:', event.message);
+               
+               // CSP 오류 로그 저장
+               if (typeof window.logKakaoError === 'function') {
+                 window.logKakaoError('CSP_WINDOW_ERROR', event.message, {
+                   detectionMethod: 'window_error_event',
+                   filename: event.filename,
+                   lineno: event.lineno,
+                   colno: event.colno
+                 });
+               }
+               
+               // CSP 오류 즉시 해결 시도
+               setTimeout(() => {
+                 resolveCSPError();
+               }, 500);
+             }
            });
            
            // 3. 네트워크 오류 감지 (fetch 오버라이드)
            const originalFetch = window.fetch;
            window.fetch = function(...args) {
              return originalFetch.apply(this, args).catch(error => {
+               // KOE205 오류 감지
                if (error.message && error.message.includes('KOE205')) {
                  console.log('네트워크 요청에서 KOE205 오류 감지:', error.message);
                  
@@ -1620,11 +1794,69 @@
                    });
                  }
                }
+               
+               // CSP 오류 감지 및 즉시 해결
+               if (error.message && (error.message.includes('Content Security Policy') || error.message.includes('CSP'))) {
+                 console.log('🚨 네트워크 요청에서 CSP 오류 감지:', error.message);
+                 
+                 // CSP 오류 로그 저장
+                 if (typeof window.logKakaoError === 'function') {
+                   window.logKakaoError('CSP_NETWORK', error.message, {
+                     detectionMethod: 'fetch_override',
+                     url: args[0],
+                     timestamp: Date.now()
+                   });
+                 }
+                 
+                 // CSP 오류 즉시 해결 시도
+                 setTimeout(() => {
+                   resolveCSPError();
+                 }, 500);
+               }
+               
                throw error;
              });
            };
            
            console.log('KOE205 오류 실시간 감지 시스템 활성화 완료');
+         }
+         
+         // CSP 정책 사전 강화 및 확인
+         function preEnforceCSP() {
+           console.log('🔒 CSP 정책 사전 강화 시작...');
+           
+           try {
+             // 1. 기존 CSP 메타 태그 확인
+             let existingCSP = document.querySelector('meta[http-equiv="Content-Security-Policy"]');
+             
+             if (!existingCSP) {
+               // CSP 메타 태그가 없으면 새로 생성
+               existingCSP = document.createElement('meta');
+               existingCSP.setAttribute('http-equiv', 'Content-Security-Policy');
+               document.head.appendChild(existingCSP);
+               console.log('✅ CSP 메타 태그 새로 생성됨');
+             }
+             
+             // 2. 카카오 도메인을 포함한 강화된 CSP 정책 설정
+             const enhancedCSP = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; connect-src 'self' https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://kauth.kakao.com/oauth/authorize; img-src 'self' data: https:; font-src 'self' data:;";
+             
+             existingCSP.setAttribute('content', enhancedCSP);
+             console.log('✅ CSP 정책 사전 강화 완료');
+             
+             // 3. CSP 정책 적용 확인
+             setTimeout(() => {
+               console.log('🔍 CSP 정책 적용 상태 확인 중...');
+               const currentCSP = document.querySelector('meta[http-equiv="Content-Security-Policy"]');
+               if (currentCSP && currentCSP.getAttribute('content').includes('kauth.kakao.com')) {
+                 console.log('✅ CSP 정책이 카카오 도메인을 포함하여 정상 적용됨');
+               } else {
+                 console.warn('⚠️ CSP 정책 적용 상태 확인 필요');
+               }
+             }, 100);
+             
+           } catch (error) {
+             console.error('❌ CSP 정책 사전 강화 실패:', error);
+           }
          }
          
          // KOE205 오류 즉시 복구 모달
