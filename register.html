@@ -732,31 +732,110 @@
          });
        }
        
-       // 카카오 회원가입 처리 함수
-       function handleKakaoSignup(user) {
-        // 기존 회원인지 확인
-        const existingUser = JSON.parse(localStorage.getItem('user') || 'null');
-        
-        if (existingUser && existingUser.id === user.id) {
-          // 기존 회원 로그인
-          localStorage.setItem('user', JSON.stringify(user));
-          localStorage.setItem('loggedIn', 'true');
-          alert('카카오톡으로 로그인되었습니다!');
-          window.location.href = 'index.html';
-        } else {
-          // 신규 회원 가입
-          const newUser = {
-            ...user,
-            joinDate: new Date().toISOString(),
-            points: 50 // 신규 가입 보너스
-          };
-          
-          localStorage.setItem('user', JSON.stringify(newUser));
-          localStorage.setItem('loggedIn', 'true');
-          alert('카카오톡으로 회원가입되었습니다! +50포인트 지급!');
-          window.location.href = 'index.html';
-        }
-      }
+               // 카카오 회원가입 처리 함수
+        function handleKakaoSignup(user) {
+         // 기존 회원인지 확인
+         const existingUser = JSON.parse(localStorage.getItem('user') || 'null');
+         
+         if (existingUser && existingUser.id === user.id) {
+           // 기존 회원 로그인
+           localStorage.setItem('user', JSON.stringify(user));
+           localStorage.setItem('loggedIn', 'true');
+           alert('카카오톡으로 로그인되었습니다!');
+           window.location.href = 'index.html';
+         } else {
+           // 신규 회원 가입 - 약관 동의 확인
+           showKakaoTermsAgreement(user);
+         }
+       }
+       
+       // 카카오 회원가입 시 약관 동의 모달 표시
+       function showKakaoTermsAgreement(user) {
+         // 약관 동의 모달 생성
+         const modal = document.createElement('div');
+         modal.id = 'kakao-terms-modal';
+         modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4';
+         modal.innerHTML = `
+           <div class="bg-white rounded-2xl p-8 max-w-md mx-4 text-center">
+             <div class="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+               <svg class="w-8 h-8 text-yellow-600" viewBox="0 0 24 24" fill="currentColor">
+                 <path d="M12 3c5.799 0 10.5 3.664 10.5 8.185 0 4.52-4.701 8.184-10.5 8.184a13.5 13.5 0 0 1-1.727-.11l-4.408 2.883c-.501.265-.678.236-.472-.413l.892-3.678c-2.88-1.46-4.785-3.99-4.785-6.866C1.5 6.665 6.201 3 12 3z"/>
+               </svg>
+             </div>
+             <h3 class="text-xl font-bold text-gray-800 mb-4">카카오톡 간편가입</h3>
+             <p class="text-gray-600 mb-6">PriceHunter 서비스 이용을 위한 약관 동의가 필요합니다.</p>
+             
+             <div class="space-y-4 mb-6">
+               <div class="flex items-center gap-3">
+                 <input type="checkbox" id="kakao-agree-terms" class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" required />
+                 <label for="kakao-agree-terms" class="text-gray-700">이용약관 동의 (필수)</label>
+                 <button type="button" onclick="openTermsModal()" class="text-blue-600 hover:text-blue-800 text-sm underline">보기</button>
+               </div>
+               
+               <div class="flex items-center gap-3">
+                 <input type="checkbox" id="kakao-agree-privacy" class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" required />
+                 <label for="kakao-agree-privacy" class="text-gray-700">개인정보처리방침 동의 (필수)</label>
+                 <button type="button" onclick="openPrivacyModal()" class="text-blue-600 hover:text-blue-800 text-sm underline">보기</button>
+               </div>
+               
+               <div class="flex items-center gap-3">
+                 <input type="checkbox" id="kakao-agree-marketing" class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" />
+                 <label for="kakao-agree-marketing" class="text-gray-700">마케팅 정보 수신 동의 (선택)</label>
+               </div>
+             </div>
+             
+             <div class="flex gap-3">
+               <button onclick="closeKakaoTermsModal()" class="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 py-3 px-6 rounded-lg font-semibold transition">취소</button>
+               <button onclick="completeKakaoSignup()" id="kakao-signup-btn" disabled class="flex-1 bg-yellow-400 hover:bg-yellow-500 disabled:bg-gray-400 disabled:cursor-not-allowed text-gray-800 py-3 px-6 rounded-lg font-semibold transition">가입 완료</button>
+             </div>
+           </div>
+         `;
+         
+         document.body.appendChild(modal);
+         
+         // 체크박스 이벤트 리스너 추가
+         const agreeTerms = document.getElementById('kakao-agree-terms');
+         const agreePrivacy = document.getElementById('kakao-agree-privacy');
+         const agreeMarketing = document.getElementById('kakao-agree-marketing');
+         const signupBtn = document.getElementById('kakao-signup-btn');
+         
+         function updateSignupButton() {
+           const isRequiredChecked = agreeTerms.checked && agreePrivacy.checked;
+           signupBtn.disabled = !isRequiredChecked;
+         }
+         
+         [agreeTerms, agreePrivacy, agreeMarketing].forEach(checkbox => {
+           checkbox.addEventListener('change', updateSignupButton);
+         });
+         
+         // 전역 함수로 등록
+         window.completeKakaoSignup = function() {
+           if (agreeTerms.checked && agreePrivacy.checked) {
+             // 신규 회원 가입 완료
+             const newUser = {
+               ...user,
+               joinDate: new Date().toISOString(),
+               points: 50, // 신규 가입 보너스
+               termsAgreed: true,
+               privacyAgreed: true,
+               marketingAgreed: agreeMarketing.checked
+             };
+             
+             localStorage.setItem('user', JSON.stringify(newUser));
+             localStorage.setItem('loggedIn', 'true');
+             
+             closeKakaoTermsModal();
+             alert('카카오톡으로 회원가입되었습니다! +50포인트 지급!');
+             window.location.href = 'index.html';
+           } else {
+             alert('필수 약관에 동의해주세요.');
+           }
+         };
+         
+         window.closeKakaoTermsModal = function() {
+           document.body.removeChild(modal);
+         };
+       }
     });
 
     // 약관 모달 열기/닫기
