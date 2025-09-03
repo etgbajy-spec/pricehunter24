@@ -21,6 +21,12 @@
      - 카카오 개발자 콘솔에서 동의 항목 설정 필요
      - 필수: profile_nickname, account_email
      - 선택: profile_image
+     
+     **KOE205 오류 해결:**
+     - 카카오 개발자 콘솔에서 앱 상태 확인
+     - 플랫폼 설정 (Web: https://pricehunt24.com)
+     - Redirect URI 설정 (https://pricehunt24.com/register.html)
+     - 동의항목 설정 및 앱 활성화 상태 확인
    -->
   <script src="https://cdn.tailwindcss.com"></script>
   
@@ -606,6 +612,7 @@
             Kakao.Auth.login({
               throughTalk: false, // 팝업 방식
               scope: 'profile_nickname,account_email,profile_image', // 동의 항목 명시
+              redirectUri: 'https://pricehunt24.com/register.html', // 실제 운영 사이트 URL
                            success: function(authObj) {
                 console.log('카카오 로그인 성공:', authObj);
                 
@@ -663,11 +670,13 @@
               },
                            fail: function(err) {
                 console.error('카카오 로그인 실패:', err);
-                if (err.error === 'KOE006') {
-                  alert('카카오 앱 플랫폼 설정이 필요합니다.\n\n1. Web 플랫폼: http://localhost:8000 추가\n2. Redirect URI: http://localhost:8000/register.html 추가');
-                } else if (err.error === 'KOE009') {
-                  alert('카카오 앱 설정에 문제가 있습니다. 관리자에게 문의해주세요.');
-                } else if (err.error === 'access_denied') {
+                                 if (err.error === 'KOE006') {
+                   alert('카카오 앱 플랫폼 설정이 필요합니다.\n\n1. Web 플랫폼: https://pricehunt24.com 추가\n2. Redirect URI: https://pricehunt24.com/register.html 추가');
+                                  } else if (err.error === 'KOE205') {
+                    alert('카카오 앱 서비스 설정에 오류가 있습니다.\n\n해결 방법:\n1. 카카오 개발자 콘솔에서 앱 상태 확인\n2. 플랫폼 설정 (Web: https://pricehunt24.com)\n3. Redirect URI 설정 (https://pricehunt24.com/register.html)\n4. 동의항목 설정 (닉네임, 이메일, 프로필사진)\n5. 앱 활성화 상태 확인');
+                 } else if (err.error === 'KOE009') {
+                   alert('카카오 앱 설정에 문제가 있습니다. 관리자에게 문의해주세요.');
+                 } else if (err.error === 'access_denied') {
                   alert('카카오 로그인이 취소되었습니다.');
                 } else if (err.error === 'popup_closed') {
                   alert('팝업이 닫혔습니다. 다시 시도해주세요.');
