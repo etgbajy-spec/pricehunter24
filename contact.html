@@ -4,7 +4,44 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>1:1 문의하기 - PriceHunter</title>
+  
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-N7R437NT77"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-N7R437NT77');
+  </script>
+  
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* 텍스트 선택 허용 (드래그 가능) */
+    body {
+      -webkit-user-select: text;
+      -moz-user-select: text;
+      -ms-user-select: text;
+      user-select: text;
+    }
+    
+    /* 버튼과 링크, 입력 필드는 텍스트 선택 허용 */
+    button, a, input, textarea, select {
+      -webkit-user-select: text;
+      -moz-user-select: text;
+      -ms-user-select: text;
+      user-select: text;
+    }
+    
+    /* 커서 깜빡임 방지 */
+    body, div, p, h1, h2, h3, h4, h5, h6, span, label {
+      caret-color: transparent;
+    }
+    
+    /* 입력 요소는 커서 표시 */
+    input, textarea {
+      caret-color: auto;
+    }
+  </style>
 </head>
 <body class="bg-gradient-to-br from-pink-50 via-blue-50 to-emerald-50 min-h-screen flex flex-col items-center justify-center py-4 md:py-12">
   <div class="w-full max-w-lg bg-white/90 rounded-2xl shadow-2xl p-4 md:p-8 lg:p-10 backdrop-blur-md">

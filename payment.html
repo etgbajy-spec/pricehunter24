@@ -3,13 +3,46 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>PriceHunter 결제 | 안전한 구매</title>
+    <title>결제 - PriceHunter</title>
+    
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-N7R437NT77"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-N7R437NT77');
+    </script>
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://js.tosspayments.com/v1/payment"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
     <style>
+      /* 텍스트 선택 및 편집 방지 */
+      body {
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+      }
+      
+      /* 버튼과 링크, 입력 필드는 텍스트 선택 허용 */
+      button, a, input, textarea, select {
+        -webkit-user-select: text;
+        -moz-user-select: text;
+        -ms-user-select: text;
+        user-select: text;
+      }
+      
+      /* 폼 라벨과 설명 텍스트는 선택 방지 */
+      label, .form-description {
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+      }
       body { font-family: 'Noto Sans KR', 'Inter', sans-serif; }
       .fade-in { animation: fadeIn 0.7s; }
       @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }

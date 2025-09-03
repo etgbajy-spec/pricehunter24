@@ -3,7 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>결제 실패 | PriceHunter</title>
+    <title>결제 실패 - PriceHunter</title>
+    
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-N7R437NT77"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-N7R437NT77');
+    </script>
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -13,6 +23,21 @@
         .fade-in { animation: fadeIn 0.7s; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        /* 텍스트 선택 및 편집 방지 */
+        body {
+          -webkit-user-select: none;
+          -moz-user-select: none;
+          -ms-user-select: none;
+          user-select: none;
+        }
+        
+        /* 버튼과 링크는 텍스트 선택 허용 */
+        button, a {
+          -webkit-user-select: text;
+          -moz-user-select: text;
+          -ms-user-select: text;
+          user-select: text;
+        }
     </style>
 </head>
 <body class="gradient-bg min-h-screen flex items-center justify-center py-8 px-4">

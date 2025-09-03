@@ -3,13 +3,45 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>회원 대시보드 | PriceHunter</title>
+  <title>회원 대시보드 - PriceHunter</title>
+  
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-N7R437NT77"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-N7R437NT77');
+  </script>
+  
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
   <style>
-    body { font-family: 'Noto Sans KR', 'Inter', sans-serif; }
+    /* 텍스트 선택 및 편집 방지 */
+    body {
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+    }
+    
+    /* 버튼과 링크, 입력 필드는 텍스트 선택 허용 */
+    button, a, input, textarea, select {
+      -webkit-user-select: text;
+      -moz-user-select: text;
+      -ms-user-select: text;
+      user-select: text;
+    }
+    
+    /* 폼 라벨과 설명 텍스트는 선택 방지 */
+    label, .form-description {
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+    }
     .fade-in { animation: fadeIn 0.7s; }
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     .spinner {
@@ -183,25 +215,70 @@
                 <div id="status-badge" class="px-3 py-1 rounded-full text-sm font-bold text-white"></div>
               </div>
               
+              <!-- 의뢰 기본 정보 -->
+              <div class="bg-blue-50 rounded-lg p-4 mb-6 border-l-4 border-blue-500">
+                <h4 class="font-bold text-blue-800 mb-3">📝 의뢰 기본 정보</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  <div><span class="font-semibold">의뢰번호:</span> <span id="request-number"></span></div>
+                  <div><span class="font-semibold">의뢰일시:</span> <span id="request-date"></span></div>
+                  <div><span class="font-semibold">제품명:</span> <span id="product-name"></span></div>
+                  <div><span class="font-semibold">요청가:</span> <span id="original-price"></span></div>
+                </div>
+              </div>
+              
               <!-- 결과 정보 -->
               <div id="result-info" class="hidden">
-                <div class="mb-3">
-                  <div id="result-title" class="text-2xl font-bold text-gray-800 mb-3"></div>
+                <!-- 검증 결과 제목 -->
+                <div class="bg-white rounded-lg p-4 mb-6 border-l-4 border-green-500">
+                  <h4 class="font-bold text-green-800 mb-3">💰 검증 결과</h4>
+                  <!-- 제목 숨김 처리 -->
+                  <div id="result-title" class="text-2xl font-bold text-gray-800 mb-3 hidden"></div>
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div class="bg-green-50 rounded-lg p-3">
+                      <div class="text-sm text-green-600 font-semibold">최저가 (실구매가)</div>
+                      <div id="result-price" class="text-2xl font-bold text-green-800"></div>
+                    </div>
+                    <div class="bg-blue-50 rounded-lg p-3">
+                      <div class="text-sm text-blue-600 font-semibold">절약 금액</div>
+                      <div id="result-savings" class="text-2xl font-bold text-blue-800"></div>
+                    </div>
+                    <div class="bg-purple-50 rounded-lg p-3">
+                      <div class="text-sm text-purple-600 font-semibold">절약률</div>
+                      <div id="result-savings-percent" class="text-2xl font-bold text-purple-800"></div>
+                    </div>
+                  </div>
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div><span class="font-semibold">원산지/공급처:</span> <span id="result-origin"></span></div>
+                    <div><span class="font-semibold">구매 방법:</span> <span id="result-purchase-method"></span></div>
+                  </div>
                 </div>
-                <div class="mb-3 flex flex-col md:flex-row md:items-center md:justify-between">
-                  <div class="text-xl font-bold text-gray-800 mb-2 md:mb-0">최저가: <span id="result-price" class="text-emerald-600">₩123,000</span></div>
+
+                <!-- 검증 시점 정보 -->
+                <div class="bg-white rounded-lg p-4 mb-6 border-l-4 border-orange-500">
+                  <h4 class="font-bold text-orange-800 mb-3">🕐 검증 시점</h4>
+                  <div class="text-sm text-gray-700">
+                    <span class="font-semibold">검증 완료일:</span> <span id="verification-date"></span>
+                  </div>
+                  <div class="text-xs text-gray-500 mt-1">
+                    💡 검증 시점의 가격 정보입니다. 현재 가격과 다를 수 있습니다.
+                  </div>
                 </div>
-                                 <div class="mb-2 text-gray-600">원산지/공급처: <span id="result-origin">대한민국 / PriceHunter 공식</span></div>
-                 <div class="mb-4">
-                   <div class="font-semibold text-gray-700 mb-2">검증 결과</div>
-                   <div id="result-summary" class="text-gray-700 bg-gray-50 rounded-xl p-4 min-h-[60px] overflow-hidden"></div>
-                 </div>
-                 <!-- 이미지 표시 영역 -->
-                 <div id="result-image-container" class="mb-4 hidden">
-                   <img id="result-image-display" class="max-w-full h-auto rounded-lg shadow-lg mx-auto" style="max-height: 400px;" alt="검증 결과 이미지">
-                 </div>
-                 
-                                   <!-- 링크 이동 버튼 -->
+
+                <!-- 상세 검증 내용 -->
+                <div class="bg-white rounded-lg p-4 mb-6 border-l-4 border-purple-500">
+                  <h4 class="font-bold text-purple-800 mb-3">📋 상세 검증 내용</h4>
+                  <div id="result-summary" class="text-gray-700 bg-gray-50 rounded-xl p-4 min-h-[60px] overflow-hidden"></div>
+                </div>
+
+                <!-- 증거 자료 (조건부 표시) -->
+                <div id="evidence-section" class="bg-white rounded-lg p-4 mb-6 border-l-4 border-yellow-500 hidden">
+                  <h4 class="font-bold text-yellow-800 mb-3">📸 증거 자료</h4>
+                  <!-- 이미지 표시 영역 -->
+                  <div id="result-image-container" class="mb-4 hidden">
+                    <img id="result-image-display" class="max-w-full h-auto rounded-lg shadow-lg mx-auto" style="max-height: 400px;" alt="검증 결과 이미지">
+                  </div>
+                  
+                  <!-- 링크 이동 버튼 -->
                   <div id="action-buttons" class="mt-6 space-y-3 hidden">
                     <div class="flex justify-center">
                       <button id="link-button" class="px-8 py-3 bg-blue-500 text-white font-bold rounded-lg hover:bg-blue-600 transition text-center">
@@ -212,6 +289,42 @@
                       💡 링크로 이동하여 직접 구매하실 수 있습니다.
                     </div>
                   </div>
+                </div>
+
+                <!-- 정책 준수 확인 -->
+                <div class="bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 rounded-lg p-4 mb-6">
+                  <h4 class="font-bold text-green-800 mb-3">✅ 검증 정책 준수 확인</h4>
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div class="space-y-2">
+                      <div class="flex items-center gap-2">
+                        <span class="text-green-600">✓</span>
+                        <span>검증 시점이 정확히 기록되었습니다</span>
+                      </div>
+                      <div class="flex items-center gap-2">
+                        <span id="evidence-check" class="text-gray-400">○</span>
+                        <span>증거 자료가 제시되었습니다</span>
+                      </div>
+                      <div class="flex items-center gap-2">
+                        <span class="text-green-600">✓</span>
+                        <span>브랜드 배제 정책을 준수했습니다</span>
+                      </div>
+                    </div>
+                    <div class="space-y-2">
+                      <div class="flex items-center gap-2">
+                        <span class="text-green-600">✓</span>
+                        <span>가격 정보가 정확합니다</span>
+                      </div>
+                      <div class="flex items-center gap-2">
+                        <span class="text-green-600">✓</span>
+                        <span>상세 내용이 작성되었습니다</span>
+                      </div>
+                      <div class="flex items-center gap-2">
+                        <span class="text-green-600">✓</span>
+                        <span>구매 방법이 안내되었습니다</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -380,7 +493,22 @@
           try {
             const resultData = JSON.parse(localStorage.getItem(resultKey));
             if (resultData && (resultData.content || resultData.summary || resultData.title)) {
-              hasResult = true;
+              // 디버깅: 결과 데이터 내용 확인
+              console.log('결과 데이터 발견:', resultKey, resultData);
+              console.log('증거자료 필드 확인:', {
+                link: resultData.link,
+                url: resultData.url,
+                image: resultData.image,
+                imageKey: resultData.imageKey,
+                screenshot: resultData.screenshot
+              });
+              console.log('결과 데이터의 모든 키:', Object.keys(resultData));
+              
+              // 증거자료가 있는지 확인 (관리자가 입력한 이미지나 링크만)
+              const hasEvidence = !!(resultData.link || resultData.url || resultData.image || resultData.imageKey || resultData.screenshot);
+              console.log('관리자 입력 증거자료 존재 여부:', hasEvidence);
+              
+              hasResult = hasEvidence; // 증거자료가 있을 때만 "결과 있음"으로 표시
               break;
             }
           } catch (e) {
@@ -425,6 +553,21 @@
       document.getElementById('result-card').classList.add('hidden');
       document.getElementById('no-result').classList.add('hidden');
       
+      // 의뢰 데이터 찾기
+      const requestKey = 'request-' + reqNum;
+      let requestData = null;
+      try {
+        const data = localStorage.getItem(requestKey);
+        if (data) {
+          requestData = JSON.parse(data);
+          console.log('의뢰 데이터 로드 성공:', requestKey, requestData);
+        } else {
+          console.log('의뢰 데이터 없음:', requestKey);
+        }
+      } catch (e) {
+        console.log('의뢰 데이터 파싱 실패:', requestKey, e);
+      }
+      
       // 결과 데이터 찾기
       const possibleKeys = [
         'result-' + reqNum,
@@ -440,11 +583,16 @@
           const data = localStorage.getItem(key);
           if (data) {
             resultData = JSON.parse(data);
+            console.log('결과 데이터 로드 성공:', key, resultData);
             break;
           }
         } catch (e) {
           console.log('결과 데이터 파싱 실패:', key, e);
         }
+      }
+      
+      if (!resultData) {
+        console.log('결과 데이터를 찾을 수 없음. 검색한 키들:', possibleKeys);
       }
       
       if (!resultData) {
@@ -457,87 +605,163 @@
       const resultInfo = document.getElementById('result-info');
       resultInfo.classList.remove('hidden');
       
-      // 제목 설정
+      // 제목 설정 - "최저가금증" 오타 수정
       const resultTitle = document.getElementById('result-title');
       if (resultTitle && resultData.title) {
-        resultTitle.textContent = resultData.title;
+        // "최저가금증" 오타를 "최저가 검증"으로 수정
+        let title = resultData.title;
+        if (title.includes('최저가금증')) {
+          title = title.replace('최저가금증', '최저가 검증');
+        }
+        resultTitle.textContent = title;
       }
       
       // 내용 설정
       const content = resultData.content || resultData.summary || '결과 내용이 없습니다.';
       document.getElementById('result-summary').innerHTML = content;
       
-      // 가격 정보 설정
+      // 의뢰 기본 정보 설정
+      const requestNumber = document.getElementById('request-number');
+      const requestDate = document.getElementById('request-date');
+      const productName = document.getElementById('product-name');
+      const originalPrice = document.getElementById('original-price');
+      
+      if (requestNumber) requestNumber.textContent = reqNum;
+      if (requestDate) {
+        const dateStr = requestData ? (requestData.date || requestData.createdAt || '') : '';
+        requestDate.textContent = formatDateTime(dateStr);
+      }
+      if (productName) {
+        productName.textContent = requestData ? (requestData.name || requestData.productName || '') : '';
+      }
+      if (originalPrice) {
+        const price = requestData ? requestData.price : '';
+        if (typeof price === 'number') {
+          originalPrice.textContent = price.toLocaleString() + '원';
+        } else if (typeof price === 'string') {
+          originalPrice.textContent = price;
+        } else {
+          originalPrice.textContent = '';
+        }
+      }
+
+      // 검증 결과 정보 설정
       const resultPrice = document.getElementById('result-price');
-      if (resultPrice && resultData.price) {
-        resultPrice.textContent = resultData.price;
+      const resultSavings = document.getElementById('result-savings');
+      const resultSavingsPercent = document.getElementById('result-savings-percent');
+      const resultOrigin = document.getElementById('result-origin');
+      const resultPurchaseMethod = document.getElementById('result-purchase-method');
+      const verificationDate = document.getElementById('verification-date');
+      
+      // 최저가 설정
+      if (resultPrice) {
+        resultPrice.textContent = resultData.finalPrice || resultData.price || '';
+      }
+      
+      // 절약 금액 계산 및 설정
+      if (resultSavings) {
+        // 숫자 타입 처리 함수
+        const extractNumber = (value) => {
+          if (typeof value === 'number') return value;
+          if (typeof value === 'string') {
+            return parseInt(value.replace(/[^\d]/g, '')) || 0;
+          }
+          return 0;
+        };
+        
+        const original = extractNumber(requestData.price);
+        const final = extractNumber(resultData.finalPrice || resultData.price);
+        const savings = original - final;
+        if (savings > 0) {
+          resultSavings.textContent = savings.toLocaleString() + '원';
+        } else {
+          resultSavings.textContent = resultData.savings || '';
+        }
+      }
+      
+      // 절약률 계산 및 설정
+      if (resultSavingsPercent) {
+        // 숫자 타입 처리 함수
+        const extractNumber = (value) => {
+          if (typeof value === 'number') return value;
+          if (typeof value === 'string') {
+            return parseInt(value.replace(/[^\d]/g, '')) || 0;
+          }
+          return 0;
+        };
+        
+        const original = extractNumber(requestData.price);
+        const final = extractNumber(resultData.finalPrice || resultData.price);
+        if (original > 0) {
+          const percent = Math.round((original - final) / original * 100);
+          resultSavingsPercent.textContent = percent + '%';
+        } else {
+          resultSavingsPercent.textContent = resultData.savingsPercent || '';
+        }
       }
       
       // 원산지 정보 설정
-      const resultOrigin = document.getElementById('result-origin');
-      if (resultOrigin && resultData.origin) {
-        resultOrigin.textContent = resultData.origin;
+      if (resultOrigin) {
+        resultOrigin.textContent = resultData.origin || '';
       }
       
-      // 이미지 처리
+      // 구매 방법 설정
+      if (resultPurchaseMethod) {
+        resultPurchaseMethod.textContent = resultData.purchaseMethod || '';
+      }
+      
+      // 검증 시점 설정
+      if (verificationDate) {
+        if (resultData.verificationDate) {
+          const date = new Date(resultData.verificationDate);
+          verificationDate.textContent = date.toLocaleDateString('ko-KR') + ' ' + date.toLocaleTimeString('ko-KR');
+        } else if (resultData.savedAt) {
+          const date = new Date(resultData.savedAt);
+          verificationDate.textContent = date.toLocaleDateString('ko-KR') + ' ' + date.toLocaleTimeString('ko-KR');
+        } else {
+          verificationDate.textContent = '검증 완료일';
+        }
+      }
+      
+      // 이미지 처리 (관리자가 입력한 증거자료만)
       const resultImageContainer = document.getElementById('result-image-container');
       const resultImageDisplay = document.getElementById('result-image-display');
       
-      let imageData = resultData.image;
+      let imageData = null;
+      
+      // 1. 결과 데이터에 직접 저장된 이미지 (관리자 입력)
+      if (resultData.image && resultData.image.startsWith('data:image/')) {
+        imageData = resultData.image;
+      }
+      
+      // 2. 결과 데이터의 imageKey로 저장된 이미지 (관리자 입력)
       if (!imageData && resultData.imageKey) {
         try {
-          imageData = localStorage.getItem(resultData.imageKey);
+          const savedImage = localStorage.getItem(resultData.imageKey);
+          if (savedImage && savedImage.startsWith('data:image/')) {
+            imageData = savedImage;
+          }
         } catch (e) {
           console.error('별도 저장된 이미지 로드 실패:', e);
         }
       }
       
-      // 이미지 키가 없으면 직접 찾기
-      if (!imageData) {
-        const cleanReqNum = reqNum.replace('#', '').replace('PH-', '');
-        const reqNumOnly = reqNum.replace('#PH-', '').replace('#', '');
-        const possibleImageKeys = [
-          `image-${reqNumOnly}`,
-          `image-${cleanReqNum}`,
-          `image-PH-${reqNumOnly}`,
-          `image-${reqNumOnly.replace('PH-', '')}`,
-          `image-${cleanReqNum.replace('PH-', '')}`,
-          `image-${reqNumOnly.replace('#', '')}`,
-          `image-${cleanReqNum.replace('#', '')}`,
-          `image-${reqNumOnly.replace('#PH-', '')}`,
-          `image-${cleanReqNum.replace('#PH-', '')}`
-        ];
-        
-        for (const imageKey of possibleImageKeys) {
-          try {
-            const foundImage = localStorage.getItem(imageKey);
-            if (foundImage && foundImage.startsWith('data:image/')) {
-              imageData = foundImage;
-              break;
-            }
-          } catch (e) {
-            console.log('이미지 키 검색 중 오류:', imageKey, e);
-          }
-        }
-        
-        // 전체 localStorage에서 이미지 검색
-        if (!imageData) {
-          for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            if (key && key.startsWith('image-') && (key.includes(cleanReqNum) || key.includes(reqNumOnly))) {
-              try {
-                const foundImage = localStorage.getItem(key);
-                if (foundImage && foundImage.startsWith('data:image/')) {
-                  imageData = foundImage;
-                  break;
-                }
-              } catch (e) {
-                console.log('전체 검색 중 오류:', key, e);
-              }
-            }
-          }
-        }
+      // 3. 결과 데이터의 screenshot 필드 (관리자 입력)
+      if (!imageData && resultData.screenshot) {
+        imageData = resultData.screenshot;
       }
+      
+      // 의뢰 데이터의 이미지는 증거자료로 사용하지 않음 (고객이 올린 제품 이미지)
+      console.log('관리자 입력 증거자료 이미지:', imageData ? '있음' : '없음');
+      if (imageData) {
+        console.log('이미지 데이터 타입:', typeof imageData);
+        console.log('이미지 데이터 길이:', imageData.length);
+        console.log('이미지 데이터 시작 부분:', imageData.substring(0, 50));
+      }
+      
+      // 증거자료 섹션 조건부 표시
+      const evidenceSection = document.getElementById('evidence-section');
+      let hasEvidence = false;
       
       // 이미지 표시
       if (imageData && resultImageContainer && resultImageDisplay) {
@@ -545,6 +769,8 @@
           resultImageDisplay.src = imageData;
           resultImageDisplay.onload = () => {
             resultImageContainer.classList.remove('hidden');
+            hasEvidence = true;
+            if (evidenceSection) evidenceSection.classList.remove('hidden');
           };
           resultImageDisplay.onerror = () => {
             resultImageContainer.classList.add('hidden');
@@ -558,32 +784,52 @@
         }
       }
       
+      // 링크 이동 버튼 처리
+      const actionButtons = document.getElementById('action-buttons');
+      const linkButton = document.getElementById('link-button');
+      
+      if (resultData.link || resultData.url) {
+        // 링크가 있으면 버튼 표시
+        actionButtons.classList.remove('hidden');
+        hasEvidence = true;
+        const linkUrl = resultData.link || resultData.url;
+        
+        // 링크 이동 버튼 이벤트 (확인창 포함)
+        linkButton.onclick = function() {
+          if (confirm('외부 링크로 이동하시겠습니까?\n\n이동할 사이트: ' + new URL(linkUrl).hostname)) {
+            window.open(linkUrl, '_blank');
+          }
+        };
+      } else {
+        // 링크가 없으면 버튼 숨김
+        actionButtons.classList.add('hidden');
+      }
+      
+      // 증거자료가 있으면 섹션 표시, 없으면 숨김
+      if (evidenceSection) {
+        if (hasEvidence) {
+          evidenceSection.classList.remove('hidden');
+        } else {
+          evidenceSection.classList.add('hidden');
+        }
+      }
+      
+      // 정책 준수 확인 - 증거자료 체크 업데이트
+      const evidenceCheck = document.getElementById('evidence-check');
+      if (evidenceCheck) {
+        if (hasEvidence) {
+          evidenceCheck.innerHTML = '<span class="text-green-600">✓</span>';
+        } else {
+          evidenceCheck.innerHTML = '<span class="text-gray-400">○</span>';
+        }
+      }
+      
       // 상태 배지 설정
       const statusBadge = document.getElementById('status-badge');
       if (statusBadge) {
         statusBadge.textContent = '검증 완료';
         statusBadge.className = 'px-3 py-1 rounded-full text-sm font-bold text-white bg-green-500';
       }
-      
-                     // 링크 이동 버튼 처리
-        const actionButtons = document.getElementById('action-buttons');
-        const linkButton = document.getElementById('link-button');
-        
-        if (resultData.link || resultData.url) {
-          // 링크가 있으면 버튼 표시
-          actionButtons.classList.remove('hidden');
-          const linkUrl = resultData.link || resultData.url;
-          
-          // 링크 이동 버튼 이벤트 (확인창 포함)
-          linkButton.onclick = function() {
-            if (confirm('외부 링크로 이동하시겠습니까?\n\n이동할 사이트: ' + new URL(linkUrl).hostname)) {
-              window.open(linkUrl, '_blank');
-            }
-          };
-        } else {
-          // 링크가 없으면 버튼 숨김
-          actionButtons.classList.add('hidden');
-        }
        
        // 결과 카드 표시
        document.getElementById('result-card').classList.remove('hidden');
@@ -603,10 +849,86 @@
        const resultInfo = document.getElementById('result-info');
        const resultSummary = document.getElementById('result-summary');
        const actionButtons = document.getElementById('action-buttons');
+       const evidenceSection = document.getElementById('evidence-section');
        if (resultInfo) resultInfo.classList.add('hidden');
        if (resultSummary) resultSummary.classList.add('hidden');
        if (actionButtons) actionButtons.classList.add('hidden');
+       if (evidenceSection) evidenceSection.classList.add('hidden');
      }
+
+    // 증거자료 없는 결과 데이터 정리 함수
+    function cleanupResultData() {
+      console.log('증거자료 없는 결과 데이터 정리 시작...');
+      
+      // 모든 result- 키 검색
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('result-')) {
+          try {
+            const resultData = JSON.parse(localStorage.getItem(key));
+            if (resultData) {
+              // 증거자료가 없는지 확인 (관리자가 입력한 것만)
+              const hasEvidence = !!(resultData.link || resultData.url || resultData.image || resultData.imageKey || resultData.screenshot);
+              
+              if (!hasEvidence) {
+                console.log('관리자 입력 증거자료 없는 결과 데이터 발견:', key, resultData);
+                // 여기서 정리 작업을 수행할 수 있습니다
+                // 예: localStorage.removeItem(key);
+              }
+            }
+          } catch (e) {
+            console.log('결과 데이터 파싱 오류:', key, e);
+          }
+        }
+      }
+    }
+
+    // 이미지 데이터 삭제 함수
+    function removeImageDataFromResults() {
+      console.log('결과 데이터에서 이미지 필드 삭제 시작...');
+      
+      // 모든 result- 키 검색
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('result-')) {
+          try {
+            const resultData = JSON.parse(localStorage.getItem(key));
+            if (resultData) {
+              let modified = false;
+              
+              // 이미지 관련 필드 삭제
+              if (resultData.image) {
+                console.log('이미지 필드 삭제:', key);
+                delete resultData.image;
+                modified = true;
+              }
+              
+              if (resultData.imageKey) {
+                console.log('imageKey 필드 삭제:', key);
+                delete resultData.imageKey;
+                modified = true;
+              }
+              
+              if (resultData.screenshot) {
+                console.log('screenshot 필드 삭제:', key);
+                delete resultData.screenshot;
+                modified = true;
+              }
+              
+              // 수정된 데이터 저장
+              if (modified) {
+                localStorage.setItem(key, JSON.stringify(resultData));
+                console.log('수정된 결과 데이터 저장:', key);
+              }
+            }
+          } catch (e) {
+            console.log('결과 데이터 처리 오류:', key, e);
+          }
+        }
+      }
+      
+      console.log('이미지 데이터 삭제 완료!');
+    }
 
     // 문의/답변 내용 안전하게 렌더링 (기존 contact.html 그대로)
     function escapeHtml(str) {
@@ -790,7 +1112,7 @@
                 </div>
               </form>
             </div>
-            <button class='mt-2 py-1 px-3 bg-red-500 text-white rounded font-bold hover:bg-red-600 transition' aria-label='문의 삭제' onclick='deleteInquiry(${JSON.stringify(inq.subject)}, ${JSON.stringify(inq.date)})'>삭제</button>
+            <!-- 의뢰 삭제 기능 제거 - 폐쇄성 강화 -->
           </li>
         `;
       });
@@ -806,6 +1128,15 @@
       
       // 문의 내역 표시
       renderHistory();
+      
+      // 증거자료 없는 결과 데이터 확인 (디버깅용)
+      cleanupResultData();
+      
+      // 이미지 데이터 삭제 (한 번만 실행)
+      if (!localStorage.getItem('imageDataCleaned')) {
+        removeImageDataFromResults();
+        localStorage.setItem('imageDataCleaned', 'true');
+      }
       
       // 탭 전환 이벤트
       document.getElementById('tab-info').addEventListener('click', () => switchTab('panel-info'));

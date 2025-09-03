@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>의뢰 완료 | PriceHunter</title>
+    <title>의뢰 완료 - PriceHunter</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -16,6 +16,21 @@
       @keyframes pulse-bar {
         0% { width: 0; }
         100% { width: 100%; }
+      }
+      /* 텍스트 선택 및 편집 방지 */
+      body {
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+      }
+      
+      /* 버튼과 링크는 텍스트 선택 허용 */
+      button, a {
+        -webkit-user-select: text;
+        -moz-user-select: text;
+        -ms-user-select: text;
+        user-select: text;
       }
     </style>
   </head>

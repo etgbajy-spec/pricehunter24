@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>절감왕 - PriceHunter</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: 'Noto Sans KR', sans-serif; }
+    .savings-card { transition: transform 0.3s ease, box-shadow 0.3s ease; }
+    .savings-card:hover { transform: translateY(-4px); box-shadow: 0 20px 40px rgba(0,0,0,0.1); }
+    
+    /* 텍스트 선택 방지 */
+    body { -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none; }
+    button, a { -webkit-user-select: text; -moz-user-select: text; -ms-user-select: text; user-select: text; }
+    
+    /* 버튼 텍스트 줄바꿈 방지 - 강제 적용 */
+    .btn-nowrap { 
+      white-space: nowrap !important; 
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-gray-50 via-blue-50 to-emerald-50 min-h-screen">
+  
+  <!-- 헤더 -->
+  <header class="bg-white shadow-lg">
+    <div class="max-w-7xl mx-auto px-4 py-6">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+          <a href="index.html" class="text-2xl font-bold text-blue-600">PriceHunter</a>
+          <span class="text-gray-400">|</span>
+          <h1 class="text-xl font-bold text-gray-800 flex items-center">🏆 절감왕 아카이브</h1>
+        </div>
+        <a href="index.html" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+          홈으로 돌아가기
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- 메인 콘텐츠 -->
+  <main class="max-w-7xl mx-auto px-4 py-8">
+    
+    <!-- 안내 섹션 -->
+    <div class="bg-white rounded-2xl shadow-lg p-8 mb-8">
+      <div class="text-center mb-6">
+        <h2 class="text-3xl font-bold text-gray-800 mb-4">실제 검증된 절감 성공 사례</h2>
+        <p class="text-lg text-gray-600">시점고정·증거제시·브랜드배제 원칙으로 검증된 절감 사례들입니다</p>
+      </div>
+      
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <div class="text-center p-4 bg-blue-50 rounded-lg">
+          <div class="text-2xl font-bold text-blue-600 mb-2">시점고정</div>
+          <p class="text-sm text-gray-600">검증 시점을 명확히 기록하여 가격 변동에 대한 투명성 보장</p>
+        </div>
+        <div class="text-center p-4 bg-green-50 rounded-lg">
+          <div class="text-2xl font-bold text-green-600 mb-2">증거제시</div>
+          <p class="text-sm text-gray-600">스크린샷과 링크로 검증 결과의 객관성 입증</p>
+        </div>
+        <div class="text-center p-4 bg-red-50 rounded-lg">
+          <div class="text-2xl font-bold text-red-600 mb-2">브랜드배제</div>
+          <p class="text-sm text-gray-600">애플·명품·스니커즈 등 특정 브랜드는 검증 제외</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 절감왕 그리드 -->
+    <div id="savings-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <!-- 절감왕 카드들이 동적으로 생성됨 -->
+    </div>
+
+    <!-- 로딩 상태 -->
+    <div id="loading" class="text-center py-12">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+      <p class="mt-4 text-gray-600">절감왕 사례를 불러오는 중...</p>
+    </div>
+  </main>
+
+  <!-- 모달 -->
+  <div id="modal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+    <div class="flex items-center justify-center min-h-screen p-4">
+      <div class="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        <div class="p-6">
+          <div class="flex justify-between items-center mb-4">
+            <h3 id="modal-title" class="text-xl font-semibold text-gray-800"></h3>
+            <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600">
+              <span class="text-2xl">×</span>
+            </button>
+          </div>
+          <div id="modal-content">
+            <!-- 동적으로 생성됨 -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 절감왕 데이터
+    const savingsData = [
+      {
+        id: 1,
+        title: "전기포트 3만8천원 절감 성공",
+        category: "home",
+        originalPrice: 89000,
+        savingsPrice: 51000,
+        savingsAmount: 38000,
+        savingsRate: 42,
+        product: "전기포트",
+        user: "김OO, 30대 직장인",
+        date: "2024.01.15",
+        reason: "동일 모델명, 동일 용량, 동일 보증 조건으로 검증 완료. 공장 직접구매 경로를 통해 대폭 할인된 가격 발견.",
+        image: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80",
+        evidence: "스크린샷 및 구매 링크 제공",
+        tags: ["생활용품", "공장직구", "동일모델"]
+      },
+      {
+        id: 2,
+        title: "무선이어폰 2만5천원 절감 성공",
+        category: "electronics",
+        originalPrice: 120000,
+        savingsPrice: 95000,
+        savingsAmount: 25000,
+        savingsRate: 21,
+        product: "무선이어폰",
+        user: "이OO, 20대 대학생",
+        date: "2024.01.14",
+        reason: "동일 스펙, 동일 보증 조건으로 검증 완료. 도매처 연동을 통한 할인가 발견.",
+        image: "https://images.unsplash.com/photo-1503602642458-232111445657?auto=format&fit=crop&w=600&q=80",
+        evidence: "스크린샷 및 구매 링크 제공",
+        tags: ["전자기기", "도매연동", "동일스펙"]
+      },
+      {
+        id: 3,
+        title: "사무용품 대량구매 15만원 절감",
+        category: "office",
+        originalPrice: 350000,
+        savingsPrice: 200000,
+        savingsAmount: 150000,
+        savingsRate: 43,
+        product: "사무용품 세트",
+        user: "박OO, 40대 사업자",
+        date: "2024.01.13",
+        reason: "대량구매 할인과 공장직구 경로를 통해 대폭 절감. 동일 품질 보장.",
+        image: "https://images.unsplash.com/photo-1465101046530-73398c7f28ca?auto=format&fit=crop&w=600&q=80",
+        evidence: "스크린샷 및 구매 링크 제공",
+        tags: ["사무용품", "대량구매", "공장직구"]
+      },
+      {
+        id: 4,
+        title: "패션백 8만원 절감 성공",
+        category: "fashion",
+        originalPrice: 180000,
+        savingsPrice: 100000,
+        savingsAmount: 80000,
+        savingsRate: 44,
+        product: "패션백",
+        user: "최OO, 20대 직장인",
+        date: "2024.01.12",
+        reason: "동일 브랜드, 동일 사이즈로 검증 완료. 해외직구 경로를 통한 대폭 할인.",
+        image: "https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&w=600&q=80",
+        evidence: "스크린샷 및 구매 링크 제공",
+        tags: ["패션/잡화", "해외직구", "동일브랜드"]
+      },
+      {
+        id: 5,
+        title: "모니터 12만원 절감 성공",
+        category: "electronics",
+        originalPrice: 280000,
+        savingsPrice: 160000,
+        savingsAmount: 120000,
+        savingsRate: 43,
+        product: "모니터",
+        user: "정OO, 30대 개발자",
+        date: "2024.01.11",
+        reason: "동일 해상도, 동일 패널 타입으로 검증 완료. 공장직구 경로를 통한 할인.",
+        image: "https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?auto=format&fit=crop&w=600&q=80",
+        evidence: "스크린샷 및 구매 링크 제공",
+        tags: ["전자기기", "공장직구", "동일스펙"]
+      },
+      {
+        id: 6,
+        title: "주방용품 세트 5만원 절감",
+        category: "home",
+        originalPrice: 120000,
+        savingsPrice: 70000,
+        savingsAmount: 50000,
+        savingsRate: 42,
+        product: "주방용품 세트",
+        user: "한OO, 40대 주부",
+        date: "2024.01.10",
+        reason: "동일 구성, 동일 재질로 검증 완료. 도매처 연동을 통한 할인.",
+        image: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?auto=format&fit=crop&w=600&q=80",
+        evidence: "스크린샷 및 구매 링크 제공",
+        tags: ["생활용품", "도매연동", "동일구성"]
+      }
+    ];
+
+    // 절감왕 카드 렌더링
+    function renderSavingsCards() {
+      const grid = document.getElementById('savings-grid');
+      const loading = document.getElementById('loading');
+      
+      loading.classList.add('hidden');
+      
+      grid.innerHTML = savingsData.map(item => `
+        <div class="savings-card bg-white rounded-2xl shadow-lg overflow-hidden cursor-pointer" onclick="openSavingsDetail(${item.id})">
+          <div class="relative">
+            <img src="${item.image}" alt="${item.product}" class="w-full h-48 object-cover">
+            <div class="absolute top-4 right-4 bg-emerald-500 text-white px-3 py-1 rounded-full text-sm font-bold">
+              🏆 절감왕
+            </div>
+            <div class="absolute bottom-4 left-4 bg-white/90 backdrop-blur px-3 py-2 rounded-lg">
+              <p class="text-sm font-semibold text-gray-800">${item.user}</p>
+              <p class="text-xs text-gray-600">${item.date} 검증 완료</p>
+            </div>
+          </div>
+          
+          <div class="p-6">
+            <div class="flex items-center gap-2 mb-3">
+              <span class="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-semibold">${getCategoryName(item.category)}</span>
+              <span class="bg-red-100 text-red-700 px-2 py-1 rounded text-xs font-semibold">-${item.savingsRate}%</span>
+            </div>
+            
+            <h3 class="text-lg font-bold text-gray-800 mb-2">${item.title}</h3>
+            <p class="text-sm text-gray-600 mb-4">${item.product}</p>
+            
+            <div class="space-y-2 mb-4">
+              <div class="flex justify-between text-sm">
+                <span class="text-gray-500">원래 가격</span>
+                <span class="font-semibold">${item.originalPrice.toLocaleString()}원</span>
+              </div>
+              <div class="flex justify-between text-sm">
+                <span class="text-gray-500">절감 후 가격</span>
+                <span class="font-bold text-emerald-600">${item.savingsPrice.toLocaleString()}원</span>
+              </div>
+              <div class="flex justify-between text-sm">
+                <span class="text-gray-500">절감액</span>
+                <span class="font-bold text-red-600">${item.savingsAmount.toLocaleString()}원 절약</span>
+              </div>
+            </div>
+            
+            <div class="flex flex-wrap gap-1">
+              ${item.tags.map(tag => `<span class="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs">${tag}</span>`).join('')}
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // 카테고리 이름 변환
+    function getCategoryName(category) {
+      const names = {
+        'electronics': '전자기기',
+        'home': '생활용품',
+        'fashion': '패션/잡화',
+        'office': '사무용품'
+      };
+      return names[category] || category;
+    }
+
+    // 절감왕 상세보기
+    function openSavingsDetail(id) {
+      const item = savingsData.find(s => s.id === id);
+      if (!item) return;
+      
+      document.getElementById('modal-title').textContent = item.title;
+      document.getElementById('modal-content').innerHTML = `
+        <div class="space-y-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <img src="${item.image}" alt="${item.product}" class="w-full rounded-lg">
+            </div>
+            <div class="space-y-4">
+              <div class="bg-emerald-50 p-4 rounded-lg">
+                <h4 class="font-semibold text-emerald-800 mb-2">절감 정보</h4>
+                <div class="space-y-2">
+                  <div class="flex justify-between">
+                    <span>원래 가격</span>
+                    <span class="font-semibold">${item.originalPrice.toLocaleString()}원</span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span>절감 후 가격</span>
+                    <span class="font-bold text-emerald-600">${item.savingsPrice.toLocaleString()}원</span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span>절감액</span>
+                    <span class="font-bold text-red-600">${item.savingsAmount.toLocaleString()}원</span>
+                  </div>
+                  <div class="text-center">
+                    <span class="inline-block bg-red-100 text-red-800 px-3 py-1 rounded-full font-bold">
+                      -${item.savingsRate}% 절감
+                    </span>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="bg-blue-50 p-4 rounded-lg">
+                <h4 class="font-semibold text-blue-800 mb-2">선정 사유</h4>
+                <p class="text-sm text-blue-700">${item.reason}</p>
+              </div>
+              
+              <div class="bg-gray-50 p-4 rounded-lg">
+                <h4 class="font-semibold text-gray-800 mb-2">검증 정보</h4>
+                <div class="space-y-1 text-sm text-gray-600">
+                  <div>검증자: ${item.user}</div>
+                  <div>검증일: ${item.date}</div>
+                  <div>증거: ${item.evidence}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="flex gap-2">
+            ${item.tags.map(tag => `<span class="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-sm">${tag}</span>`).join('')}
+          </div>
+          
+          <div class="text-center pt-4 space-y-4">
+            <button id="request-button" class="btn-nowrap inline-block bg-pink-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-pink-700 transition">
+              나도 의뢰해서 절약하기
+            </button>
+            <div class="pt-2">
+              <button id="evidence-button" class="btn-nowrap inline-block bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition">
+                증거 보기
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+      
+      document.getElementById('modal').classList.remove('hidden');
+      
+      // 버튼 이벤트 리스너 추가 - 즉시 실행
+      const requestBtn = document.getElementById('request-button');
+      const evidenceBtn = document.getElementById('evidence-button');
+      
+      if (requestBtn) {
+        requestBtn.onclick = function() {
+          window.location.href = 'request-v2.html';
+        };
+      }
+      
+      if (evidenceBtn) {
+        evidenceBtn.onclick = function() {
+          alert('증거 자료는 검증 완료 후 제공됩니다.\n\n- 스크린샷: 검증 시점의 가격 비교\n- 구매 링크: 실제 구매 가능한 링크\n- 검증 보고서: 상세한 검증 과정\n\n문의사항이 있으시면 1:1 문의를 이용해 주세요.');
+        };
+      }
+    }
+
+    // 모달 닫기
+    function closeModal() {
+      document.getElementById('modal').classList.add('hidden');
+    }
+
+    // 페이지 로드 시 실행
+    document.addEventListener('DOMContentLoaded', function() {
+      renderSavingsCards();
+      
+      // 모달 외부 클릭 시 닫기
+      document.getElementById('modal').addEventListener('click', function(e) {
+        if (e.target === this) {
+          closeModal();
+        }
+      });
+    });
+  </script>
+</body>
+</html>
+

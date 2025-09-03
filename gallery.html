@@ -3,8 +3,45 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>구매사례 갤러리 - PriceHunter</title>
+  <title>실제 고객 후기 - PriceHunter</title>
+  
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-N7R437NT77"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-N7R437NT77');
+  </script>
+  
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* 텍스트 선택 허용 (드래그 가능) */
+    body {
+      -webkit-user-select: text;
+      -moz-user-select: text;
+      -ms-user-select: text;
+      user-select: text;
+    }
+    
+    /* 버튼과 링크는 텍스트 선택 허용 */
+    button, a {
+      -webkit-user-select: text;
+      -moz-user-select: text;
+      -ms-user-select: text;
+      user-select: text;
+    }
+    
+    /* 커서 깜빡임 방지 */
+    body, div, p, h1, h2, h3, h4, h5, h6, span {
+      caret-color: transparent;
+    }
+    
+    /* 입력 요소는 커서 표시 */
+    input, textarea {
+      caret-color: auto;
+    }
+  </style>
 </head>
 <body class="bg-gradient-to-br from-gray-100 to-blue-50 min-h-screen flex flex-col">
   <div class="max-w-5xl mx-auto mt-16 mb-10">
@@ -56,7 +93,7 @@
         finalPrice: '32,000원',
         savings: '57,000원',
         savingsPercent: '64%',
-        review: '요청가 89,000원 → 32,000원으로 구매! 음질도 훌륭하고 정말 만족합니다.',
+        review: '요청가 89,000원 → 32,000원으로 구매!<br class="sm:hidden"> 음질도 훌륭하고 정말 만족합니다.',
         country: '대한민국',
         shipping: '2일',
         method: '공장 직접구매'
@@ -68,7 +105,7 @@
         finalPrice: '156,000원',
         savings: '142,000원',
         savingsPercent: '48%',
-        review: '요청가 298,000원 → 156,000원으로 절약! 해외직구보다 훨씬 저렴하게 구매했습니다.',
+        review: '요청가 298,000원 → 156,000원으로 절약!<br class="sm:hidden"> 해외직구보다 훨씬 저렴하게 구매했습니다.',
         country: '미국',
         shipping: '7일',
         method: '도매처 연동'
@@ -80,7 +117,7 @@
         finalPrice: '11,000원',
         savings: '34,000원',
         savingsPercent: '76%',
-        review: '요청가 45,000원 → 11,000원으로 구매! 품질도 좋고 정말 대박 절약했습니다.',
+        review: '요청가 45,000원 → 11,000원으로 구매!<br class="sm:hidden"> 품질도 좋고 정말 대박 절약했습니다.',
         country: '중국',
         shipping: '5일',
         method: '공장 직접구매'
@@ -104,7 +141,7 @@
         finalPrice: '23,000원',
         savings: '55,000원',
         savingsPercent: '71%',
-        review: '요청가 78,000원 → 23,000원으로 구매! 전문가용 품질인데 정말 저렴하게 샀어요.',
+        review: '요청가 78,000원 → 23,000원으로 구매!<br class="sm:hidden"> 전문가용 품질인데 정말 저렴하게 샀어요.',
         country: '독일',
         shipping: '8일',
         method: '도매처 연동'
@@ -164,7 +201,7 @@
       document.getElementById('modal-final-price').textContent = p.finalPrice;
       document.getElementById('modal-savings').textContent = p.savings;
       document.getElementById('modal-savings-percent').textContent = p.savingsPercent + ' 절약';
-      document.getElementById('modal-review').textContent = p.review;
+      document.getElementById('modal-review').innerHTML = p.review; // Use innerHTML to render HTML
       document.getElementById('modal-country').textContent = p.country;
       document.getElementById('modal-shipping').textContent = p.shipping;
       document.getElementById('modal-method').textContent = p.method;
@@ -184,5 +221,88 @@
       setTimeout(() => { modalOverlay.classList.add('hidden'); }, 300);
     }
   </script>
+  
+  <!-- 페이스북 스타일 푸터 -->
+  <footer class="bg-gray-900 text-white mt-20">
+    <div class="max-w-6xl mx-auto px-4 py-12">
+      <!-- 메인 푸터 콘텐츠 -->
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+        <!-- 회사 정보 -->
+        <div class="col-span-1 md:col-span-2">
+          <div class="flex items-center gap-3 mb-4">
+            <svg class="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+              <rect x="4" y="4" width="16" height="16" rx="4" stroke="currentColor"/>
+              <path d="M8 8h8M8 12h8M8 16h4" stroke-linecap="round"/>
+            </svg>
+            <h3 class="text-2xl font-bold text-blue-400">PriceHunter</h3>
+          </div>
+          <p class="text-gray-300 mb-4 leading-relaxed">
+            브랜드가 아닌 진짜 가치에 집중합니다.<br class="sm:hidden"> 
+            국내외 도매업체와 공장 네트워크를 바탕으로<br class="sm:hidden"> 
+            누구나 공장가로 제품을 구매할 수 있도록<br class="sm:hidden"> 
+            혁신적인 가격 중개 플랫폼을 만들었습니다.
+          </p>
+          <div class="flex flex-wrap gap-2">
+            <span class="bg-blue-900/50 text-blue-300 px-3 py-1 rounded-full text-sm">#공장가</span>
+            <span class="bg-emerald-900/50 text-emerald-300 px-3 py-1 rounded-full text-sm">#브랜드없는제품</span>
+            <span class="bg-pink-900/50 text-pink-300 px-3 py-1 rounded-full text-sm">#스마트구매</span>
+          </div>
+        </div>
+        
+        <!-- 서비스 -->
+        <div>
+          <h4 class="text-lg font-semibold mb-4 text-gray-200">서비스</h4>
+          <ul class="space-y-2 text-gray-400">
+            <li><a href="request-v2.html" class="hover:text-blue-400 transition">최저가 검증 의뢰</a></li>
+            <li><a href="index.html" class="hover:text-blue-400 transition">홈으로</a></li>
+            <li><a href="about.html" class="hover:text-blue-400 transition">회사 소개</a></li>
+            <li><a href="support.html" class="hover:text-blue-400 transition">고객 지원</a></li>
+          </ul>
+        </div>
+        
+        <!-- 연락처 -->
+        <div>
+          <h4 class="text-lg font-semibold mb-4 text-gray-200">연락처</h4>
+          <ul class="space-y-2 text-gray-400">
+            <li><a href="contact.html" class="hover:text-blue-400 transition">1:1 문의</a></li>
+            <li class="flex items-center gap-2">
+              <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+              </svg>
+              <span>support@pricehunter.co.kr</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+      
+      <!-- 팀 정보 (페이스북 스타일) -->
+      <div class="border-t border-gray-800 pt-8">
+        <div class="text-center">
+          <h5 class="text-sm font-medium text-gray-400 mb-4">팀 PriceHunter</h5>
+          <div class="flex flex-wrap justify-center gap-6 text-sm text-gray-500">
+            <div class="flex items-center gap-2">
+              <div class="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-xs">H</div>
+              <span>Jin Young Huh</span>
+              <span class="text-xs bg-blue-900/50 text-blue-300 px-2 py-1 rounded">Founder</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <div class="w-8 h-8 bg-gradient-to-br from-emerald-500 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-xs">L</div>
+              <span>Yo Han Lim</span>
+              <span class="text-xs bg-emerald-900/50 text-emerald-300 px-2 py-1 rounded">Co-Founder</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 저작권 -->
+      <div class="border-t border-gray-800 pt-6 mt-8 text-center">
+        <p class="text-gray-500 text-sm">
+          © 2024 PriceHunter. All rights reserved. | 
+          <a href="#" class="hover:text-blue-400 transition">개인정보처리방침</a> | 
+          <a href="#" class="hover:text-blue-400 transition">이용약관</a>
+        </p>
+      </div>
+    </div>
+  </footer>
 </body>
 </html> 

@@ -23,7 +23,7 @@
         </div>
       </div>
     </div>
-          <section class="relative w-full min-h-[70vh] flex flex-col items-center justify-center text-center px-4 py-20 bg-gradient-to-br from-gray-900 to-gray-700 overflow-hidden">
+    <section class="relative w-full min-h-[70vh] flex flex-col items-center justify-center text-center px-4 py-20 bg-gradient-to-br from-gray-900 to-gray-700 overflow-hidden">
       <!-- 배경 그래픽/블러 효과 -->
       <div class="absolute inset-0 pointer-events-none z-0">
         <div class="absolute -top-32 -left-32 w-96 h-96 bg-yellow-400 opacity-20 rounded-full blur-3xl"></div>
@@ -32,7 +32,7 @@
       <!-- Hero 콘텐츠 -->
       <div class="relative z-10 max-w-7xl mx-auto flex flex-col items-center animate-fadein-up w-full">
         <!-- 아이콘/일러스트 -->
-        <div class="mb-10 animate-bounce-slow w-full flex justify-center items-center gap-4">
+        <div class="mb-10 animate-bounce-slow w-full flex justify-center items-center gap-4 mt-16 sm:mt-20 md:mt-24">
           <span class="text-3xl md:text-5xl font-extrabold text-blue-400 drop-shadow-lg">PriceHunter</span>
           <svg class="w-24 h-24 md:w-40 md:h-40 text-yellow-300 drop-shadow-xl" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 48 48" aria-hidden="true">
             <circle cx="22" cy="22" r="12" stroke="currentColor" />
@@ -105,6 +105,31 @@
           transform: translateY(0) !important;
           transition: all 0.8s ease-out;
         }
+        
+        /* 텍스트 선택 및 편집 방지 */
+        body {
+          -webkit-user-select: none;
+          -moz-user-select: none;
+          -ms-user-select: none;
+          user-select: none;
+        }
+        
+        /* 버튼과 링크는 텍스트 선택 허용 */
+        button, a, input, textarea {
+          -webkit-user-select: text;
+          -moz-user-select: text;
+          -ms-user-select: text;
+          user-select: text;
+        }
+        
+        /* 관리자 진입 트리거는 예외 */
+        #admin-hero-trigger {
+          -webkit-user-select: none;
+          -moz-user-select: none;
+          -ms-user-select: none;
+          user-select: none;
+          cursor: pointer;
+        }
       </style>
     </section>
       <!-- 고객의 진짜 고민, 우리가 해결합니다 섹션 -->
@@ -135,13 +160,17 @@
               <div class="mb-4">
                 <svg class="w-14 h-14 text-pink-400 mx-auto" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 32 32"><circle cx="16" cy="16" r="12" stroke="currentColor"/><path d="M12 20c1.5-2 6.5-2 8 0" stroke-linecap="round"/><circle cx="12" cy="14" r="1.5" fill="currentColor"/><circle cx="20" cy="14" r="1.5" fill="currentColor"/></svg>
               </div>
-              <div class="font-bold text-lg text-gray-800 mb-2">"비브랜드 제품, 정보도 없고 후기 찾기도 힘들었는데..."</div>
-              <div class="text-gray-500 text-base mb-3">- 박OO, 40대 주부</div>
-              <div class="text-gray-700 text-sm">검색해도 정보가 부족해 망설였는데, PriceHunter가 상세 비교와 후기까지 안내해줘서 안심하고 구매했어요.</div>
+              <div class="font-bold text-lg text-gray-800 mb-2 text-center sm:text-left">"비브랜드 제품, 정보도 없고<br class="sm:hidden"> 후기 찾기도 힘들었는데..."</div>
+              <div class="text-gray-500 text-base mb-3 text-center sm:text-left">- 박OO, 40대 주부</div>
+              <div class="text-gray-700 text-sm text-center sm:text-left leading-relaxed">검색해도 정보가 부족해 망설였는데,<br class="sm:hidden"> PriceHunter가 상세 비교와 후기까지<br class="sm:hidden"> 안내해줘서 안심하고 구매했어요.</div>
             </div>
           </div>
-          <div class="mt-12 text-xl text-blue-700 font-bold animate-fadein-up" style="animation-delay:0.7s;">
-            <span class="bg-yellow-100 px-4 py-2 rounded-full shadow">고객의 고민, PriceHunter가 직접 해결해드립니다!</span>
+          <div class="mt-8 sm:mt-12 text-center animate-fadein-up" style="animation-delay:0.7s;">
+            <div class="inline-block bg-yellow-100 px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 rounded-full shadow-lg border border-yellow-200">
+              <span class="text-sm sm:text-base md:text-lg lg:text-xl text-blue-700 font-bold leading-tight">
+                고객의 고민, <span class="text-blue-800">PriceHunter</span>가<br class="sm:hidden">직접 해결해드립니다!
+              </span>
+            </div>
           </div>
         </div>
         <style>
@@ -151,73 +180,73 @@
       </section>
 
       <!-- 상세 서비스 프로세스 섹션 -->
-      <section class="w-full py-20 px-4 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 relative overflow-hidden">
+      <section class="w-full py-12 sm:py-16 md:py-20 px-4 sm:px-6 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 relative overflow-hidden">
         <!-- 배경 장식 요소 -->
         <div class="absolute inset-0 opacity-10">
-          <div class="absolute top-10 left-10 w-32 h-32 bg-blue-400 rounded-full blur-3xl animate-pulse"></div>
-          <div class="absolute bottom-10 right-10 w-40 h-40 bg-indigo-400 rounded-full blur-3xl animate-pulse" style="animation-delay: 1s;"></div>
-          <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-60 h-60 bg-purple-400 rounded-full blur-3xl animate-pulse" style="animation-delay: 2s;"></div>
+          <div class="absolute top-10 left-10 w-20 h-20 sm:w-32 sm:h-32 bg-blue-400 rounded-full blur-3xl animate-pulse"></div>
+          <div class="absolute bottom-10 right-10 w-24 h-24 sm:w-40 sm:h-40 bg-indigo-400 rounded-full blur-3xl animate-pulse" style="animation-delay: 1s;"></div>
+          <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-32 h-32 sm:w-60 sm:h-60 bg-purple-400 rounded-full blur-3xl animate-pulse" style="animation-delay: 2s;"></div>
         </div>
         
         <div class="max-w-6xl mx-auto relative z-10">
-          <div class="text-center mb-16">
-            <div class="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-2 rounded-full text-sm font-semibold mb-4 animate-fade-in-up">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <div class="text-center mb-8 sm:mb-12 md:mb-16">
+            <div class="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 sm:px-6 py-2 rounded-full text-xs sm:text-sm font-semibold mb-3 sm:mb-4 animate-fade-in-up">
+              <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                 <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
               </svg>
               단계별 서비스 과정
             </div>
-            <h2 class="text-3xl md:text-5xl font-extrabold text-gray-800 mb-6 animate-fade-in-up" style="animation-delay: 0.2s;">
+            <h2 class="text-2xl sm:text-3xl md:text-5xl font-extrabold text-gray-800 mb-4 sm:mb-6 animate-fade-in-up" style="animation-delay: 0.2s;">
               <span class="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
                 구매 프로세스
               </span>
-              <br>
-              <span class="text-2xl md:text-3xl text-gray-600 font-medium">5단계 상세 검증 과정</span>
-              <br>
-              <span class="text-xl md:text-2xl text-gray-500 font-medium">투명하고 체계적인 서비스</span>
+              <br class="sm:hidden">
+              <span class="text-lg sm:text-xl md:text-2xl lg:text-3xl text-gray-600 font-medium">5단계 상세 검증 과정</span>
+              <br class="sm:hidden">
+              <span class="text-base sm:text-lg md:text-xl lg:text-2xl text-gray-500 font-medium">투명하고 체계적인 서비스</span>
             </h2>
-            <p class="text-lg text-gray-600 max-w-3xl mx-auto animate-fade-in-up" style="animation-delay: 0.4s;">
-              고객님의 의뢰부터 최종 결과 제공까지, 모든 과정을 투명하게 안내해드립니다
+            <p class="text-sm sm:text-base md:text-lg text-gray-600 max-w-3xl mx-auto animate-fade-in-up px-2 leading-relaxed" style="animation-delay: 0.4s;">
+              고객님의 의뢰부터 최종 결과 제공까지,<br class="sm:hidden"> 모든 과정을 투명하게 안내해드립니다
             </p>
           </div>
           
           <!-- 5단계 프로세스 -->
-          <div class="space-y-8">
+          <div class="space-y-6 sm:space-y-8">
             <!-- 1단계: 의뢰 접수 -->
             <div class="group relative process-step opacity-0 transform translate-y-8">
-              <div class="flex items-center gap-6 bg-white/80 backdrop-blur-sm rounded-2xl p-8 shadow-xl border border-white/20 hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2">
-                <div class="flex-shrink-0">
-                  <div class="flex items-center justify-center w-16 h-16 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-2xl group-hover:scale-110 transition-transform duration-300 animate-bounce">
-                    <span class="text-white font-bold text-xl">1</span>
+              <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6 bg-white/80 backdrop-blur-sm rounded-2xl p-4 sm:p-6 md:p-8 shadow-xl border border-white/20 hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2">
+                <div class="flex-shrink-0 mx-auto sm:mx-0">
+                  <div class="flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-2xl group-hover:scale-110 transition-transform duration-300 animate-bounce">
+                    <span class="text-white font-bold text-lg sm:text-xl">1</span>
                   </div>
                 </div>
-                <div class="flex-1">
-                  <h3 class="text-2xl font-bold text-gray-800 mb-3">의뢰 접수 및 분석</h3>
-                  <p class="text-gray-600 mb-4 leading-relaxed">
+                <div class="flex-1 text-center sm:text-left">
+                  <h3 class="text-xl sm:text-2xl font-bold text-gray-800 mb-2 sm:mb-3">의뢰 접수 및 분석</h3>
+                  <p class="text-sm sm:text-base text-gray-600 mb-3 sm:mb-4 leading-relaxed">
                     고객님이 원하는 상품의 <span class="font-semibold text-blue-600">제품명, 요청가격, 참고링크</span>를 입력하시면 
                     전문 검증팀이 즉시 분석을 시작합니다.
                   </p>
-                  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div class="bg-blue-50 rounded-lg p-4">
-                      <div class="font-semibold text-blue-700 mb-2 flex items-center">
+                  <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
+                    <div class="bg-blue-50 rounded-lg p-3 sm:p-4">
+                      <div class="font-semibold text-blue-700 mb-1 sm:mb-2 flex items-center justify-center sm:justify-start">
                         <span class="w-2 h-2 bg-blue-500 rounded-full mr-2 animate-pulse"></span>
-                        제품 정보 확인
+                        <span class="text-xs sm:text-sm">제품 정보 확인</span>
                       </div>
-                      <p class="text-sm text-blue-600">정확한 모델명과 스펙 파악</p>
+                      <p class="text-xs sm:text-sm text-blue-600 text-center sm:text-left">정확한 모델명과 스펙 파악</p>
                     </div>
-                    <div class="bg-blue-50 rounded-lg p-4">
-                      <div class="font-semibold text-blue-700 mb-2 flex items-center">
+                    <div class="bg-blue-50 rounded-lg p-3 sm:p-4">
+                      <div class="font-semibold text-blue-700 mb-1 sm:mb-2 flex items-center justify-center sm:justify-start">
                         <span class="w-2 h-2 bg-blue-500 rounded-full mr-2 animate-pulse" style="animation-delay: 0.2s;"></span>
-                        시장 가격 조사
+                        <span class="text-xs sm:text-sm">시장 가격 조사</span>
                       </div>
-                      <p class="text-sm text-blue-600">국내외 주요 판매처 가격 분석</p>
+                      <p class="text-xs sm:text-sm text-blue-600 text-center sm:text-left">국내외 주요 판매처 가격 분석</p>
                     </div>
-                    <div class="bg-blue-50 rounded-lg p-4">
-                      <div class="font-semibold text-blue-700 mb-2 flex items-center">
+                    <div class="bg-blue-50 rounded-lg p-3 sm:p-4">
+                      <div class="font-semibold text-blue-700 mb-1 sm:mb-2 flex items-center justify-center sm:justify-start">
                         <span class="w-2 h-2 bg-blue-500 rounded-full mr-2 animate-pulse" style="animation-delay: 0.4s;"></span>
-                        검증 가능성 판단
+                        <span class="text-xs sm:text-sm">검증 가능성 판단</span>
                       </div>
-                      <p class="text-sm text-blue-600">브랜드 제한 및 합법성 검토</p>
+                      <p class="text-xs sm:text-sm text-blue-600 text-center sm:text-left">브랜드 제한 및 합법성 검토</p>
                     </div>
                   </div>
                 </div>
@@ -226,39 +255,39 @@
 
             <!-- 2단계: 검증 시작 -->
             <div class="group relative process-step opacity-0 transform translate-y-8" style="animation-delay: 0.2s;">
-              <div class="flex items-center gap-6 bg-white/80 backdrop-blur-sm rounded-2xl p-8 shadow-xl border border-white/20 hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2">
-                <div class="flex-shrink-0">
-                  <div class="flex items-center justify-center w-16 h-16 bg-gradient-to-r from-green-500 to-emerald-500 rounded-2xl group-hover:scale-110 transition-transform duration-300 animate-bounce" style="animation-delay: 0.3s;">
-                    <span class="text-white font-bold text-xl">2</span>
+              <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6 bg-white/80 backdrop-blur-sm rounded-2xl p-4 sm:p-6 md:p-8 shadow-xl border border-white/20 hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2">
+                <div class="flex-shrink-0 mx-auto sm:mx-0">
+                  <div class="flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 bg-gradient-to-r from-green-500 to-emerald-500 rounded-2xl group-hover:scale-110 transition-transform duration-300 animate-bounce" style="animation-delay: 0.3s;">
+                    <span class="text-white font-bold text-lg sm:text-xl">2</span>
                   </div>
                 </div>
-                <div class="flex-1">
-                  <h3 class="text-2xl font-bold text-gray-800 mb-3">실시간 검증 진행</h3>
-                  <p class="text-gray-600 mb-4 leading-relaxed">
-                    전문 검증팀이 <span class="font-semibold text-green-600">해외 직구, 도매처, 공장 직거래</span> 등 
+                <div class="flex-1 text-center sm:text-left">
+                  <h3 class="text-xl sm:text-2xl font-bold text-gray-800 mb-2 sm:mb-3">실시간 검증 진행</h3>
+                  <p class="text-sm sm:text-base text-gray-600 mb-3 sm:mb-4 leading-relaxed">
+                    전문 검증팀이 <span class="font-semibold text-green-600">도매처 연동, 공장 직거래, 특별 경로</span> 등 
                     다양한 경로를 통해 최저가를 찾아갑니다.
                   </p>
-                  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
                     <div class="bg-green-50 rounded-lg p-4">
                       <div class="font-semibold text-green-700 mb-2 flex items-center">
                         <span class="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></span>
-                        해외 직구 검증
-                      </div>
-                      <p class="text-sm text-green-600">아마존, 알리익스프레스 등</p>
-                    </div>
-                    <div class="bg-green-50 rounded-lg p-4">
-                      <div class="font-semibold text-green-700 mb-2 flex items-center">
-                        <span class="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse" style="animation-delay: 0.2s;"></span>
                         도매처 연동
                       </div>
                       <p class="text-sm text-green-600">국내외 도매업체 직접 문의</p>
                     </div>
                     <div class="bg-green-50 rounded-lg p-4">
                       <div class="font-semibold text-green-700 mb-2 flex items-center">
-                        <span class="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse" style="animation-delay: 0.4s;"></span>
+                        <span class="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse" style="animation-delay: 0.2s;"></span>
                         공장 직거래
                       </div>
-                      <p class="text-sm text-green-600">중국 공장 직접 구매 경로</p>
+                      <p class="text-sm text-green-600">국내/해외 공장 직접 구매</p>
+                    </div>
+                    <div class="bg-green-50 rounded-lg p-4">
+                      <div class="font-semibold text-green-700 mb-2 flex items-center">
+                        <span class="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse" style="animation-delay: 0.4s;"></span>
+                        특별 경로 발굴
+                      </div>
+                      <p class="text-sm text-green-600">독점 계약 및 특가 경로</p>
                     </div>
                   </div>
                 </div>
@@ -267,39 +296,39 @@
 
             <!-- 3단계: 가격 비교 -->
             <div class="group relative process-step opacity-0 transform translate-y-8" style="animation-delay: 0.4s;">
-              <div class="flex items-center gap-6 bg-white/80 backdrop-blur-sm rounded-2xl p-8 shadow-xl border border-white/20 hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2">
-                <div class="flex-shrink-0">
-                  <div class="flex items-center justify-center w-16 h-16 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-2xl group-hover:scale-110 transition-transform duration-300 animate-bounce" style="animation-delay: 0.5s;">
-                    <span class="text-white font-bold text-xl">3</span>
+              <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6 bg-white/80 backdrop-blur-sm rounded-2xl p-4 sm:p-6 md:p-8 shadow-xl border border-white/20 hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2">
+                <div class="flex-shrink-0 mx-auto sm:mx-0">
+                  <div class="flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-2xl group-hover:scale-110 transition-transform duration-300 animate-bounce" style="animation-delay: 0.5s;">
+                    <span class="text-white font-bold text-lg sm:text-xl">3</span>
                   </div>
                 </div>
-                <div class="flex-1">
-                  <h3 class="text-2xl font-bold text-gray-800 mb-3">종합 가격 분석</h3>
-                  <p class="text-gray-600 mb-4 leading-relaxed">
+                <div class="flex-1 text-center sm:text-left">
+                  <h3 class="text-xl sm:text-2xl font-bold text-gray-800 mb-2 sm:mb-3">종합 가격 분석</h3>
+                  <p class="text-sm sm:text-base text-gray-600 mb-3 sm:mb-4 leading-relaxed">
                     수집된 모든 가격 정보를 <span class="font-semibold text-yellow-600">배송비, 관세, 수수료</span>를 포함하여 
                     정확히 비교 분석합니다.
                   </p>
-                  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div class="bg-yellow-50 rounded-lg p-4">
-                      <div class="font-semibold text-yellow-700 mb-2 flex items-center">
+                  <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
+                    <div class="bg-yellow-50 rounded-lg p-3 sm:p-4">
+                      <div class="font-semibold text-yellow-700 mb-1 sm:mb-2 flex items-center justify-center sm:justify-start">
                         <span class="w-2 h-2 bg-yellow-500 rounded-full mr-2 animate-pulse"></span>
-                        배송비 계산
+                        <span class="text-xs sm:text-sm">배송비 계산</span>
                       </div>
-                      <p class="text-sm text-yellow-600">국제배송, 관세, 통관비용</p>
+                      <p class="text-xs sm:text-sm text-yellow-600 text-center sm:text-left">국내/해외 배송, 관세, 통관비용</p>
                     </div>
-                    <div class="bg-yellow-50 rounded-lg p-4">
-                      <div class="font-semibold text-yellow-700 mb-2 flex items-center">
+                    <div class="bg-yellow-50 rounded-lg p-3 sm:p-4">
+                      <div class="font-semibold text-yellow-700 mb-1 sm:mb-2 flex items-center justify-center sm:justify-start">
                         <span class="w-2 h-2 bg-yellow-500 rounded-full mr-2 animate-pulse" style="animation-delay: 0.2s;"></span>
-                        수수료 분석
+                        <span class="text-xs sm:text-sm">수수료 분석</span>
                       </div>
-                      <p class="text-sm text-yellow-600">결제수수료, 중개수수료 등</p>
+                      <p class="text-xs sm:text-sm text-yellow-600 text-center sm:text-left">결제수수료, 중개수수료 등</p>
                     </div>
-                    <div class="bg-yellow-50 rounded-lg p-4">
-                      <div class="font-semibold text-yellow-700 mb-2 flex items-center">
+                    <div class="bg-yellow-50 rounded-lg p-3 sm:p-4">
+                      <div class="font-semibold text-yellow-700 mb-1 sm:mb-2 flex items-center justify-center sm:justify-start">
                         <span class="w-2 h-2 bg-yellow-500 rounded-full mr-2 animate-pulse" style="animation-delay: 0.4s;"></span>
-                        최종가격 산정
+                        <span class="text-xs sm:text-sm">최종가격 산정</span>
                       </div>
-                      <p class="text-sm text-yellow-600">모든 비용 포함 실제 구매가</p>
+                      <p class="text-xs sm:text-sm text-yellow-600 text-center sm:text-left">모든 비용 포함 실제 구매가</p>
                     </div>
                   </div>
                 </div>
@@ -308,39 +337,39 @@
 
             <!-- 4단계: 증거 수집 -->
             <div class="group relative process-step opacity-0 transform translate-y-8" style="animation-delay: 0.6s;">
-              <div class="flex items-center gap-6 bg-white/80 backdrop-blur-sm rounded-2xl p-8 shadow-xl border border-white/20 hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2">
-                <div class="flex-shrink-0">
-                  <div class="flex items-center justify-center w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl group-hover:scale-110 transition-transform duration-300 animate-bounce" style="animation-delay: 0.7s;">
-                    <span class="text-white font-bold text-xl">4</span>
+              <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6 bg-white/80 backdrop-blur-sm rounded-2xl p-4 sm:p-6 md:p-8 shadow-xl border border-white/20 hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2">
+                <div class="flex-shrink-0 mx-auto sm:mx-0">
+                  <div class="flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl group-hover:scale-110 transition-transform duration-300 animate-bounce" style="animation-delay: 0.7s;">
+                    <span class="text-white font-bold text-lg sm:text-xl">4</span>
                   </div>
                 </div>
-                <div class="flex-1">
-                  <h3 class="text-2xl font-bold text-gray-800 mb-3">검증 증거 수집</h3>
-                  <p class="text-gray-600 mb-4 leading-relaxed">
+                <div class="flex-1 text-center sm:text-left">
+                  <h3 class="text-xl sm:text-2xl font-bold text-gray-800 mb-2 sm:mb-3">검증 증거 수집</h3>
+                  <p class="text-sm sm:text-base text-gray-600 mb-3 sm:mb-4 leading-relaxed">
                     최저가 발견 시 <span class="font-semibold text-purple-600">실시간 스크린샷, 구매링크, 검증 시점</span>을 
                     모두 기록하여 객관적인 증거를 확보합니다.
                   </p>
-                  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div class="bg-purple-50 rounded-lg p-4">
-                      <div class="font-semibold text-purple-700 mb-2 flex items-center">
+                  <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
+                    <div class="bg-purple-50 rounded-lg p-3 sm:p-4">
+                      <div class="font-semibold text-purple-700 mb-1 sm:mb-2 flex items-center justify-center sm:justify-start">
                         <span class="w-2 h-2 bg-purple-500 rounded-full mr-2 animate-pulse"></span>
-                        실시간 스크린샷
+                        <span class="text-xs sm:text-sm">실시간 스크린샷</span>
                       </div>
-                      <p class="text-sm text-purple-600">가격 및 상품 정보 캡처</p>
+                      <p class="text-xs sm:text-sm text-purple-600 text-center sm:text-left">가격 및 상품 정보 캡처</p>
                     </div>
-                    <div class="bg-purple-50 rounded-lg p-4">
-                      <div class="font-semibold text-purple-700 mb-2 flex items-center">
+                    <div class="bg-purple-50 rounded-lg p-3 sm:p-4">
+                      <div class="font-semibold text-purple-700 mb-1 sm:mb-2 flex items-center justify-center sm:justify-start">
                         <span class="w-2 h-2 bg-purple-500 rounded-full mr-2 animate-pulse" style="animation-delay: 0.2s;"></span>
-                        구매 링크 제공
+                        <span class="text-xs sm:text-sm">구매 링크 제공</span>
                       </div>
-                      <p class="text-sm text-purple-600">직접 구매 가능한 링크</p>
+                      <p class="text-xs sm:text-sm text-purple-600 text-center sm:text-left">직접 구매 가능한 링크</p>
                     </div>
-                    <div class="bg-purple-50 rounded-lg p-4">
-                      <div class="font-semibold text-purple-700 mb-2 flex items-center">
+                    <div class="bg-purple-50 rounded-lg p-3 sm:p-4">
+                      <div class="font-semibold text-purple-700 mb-1 sm:mb-2 flex items-center justify-center sm:justify-start">
                         <span class="w-2 h-2 bg-purple-500 rounded-full mr-2 animate-pulse" style="animation-delay: 0.4s;"></span>
-                        검증 시점 기록
+                        <span class="text-xs sm:text-sm">검증 시점 기록</span>
                       </div>
-                      <p class="text-sm text-purple-600">정확한 날짜와 시간 기록</p>
+                      <p class="text-xs sm:text-sm text-purple-600 text-center sm:text-left">정확한 날짜와 시간 기록</p>
                     </div>
                   </div>
                 </div>
@@ -349,16 +378,16 @@
 
             <!-- 5단계: 결과 제공 -->
             <div class="group relative process-step opacity-0 transform translate-y-8" style="animation-delay: 0.8s;">
-              <div class="flex items-center gap-6 bg-white/80 backdrop-blur-sm rounded-2xl p-8 shadow-xl border border-white/20 hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2">
-                <div class="flex-shrink-0">
-                  <div class="flex items-center justify-center w-16 h-16 bg-gradient-to-r from-red-500 to-pink-500 rounded-2xl group-hover:scale-110 transition-transform duration-300 animate-bounce" style="animation-delay: 0.9s;">
-                    <span class="text-white font-bold text-xl">5</span>
+              <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6 bg-white/80 backdrop-blur-sm rounded-2xl p-4 sm:p-6 md:p-8 shadow-xl border border-white/20 hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2">
+                <div class="flex-shrink-0 mx-auto sm:mx-0">
+                  <div class="flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 bg-gradient-to-r from-red-500 to-pink-500 rounded-2xl group-hover:scale-110 transition-transform duration-300 animate-bounce" style="animation-delay: 0.9s;">
+                    <span class="text-white font-bold text-lg sm:text-xl">5</span>
                   </div>
                 </div>
-                <div class="flex-1">
-                  <h3 class="text-2xl font-bold text-gray-800 mb-3">상세 결과 제공</h3>
-                  <p class="text-gray-600 mb-4 leading-relaxed">
-                    검증 완료 후 <span class="font-semibold text-red-600">최저가, 구매링크, 절약금액, 상세 분석</span>을 
+                <div class="flex-1 text-center sm:text-left">
+                  <h3 class="text-xl sm:text-2xl font-bold text-gray-800 mb-2 sm:mb-3">상세 결과 제공</h3>
+                  <p class="text-sm sm:text-base text-gray-600 mb-3 sm:mb-4 leading-relaxed">
+                    검증 완료 후 <span class="font-semibold text-red-600">최저가, 구매링크, 절약금액, 상세 분석</span>을<br class="sm:hidden"> 
                     포함한 종합적인 결과를 제공합니다.
                   </p>
                   <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -398,16 +427,16 @@
               <div class="absolute -bottom-10 -left-10 w-20 h-20 bg-indigo-200 rounded-full blur-xl opacity-0 group-hover:opacity-30 transition-opacity duration-500"></div>
               
               <div class="relative z-10">
-                <h3 class="text-2xl font-bold text-gray-800 mb-4 animate-fade-in-up" style="animation-delay: 1s;">투명하고 체계적인 검증 서비스</h3>
-                <p class="text-gray-600 mb-6 max-w-2xl mx-auto animate-fade-in-up" style="animation-delay: 1.2s;">
-                  5단계 상세 프로세스를 통해 고객님께 최고의 가치를 제공합니다. 
-                  모든 과정이 투명하게 진행되며, 객관적인 증거와 함께 결과를 제공합니다.
+                <h3 class="text-2xl font-bold text-gray-800 mb-4 animate-fade-in-up" style="animation-delay: 1s;">투명하고 체계적인<br class="sm:hidden"> 검증 서비스</h3>
+                <p class="text-gray-600 mb-6 max-w-2xl mx-auto animate-fade-in-up leading-relaxed" style="animation-delay: 1.2s;">
+                  5단계 상세 프로세스를 통해<br class="sm:hidden"> 고객님께 최고의 가치를 제공합니다.<br class="hidden sm:inline"><br class="sm:hidden">
+                  모든 과정이 투명하게 진행되며,<br class="sm:hidden"> 객관적인 증거와 함께<br class="sm:hidden"> 결과를 제공합니다.
                 </p>
-                <a href="request-v2.html" class="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-8 py-4 rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition-all duration-500 transform hover:scale-105 hover:rotate-1 animate-fade-in-up group" style="animation-delay: 1.4s;">
-                  <svg class="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <a href="request-v2.html" class="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-xl font-bold text-base sm:text-lg shadow-lg hover:shadow-xl transition-all duration-500 transform hover:scale-105 hover:rotate-1 animate-fade-in-up group text-center" style="animation-delay: 1.4s;">
+                  <svg class="w-4 h-4 sm:w-5 sm:h-5 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                     <path d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
                   </svg>
-                  최저가 검증 의뢰하기
+                  <span class="whitespace-nowrap">최저가 검증 의뢰하기</span>
                 </a>
               </div>
             </div>
@@ -416,10 +445,10 @@
       </section>
 
       <!-- 절감왕 히어로 섹션 -->
-      <section id="savings-hero" class="w-full py-20 px-4 bg-gradient-to-br from-emerald-50 via-green-50 to-blue-50 relative">
+      <section id="savings-hero" class="w-full py-20 px-4 bg-gradient-to-br from-emerald-50 via-green-50 to-blue-50 relative z-10">
         <div class="max-w-6xl mx-auto">
           <div class="text-center mb-12">
-            <h2 class="text-3xl md:text-4xl font-extrabold text-gray-800 mb-4">
+            <h2 class="text-3xl md:text-4xl font-extrabold text-gray-800 mb-4 flex items-center justify-center">
               🏆 <span class="text-emerald-600">이번 주 절감왕</span>
             </h2>
             <p class="text-lg text-gray-600">실제 검증된 절감 성공 사례</p>
@@ -466,17 +495,17 @@
                   <p class="text-sm text-blue-700">동일 모델명, 동일 용량, 동일 보증 조건으로 검증 완료. 공장 직접구매 경로를 통해 대폭 할인된 가격 발견.</p>
                 </div>
                 
-                <div class="flex gap-4">
-                  <button class="flex-1 bg-emerald-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-emerald-700 transition">
-                    증거 보기
-                  </button>
-                  <a href="savings-king.html" class="flex-1 bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 transition text-center">
-                    절감왕 아카이브
-                  </a>
-                  <button class="flex-1 bg-pink-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-pink-700 transition">
-                    나도 의뢰해서 절약하기
-                  </button>
-                </div>
+                        <div class="flex flex-col sm:flex-row gap-3 sm:gap-4">
+          <button onclick="showEvidence()" class="w-full sm:flex-1 bg-emerald-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-emerald-700 transition text-sm sm:text-base" style="white-space: nowrap;">
+            절약 사례 보기
+          </button>
+          <a href="savings-king.html" class="w-full sm:flex-1 bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 transition text-center text-sm sm:text-base" style="white-space: nowrap;">
+            절감왕 아카이브
+          </a>
+          <button onclick="goToRequest()" class="w-full sm:flex-1 bg-pink-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-pink-700 transition text-sm sm:text-base" style="white-space: nowrap;">
+            나도 의뢰해서 절약하기
+          </button>
+        </div>
               </div>
               
               <!-- 이미지 -->
@@ -502,24 +531,56 @@
     </div>
     <!-- 통합 관리자 대시보드 버튼 -->
     <!-- 관리자 버튼들 (관리자 모드에서만 노출) -->
-    <button id="admin-logout-btn" class="fixed top-4 right-4 z-50 px-4 py-2 bg-gray-800 text-white rounded-lg shadow hover:bg-amber-500 transition hidden" aria-label="관리자 해제" title="관리자 해제" onclick="adminLogout()">관리자 해제</button>
-    <button id="force-logout-btn" class="fixed top-4 right-32 z-50 px-4 py-2 bg-red-800 text-white rounded-lg shadow hover:bg-red-900 transition hidden" aria-label="강제 로그아웃" title="강제 로그아웃" onclick="forceAdminLogout()">🚨 강제 해제</button>
-    <button id="admin-dashboard-btn" class="fixed top-16 right-4 z-50 px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl shadow-lg hover:from-purple-700 hover:to-pink-700 transition-all duration-300 transform hover:scale-105 hidden font-bold text-sm" aria-label="관리자 대시보드" title="관리자 대시보드">
+    <button id="admin-logout-btn" class="fixed top-4 right-4 z-50 px-4 py-2 bg-gray-800 text-white rounded-lg shadow hover:bg-amber-500 transition hidden cursor-default" aria-label="관리자 해제" title="관리자 해제" onclick="adminLogout()">관리자 해제</button>
+    <button id="force-logout-btn" class="fixed top-4 right-32 z-50 px-4 py-2 bg-red-800 text-white rounded-lg shadow hover:bg-red-900 transition hidden cursor-default" aria-label="강제 로그아웃" title="강제 로그아웃" onclick="forceAdminLogout()">🚨 강제 해제</button>
+    <button id="admin-dashboard-btn" class="fixed top-16 right-4 z-50 px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl shadow-lg hover:from-purple-700 hover:to-pink-700 transition-all duration-300 transform hover:scale-105 hidden font-bold text-sm cursor-default" aria-label="관리자 대시보드" title="관리자 대시보드">
       🎛️ 관리자 대시보드
     </button>
-    <button id="admin-cleanup-btn" class="fixed top-16 right-48 z-50 px-4 py-2 bg-red-600 text-white rounded-lg shadow hover:bg-red-700 transition hidden" aria-label="테스트 데이터 정리" title="테스트 데이터 정리" onclick="cleanupTestData()">🧹 정리</button>
+    <button id="admin-cleanup-btn" class="fixed top-16 right-48 z-50 px-4 py-2 bg-red-600 text-white rounded-lg shadow hover:bg-red-700 transition hidden cursor-default" aria-label="테스트 데이터 정리" title="테스트 데이터 정리" onclick="cleanupTestData()">🧹 정리</button>
     <!-- 저렴하게 구입한 사례 섹션: main 바깥, 전체 폭 -->
     <section class="mt-24 mb-10 max-w-7xl mx-auto px-2">
       <div class="flex flex-col items-center mb-12">
         <h2 class="relative text-3xl md:text-4xl font-extrabold text-blue-800 text-center tracking-tight drop-shadow-lg mb-3">
           <span class="px-6 py-2 bg-gradient-to-r from-blue-100 via-white to-emerald-100 rounded-2xl shadow-md inline-block">
-            실제 고객 후기
+            💎 실제 고객 후기
           </span>
           <span class="block w-24 h-1 bg-gradient-to-r from-blue-400 via-emerald-400 to-pink-300 rounded-full mx-auto mt-4"></span>
         </h2>
         <p class="text-lg md:text-xl text-gray-500 font-medium mt-2 text-center">요청가 대비 실제 절약한 금액을 확인해보세요</p>
+        
+        <!-- 포인트 시스템 안내 -->
+        <div id="points-info" class="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-2xl p-6 mb-8 text-center max-w-2xl">
+          <div class="flex items-center justify-center gap-4 mb-4">
+            <span class="text-2xl">💎</span>
+            <span class="text-xl font-bold text-blue-800">포인트로 열어보는 실제 사례</span>
+            <span class="text-2xl">💎</span>
+          </div>
+          <p class="text-gray-700 mb-4">실제 고객들의 절약 사례를 보려면 포인트가 필요합니다.</p>
+          <div class="flex justify-center items-center gap-8 text-sm">
+            <div class="bg-white rounded-lg p-3 shadow-sm">
+              <div class="font-bold text-blue-600">필요 포인트</div>
+              <div class="text-2xl font-bold text-blue-800">50</div>
+            </div>
+            <div class="bg-white rounded-lg p-3 shadow-sm">
+              <div class="font-bold text-green-600">현재 포인트</div>
+              <div id="current-points" class="text-2xl font-bold text-green-800">0</div>
+            </div>
+          </div>
+        </div>
       </div>
       <div id="case-slider-wrapper" class="relative w-full max-w-7xl mx-auto">
+        <!-- 블러 오버레이 -->
+        <div id="blur-overlay" class="absolute inset-0 bg-white/80 backdrop-blur-md rounded-2xl z-10 flex items-center justify-center">
+          <div class="text-center">
+            <div class="text-6xl mb-4">🔒</div>
+            <h3 class="text-2xl font-bold text-gray-800 mb-2">포인트로 열어보세요</h3>
+            <p class="text-gray-600 mb-4">실제 고객들의 절약 사례를 보려면 50포인트가 필요합니다.</p>
+            <button onclick="showEvidence()" class="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-3 rounded-full font-bold hover:from-blue-700 hover:to-purple-700 transition-all duration-300 shadow-lg">
+              💎 포인트로 열기
+            </button>
+          </div>
+        </div>
+        
         <div id="case-slider" class="flex overflow-x-auto no-scrollbar snap-x snap-mandatory gap-2 sm:gap-8 py-2 sm:py-4 transition-all duration-500">
           <!-- 슬라이드 아이템이 JS로 렌더링됨 -->
         </div>
@@ -573,7 +634,70 @@
           return defaults;
         }
         
-        // 4. renderCaseSlider 함수 정의 (복사해주신 코드 그대로)
+        // 4. 포인트 시스템 함수들 (먼저 정의)
+        function getUserPoints() {
+          const user = JSON.parse(localStorage.getItem('user') || 'null');
+          if (!user) return 0;
+          
+          const points = localStorage.getItem(`points_${user.email}`) || '0';
+          return parseInt(points);
+        }
+        
+        function addUserPoints(points) {
+          const user = JSON.parse(localStorage.getItem('user') || 'null');
+          if (!user) return;
+          
+          const currentPoints = getUserPoints();
+          const newPoints = currentPoints + points;
+          localStorage.setItem(`points_${user.email}`, newPoints.toString());
+          
+          console.log(`${user.email}에게 ${points}포인트 추가. 총 ${newPoints}포인트`);
+        }
+        
+        function useUserPoints(points) {
+          const user = JSON.parse(localStorage.getItem('user') || 'null');
+          if (!user) return false;
+          
+          const currentPoints = getUserPoints();
+          if (currentPoints >= points) {
+            const newPoints = currentPoints - points;
+            localStorage.setItem(`points_${user.email}`, newPoints.toString());
+            console.log(`${user.email}가 ${points}포인트 사용. 남은 포인트: ${newPoints}`);
+            return true;
+          }
+          return false;
+        }
+        
+        // 5. 포인트 시스템 초기화 및 블러 제어
+        function initializePointsSystem() {
+          const user = JSON.parse(localStorage.getItem('user') || 'null');
+          const isLoggedIn = localStorage.getItem('loggedIn') === 'true';
+          const blurOverlay = document.getElementById('blur-overlay');
+          const currentPointsElement = document.getElementById('current-points');
+          
+          if (currentPointsElement) {
+            const userPoints = getUserPoints();
+            currentPointsElement.textContent = userPoints;
+          }
+          
+          if (blurOverlay) {
+            if (isLoggedIn && user) {
+              const userPoints = getUserPoints();
+              if (userPoints >= 50) {
+                // 포인트가 충분하면 블러 제거
+                blurOverlay.style.display = 'none';
+              } else {
+                // 포인트가 부족하면 블러 유지
+                blurOverlay.style.display = 'flex';
+              }
+            } else {
+              // 로그인하지 않았으면 블러 유지
+              blurOverlay.style.display = 'flex';
+            }
+          }
+        }
+        
+        // 6. renderCaseSlider 함수 정의
         const adminComments = [
           "이 사례는 실제 검증된 후기입니다!",
           "관리자가 직접 확인한 구매 성공 사례입니다.",
@@ -581,83 +705,90 @@
           "믿고 맡겨주셔서 감사합니다.",
           "실제 배송/구매 내역 확인 완료!"
         ];
-       function renderCaseSlider() {
-  const caseSamples = getCaseProducts();
-  const slider = document.getElementById('case-slider');
-  slider.innerHTML = caseSamples.map((p, i) => `
-    <div class="bg-white/90 rounded-3xl shadow-2xl overflow-hidden flex flex-col items-center p-8 m-2 w-80 min-w-[320px] max-w-xs snap-center transition-transform duration-500 cursor-pointer group" data-idx="${i}">
-      <img src="${p.img}" alt="${p.name}" class="w-full h-48 object-cover rounded-2xl mb-4 shadow-2xl lazy-image" loading="lazy" />
-      <div class="flex items-center justify-center gap-2 mb-3 w-full">
-        <span class="flex-shrink-0 bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-xs font-bold text-center">${p.badge}</span>
-        <span class="text-yellow-400 text-lg flex-shrink-0">${'★'.repeat(Math.floor(p.stars))}${p.stars % 1 ? '½' : ''}</span>
-        <span class="text-gray-400 text-xs flex-shrink-0">${p.date}</span>
-      </div>
-      <div class="text-gray-800 font-bold text-xl mb-3 w-full text-center">${p.name}</div>
-      
-      <!-- 가격 정보 섹션 -->
-      <div class="w-full mb-4 bg-gray-50 rounded-xl p-4">
-        <div class="flex justify-between items-center mb-2">
-          <span class="text-gray-500 text-sm">요청가</span>
-          <span class="text-gray-400 line-through text-sm">${p.originalPrice}</span>
-        </div>
-        <div class="flex justify-between items-center mb-2">
-          <span class="text-green-600 font-bold text-sm">실구매가</span>
-          <span class="text-green-600 font-bold text-lg">${p.finalPrice}</span>
-        </div>
-        <div class="flex justify-between items-center">
-          <span class="text-red-600 font-bold text-sm">절약금액</span>
-          <span class="text-red-600 font-bold text-lg">${p.savings}</span>
-        </div>
-        <div class="mt-2 text-center">
-          <span class="bg-red-100 text-red-700 px-3 py-1 rounded-full text-sm font-bold">${p.savingsPercent} 절약</span>
-        </div>
-      </div>
-      
-      <div class="text-gray-500 text-base w-full text-center mb-2">${p.desc}</div>
-      <div class="text-gray-700 text-sm w-full text-center mb-2">${p.review}</div>
-      <div class="flex flex-wrap gap-2 justify-center text-xs text-gray-500 mb-2 w-full">
-        <span>국가: ${p.country}</span>
-        <span>배송: ${p.shipping}</span>
-        <span>방법: ${p.method}</span>
-      </div>
-      <div class="text-xs text-blue-500 mt-2 mb-2 w-full text-center">💬 ${adminComments[Math.floor(Math.random()*adminComments.length)]}</div>
-      <button class="case-detail-btn px-4 py-2 bg-blue-100 text-blue-700 rounded-lg shadow hover:bg-blue-200 transition text-sm font-bold mt-auto" aria-label="사례 상세보기" title="사례 상세보기">상세보기</button>
-    </div>
-  `).join('');
-  // 상세보기 버튼 이벤트 연결
-  Array.from(slider.getElementsByClassName('case-detail-btn')).forEach((btn, idx) => {
-    btn.onclick = function(e) {
-      e.stopPropagation();
-      openCaseModal(idx);
-    };
-  });
-  // 카드 전체 클릭도 상세보기
-  Array.from(slider.children).forEach((card, idx) => {
-    card.onclick = function(e) {
-      if (e.target.classList.contains('case-detail-btn')) return;
-      openCaseModal(idx);
-    };
-  });
-  // ★★★ 여기부터 추가! ★★★
-  const prevBtn = document.getElementById('case-prev');
-  const nextBtn = document.getElementById('case-next');
-  if (prevBtn && nextBtn && slider) {
-    const card = slider.querySelector('div');
-    let cardWidth = card ? card.offsetWidth + 16 : 340;
-    prevBtn.onclick = function() {
-      slider.scrollBy({ left: -cardWidth, behavior: 'smooth' });
-    };
-    nextBtn.onclick = function() {
-      slider.scrollBy({ left: cardWidth, behavior: 'smooth' });
-    };
-  }
-}
+        
+        function renderCaseSlider() {
+          const caseSamples = getCaseProducts();
+          const slider = document.getElementById('case-slider');
+          if (!slider) return;
+          
+          slider.innerHTML = caseSamples.map((p, i) => `
+            <div class="bg-white/90 rounded-3xl shadow-2xl overflow-hidden flex flex-col items-center p-8 m-2 w-80 min-w-[320px] max-w-xs snap-center transition-transform duration-500 cursor-pointer group" data-idx="${i}">
+              <img src="${p.img}" alt="${p.name}" class="w-full h-48 object-cover rounded-2xl mb-4 shadow-2xl lazy-image" loading="lazy" />
+              <div class="flex items-center justify-center gap-2 mb-3 w-full">
+                <span class="flex-shrink-0 bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-xs font-bold text-center">${p.badge}</span>
+                <span class="text-yellow-400 text-lg flex-shrink-0">${'★'.repeat(Math.floor(p.stars))}${p.stars % 1 ? '½' : ''}</span>
+                <span class="text-gray-400 text-xs flex-shrink-0">${p.date}</span>
+              </div>
+              <div class="text-gray-800 font-bold text-xl mb-3 w-full text-center">${p.name}</div>
+              
+              <!-- 가격 정보 섹션 -->
+              <div class="w-full mb-4 bg-gray-50 rounded-xl p-4">
+                <div class="flex justify-between items-center mb-2">
+                  <span class="text-gray-500 text-sm">요청가</span>
+                  <span class="text-gray-400 line-through text-sm">${p.originalPrice}</span>
+                </div>
+                <div class="flex justify-between items-center mb-2">
+                  <span class="text-green-600 font-bold text-sm">실구매가</span>
+                  <span class="text-green-600 font-bold text-lg">${p.finalPrice}</span>
+                </div>
+                <div class="flex justify-between items-center">
+                  <span class="text-red-600 font-bold text-sm">절약금액</span>
+                  <span class="text-red-600 font-bold text-lg">${p.savings}</span>
+                </div>
+                <div class="mt-2 text-center">
+                  <span class="bg-red-100 text-red-700 px-3 py-1 rounded-full text-sm font-bold">${p.savingsPercent} 절약</span>
+                </div>
+              </div>
+              
+              <div class="text-gray-500 text-base w-full text-center mb-2">${p.desc}</div>
+              <div class="text-gray-700 text-sm w-full text-center mb-2">${p.review}</div>
+              <div class="flex flex-wrap gap-2 justify-center text-xs text-gray-500 mb-2 w-full">
+                <span>국가: ${p.country}</span>
+                <span>배송: ${p.shipping}</span>
+                <span>방법: ${p.method}</span>
+              </div>
+              <div class="text-xs text-blue-500 mt-2 mb-2 w-full text-center">💬 ${adminComments[Math.floor(Math.random()*adminComments.length)]}</div>
+              <button class="case-detail-btn px-4 py-2 bg-blue-100 text-blue-700 rounded-lg shadow hover:bg-blue-200 transition text-sm font-bold mt-auto" aria-label="사례 상세보기" title="사례 상세보기">상세보기</button>
+            </div>
+          `).join('');
+          
+          // 상세보기 버튼 이벤트 연결
+          Array.from(slider.getElementsByClassName('case-detail-btn')).forEach((btn, idx) => {
+            btn.onclick = function(e) {
+              e.stopPropagation();
+              openCaseModal(idx);
+            };
+          });
+          
+          // 카드 전체 클릭도 상세보기
+          Array.from(slider.children).forEach((card, idx) => {
+            card.onclick = function(e) {
+              if (e.target.classList.contains('case-detail-btn')) return;
+              openCaseModal(idx);
+            };
+          });
+          
+          // 슬라이더 네비게이션 버튼
+          const prevBtn = document.getElementById('case-prev');
+          const nextBtn = document.getElementById('case-next');
+          if (prevBtn && nextBtn && slider) {
+            const card = slider.querySelector('div');
+            let cardWidth = card ? card.offsetWidth + 16 : 340;
+            prevBtn.onclick = function() {
+              slider.scrollBy({ left: -cardWidth, behavior: 'smooth' });
+            };
+            nextBtn.onclick = function() {
+              slider.scrollBy({ left: cardWidth, behavior: 'smooth' });
+            };
+          }
+        }
         
         
         // 5. 기존 데이터 초기화 및 renderCaseSlider() 함수 호출
         // 기존 caseProducts 데이터 삭제 후 새로 생성
         localStorage.removeItem('caseProducts');
         renderCaseSlider();
+        initializePointsSystem();
         
         // 이미지 Lazy Loading 구현
         function initLazyLoading() {
@@ -681,16 +812,77 @@
         // 페이지 로드 시 Lazy Loading 초기화
         window.addEventListener('load', initLazyLoading);
         </script>
-    <!-- 회원가입/로그인/마이페이지/로그아웃/의뢰결과조회 버튼 영역 -->
-    <div class="fixed top-4 left-4 z-50 flex gap-1 sm:gap-2">
-      <a href="about.html" class="px-3 py-2 sm:px-4 sm:py-3 min-h-[44px] min-w-[44px] text-sm sm:text-base md:text-lg bg-blue-100 text-blue-700 rounded-lg shadow hover:bg-blue-200 transition" aria-label="소개 페이지로 이동" title="소개">소개</a>
-      <a href="support.html" class="px-3 py-2 sm:px-4 sm:py-3 min-h-[44px] min-w-[44px] text-sm sm:text-base md:text-lg bg-emerald-100 text-emerald-700 rounded-lg shadow hover:bg-emerald-200 transition" aria-label="FAQ 페이지로 이동" title="FAQ">FAQ</a>
+    <!-- 햄버거 메뉴 버튼 -->
+    <div class="fixed top-4 left-4 z-50">
+      <button id="hamburger-menu" class="w-12 h-12 bg-white/90 backdrop-blur-sm rounded-lg shadow-lg hover:bg-white transition-all duration-300 flex flex-col items-center justify-center gap-1.5 p-2" aria-label="메뉴 열기" title="메뉴">
+        <span class="w-6 h-0.5 bg-gray-700 rounded-full transition-all duration-300"></span>
+        <span class="w-6 h-0.5 bg-gray-700 rounded-full transition-all duration-300"></span>
+        <span class="w-6 h-0.5 bg-gray-700 rounded-full transition-all duration-300"></span>
+      </button>
+    </div>
 
-      <button id="login-btn" class="px-3 py-2 sm:px-4 sm:py-3 min-h-[44px] min-w-[44px] text-sm sm:text-base md:text-lg bg-gray-700 text-white rounded-lg shadow hover:bg-gray-800 focus:ring-2 focus:ring-blue-400 focus:outline-none transition" aria-label="로그인" title="로그인">로그인</button>
-      <button id="signup-btn" class="px-3 py-2 sm:px-4 sm:py-3 min-h-[44px] min-w-[44px] text-sm sm:text-base md:text-lg bg-blue-500 text-white rounded-lg shadow hover:bg-blue-600 focus:ring-2 focus:ring-blue-400 focus:outline-none transition" aria-label="회원가입" title="회원가입">회원가입</button>
+    <!-- 햄버거 메뉴 오버레이 -->
+    <div id="menu-overlay" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 hidden" aria-hidden="true"></div>
 
-      <a href="member-dashboard.html" id="mypage-btn" class="px-3 py-2 sm:px-4 sm:py-3 min-h-[44px] min-w-[44px] text-sm sm:text-base md:text-lg bg-emerald-500 text-white rounded-lg shadow hover:bg-emerald-600 focus:ring-2 focus:ring-emerald-400 focus:outline-none transition hidden" aria-label="회원 대시보드" title="회원 대시보드">회원 대시보드</a>
-      <button id="logout-btn" class="px-3 py-2 sm:px-4 sm:py-3 min-h-[44px] min-w-[44px] text-sm sm:text-base md:text-lg bg-gray-400 text-white rounded-lg shadow hover:bg-gray-500 focus:ring-2 focus:ring-gray-400 focus:outline-none transition hidden" aria-label="로그아웃" title="로그아웃">로그아웃</button>
+    <!-- 햄버거 메뉴 패널 -->
+    <div id="menu-panel" class="fixed top-0 left-0 h-full w-80 bg-white shadow-2xl transform -translate-x-full transition-transform duration-300 ease-in-out z-50">
+      <div class="p-6">
+        <!-- 메뉴 헤더 -->
+        <div class="flex items-center justify-between mb-8">
+          <h2 class="text-xl font-bold text-gray-800">메뉴</h2>
+          <button id="close-menu" class="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 transition" aria-label="메뉴 닫기" title="메뉴 닫기">
+            <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+
+        <!-- 메뉴 항목들 -->
+        <nav class="space-y-4">
+          <a href="about.html" class="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-700 rounded-lg transition-colors duration-200">
+            <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <span class="font-medium">소개</span>
+          </a>
+          
+          <a href="support.html" class="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 rounded-lg transition-colors duration-200">
+            <svg class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <span class="font-medium">FAQ</span>
+          </a>
+
+          <div class="border-t border-gray-200 my-4"></div>
+
+          <button id="login-btn" class="w-full flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors duration-200 text-left">
+            <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path>
+            </svg>
+            <span class="font-medium">로그인</span>
+          </button>
+
+          <button id="signup-btn" class="w-full flex items-center gap-3 px-4 py-3 bg-blue-500 text-white hover:bg-blue-600 rounded-lg transition-colors duration-200 text-left">
+            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path>
+            </svg>
+            <span class="font-medium">회원가입</span>
+          </button>
+
+          <a href="member-dashboard.html" id="mypage-btn" class="hidden flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 rounded-lg transition-colors duration-200">
+            <svg class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+            </svg>
+            <span class="font-medium">회원 대시보드</span>
+          </a>
+
+          <button id="logout-btn" class="hidden w-full flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-red-50 hover:text-red-700 rounded-lg transition-colors duration-200 text-left">
+            <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+            </svg>
+            <span class="font-medium">로그아웃</button>
+        </nav>
+      </div>
     </div>
     <!-- 회원가입 모달 -->
     <div id="signup-modal" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 hidden" role="dialog" aria-modal="true" aria-labelledby="signup-modal-title">
@@ -749,7 +941,7 @@
     <div id="signup-success" class="text-emerald-600 text-center mt-3 hidden flex items-center justify-center gap-2 animate-fadein">
       <svg class="w-5 h-5 text-emerald-500 animate-bounce" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 12l2 2 4-4" stroke-linecap="round" stroke-linejoin="round"/></svg>
       <span>회원가입이 완료되었습니다!</span>
-    </div>
+          </div>
 
     <!-- 로그인 모달 -->
     <div id="login-modal" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 hidden" role="dialog" aria-modal="true" aria-labelledby="login-modal-title">
@@ -874,7 +1066,7 @@
 
     <!-- 최소주문금액 안내 팝업 -->
     <div id="min-order-popup" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="min-order-popup-title">
-      <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-xs w-full text-center animate-fadein-up">
+      <div class="bg-white rounded-2xl shadow-2xl p-4 sm:p-6 md:p-8 max-w-xs sm:max-w-sm w-full mx-4 text-center animate-fadein-up">
         <div class="text-xl font-bold text-pink-600 mb-2" id="min-order-popup-title">안내</div>
         <div class="text-gray-800 mb-4 leading-relaxed">
           현재는 <span class="font-semibold">초기 테스트 버전</span>으로,<br>
@@ -889,6 +1081,37 @@
       </div>
     </div>
     <script>
+      // 햄버거 메뉴 제어
+      function initHamburgerMenu() {
+        const hamburgerBtn = document.getElementById('hamburger-menu');
+        const menuPanel = document.getElementById('menu-panel');
+        const menuOverlay = document.getElementById('menu-overlay');
+        const closeBtn = document.getElementById('close-menu');
+
+        function openMenu() {
+          menuPanel.classList.remove('-translate-x-full');
+          menuOverlay.classList.remove('hidden');
+          document.body.style.overflow = 'hidden';
+        }
+
+        function closeMenu() {
+          menuPanel.classList.add('-translate-x-full');
+          menuOverlay.classList.add('hidden');
+          document.body.style.overflow = '';
+        }
+
+        hamburgerBtn.addEventListener('click', openMenu);
+        closeBtn.addEventListener('click', closeMenu);
+        menuOverlay.addEventListener('click', closeMenu);
+
+        // ESC 키로 메뉴 닫기
+        document.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape') {
+            closeMenu();
+          }
+        });
+      }
+
       // 로그인/회원가입/마이페이지/로그아웃/의뢰결과조회 버튼 제어
       function updateAuthUI() {
         const isLoggedIn = localStorage.getItem('loggedIn') === 'true' || localStorage.getItem('currentUser');
@@ -905,8 +1128,8 @@
         if (isLoggedIn) {
           safeSetDisplay('login-btn', 'none');
           safeSetDisplay('signup-btn', 'none');
-                  safeSetDisplay('mypage-btn', 'inline-block');
-        safeSetDisplay('logout-btn', 'inline-block');
+          safeSetDisplay('mypage-btn', 'inline-block');
+          safeSetDisplay('logout-btn', 'inline-block');
 
           
           if (isAdmin) {
@@ -916,20 +1139,20 @@
             const currentAdminMode = localStorage.getItem('adminMode') === 'true';
             const currentIsAdmin = localStorage.getItem('isAdmin') === 'true';
             if (!currentAdminMode && !currentIsAdmin) {
-              setAdminMode(false);
+            setAdminMode(false);
             }
           }
         } else {
           safeSetDisplay('login-btn', 'inline-block');
           safeSetDisplay('signup-btn', 'inline-block');
-                  safeSetDisplay('mypage-btn', 'none');
-        safeSetDisplay('logout-btn', 'none');
+          safeSetDisplay('mypage-btn', 'none');
+          safeSetDisplay('logout-btn', 'none');
 
           // 로그아웃 상태에서도 관리자 모드가 활성화되어 있으면 유지
           const currentAdminMode = localStorage.getItem('adminMode') === 'true';
           const currentIsAdmin = localStorage.getItem('isAdmin') === 'true';
           if (!currentAdminMode && !currentIsAdmin) {
-            setAdminMode(false);
+          setAdminMode(false);
           }
         }
       }
@@ -1150,11 +1373,11 @@
           console.log('관리자 대시보드 버튼 표시 상태:', !isAdmin ? '숨김' : '표시');
         }
         
-        var adminCleanupBtn = document.getElementById('admin-cleanup-btn');
-        if (adminCleanupBtn) {
-          adminCleanupBtn.classList.toggle('hidden', !isAdmin);
-          console.log('테스트데이터정리 버튼 표시 상태:', !isAdmin ? '숨김' : '표시');
-        }
+           var adminCleanupBtn = document.getElementById('admin-cleanup-btn');
+           if (adminCleanupBtn) {
+             adminCleanupBtn.classList.toggle('hidden', !isAdmin);
+             console.log('테스트데이터정리 버튼 표시 상태:', !isAdmin ? '숨김' : '표시');
+           }
         
         // 사례 카드 편집 기능 활성화/비활성화
         enableCaseTextEdit(isAdmin);
@@ -1246,7 +1469,7 @@
           };
           
           localStorage.setItem('ph_backup_' + Date.now(), JSON.stringify(backup));
-          
+  
         } catch (error) {
           console.error('백업 실패:', error);
         }
@@ -1349,10 +1572,9 @@
               // userName 필드 추가
               requestData.userName = userName;
               localStorage.setItem(key, JSON.stringify(requestData));
-      
             }
           } catch (e) {
-    
+            console.error('requestData 파싱 오류:', e);
           }
         });
         
@@ -1636,10 +1858,16 @@
           localStorage.setItem('currentUser', JSON.stringify(user));
           localStorage.setItem('loggedIn', 'true'); // 회원가입 시 로그인 상태로 전환
           
+          // 첫 로그인 포인트 지급
+          const currentPoints = parseInt(localStorage.getItem(`points_${user.email}`) || '0');
+          const newPoints = currentPoints + 50; // 첫 로그인 시 50포인트 지급
+          localStorage.setItem(`points_${user.email}`, newPoints.toString());
+          console.log(`${user.email}에게 첫 로그인 포인트 50점 지급. 총 ${newPoints}포인트`);
+          
           document.getElementById('signup-modal').classList.add('hidden');
           document.body.style.overflow = '';
           updateAuthUI();
-          showToast('회원가입이 완료되었습니다!', 'success');
+          showToast('회원가입이 완료되었습니다! +50포인트 지급!', 'success');
         };
         // 마이페이지 버튼은 이제 회원 대시보드로 연결됨 (링크로 처리)
         
@@ -1991,17 +2219,17 @@ if (logoutBtn) {
 function openCaseModal(idx) {
   const caseSamples = getCaseProducts();
   const p = caseSamples[idx];
-        document.getElementById('case-modal-img').src = p.img;
-      document.getElementById('case-modal-name').textContent = p.name;
+  document.getElementById('case-modal-img').src = p.img;
+  document.getElementById('case-modal-name').textContent = p.name;
       document.getElementById('case-modal-original-price').textContent = p.originalPrice;
       document.getElementById('case-modal-final-price').textContent = p.finalPrice;
       document.getElementById('case-modal-savings').textContent = p.savings;
       document.getElementById('case-modal-savings-percent').textContent = p.savingsPercent + ' 절약';
-      document.getElementById('case-modal-desc').textContent = p.desc;
-      document.getElementById('case-modal-review').textContent = p.review;
-      document.getElementById('case-modal-country').textContent = p.country;
-      document.getElementById('case-modal-shipping').textContent = p.shipping;
-      document.getElementById('case-modal-method').textContent = p.method;
+  document.getElementById('case-modal-desc').textContent = p.desc;
+  document.getElementById('case-modal-review').textContent = p.review;
+  document.getElementById('case-modal-country').textContent = p.country;
+  document.getElementById('case-modal-shipping').textContent = p.shipping;
+  document.getElementById('case-modal-method').textContent = p.method;
   // 수정 버튼 노출 여부
   const isAdmin = localStorage.getItem('isAdmin') === 'true';
   const editBtn = document.getElementById('case-modal-edit');
@@ -2117,18 +2345,18 @@ window.addEventListener('keydown', function(e) {
 function openCaseModal(idx) {
   const caseSamples = getCaseProducts();
   const p = caseSamples[idx];
-        document.getElementById('case-modal-img').src = p.img;
-      document.getElementById('case-modal-img').alt = p.name + ' 이미지';
-      document.getElementById('case-modal-name').textContent = p.name;
+  document.getElementById('case-modal-img').src = p.img;
+  document.getElementById('case-modal-img').alt = p.name + ' 이미지';
+  document.getElementById('case-modal-name').textContent = p.name;
       document.getElementById('case-modal-original-price').textContent = p.originalPrice;
       document.getElementById('case-modal-final-price').textContent = p.finalPrice;
       document.getElementById('case-modal-savings').textContent = p.savings;
       document.getElementById('case-modal-savings-percent').textContent = p.savingsPercent + ' 절약';
-      document.getElementById('case-modal-desc').textContent = p.desc;
-      document.getElementById('case-modal-review').textContent = p.review;
-      document.getElementById('case-modal-country').textContent = p.country;
-      document.getElementById('case-modal-shipping').textContent = p.shipping;
-      document.getElementById('case-modal-method').textContent = p.method;
+  document.getElementById('case-modal-desc').textContent = p.desc;
+  document.getElementById('case-modal-review').textContent = p.review;
+  document.getElementById('case-modal-country').textContent = p.country;
+  document.getElementById('case-modal-shipping').textContent = p.shipping;
+  document.getElementById('case-modal-method').textContent = p.method;
   // 수정 버튼 노출 여부
   const isAdmin = localStorage.getItem('isAdmin') === 'true';
   const editBtn = document.getElementById('case-modal-edit');
@@ -2397,6 +2625,56 @@ if (mypageBtn) {
           }, 300);
         }
       }
+      
+      // 절감왕 섹션 버튼 함수들
+      function showEvidence() {
+        const user = JSON.parse(localStorage.getItem('user') || 'null');
+        const isLoggedIn = localStorage.getItem('loggedIn') === 'true';
+        
+        if (!isLoggedIn || !user) {
+          alert('🔒 로그인이 필요합니다!\n\n실제 절약 사례를 보려면 회원가입 후 로그인해 주세요.');
+          return;
+        }
+        
+        const userPoints = getUserPoints();
+        const requiredPoints = 50; // 실제 사례 보기에 필요한 포인트
+        
+        if (userPoints >= requiredPoints) {
+          if (confirm(`💎 실제 절약 사례를 보시겠습니까?\n\n필요 포인트: ${requiredPoints}포인트\n현재 포인트: ${userPoints}포인트\n\n확인하시면 포인트가 차감됩니다.`)) {
+            if (useUserPoints(requiredPoints)) {
+              window.location.href = 'gallery.html';
+            }
+          }
+        } else {
+          alert(`🔒 포인트가 부족합니다!\n\n필요 포인트: ${requiredPoints}포인트\n현재 포인트: ${userPoints}포인트\n\n💡 포인트 획득 방법:\n• 의뢰 완료: +100포인트\n• 1:1 문의: +10포인트\n• 첫 로그인: +50포인트`);
+        }
+      }
+      
+      // 포인트 시스템 함수들은 위에서 이미 정의됨
+      
+      // 의뢰 완료 여부 확인 함수
+      function checkCompletedRequest() {
+        try {
+          // localStorage에서 의뢰 데이터 확인
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith('request-')) {
+              const requestData = JSON.parse(localStorage.getItem(key));
+              if (requestData && requestData.status === '완료') {
+                return true;
+              }
+            }
+          }
+          return false;
+        } catch (error) {
+          console.error('의뢰 완료 확인 중 오류:', error);
+          return false;
+        }
+      }
+      
+      function goToRequest() {
+        window.location.href = 'request-v2.html';
+      }
     </script>
     
     <!-- 프로세스 애니메이션 스크립트 -->
@@ -2414,10 +2692,97 @@ if (mypageBtn) {
         }
         // 페이지 로드 후 1초 뒤에 시작
         setTimeout(showNext, 1000);
+        
+        // 포인트 시스템 초기화 및 렌더링
+        initializePointsSystem();
+        renderCaseSlider();
+        
+        // 햄버거 메뉴 초기화
+        initHamburgerMenu();
       });
     </script>
+    
+    <!-- 페이스북 스타일 푸터 -->
+    <footer class="bg-gray-900 text-white mt-20">
+      <div class="max-w-6xl mx-auto px-4 py-12">
+        <!-- 메인 푸터 콘텐츠 -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+          <!-- 회사 정보 -->
+          <div class="col-span-1 md:col-span-2">
+            <div class="flex items-center gap-3 mb-4">
+              <svg class="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                <rect x="4" y="4" width="16" height="16" rx="4" stroke="currentColor"/>
+                <path d="M8 8h8M8 12h8M8 16h4" stroke-linecap="round"/>
+              </svg>
+              <h3 class="text-2xl font-bold text-blue-400">PriceHunter</h3>
+            </div>
+            <p class="text-gray-300 mb-4 leading-relaxed">
+              브랜드가 아닌 진짜 가치에 집중합니다.<br class="sm:hidden"> 
+              국내외 도매업체와 공장 네트워크를 바탕으로<br class="sm:hidden"> 
+              누구나 공장가로 제품을 구매할 수 있도록<br class="sm:hidden"> 
+              혁신적인 가격 중개 플랫폼을 만들었습니다.
+            </p>
+            <div class="flex flex-wrap gap-2">
+              <span class="bg-blue-900/50 text-blue-300 px-3 py-1 rounded-full text-sm">#공장가</span>
+              <span class="bg-emerald-900/50 text-emerald-300 px-3 py-1 rounded-full text-sm">#브랜드없는제품</span>
+              <span class="bg-pink-900/50 text-pink-300 px-3 py-1 rounded-full text-sm">#스마트구매</span>
+            </div>
+          </div>
+          
+          <!-- 서비스 -->
+          <div>
+            <h4 class="text-lg font-semibold mb-4 text-gray-200">서비스</h4>
+            <ul class="space-y-2 text-gray-400">
+              <li><a href="request-v2.html" class="hover:text-blue-400 transition">최저가 검증 의뢰</a></li>
+              <li><a href="gallery.html" class="hover:text-blue-400 transition">실제 고객 후기</a></li>
+              <li><a href="about.html" class="hover:text-blue-400 transition">회사 소개</a></li>
+              <li><a href="support.html" class="hover:text-blue-400 transition">고객 지원</a></li>
+            </ul>
+          </div>
+          
+          <!-- 연락처 -->
+          <div>
+            <h4 class="text-lg font-semibold mb-4 text-gray-200">연락처</h4>
+            <ul class="space-y-2 text-gray-400">
+              <li><a href="contact.html" class="hover:text-blue-400 transition">1:1 문의</a></li>
+              <li class="flex items-center gap-2">
+                <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                </svg>
+                <span>support@pricehunter.co.kr</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+        
+        <!-- 팀 정보 (페이스북 스타일) -->
+        <div class="border-t border-gray-800 pt-8">
+          <div class="text-center">
+            <h5 class="text-sm font-medium text-gray-400 mb-4">팀 PriceHunter</h5>
+                      <div class="flex flex-wrap justify-center gap-6 text-sm text-gray-500">
+            <div class="flex items-center gap-2">
+              <div class="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-xs">H</div>
+              <span>Jin Young Huh</span>
+              <span class="text-xs bg-blue-900/50 text-blue-300 px-2 py-1 rounded">Founder</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <div class="w-8 h-8 bg-gradient-to-br from-emerald-500 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-xs">L</div>
+              <span>Yo Han Lim</span>
+              <span class="text-xs bg-emerald-900/50 text-emerald-300 px-2 py-1 rounded">Co-Founder</span>
+            </div>
+          </div>
+          </div>
+        </div>
+        
+        <!-- 저작권 -->
+        <div class="border-t border-gray-800 pt-6 mt-8 text-center">
+          <p class="text-gray-500 text-sm">
+            © 2024 PriceHunter. All rights reserved. | 
+            <a href="#" class="hover:text-blue-400 transition">개인정보처리방침</a> | 
+            <a href="#" class="hover:text-blue-400 transition">이용약관</a>
+          </p>
+        </div>
+      </div>
+    </footer>
   </body>
 </html>
-
-
-

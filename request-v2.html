@@ -3,9 +3,44 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>최저가 요청하기 - PriceHunter</title>
+  <title>PriceHunter - 최저가 검증 의뢰</title>
+  
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-N7R437NT77"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-N7R437NT77');
+  </script>
+  
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
+    /* 텍스트 선택 허용 (드래그 가능) */
+    body {
+      -webkit-user-select: text;
+      -moz-user-select: text;
+      -ms-user-select: text;
+      user-select: text;
+    }
+    
+    /* 버튼과 링크, 입력 필드는 텍스트 선택 허용 */
+    button, a, input, textarea, select {
+      -webkit-user-select: text;
+      -moz-user-select: text;
+      -ms-user-select: text;
+      user-select: text;
+    }
+    
+    /* 커서 깜빡임 방지 */
+    body, div, p, h1, h2, h3, h4, h5, h6, span, label {
+      caret-color: transparent;
+    }
+    
+    /* 입력 요소는 커서 표시 */
+    input, textarea {
+      caret-color: auto;
+    }
     .fadein-step {
       animation: fadein-step 0.7s cubic-bezier(.4,0,.2,1) both;
     }
@@ -157,11 +192,7 @@
         <label class="block text-gray-700 font-semibold mb-2 mt-4" for="userPhone">전화번호</label>
         <input type="tel" id="userPhone" required class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-yellow-400 focus:outline-none transition mb-2 input-animate" placeholder="예: 01012345678" />
         <div class="text-xs text-yellow-600 mt-1">📱 정확한 연락처를 입력해 주세요. 안내 및 문의에 꼭 필요합니다.</div>
-        <label class="block text-gray-700 font-semibold mb-2 mt-4" for="userCustoms">통관고유부호
-          <a href="https://unipass.customs.go.kr/csp/persIndex.do" target="_blank" rel="noopener" class="ml-2 inline-block px-3 py-1 bg-emerald-100 text-emerald-700 rounded-lg shadow hover:bg-emerald-200 transition text-xs font-semibold align-middle">통관번호 조회</a>
-        </label>
-        <input type="text" id="userCustoms" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-yellow-400 focus:outline-none transition mb-2 input-animate" placeholder="해외직구 등 통관이 필요한 경우에만 입력" />
-        <div class="text-xs text-yellow-600 mt-1">💡 해외직구 시 꼭 필요하니, 빠짐없이 입력해 주세요!</div>
+
         <label class="block text-gray-700 font-semibold mb-2 mt-4" for="userEmail">이메일</label>
         <input type="email" id="userEmail" required class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-yellow-400 focus:outline-none transition mb-2 input-animate" placeholder="예: user@email.com" />
         <div class="text-xs text-yellow-600 mt-1">📧 정확한 이메일을 입력해 주세요. 안내 및 문의에 꼭 필요합니다.</div>
@@ -271,7 +302,7 @@
     };
     document.getElementById('to-step-4').onclick = function() {
       // Step 3 유효성
-      if (!document.getElementById('userName').value.trim() || !document.getElementById('userPhone').value.trim() || !document.getElementById('userCustoms').value.trim() || !document.getElementById('userEmail').value.trim()) {
+      if (!document.getElementById('userName').value.trim() || !document.getElementById('userPhone').value.trim() || !document.getElementById('userEmail').value.trim()) {
         alert('연락처 정보를 모두 입력해 주세요.');
         return;
       }
@@ -340,7 +371,7 @@
         <div><span class="font-bold">참고사이트:</span> ${productUrl ? (/^https?:\/\//.test(productUrl) || /^www\./.test(productUrl) ? `<a href='${productUrl}' target='_blank' class='text-blue-600 underline'>${productUrl}</a>` : `<span class='bg-gray-100 rounded px-2 py-1'>${productUrl}</span>`) : '<span class=\'text-gray-400\'>(없음)</span>'}</div>
         <div><span class="font-bold">이름:</span> ${document.getElementById('userName').value}</div>
         <div><span class="font-bold">전화번호:</span> ${document.getElementById('userPhone').value}</div>
-        <div><span class="font-bold">통관번호:</span> ${document.getElementById('userCustoms').value}</div>
+
         <div><span class="font-bold">이메일:</span> ${document.getElementById('userEmail').value}</div>
         <div><span class="font-bold">이미지:</span> <span id='confirm-images'></span></div>
       `;
@@ -434,7 +465,7 @@
       const email = document.getElementById('userEmail').value;
       const phone = document.getElementById('userPhone').value;
       
-      const customs = document.getElementById('userCustoms').value;
+
       const price = Number(document.getElementById('productPrice').value);
       // 고유 의뢰번호 생성
       function generateReqNum() {
@@ -523,7 +554,6 @@
           images: imgArr, 
           email, 
           phone, 
-          customs, 
           price, 
           userName, 
           date: Date.now(),
@@ -539,6 +569,16 @@
           localStorage.setItem('request-' + reqNum, JSON.stringify(reqData));
           sessionStorage.setItem('request', JSON.stringify({...reqData, reqNum}));
           document.getElementById('submit-success').classList.remove('hidden');
+          
+          // 포인트 지급 (의뢰 접수 시)
+          const user = JSON.parse(localStorage.getItem('user') || 'null');
+          if (user && user.email) {
+            const currentPoints = parseInt(localStorage.getItem(`points_${user.email}`) || '0');
+            const newPoints = currentPoints + 10; // 의뢰 접수 시 10포인트 지급
+            localStorage.setItem(`points_${user.email}`, newPoints.toString());
+            console.log(`${user.email}에게 의뢰 접수 포인트 10점 지급. 총 ${newPoints}포인트`);
+          }
+          
           setTimeout(() => { window.location.href = 'request-complete.html'; }, 1200);
           // 하루 의뢰 카운트 증가
           localStorage.setItem(reqCountKey, String(reqCount + 1));

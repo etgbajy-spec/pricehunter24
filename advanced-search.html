@@ -5,6 +5,31 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>고급 검색 - PriceHunter</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      /* 텍스트 선택 및 편집 방지 */
+      body {
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+      }
+      
+      /* 버튼과 링크, 입력 필드는 텍스트 선택 허용 */
+      button, a, input, textarea, select {
+        -webkit-user-select: text;
+        -moz-user-select: text;
+        -ms-user-select: text;
+        user-select: text;
+      }
+      
+      /* 폼 라벨과 설명 텍스트는 선택 방지 */
+      label, .form-description {
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+      }
+    </style>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔍</text></svg>">
 </head>
 <body class="bg-gray-50 min-h-screen">

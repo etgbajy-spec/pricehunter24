@@ -3,10 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>구매 대행 지원 서비스 - PriceHunter</title>
+    <title>구매 지원 - PriceHunter</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://js.tosspayments.com/v1/payment"></script>
     <style>
+      /* 텍스트 선택 및 편집 방지 */
+      body {
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+      }
+      
+      /* 버튼과 링크, 입력 필드는 텍스트 선택 허용 */
+      button, a, input, textarea, select {
+        -webkit-user-select: text;
+        -moz-user-select: text;
+        -ms-user-select: text;
+        user-select: text;
+      }
+      
+      /* 폼 라벨과 설명 텍스트는 선택 방지 */
+      label, .form-description {
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+      }
         .gradient-bg {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
