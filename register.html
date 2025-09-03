@@ -8,14 +8,20 @@
   
   <!-- Google Analytics 제거됨 - CSP 오류 방지 -->
   
-  <!-- 개발용: cdn.tailwindcss.com, 프로덕션용: 로컬 파일로 변경 권장 -->
-  <!-- 프로덕션 배포 시: npm install -D tailwindcss && npx tailwindcss -i ./src/input.css -o ./dist/output.css -->
-  <!-- 
-    ⚠️ 콘솔 경고 무시하세요! ⚠️
-    - 개발 중: cdn.tailwindcss.com 사용 (빠른 개발)
-    - 배포 시: 로컬 파일로 변경 (성능 최적화)
-    - 이 경고는 개발 중에는 무시해도 됩니다!
-  -->
+     <!-- 개발용: cdn.tailwindcss.com, 프로덕션용: 로컬 파일로 변경 권장 -->
+   <!-- 프로덕션 배포 시: npm install -D tailwindcss && npx tailwindcss -i ./src/input.css -o ./dist/output.css -->
+   <!-- 
+     ⚠️ 콘솔 경고 해결 방법! ⚠️
+     
+     **Tailwind CSS 경고 해결:**
+     - 개발 중: 이 경고는 무시해도 됩니다
+     - 배포 시: npm install -D tailwindcss && npx tailwindcss -i ./src/input.css -o ./dist/output.css
+     
+     **CSP 오류 해결:**
+     - 카카오 개발자 콘솔에서 동의 항목 설정 필요
+     - 필수: profile_nickname, account_email
+     - 선택: profile_image
+   -->
   <script src="https://cdn.tailwindcss.com"></script>
   
   <!-- 카카오 SDK 추가 -->
@@ -596,9 +602,10 @@
              // 카카오톡 로그인 (실제 연동)
        document.getElementById('kakao-login').addEventListener('click', function() {
          if (typeof Kakao !== 'undefined') {
-           // 카카오 로그인 실행 (팝업 방식)
-           Kakao.Auth.login({
-             throughTalk: false, // 팝업 방식
+                       // 카카오 로그인 실행 (팝업 방식)
+            Kakao.Auth.login({
+              throughTalk: false, // 팝업 방식
+              scope: 'profile_nickname,account_email,profile_image', // 동의 항목 명시
                            success: function(authObj) {
                 console.log('카카오 로그인 성공:', authObj);
                 
@@ -616,20 +623,28 @@
                   }
                   return response.json();
                 })
-                .then(userData => {
-                  console.log('카카오 사용자 정보:', userData);
-                  
-                  const user = {
-                    id: userData.id,
-                    name: userData.properties?.nickname || '카카오 사용자',
-                    email: userData.kakao_account?.email || 'kakao@user.com',
-                    profileImage: userData.properties?.profile_image || '',
-                    loginType: 'kakao'
-                  };
-                  
-                  // 회원가입 처리
-                  handleKakaoSignup(user);
-                })
+                                 .then(userData => {
+                   console.log('카카오 사용자 정보 상세:', {
+                     id: userData.id,
+                     nickname: userData.properties?.nickname,
+                     email: userData.kakao_account?.email,
+                     profileImage: userData.properties?.profile_image,
+                     connectedAt: userData.connected_at,
+                     scope: userData.scope
+                   });
+                   
+                   const user = {
+                     id: userData.id,
+                     name: userData.properties?.nickname || '카카오 사용자',
+                     email: userData.kakao_account?.email || 'kakao@user.com',
+                     profileImage: userData.properties?.profile_image || '',
+                     loginType: 'kakao',
+                     connectedAt: userData.connected_at
+                   };
+                   
+                   // 회원가입 처리
+                   handleKakaoSignup(user);
+                 })
                 .catch(error => {
                   console.error('사용자 정보 요청 실패:', error);
                   
