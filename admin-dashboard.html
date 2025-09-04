@@ -535,13 +535,54 @@
         <div id="members-section" class="section-content p-8 hidden">
           <h2 class="text-2xl font-bold text-gray-800 mb-6">👥 회원 관리</h2>
           
+          <!-- 회원 통계 -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+            <div class="bg-white rounded-xl shadow-lg p-6">
+              <div class="flex items-center">
+                <div class="p-3 bg-yellow-100 rounded-lg">
+                  <span class="text-2xl">🟡</span>
+                </div>
+                <div class="ml-4">
+                  <p class="text-sm text-gray-500">카카오 로그인</p>
+                  <p class="text-2xl font-bold text-gray-800" id="kakao-members-count">0</p>
+                </div>
+              </div>
+            </div>
+            
+            <div class="bg-white rounded-xl shadow-lg p-6">
+              <div class="flex items-center">
+                <div class="p-3 bg-blue-100 rounded-lg">
+                  <span class="text-2xl">🔵</span>
+                </div>
+                <div class="ml-4">
+                  <p class="text-sm text-gray-500">일반 회원가입</p>
+                  <p class="text-2xl font-bold text-gray-800" id="normal-members-count">0</p>
+                </div>
+              </div>
+            </div>
+            
+            <div class="bg-white rounded-xl shadow-lg p-6">
+              <div class="flex items-center">
+                <div class="p-3 bg-green-100 rounded-lg">
+                  <span class="text-2xl">🟢</span>
+                </div>
+                <div class="ml-4">
+                  <p class="text-sm text-gray-500">총 회원</p>
+                  <p class="text-2xl font-bold text-gray-800" id="total-members-count">0</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- 회원 목록 -->
           <div class="bg-white rounded-xl shadow-lg overflow-hidden">
             <div class="overflow-x-auto">
               <table class="w-full">
                 <thead class="bg-green-50">
                   <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">프로필</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">회원명</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">로그인 방식</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">이메일</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">휴대폰</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">가입일</th>
@@ -1913,7 +1954,7 @@
         return list.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
       }
 
-      function getAllMembers() {
+            function getAllMembers() {
         const members = new Map();
         
         // user와 currentUser에서 회원 정보 수집
@@ -1925,7 +1966,10 @@
             name: user.name || '',
             email: user.email,
             phone: user.phone || '',
-            joinDate: user.joinDate || new Date().toISOString()
+            joinDate: user.joinDate || new Date().toISOString(),
+            loginType: user.loginType || 'normal',
+            profileImage: user.profileImage || '',
+            points: user.points || 0
           });
         }
         
@@ -1934,7 +1978,10 @@
             name: currentUser.name || '',
             email: currentUser.email,
             phone: currentUser.phone || '',
-            joinDate: currentUser.joinDate || new Date().toISOString()
+            joinDate: currentUser.joinDate || new Date().toISOString(),
+            loginType: currentUser.loginType || 'normal',
+            profileImage: currentUser.profileImage || '',
+            points: currentUser.points || 0
           });
         }
         
@@ -1946,10 +1993,36 @@
               name: req.userName || req.name || '',
               email: req.email,
               phone: req.phone || '',
-              joinDate: req.date || new Date().toISOString()
+              joinDate: req.date || new Date().toISOString(),
+              loginType: 'normal',
+              profileImage: '',
+              points: 0
             });
           }
         });
+        
+        // 카카오 로그인 사용자 추가 수집 (localStorage에서 kakao_ 키로 시작하는 데이터 찾기)
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && key.startsWith('kakao_')) {
+            try {
+              const kakaoData = JSON.parse(localStorage.getItem(key));
+              if (kakaoData && kakaoData.email && !members.has(kakaoData.email)) {
+                members.set(kakaoData.email, {
+                  name: kakaoData.name || '카카오 사용자',
+                  email: kakaoData.email,
+                  phone: kakaoData.phone || '',
+                  joinDate: kakaoData.joinDate || new Date().toISOString(),
+                  loginType: 'kakao',
+                  profileImage: kakaoData.profileImage || '',
+                  points: kakaoData.points || 0
+                });
+              }
+            } catch (e) {
+              console.log('카카오 데이터 파싱 실패:', key, e);
+            }
+          }
+        }
         
         return Array.from(members.values()).sort((a, b) => new Date(b.joinDate) - new Date(a.joinDate));
       }
@@ -2698,6 +2771,9 @@
         // 최신 데이터로 업데이트
         allInquiries = getAllInquiries();
         
+        // 회원 통계 업데이트
+        updateMemberStats();
+        
         allMembers.forEach(member => {
           const requestCount = allRequests.filter(req => req.email === member.email).length;
           const inquiryCount = allInquiries.filter(inq => {
@@ -2710,10 +2786,24 @@
           tr.className = 'hover:bg-green-50 cursor-pointer transition-colors';
           tr.onclick = () => toggleMemberDetail(member.email);
           
+          // 프로필 이미지 또는 기본 아이콘
+          const profileCell = member.profileImage ? 
+            `<img src="${member.profileImage}" alt="프로필" class="w-10 h-10 rounded-full object-cover">` :
+            `<div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
+              <span class="text-gray-500 text-lg">${member.name ? member.name.charAt(0) : '?'}</span>
+            </div>`;
+          
+          // 로그인 방식 표시
+          const loginTypeText = member.loginType === 'kakao' ? 
+            '<span class="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">카카오</span>' :
+            '<span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">일반</span>';
+          
           tr.innerHTML = `
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${profileCell}</td>
             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${member.name}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${loginTypeText}</td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${member.email}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${member.phone}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${member.phone || '-'}</td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${new Date(member.joinDate).toLocaleDateString()}</td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${requestCount}개 의뢰 / ${inquiryCount}개 문의</td>
             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
@@ -2727,7 +2817,7 @@
           detailTr.id = `member-detail-${member.email}`;
           detailTr.className = 'hidden';
           detailTr.innerHTML = `
-            <td colspan="6" class="px-6 py-4 bg-green-50">
+            <td colspan="8" class="px-6 py-4 bg-green-50">
               <div class="member-detail-content">
                 <!-- 상세 내용이 여기에 동적으로 로드됩니다 -->
               </div>
@@ -2737,6 +2827,23 @@
         });
       }
 
+      // 회원 통계 업데이트
+      function updateMemberStats() {
+        const kakaoCount = allMembers.filter(member => member.loginType === 'kakao').length;
+        const normalCount = allMembers.filter(member => member.loginType === 'normal').length;
+        const totalCount = allMembers.length;
+        
+        document.getElementById('kakao-members-count').textContent = kakaoCount;
+        document.getElementById('normal-members-count').textContent = normalCount;
+        document.getElementById('total-members-count').textContent = totalCount;
+        
+        // 대시보드의 총 회원 수도 업데이트
+        const dashboardTotalMembers = document.getElementById('total-members');
+        if (dashboardTotalMembers) {
+          dashboardTotalMembers.textContent = totalCount;
+        }
+      }
+      
       // 유틸리티 함수들
       function getRequestStatus(req) {
         const reqNum = req.key.replace('request-', '');
@@ -3177,9 +3284,27 @@
                <div class="grid grid-cols-2 gap-4 text-sm">
                  <div><span class="font-medium">회원명:</span> ${member.name}</div>
                  <div><span class="font-medium">이메일:</span> ${member.email}</div>
-                 <div><span class="font-medium">휴대폰:</span> ${member.phone}</div>
+                 <div><span class="font-medium">휴대폰:</span> ${member.phone || '-'}</div>
                  <div><span class="font-medium">가입일:</span> ${new Date(member.joinDate).toLocaleDateString()}</div>
+                 <div><span class="font-medium">로그인 방식:</span> 
+                   <span class="px-2 py-1 rounded-full text-xs ${member.loginType === 'kakao' ? 'bg-yellow-100 text-yellow-800' : 'bg-blue-100 text-blue-800'}">
+                     ${member.loginType === 'kakao' ? '카카오 로그인' : '일반 회원가입'}
+                   </span>
+                 </div>
+                 ${member.points ? `<div><span class="font-medium">포인트:</span> ${member.points}P</div>` : ''}
                </div>
+               
+               ${member.loginType === 'kakao' ? `
+               <!-- 카카오 사용자 추가 정보 -->
+               <div class="mt-4 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                 <h4 class="font-medium text-yellow-800 mb-2">🟡 카카오 계정 정보</h4>
+                 <div class="text-sm text-yellow-700">
+                   <div>• 카카오 프로필 연동</div>
+                   <div>• 자동 로그인 지원</div>
+                   <div>• 소셜 로그인 보안</div>
+                 </div>
+               </div>
+               ` : ''}
              </div>
              
              <!-- 활동 내역 -->
