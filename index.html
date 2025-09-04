@@ -3,6 +3,9 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
     <title>PriceHunter</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -1838,7 +1841,7 @@
           return false;
         }
 
-        // 카카오 로그인 함수들
+        // 카카오 로그인 함수들 (KOE205 에러 방지)
         function executeKakaoLogin() {
           try {
             console.log('카카오 로그인 시작...');
@@ -1864,8 +1867,9 @@
             const authUrl = 'https://kauth.kakao.com/oauth/authorize?' + authParams.toString();
             console.log('카카오 인증 URL:', authUrl);
             
-            // 카카오 인증 페이지로 이동
-            window.location.href = authUrl;
+            // 카카오 인증 페이지로 이동 (KOE205 에러 방지)
+            // window.location.href 대신 window.location.replace 사용
+            window.location.replace(authUrl);
             
           } catch (error) {
             console.error('카카오 로그인 실행 실패:', error);
@@ -1881,6 +1885,18 @@
           // 인증 코드를 localStorage에 저장
           localStorage.setItem('kakao_auth_code', authCode);
           localStorage.setItem('kakao_auth_timestamp', Date.now().toString());
+          
+          // URL에서 인증 코드 제거하여 깔끔하게 유지 (KOE205 에러 방지)
+          try {
+            window.history.replaceState({}, document.title, window.location.pathname);
+          } catch (error) {
+            console.warn('히스토리 상태 변경 실패:', error);
+            // 대안: URL 파라미터만 제거
+            const cleanUrl = window.location.pathname;
+            if (window.location.href !== cleanUrl) {
+              window.location.replace(cleanUrl);
+            }
+          }
           
           // 토큰 요청 및 사용자 정보 획득
           processKakaoAuthCode(authCode);
@@ -1993,10 +2009,14 @@
           document.getElementById('login-error').classList.add('hidden');
           document.body.style.overflow = '';
         };
-        // 카카오 로그인 버튼 이벤트
-        document.getElementById('kakao-login-btn').onclick = function() {
-          executeKakaoLogin();
-        };
+        // 카카오 로그인 버튼 이벤트 (KOE205 에러 방지)
+        try {
+          document.getElementById('kakao-login-btn').onclick = function() {
+            executeKakaoLogin();
+          };
+        } catch (error) {
+          console.warn('카카오 로그인 버튼 이벤트 리스너 등록 실패:', error);
+        }
 
         // 로그인 폼 제출
         document.getElementById('login-form').onsubmit = function(e) {
@@ -2105,15 +2125,32 @@
           };
         }
 
-        // 카카오 인가 코드 처리
+        // 카카오 인가 코드 처리 (KOE205 에러 방지)
         const urlParams = new URLSearchParams(window.location.search);
         const authCode = urlParams.get('code');
         
         if (authCode) {
           console.log('카카오 인가 코드 받음:', authCode);
           handleKakaoAuthCode(authCode);
-          window.history.replaceState({}, document.title, window.location.pathname);
+          // URL 정리하여 뒤로가기 시 깔끔하게 유지 (KOE205 에러 방지)
+          try {
+            window.history.replaceState({}, document.title, window.location.pathname);
+          } catch (error) {
+            console.warn('초기 URL 정리 실패:', error);
+          }
         }
+        
+        // 브라우저 뒤로가기/앞으로가기 이벤트 처리 (KOE205 에러 방지)
+        window.addEventListener('popstate', function(event) {
+          try {
+            // 페이지 상태 복원
+            location.reload();
+          } catch (error) {
+            console.warn('popstate 이벤트 처리 실패:', error);
+            // 대안: 현재 페이지 새로고침
+            window.location.reload();
+          }
+        });
       });
     </script>
 
