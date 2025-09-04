@@ -15,6 +15,33 @@ app.use(cors({
 app.use(express.json());
 app.use(express.static('.'));
 
+// CSP 헤더 설정 - Firebase 도메인 허용
+app.use((req, res, next) => {
+  res.setHeader(
+    'Content-Security-Policy',
+    "default-src 'self'; " +
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' " +
+    "https://developers.kakao.com " +
+    "https://cdn.tailwindcss.com " +
+    "https://t1.kakaocdn.net " +
+    "https://www.gstatic.com " +
+    "https://unpkg.com " +
+    "https://cdn.jsdelivr.net " +
+    "https://cdnjs.cloudflare.com; " +
+    "style-src 'self' 'unsafe-inline' " +
+    "https://cdn.tailwindcss.com " +
+    "https://fonts.googleapis.com; " +
+    "font-src 'self' " +
+    "https://fonts.gstatic.com; " +
+    "img-src 'self' data: https:; " +
+    "connect-src 'self' " +
+    "https://firestore.googleapis.com " +
+    "https://identitytoolkit.googleapis.com " +
+    "https://securetoken.googleapis.com;"
+  );
+  next();
+});
+
 // 요청 로깅 미들웨어
 app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);

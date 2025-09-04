@@ -8,7 +8,7 @@
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Firebase 8.x SDK -->
+    <!-- Firebase 8.x SDK (실제 Firebase) -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
@@ -27,8 +27,7 @@
                 initializeFirebase();
             } else {
                 console.error('❌ Firebase SDK 로드 실패');
-                // 대체 CDN 시도
-                loadAlternativeFirebaseCDN();
+                alert('Firebase SDK 로딩에 실패했습니다. 페이지를 새로고침해주세요.');
             }
         });
         
