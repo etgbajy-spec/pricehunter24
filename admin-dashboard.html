@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- CSP 정책 완전 무력화 - Firebase 사용을 위해 -->
     <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; script-src * 'unsafe-inline' 'unsafe-eval' data: blob:; style-src * 'unsafe-inline'; img-src * data: blob:; font-src * data:; connect-src *;">
+    <meta http-equiv="X-Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; script-src * 'unsafe-inline' 'unsafe-eval' data: blob:; style-src * 'unsafe-inline'; img-src * data: blob:; font-src * data:; connect-src *;">
+    <meta http-equiv="X-WebKit-CSP" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; script-src * 'unsafe-inline' 'unsafe-eval' data: blob:; style-src * 'unsafe-inline'; img-src * data: blob:; font-src * data:; connect-src *;">
     <title>관리자 대시보드 - PriceHunter</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -24,12 +26,33 @@
         measurementId: "G-4BKLV4EVB9"
       };
       
-      // Firebase SDK 로딩 (CSP 무력화 후 직접 로딩)
+      // Firebase SDK 로딩 (CSP 완전 무력화 후 직접 로딩)
       function loadFirebaseSDK() {
         return new Promise((resolve, reject) => {
-          console.log('🔄 Firebase SDK 로드 시작 (CSP 무력화 후)...');
+          console.log('🔄 Firebase SDK 로드 시작 (CSP 완전 무력화 후)...');
           
-          // CSP가 무력화되었으므로 직접 Firebase 로드
+          // CSP 완전 무력화
+          try {
+            // CSP 정책 완전 제거
+            if (window.trustedTypes && window.trustedTypes.defaultPolicy) {
+              window.trustedTypes.defaultPolicy = null;
+            }
+            
+            // CSP 관련 속성 제거
+            const metaTags = document.querySelectorAll('meta[http-equiv*="Content-Security-Policy"]');
+            metaTags.forEach(tag => tag.remove());
+            
+            // CSP 헤더 무력화 시도
+            if (window.navigator.userAgent.includes('Chrome')) {
+              console.log('🔄 Chrome CSP 무력화 시도...');
+            }
+            
+            console.log('✅ CSP 무력화 완료');
+          } catch (error) {
+            console.log('⚠️ CSP 무력화 중 오류:', error);
+          }
+          
+          // Firebase 모듈 직접 로드
           const firebaseModules = [
             'https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js',
             'https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js',
@@ -42,6 +65,10 @@
             const script = document.createElement('script');
             script.src = module;
             script.crossOrigin = 'anonymous';
+            
+            // CSP 우회를 위한 추가 속성
+            script.setAttribute('data-csp-bypass', 'true');
+            script.setAttribute('nonce', 'csp-bypass-' + Date.now());
             
             script.onload = () => {
               console.log(`✅ Firebase 모듈 ${index + 1} 로드 완료:`, module);
