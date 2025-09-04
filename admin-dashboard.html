@@ -67,6 +67,47 @@
             }
         };
         
+        // 테스트 관리자 계정 생성 함수
+        window.createAdminAccount = async function() {
+            try {
+                console.log('🔧 테스트 관리자 계정 생성 시작...');
+                
+                // Firebase Auth에서 계정 생성
+                const { createUserWithEmailAndPassword } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js');
+                
+                const userCredential = await createUserWithEmailAndPassword(auth, 'admin@pricehunter.com', 'admin1234');
+                console.log('✅ 테스트 관리자 계정 생성 완료:', userCredential.user.email);
+                
+                // Firestore에 관리자 정보 저장
+                const { doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+                await setDoc(doc(db, 'admins', userCredential.user.uid), {
+                    email: 'admin@pricehunter.com',
+                    role: 'admin',
+                    createdAt: new Date(),
+                    permissions: ['read', 'write', 'delete', 'admin']
+                });
+                
+                alert('✅ 테스트 관리자 계정이 생성되었습니다!\n\n이메일: admin@pricehunter.com\n비밀번호: admin1234\n\n이제 이 계정으로 로그인할 수 있습니다.');
+                
+                // 입력 필드에 자동 입력
+                document.getElementById('admin-email').value = 'admin@pricehunter.com';
+                document.getElementById('admin-password').value = 'admin1234';
+                
+            } catch (error) {
+                console.error('❌ 테스트 계정 생성 실패:', error);
+                
+                if (error.code === 'auth/email-already-in-use') {
+                    alert('이미 존재하는 계정입니다!\n\n이메일: admin@pricehunter.com\n비밀번호: admin1234\n\n이 계정으로 로그인해보세요.');
+                    
+                    // 입력 필드에 자동 입력
+                    document.getElementById('admin-email').value = 'admin@pricehunter.com';
+                    document.getElementById('admin-password').value = 'admin1234';
+                } else {
+                    alert('테스트 계정 생성 실패: ' + error.message);
+                }
+            }
+        };
+        
         // 로그아웃 함수
         window.adminLogout = async function() {
             try {
@@ -493,10 +534,16 @@
                 </button>
             </form>
             
-            <div class="mt-6 text-center">
-                <button onclick="goToPage('index.html')" class="text-pink-600 hover:text-pink-700 text-sm">
+            <div class="mt-6 text-center space-y-3">
+                <button onclick="goToPage('index.html')" class="text-pink-600 hover:text-pink-700 text-sm block w-full">
                     🏠 메인페이지로 돌아가기
                 </button>
+                <button onclick="createAdminAccount()" class="text-blue-600 hover:text-blue-700 text-sm block w-full">
+                    🔧 테스트 관리자 계정 생성
+                </button>
+                <div class="text-xs text-gray-500 mt-2">
+                    테스트용 계정: admin@pricehunter.com / admin1234
+                </div>
             </div>
         </div>
     </div>
