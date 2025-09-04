@@ -884,64 +884,7 @@
         </nav>
       </div>
     </div>
-    <!-- 회원가입 모달 -->
-    <div id="signup-modal" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 hidden" role="dialog" aria-modal="true" aria-labelledby="signup-modal-title">
-      <div class="bg-white rounded-2xl shadow-2xl p-4 sm:p-8 w-full max-w-xs sm:max-w-md md:max-w-2xl relative">
-        <button id="close-signup" class="absolute top-3 right-3 text-gray-400 hover:text-gray-700 text-2xl" aria-label="회원가입 창 닫기" title="회원가입 창 닫기">&times;</button>
-        <h2 id="signup-modal-title" class="text-2xl font-bold text-center mb-6 text-blue-600">회원가입</h2>
-        
-        <!-- 핸드폰 인증 안내 -->
-        <div class="mb-6">
-          <div class="text-center mb-4">
-            <span class="text-gray-500 text-sm">핸드폰 인증으로 안전하게 가입하기</span>
-          </div>
-        </div>
-        
-        <form id="signup-form" class="space-y-4">
-          <div>
-            <label class="block text-gray-700 font-semibold mb-1" for="signup-name">이름</label>
-            <input type="text" id="signup-name" required class="min-h-[44px] text-sm sm:text-base md:text-lg px-3 sm:px-4 py-2 sm:py-3 w-full rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none" aria-label="이름" />
-          </div>
-          <div>
-            <label class="block text-gray-700 font-semibold mb-1" for="signup-birth">생년월일</label>
-            <input type="date" id="signup-birth" required class="min-h-[44px] text-sm sm:text-base md:text-lg px-3 sm:px-4 py-2 sm:py-3 w-full rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none" aria-label="생년월일" />
-          </div>
-          <div>
-            <label class="block text-gray-700 font-semibold mb-1" for="signup-phone">휴대폰번호</label>
-            <div class="flex gap-2">
-              <input type="tel" id="signup-phone" required pattern="[0-9]{11}" placeholder="01012345678" class="min-h-[44px] text-sm sm:text-base md:text-lg px-3 sm:px-4 py-2 sm:py-3 flex-1 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none" aria-label="휴대폰번호" />
-              <button type="button" id="certify-btn" class="px-3 py-2 bg-emerald-500 text-white rounded-lg shadow hover:bg-emerald-600 transition text-sm" aria-label="본인인증" title="본인인증">본인인증</button>
-            </div>
-            <div id="certify-success" class="text-emerald-600 text-sm mt-1 hidden flex items-center gap-1 animate-fadein">
-              <svg class="w-4 h-4 text-emerald-500 animate-bounce" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 12l2 2 4-4" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              <span>본인인증 완료</span>
-            </div>
-          </div>
-          <div>
-            <label class="block text-gray-700 font-semibold mb-1" for="signup-email">이메일(아이디)</label>
-            <input type="email" id="signup-email" required class="min-h-[44px] text-sm sm:text-base md:text-lg px-3 sm:px-4 py-2 sm:py-3 w-full rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none" aria-label="이메일(아이디)" />
-          </div>
-          <div>
-            <label class="block text-gray-700 font-semibold mb-1" for="signup-password">비밀번호</label>
-            <input type="password" id="signup-password" required minlength="6" class="min-h-[44px] text-sm sm:text-base md:text-lg px-3 sm:px-4 py-2 sm:py-3 w-full rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none" aria-label="비밀번호" />
-          </div>
-          <div>
-            <label class="block text-gray-700 font-semibold mb-1" for="signup-password2">비밀번호 확인</label>
-            <input type="password" id="signup-password2" required minlength="6" class="min-h-[44px] text-sm sm:text-base md:text-lg px-3 sm:px-4 py-2 sm:py-3 w-full rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none" aria-label="비밀번호 확인" />
-            <div id="pw-match-error" class="text-red-500 text-sm mt-1 hidden flex items-center gap-1 animate-fadein">
-              <svg class="w-4 h-4 text-red-500 animate-bounce" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="8" y1="8" x2="16" y2="16"/><line x1="16" y1="8" x2="8" y2="16"/></svg>
-              <span>비밀번호가 일치하지 않습니다.</span>
-            </div>
-          </div>
 
-          <button type="submit" id="signup-submit" class="w-full py-3 bg-blue-500 text-white font-bold rounded-lg shadow hover:bg-blue-600 transition text-lg" aria-label="회원가입 완료" title="회원가입 완료" disabled>회원가입 완료</button>
-        </form>
-      </div>
-    </div>
-    <div id="signup-success" class="text-emerald-600 text-center mt-3 hidden flex items-center justify-center gap-2 animate-fadein">
-      <svg class="w-5 h-5 text-emerald-500 animate-bounce" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 12l2 2 4-4" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      <span>회원가입이 완료되었습니다!</span>
-          </div>
 
     <!-- 로그인 모달 -->
     <div id="login-modal" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 hidden" role="dialog" aria-modal="true" aria-labelledby="login-modal-title">
@@ -1751,141 +1694,8 @@
           backupKeys.forEach(key => localStorage.removeItem(key));
           console.log('기존 백업 데이터를 정리했습니다.');
         }
-        // 회원가입 모달 열기/닫기
-        document.getElementById('signup-btn').onclick = function() {
-          document.getElementById('signup-modal').classList.remove('hidden');
-          document.body.style.overflow = 'hidden';
-        };
-        document.getElementById('close-signup').onclick = function() {
-          document.getElementById('signup-modal').classList.add('hidden');
-          document.body.style.overflow = '';
-        };
-        // 본인인증(통신사 인증) 버튼
-        let certified = false;
-        document.getElementById('certify-btn').onclick = function() {
-          // 실제 서비스에서는 외부 인증 연동 필요
-          // 데모: 이름, 생년월일, 휴대폰번호가 모두 입력되어야 인증 성공
-          const name = document.getElementById('signup-name').value.trim();
-          const birth = document.getElementById('signup-birth').value.trim();
-          const phone = document.getElementById('signup-phone').value.trim();
-          
-          if (!name || !birth || !phone) {
-            showToast('이름, 생년월일, 휴대폰번호를 모두 입력해주세요.', 'error');
-            return;
-          }
-          
-          // 본인인증 진행 중 표시
-          const certifyBtn = document.getElementById('certify-btn');
-          const originalText = certifyBtn.textContent;
-          certifyBtn.textContent = '인증 중...';
-          certifyBtn.disabled = true;
-          
-          // 본인인증 시뮬레이션 (3초 후 완료)
-          setTimeout(() => {
-            certified = true;
-            document.getElementById('certify-success').classList.remove('hidden');
-            certifyBtn.textContent = '인증완료';
-            certifyBtn.classList.add('bg-gray-400');
-            certifyBtn.classList.remove('bg-emerald-500', 'hover:bg-emerald-600');
-            
-            // 회원가입 버튼 활성화
-            document.getElementById('signup-submit').disabled = false;
-            document.getElementById('signup-submit').classList.remove('bg-gray-400');
-            document.getElementById('signup-submit').classList.add('bg-blue-500', 'hover:bg-blue-600');
-            
-            showToast('본인인증이 완료되었습니다! (실제 서비스에서는 통신사 인증이 필요합니다)', 'success');
-          }, 3000);
-        };
-        // 비밀번호 확인 일치 검사
-        const pw1 = document.getElementById('signup-password');
-        const pw2 = document.getElementById('signup-password2');
-        const pwError = document.getElementById('pw-match-error');
-        const signupSubmit = document.getElementById('signup-submit');
-        function checkPwMatch() {
-          if (pw1.value && pw2.value && pw1.value !== pw2.value) {
-            pwError.classList.remove('hidden');
-            signupSubmit.disabled = true;
-          } else {
-            pwError.classList.add('hidden');
-            if (certified && pw1.value && pw2.value && pw1.value === pw2.value) {
-              signupSubmit.disabled = false;
-            } else {
-              signupSubmit.disabled = true;
-            }
-          }
-        }
-        pw1.addEventListener('input', checkPwMatch);
-        pw2.addEventListener('input', checkPwMatch);
-        // 회원가입 폼 제출 시 본인인증 체크
-        document.getElementById('signup-form').onsubmit = function(e) {
-          e.preventDefault();
-          
-          if (!certified) {
-            showToast('본인인증을 완료해주세요!', 'error');
-            return;
-          }
-          
-          // 입력값 검증 및 보안 처리
-          const name = sanitizeInput(document.getElementById('signup-name').value.trim());
-          const email = sanitizeInput(document.getElementById('signup-email').value.trim());
-          const password = document.getElementById('signup-password').value;
-          const phone = sanitizeInput(document.getElementById('signup-phone').value.trim());
-          const birth = sanitizeInput(document.getElementById('signup-birth').value.trim());
-          
-          // 입력값 검증
-          if (!validateInput(name, 'name')) {
-            showToast('이름을 올바르게 입력해주세요 (2-20자, 한글/영문)', 'error');
-            return;
-          }
-          
-          if (!validateInput(email, 'email')) {
-            showToast('올바른 이메일 주소를 입력해주세요', 'error');
-            return;
-          }
-          
-          if (!validateInput(password, 'password')) {
-            showToast('비밀번호는 8자 이상, 영문/숫자/특수문자 포함해야 합니다', 'error');
-            return;
-          }
-          
-          if (!validateInput(phone, 'phone')) {
-            showToast('올바른 휴대폰 번호를 입력해주세요 (10-11자리)', 'error');
-            return;
-          }
-          
-          const user = {
-            name: name,
-            email: email,
-            password: password,
-            phone: phone,
-            birth: birth,
-            joinDate: Date.now(),
-            lastLogin: Date.now(),
-            status: 'active',
-            loginType: 'normal'
-          };
-          
-          // users 배열에 새 회원 추가
-          const users = JSON.parse(localStorage.getItem('users') || '[]');
-          users.push(user);
-          localStorage.setItem('users', JSON.stringify(users));
-          
-          // 현재 사용자 정보 저장
-          localStorage.setItem('user', JSON.stringify(user));
-          localStorage.setItem('currentUser', JSON.stringify(user));
-          localStorage.setItem('loggedIn', 'true'); // 회원가입 시 로그인 상태로 전환
-          
-          // 첫 로그인 포인트 지급
-          const currentPoints = parseInt(localStorage.getItem(`points_${user.email}`) || '0');
-          const newPoints = currentPoints + 50; // 첫 로그인 시 50포인트 지급
-          localStorage.setItem(`points_${user.email}`, newPoints.toString());
-          console.log(`${user.email}에게 첫 로그인 포인트 50점 지급. 총 ${newPoints}포인트`);
-          
-          document.getElementById('signup-modal').classList.add('hidden');
-          document.body.style.overflow = '';
-          updateAuthUI();
-          showToast('회원가입이 완료되었습니다! +50포인트 지급!', 'success');
-        };
+
+
         // 마이페이지 버튼은 이제 회원 대시보드로 연결됨 (링크로 처리)
         
         // 회원 탈퇴 기능 (마이페이지 모달이 제거되어 비활성화)
@@ -2442,34 +2252,8 @@ if (caseDots && caseDots.parentElement) {
 function showMypageSuccess() {
   console.log('마이페이지 기능은 회원 대시보드에서 처리됩니다.');
 }
-// 회원가입 성공 메시지 표시
-function showSignupSuccess() {
-  const msg = document.getElementById('signup-success');
-  if (msg) {
-    msg.classList.remove('hidden');
-    setTimeout(() => msg.classList.add('hidden'), 1500);
-  }
-}
-document.getElementById('signup-form').onsubmit = function(e) {
-  if (!certified) {
-    e.preventDefault();
-    alert('본인인증을 완료해주세요!');
-    return;
-  }
-  e.preventDefault();
-  const user = {
-    name: document.getElementById('signup-name').value,
-    email: document.getElementById('signup-email').value,
-    password: document.getElementById('signup-password').value,
-    phone: document.getElementById('signup-phone').value,
-    
-  };
-  localStorage.setItem('user', JSON.stringify(user));
-  localStorage.setItem('loggedIn', 'true'); // 회원가입 시 로그인 상태로 전환
-  document.getElementById('signup-modal').classList.add('hidden');
-  updateAuthUI();
-  showSignupSuccess();
-};
+
+
 // 로그아웃 성공 메시지 표시
 function showLogoutSuccess() {
   const msg = document.getElementById('logout-success');

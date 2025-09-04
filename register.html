@@ -807,9 +807,10 @@
               alert('카카오톡으로 회원가입되었습니다! +50포인트 지급 중 오류가 발생했습니다.');
             }
             
-            // 페이지 이동 전 상태 정리
+            // 페이지 이동 전 상태 정리 및 히스토리 정리
             window.history.replaceState({}, document.title, window.location.pathname);
-            window.location.href = 'index.html';
+            // index.html로 이동하면서 히스토리 정리
+            window.location.replace('index.html');
         } else {
           alert('필수 약관에 동의해주세요.');
         }
