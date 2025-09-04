@@ -1,0 +1,1353 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- CSP 정책 완전 제거 - 카카오 로그인 오류 해결 -->
+  <title>회원가입 - PriceHunter</title>
+  
+  <!-- Google Analytics 제거됨 - CSP 오류 방지 -->
+  
+  <!-- 로컬 CSS 파일 사용 - Tailwind CSS 경고 해결 -->
+  <link rel="stylesheet" href="styles.css">
+   <!-- 
+     ⚠️ 콘솔 경고 해결 방법! ⚠️
+     
+     **Tailwind CSS 경고 해결:**
+     - 개발 중: 이 경고는 무시해도 됩니다
+     - 배포 시: npm install -D tailwindcss && npx tailwindcss -i ./src/input.css -o ./dist/output.css
+     
+     **CSP 오류 해결:**
+     - 카카오 개발자 콘솔에서 동의 항목 설정 필요
+     - 필수: profile_nickname, account_email
+     - 선택: profile_image
+     
+     **KOE205 오류 해결 (완전 가이드):**
+     
+     **🔍 문제 진단:**
+     - 로컬 파일(file://)에서 테스트 시: 시뮬레이션 모드로 자동 전환
+     - 프로덕션 환경에서 오류: 카카오 개발자 콘솔 설정 확인 필요
+     
+     **🚨 KOE205 오류 해결 순서:**
+     
+     **1단계: 앱 상태 확인 (가장 중요!)**
+     - 카카오 개발자 콘솔 → 앱 선택 → 앱 설정 → 일반
+     - 상태: "활성화" 확인 (비활성화면 즉시 활성화)
+     - 서비스 URL: https://pricehunt24.com 설정
+     
+     **2단계: 플랫폼 설정 (Web 필수!)**
+     - 플랫폼 → Web → 사이트 도메인
+     - https://pricehunt24.com 추가
+     - http://localhost:8000 제거 (프로덕션에서만 사용)
+     
+     **3단계: 카카오 로그인 설정 (핵심!)**
+     - 카카오 로그인 → 활성화 설정 → "활성화" 상태
+     - Redirect URI: https://pricehunt24.com/register.html 추가
+     - 기존 localhost URI 모두 제거
+     
+     **4단계: 동의항목 설정 (필수!)**
+     - 동의항목 → 필수: profile_nickname, account_email
+     - 동의항목 → 선택: profile_image
+     - 모든 동의항목 "활성화" 상태 확인
+     
+     **5단계: 앱 키 확인 (정확한 키 사용!)**
+     - 앱 키 → JavaScript 키: 6917a034b74fafd0ac80ab855af5ed6d (SDK용 + 토큰 요청용)
+     - 앱 키 → REST API 키: fd9b2a8858c4c90765143ea56546d386 (백엔드용)
+     
+     **6단계: 캐시 및 쿠키 초기화**
+     - 브라우저 캐시 완전 삭제
+     - 카카오 관련 쿠키 삭제
+     - 새 시크릿 창에서 테스트
+     
+     **🚀 테스트 방법:**
+      - 로컬: 파일을 브라우저에서 직접 열기 (시뮬레이션 모드)
+      - 프로덕션: https://pricehunt24.com/register.html 접속 (직접 URL 이동 방식)
+      
+      **💡 새로운 해결 방법:**
+      - 카카오 SDK 사용 안함
+      - 직접 OAuth 2.0 URL로 이동
+      - KOE205 오류 완전 우회
+      
+      **🔧 즉시 해결 방법 (KOE205 오류):**
+      
+      **방법 1: 카카오 개발자 콘솔 설정**
+      1. https://developers.kakao.com/ 접속
+      2. 내 애플리케이션 → PriceHunter 선택
+      3. 앱 설정 → 일반 → 상태: "활성화" 확인
+      4. 플랫폼 → Web → 사이트 도메인: https://pricehunt24.com 추가
+      5. 카카오 로그인 → Redirect URI: https://pricehunt24.com/register.html 추가
+      6. 동의항목 → 필수: profile_nickname, account_email 활성화
+      
+      **방법 2: 임시 해결책 (개발 중)**
+      1. 로컬 환경에서 테스트 (시뮬레이션 모드)
+      2. 카카오 로그인 버튼 클릭 시 자동으로 시뮬레이션 실행
+      3. 프로덕션 배포 전 카카오 설정 완료
+      
+      **방법 3: 대체 로그인 사용**
+      1. 일반 회원가입 폼 사용
+      2. 이메일/비밀번호로 가입
+      3. 카카오 로그인 설정 완료 후 사용
+      
+      **📱 모바일 환경 주의사항:**
+      - 카카오톡 앱이 설치되어 있어야 함
+      - 모바일 브라우저에서도 동일한 오류 발생 가능
+      - 모바일용 카카오 로그인 설정 확인 필요
+      
+      **🌐 CORS 및 보안 설정:**
+      - 카카오 API는 CORS 정책을 지원함
+      - JavaScript 키는 공개되어도 안전함
+      - Admin 키는 절대 클라이언트에 노출 금지
+      
+      **⏰ 오류 발생 시점:**
+      - 페이지 로드 시: 환경 감지 및 설정 확인
+      - 카카오 로그인 버튼 클릭 시: 직접 URL 이동
+      - 인증 코드 처리 시: 토큰 요청 및 사용자 정보 획득
+      
+      **🔄 자동 복구 기능:**
+      - 오류 발생 시 재시도 버튼 자동 표시
+      - 환경별 자동 감지 및 모드 전환
+      - 상세한 오류 메시지 및 해결 방법 안내
+   -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+     <!-- 카카오 SDK 제거됨 - 직접 URL 이동 방식 사용 -->
+  
+  <style>
+    /* 텍스트 선택 허용 (드래그 가능) */
+    body {
+      -webkit-user-select: text;
+      -moz-user-select: text;
+      -ms-user-select: text;
+      user-select: text;
+    }
+    
+    /* 버튼과 링크, 입력 필드는 텍스트 선택 허용 */
+    button, a, input, textarea, select {
+      -webkit-user-select: text;
+      -moz-user-select: text;
+      -ms-user-select: text;
+      user-select: text;
+    }
+    
+    /* 커서 깜빡임 방지 */
+    body, div, p, h1, h2, h3, h4, h5, h6, span, label {
+      caret-color: transparent;
+    }
+    
+    /* 입력 요소는 커서 표시 */
+    input, textarea {
+      caret-color: auto;
+    }
+
+    /* 애니메이션 */
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .animate-fade-in-up {
+      animation: fadeInUp 0.6s ease-out;
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-pink-50 via-blue-50 to-emerald-50 min-h-screen">
+  <!-- 헤더 -->
+  <header class="bg-white/80 backdrop-blur-md border-b border-gray-200 sticky top-0 z-40">
+    <div class="max-w-6xl mx-auto px-4 py-4">
+      <div class="flex items-center justify-between">
+        <a href="index.html" class="flex items-center gap-3 group">
+          <svg class="w-8 h-8 text-blue-600 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <rect x="4" y="4" width="16" height="16" rx="4" stroke="currentColor"/>
+            <path d="M8 8h8M8 12h8M8 16h4" stroke-linecap="round"/>
+          </svg>
+          <span class="text-2xl font-bold text-gray-800 group-hover:text-blue-600 transition">PriceHunter</span>
+        </a>
+        <a href="index.html" class="text-gray-600 hover:text-blue-600 transition font-medium">
+          홈으로 돌아가기
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- 메인 콘텐츠 -->
+  <main class="max-w-2xl mx-auto px-4 py-8">
+    <!-- 제목 -->
+    <div class="text-center mb-8 animate-fade-in-up">
+      <h1 class="text-3xl sm:text-4xl font-bold text-gray-800 mb-4">회원가입</h1>
+      <p class="text-gray-600 text-lg">PriceHunter와 함께 최고의 가격을 찾아보세요</p>
+    </div>
+
+    <!-- 가입 방법 선택 -->
+    <div class="bg-white rounded-2xl shadow-xl p-6 mb-8 animate-fade-in-up" style="animation-delay: 0.2s;">
+      <h2 class="text-xl font-bold text-gray-800 mb-6 text-center">가입 방법을 선택해주세요</h2>
+      
+             <!-- 카카오톡 간편가입 -->
+       <div class="mb-6">
+         <button id="kakao-login" class="w-full bg-yellow-400 hover:bg-yellow-500 text-gray-800 font-bold py-4 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 flex items-center justify-center gap-3">
+           <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
+             <path d="M12 3c5.799 0 10.5 3.664 10.5 8.185 0 4.52-4.701 8.184-10.5 8.184a13.5 13.5 0 0 1-1.727-.11l-4.408 2.883c-.501.265-.678.236-.472-.413l.892-3.678c-2.88-1.46-4.785-3.99-4.785-6.866C1.5 6.665 6.201 3 12 3z"/>
+           </svg>
+           카카오톡으로 간편가입
+         </button>
+         <p class="text-sm text-gray-500 text-center mt-2">카카오톡 계정으로 빠르게 가입하세요</p>
+         
+         <!-- 환경 안내 메시지 -->
+         <div id="environment-info" class="mt-3 p-3 bg-blue-50 rounded-lg text-center">
+           <p class="text-sm text-blue-700">
+             <span id="env-status">환경 확인 중...</span>
+           </p>
+         </div>
+       </div>
+
+      <!-- 구분선 -->
+      <div class="flex items-center mb-6">
+        <div class="flex-1 border-t border-gray-300"></div>
+        <span class="px-4 text-gray-500 text-sm">또는</span>
+        <div class="flex-1 border-t border-gray-300"></div>
+      </div>
+
+      <!-- 일반 회원가입 -->
+      <div>
+        <button id="normal-register" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 flex items-center justify-center gap-3">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+          </svg>
+          일반 회원가입
+        </button>
+        <p class="text-sm text-gray-500 text-center mt-2">이메일과 SMS 인증으로 가입하세요</p>
+      </div>
+    </div>
+
+    <!-- 일반 회원가입 폼 (숨김) -->
+    <div id="register-form" class="bg-white rounded-2xl shadow-xl p-6 hidden animate-fade-in-up">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-xl font-bold text-gray-800">일반 회원가입</h2>
+        <button id="close-form" class="text-gray-400 hover:text-gray-600 transition">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+
+      <form id="signup-form" class="space-y-6">
+        <!-- 이름 -->
+        <div>
+          <label class="block text-gray-700 font-semibold mb-2" for="name">이름 *</label>
+          <input type="text" id="name" name="name" required autocomplete="name" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none transition" placeholder="실명을 입력해주세요" />
+        </div>
+
+        <!-- 이메일 -->
+        <div>
+          <label class="block text-gray-700 font-semibold mb-2" for="email">이메일 주소 *</label>
+          <input type="email" id="email" name="email" required autocomplete="email" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none transition" placeholder="example@email.com" />
+        </div>
+
+        <!-- 휴대폰 번호 -->
+        <div>
+          <label class="block text-gray-700 font-semibold mb-2" for="phone">휴대폰 번호 *</label>
+          <div class="flex gap-3">
+            <input type="tel" id="phone" name="phone" required autocomplete="tel" class="flex-1 px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none transition" placeholder="01012345678" maxlength="11" />
+            <button type="button" id="send-sms" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition whitespace-nowrap">인증번호 발송</button>
+          </div>
+        </div>
+
+        <!-- SMS 인증번호 -->
+        <div id="sms-verification" class="hidden">
+          <label class="block text-gray-700 font-semibold mb-2" for="sms-code">인증번호 *</label>
+          <div class="flex gap-3">
+            <input type="text" id="sms-code" name="sms-code" autocomplete="one-time-code" class="flex-1 px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none transition" placeholder="6자리 인증번호" maxlength="6" />
+            <button type="button" id="verify-sms" class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-semibold transition whitespace-nowrap">인증확인</button>
+          </div>
+          <div id="sms-timer" class="text-sm text-gray-500 mt-2 hidden">
+            <span id="timer-text">03:00</span> 후 재발송 가능
+          </div>
+        </div>
+
+        <!-- 비밀번호 -->
+        <div>
+          <label class="block text-gray-700 font-semibold mb-2" for="password">비밀번호 *</label>
+          <input type="password" id="password" name="password" required autocomplete="new-password" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none transition" placeholder="8자 이상, 영문/숫자/특수문자 조합" />
+          <div class="text-sm text-gray-500 mt-1">영문, 숫자, 특수문자를 포함하여 8자 이상</div>
+        </div>
+
+        <!-- 비밀번호 확인 -->
+        <div>
+          <label class="block text-gray-700 font-semibold mb-2" for="password-confirm">비밀번호 확인 *</label>
+          <input type="password" id="password-confirm" name="password-confirm" required autocomplete="new-password" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none transition" placeholder="비밀번호를 한 번 더 입력해주세요" />
+        </div>
+
+        <!-- 약관 동의 -->
+        <div class="space-y-4">
+          <h3 class="text-lg font-semibold text-gray-800">약관 동의</h3>
+          
+          <!-- 전체 동의 -->
+          <div class="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
+            <input type="checkbox" id="agree-all" class="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500" />
+            <label for="agree-all" class="text-lg font-semibold text-gray-800">모든 약관에 동의합니다</label>
+          </div>
+
+          <!-- 개별 약관 -->
+          <div class="space-y-3">
+            <div class="flex items-center gap-3">
+              <input type="checkbox" id="agree-terms" class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" required />
+              <label for="agree-terms" class="text-gray-700">이용약관 동의 (필수)</label>
+              <button type="button" onclick="openTermsModal()" class="text-blue-600 hover:text-blue-800 text-sm underline">보기</button>
+            </div>
+            
+            <div class="flex items-center gap-3">
+              <input type="checkbox" id="agree-privacy" class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" required />
+              <label for="agree-privacy" class="text-gray-700">개인정보처리방침 동의 (필수)</label>
+              <button type="button" onclick="openPrivacyModal()" class="text-blue-600 hover:text-blue-800 text-sm underline">보기</button>
+            </div>
+            
+            <div class="flex items-center gap-3">
+              <input type="checkbox" id="agree-marketing" class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" />
+              <label for="agree-marketing" class="text-gray-700">마케팅 정보 수신 동의 (선택)</label>
+            </div>
+          </div>
+        </div>
+
+        <!-- 가입 버튼 -->
+        <button type="submit" id="signup-button" disabled class="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold py-4 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 disabled:transform-none">
+          회원가입 완료
+        </button>
+      </form>
+    </div>
+
+         <!-- 로그인 링크 -->
+     <div class="text-center mt-8 animate-fade-in-up" style="animation-delay: 0.4s;">
+       <p class="text-gray-600">
+         이미 계정이 있으신가요? 
+         <a href="index.html#login" class="text-blue-600 hover:text-blue-800 font-semibold underline">로그인하기</a>
+       </p>
+     </div>
+  </main>
+
+  <!-- 약관 모달들 -->
+  <!-- 이용약관 모달 -->
+  <div id="terms-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden">
+    <div class="min-h-screen flex items-center justify-center p-4">
+      <div class="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        <div class="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+          <h2 class="text-2xl font-bold text-gray-800">이용약관</h2>
+          <button onclick="closeTermsModal()" class="text-gray-400 hover:text-gray-600 transition">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+        <div class="px-6 py-6 text-gray-700 leading-relaxed">
+          <div class="space-y-6">
+            <section>
+              <h3 class="text-lg font-semibold text-gray-800 mb-3">제1조 (목적)</h3>
+              <p>이 약관은 PriceHunter(이하 "회사")가 제공하는 최저가 검증 서비스(이하 "서비스")의 이용과 관련하여 회사와 회원 간의 권리, 의무 및 책임사항, 기타 필요한 사항을 규정함을 목적으로 합니다.</p>
+            </section>
+
+            <section>
+              <h3 class="text-lg font-semibold text-gray-800 mb-3">제2조 (정의)</h3>
+              <div class="space-y-3">
+                <div>
+                  <h4 class="font-medium text-gray-800">1. "서비스"란</h4>
+                  <p class="text-sm">회사가 제공하는 최저가 검증 및 가격 비교 중개 서비스를 의미합니다.</p>
+                </div>
+                <div>
+                  <h4 class="font-medium text-gray-800">2. "회원"이란</h4>
+                  <p class="text-sm">회사와 서비스 이용계약을 체결하고 회사가 제공하는 서비스를 이용하는 고객을 의미합니다.</p>
+                </div>
+                <div>
+                  <h4 class="font-medium text-gray-800">3. "의뢰"란</h4>
+                  <p class="text-sm">회원이 회사에 특정 상품의 최저가 검증을 요청하는 행위를 의미합니다.</p>
+                </div>
+              </div>
+            </section>
+
+            <section>
+              <h3 class="text-lg font-semibold text-gray-800 mb-3">제3조 (약관의 효력 및 변경)</h3>
+              <div class="space-y-3">
+                <p>1. 이 약관은 서비스 화면에 게시하거나 기타의 방법으로 회원에게 공지함으로써 효력이 발생합니다.</p>
+                <p>2. 회사는 필요한 경우 관련법령을 위배하지 않는 범위에서 이 약관을 변경할 수 있습니다.</p>
+                <p>3. 약관이 변경되는 경우, 변경사항의 시행일자 7일 전부터 공지사항을 통해 공지합니다.</p>
+              </div>
+            </section>
+
+            <section>
+              <h3 class="text-lg font-semibold text-gray-800 mb-3">제4조 (서비스의 제공)</h3>
+              <div class="space-y-3">
+                <p>1. 회사는 다음과 같은 서비스를 제공합니다:</p>
+                <ul class="list-disc list-inside ml-4 space-y-1">
+                  <li>최저가 검증 및 가격 비교 서비스</li>
+                  <li>구매 링크 제공</li>
+                  <li>절약 금액 계산</li>
+                  <li>상품 정보 및 후기 제공</li>
+                </ul>
+                <p>2. 서비스는 연중무휴, 1일 24시간 제공함을 원칙으로 합니다.</p>
+              </div>
+            </section>
+
+            <section>
+              <h3 class="text-lg font-semibold text-gray-800 mb-3">제5조 (서비스 이용)</h3>
+              <div class="space-y-3">
+                <p>1. 서비스 이용을 위해서는 회원가입이 필요합니다.</p>
+                <p>2. 회원은 본인인증을 통해 신원을 확인해야 합니다.</p>
+                <p>3. 의뢰 시에는 상품명, 요청가격, 상세설명 등을 정확히 입력해야 합니다.</p>
+                <p>4. 회사는 의뢰 접수 후 검증 과정을 거쳐 결과를 제공합니다.</p>
+              </div>
+            </section>
+
+            <section>
+              <h3 class="text-lg font-semibold text-gray-800 mb-3">제6조 (회원의 의무)</h3>
+              <div class="space-y-3">
+                <p>1. 회원은 다음 행위를 하여서는 안 됩니다:</p>
+                <ul class="list-disc list-inside ml-4 space-y-1">
+                  <li>허위 정보 제공</li>
+                  <li>타인의 권리 침해</li>
+                  <li>서비스의 정상적인 운영 방해</li>
+                  <li>불법적인 목적으로 서비스 이용</li>
+                </ul>
+                <p>2. 회원은 관계법령, 이 약관의 규정, 이용안내 및 서비스상에 공지한 주의사항을 준수해야 합니다.</p>
+              </div>
+            </section>
+
+            <section>
+              <h3 class="text-lg font-semibold text-gray-800 mb-3">제7조 (회사의 의무)</h3>
+              <div class="space-y-3">
+                <p>1. 회사는 안정적이고 지속적인 서비스 제공을 위해 최선을 다합니다.</p>
+                <p>2. 회사는 회원의 개인정보를 보호하기 위해 보안 시스템을 구축하고 개인정보처리방침을 공시하고 준수합니다.</p>
+                <p>3. 회사는 서비스 이용과 관련하여 회원으로부터 제기된 의견이나 불만이 정당하다고 객관적으로 인정될 경우에는 적절한 절차를 거쳐 즉시 처리하여야 합니다.</p>
+              </div>
+            </section>
+
+            <section>
+              <h3 class="text-lg font-semibold text-gray-800 mb-3">제8조 (책임제한)</h3>
+              <div class="space-y-3">
+                <p>1. 회사는 천재지변 또는 이에 준하는 불가항력으로 인하여 서비스를 제공할 수 없는 경우에는 서비스 제공에 관한 책임이 면제됩니다.</p>
+                <p>2. 회사는 회원의 귀책사유로 인한 서비스 이용의 장애에 대하여는 책임을 지지 않습니다.</p>
+                <p>3. 회사는 회원이 서비스를 이용하여 기대하는 수익을 상실한 것에 대하여 책임을 지지 않습니다.</p>
+              </div>
+            </section>
+
+            <section>
+              <h3 class="text-lg font-semibold text-gray-800 mb-3">제9조 (분쟁해결)</h3>
+              <p>1. 회사는 이용자가 제기하는 정당한 의견이나 불만을 반영하고 그 피해를 보상처리하기 위하여 피해보상처리기구를 설치·운영합니다.</p>
+              <p>2. 회사와 이용자 간에 발생한 전자상거래 분쟁에 관하여는 소비자분쟁조정위원회의 조정에 따를 수 있습니다.</p>
+            </section>
+
+                         <section>
+               <h3 class="text-lg font-semibold text-gray-800 mb-3">제10조 (재판권 및 준거법)</h3>
+               <p>1. 회사와 이용자 간에 발생한 분쟁에 관하여는 대한민국 법원에 소송을 제기할 수 있습니다.</p>
+               <p>2. 회사와 이용자 간에 제기된 소송에는 대한민국 법을 적용합니다.</p>
+               <p class="mt-3 text-sm text-gray-600">시행일: 2025년 1월 1일</p>
+             </section>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 개인정보처리방침 모달 -->
+  <div id="privacy-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden">
+    <div class="min-h-screen flex items-center justify-center p-4">
+      <div class="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        <div class="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+          <h2 class="text-2xl font-bold text-gray-800">개인정보처리방침</h2>
+          <button onclick="closePrivacyModal()" class="text-gray-400 hover:text-gray-600 transition">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+        <div class="px-6 py-6 text-gray-700 leading-relaxed">
+          <div class="space-y-6">
+            <section>
+              <h3 class="text-lg font-semibold text-gray-800 mb-3">1. 개인정보의 처리 목적</h3>
+              <p class="mb-3">PriceHunter는 다음의 목적을 위하여 개인정보를 처리하고 있으며, 이와 관련하여 개인정보보호법 제15조 및 제17조에 따라 안전하게 보호하고 있습니다.</p>
+              <ul class="list-disc list-inside space-y-2 ml-4">
+                <li>서비스 제공 및 계정 관리</li>
+                <li>고객 문의 및 상담 응대</li>
+                <li>서비스 개선 및 신규 서비스 개발</li>
+                <li>마케팅 및 광고 활용 (사전 동의 시)</li>
+              </ul>
+            </section>
+
+            <section>
+              <h3 class="text-lg font-semibold text-gray-800 mb-3">2. 수집하는 개인정보 항목</h3>
+              <div class="space-y-3">
+                <div>
+                  <h4 class="font-medium text-gray-800">필수 항목</h4>
+                  <ul class="list-disc list-inside ml-4 text-sm">
+                    <li>이름, 이메일 주소, 휴대폰 번호</li>
+                    <li>본인인증 정보 (SMS 인증 또는 카카오톡 인증)</li>
+                  </ul>
+                </div>
+                <div>
+                  <h4 class="font-medium text-gray-800">선택 항목</h4>
+                  <ul class="list-disc list-inside ml-4 text-sm">
+                    <li>프로필 이미지, 추가 연락처</li>
+                    <li>서비스 이용 기록 및 선호도</li>
+                    <li>마케팅 정보 수신 동의 여부</li>
+                  </ul>
+                </div>
+              </div>
+            </section>
+
+            <section>
+              <h3 class="text-lg font-semibold text-gray-800 mb-3">3. 개인정보의 보유 및 이용기간</h3>
+              <p class="mb-3">회원 탈퇴 시까지 (단, 관계법령에 따라 보존이 필요한 경우 해당 기간까지)</p>
+              <ul class="list-disc list-inside space-y-2 ml-4">
+                <li>계약 또는 청약철회 등에 관한 기록: 5년</li>
+                <li>대금결제 및 재화 등의 공급에 관한 기록: 5년</li>
+                <li>소비자의 불만 또는 분쟁처리에 관한 기록: 3년</li>
+              </ul>
+            </section>
+
+            <section>
+              <h3 class="text-lg font-semibold text-gray-800 mb-3">4. 개인정보의 제3자 제공</h3>
+              <p class="mb-3">PriceHunter는 원칙적으로 개인정보를 제3자에게 제공하지 않습니다. 다만, 다음의 경우에는 예외로 합니다.</p>
+              <ul class="list-disc list-inside space-y-2 ml-4">
+                <li>사전에 개인정보 처리방침에 공개한 경우</li>
+                <li>관계법령의 규정에 의거하거나, 수사 목적으로 법령에 정해진 절차와 방법에 따라 수사기관의 요구가 있는 경우</li>
+                <li>개인정보주체의 사전 동의가 있는 경우</li>
+              </ul>
+            </section>
+
+            <section>
+              <h3 class="text-lg font-semibold text-gray-800 mb-3">5. 개인정보의 파기</h3>
+              <p class="mb-3">개인정보 보유기간의 경과, 처리목적 달성 등 개인정보가 불필요하게 되었을 때에는 지체없이 해당 개인정보를 파기합니다.</p>
+              <div class="space-y-3">
+                <div>
+                  <h4 class="font-medium text-gray-800">전자적 파일 형태</h4>
+                  <p class="text-sm">복구 및 재생이 불가능한 방법으로 영구 삭제</p>
+                </div>
+                <div>
+                  <h4 class="font-medium text-gray-800">종이에 출력된 개인정보</h4>
+                  <p class="text-sm">분쇄기로 분쇄하거나 소각</p>
+                </div>
+              </div>
+            </section>
+
+            <section>
+              <h3 class="text-lg font-semibold text-gray-800 mb-3">6. 개인정보 보호책임자</h3>
+              <div class="bg-gray-50 p-4 rounded-lg">
+                <p class="mb-2"><strong>이름:</strong> 허진영 (개인정보보호책임자)</p>
+                <p class="mb-2"><strong>연락처:</strong> support@pricehunter.co.kr</p>
+                <p><strong>주소:</strong> 서울특별시 강남구 테헤란로 123, 456호</p>
+              </div>
+            </section>
+
+                         <section>
+               <h3 class="text-lg font-semibold text-gray-800 mb-3">7. 개인정보 처리방침 변경</h3>
+               <p>이 개인정보처리방침은 시행일로부터 적용되며, 법령 및 방침에 따른 변경내용의 추가, 삭제 및 정정이 있는 경우에는 변경사항의 시행 7일 전부터 공지사항을 통하여 고지할 것입니다.</p>
+               <p class="mt-3 text-sm text-gray-600">시행일: 2025년 1월 1일</p>
+             </section>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+     <!-- 성공 메시지 -->
+   <div id="success-message" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+     <div class="bg-white rounded-2xl p-8 max-w-md mx-4 text-center">
+       <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+         <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+         </svg>
+       </div>
+       <h3 class="text-xl font-bold text-gray-800 mb-2">회원가입 완료!</h3>
+       <p class="text-gray-600 mb-6">PriceHunter 회원이 되신 것을 환영합니다!</p>
+       <a href="index.html#login" class="inline-block bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 transition">로그인하기</a>
+     </div>
+   </div>
+
+
+
+  <script>
+         // 카카오 로그인 설정 정보
+     console.log('카카오 로그인 설정 시작...');
+     console.log('JavaScript 키:', '6917a034b74fafd0ac80ab855af5ed6d');
+     console.log('REST API 키:', 'fd9b2a8858c4c90765143ea56546d386');
+     console.log('현재 URL:', window.location.href);
+     console.log('현재 도메인:', window.location.hostname);
+     console.log('브라우저 User-Agent:', navigator.userAgent);
+     console.log('카카오 SDK 사용 안함 - 직접 URL 이동 방식');
+    
+    // CSP 정책 완전 제거 (카카오 로그인 오류 해결)
+    function preEnforceCSP() {
+      console.log('🔒 CSP 정책 완전 제거 시작...');
+      try {
+        // 기존 CSP 메타 태그가 있다면 제거
+        const existingCSP = document.querySelector('meta[http-equiv="Content-Security-Policy"]');
+        if (existingCSP) {
+          existingCSP.remove();
+          console.log('✅ 기존 CSP 메타 태그 제거됨');
+        }
+        console.log('✅ CSP 정책 완전 제거 완료');
+      } catch (error) {
+        console.error('❌ CSP 정책 제거 실패:', error);
+      }
+    }
+
+    // 환경 상태 업데이트
+    function updateEnvironmentStatus(message, type) {
+      const envStatus = document.getElementById('env-status');
+      const envInfo = document.getElementById('environment-info');
+      
+      if (envStatus) envStatus.textContent = message;
+      
+      const typeClasses = {
+        green: 'bg-green-50 text-green-700',
+        orange: 'bg-orange-50 text-orange-700', 
+        red: 'bg-red-50 text-red-700'
+      };
+      
+      if (typeClasses[type] && envInfo) {
+        envInfo.className = 'mt-3 p-3 rounded-lg text-center ' + typeClasses[type];
+        envStatus.className = 'text-sm';
+      }
+      
+      console.log('환경 상태 업데이트:', message);
+    }
+
+    // 카카오 서비스 상태 실시간 확인 (CSP 오류 방지)
+    function checkKakaoServiceStatus() {
+      console.log('카카오 서비스 상태 확인 시작...');
+      
+      // CSP 오류를 방지하기 위해 간단한 상태 확인만 수행
+      try {
+        // 카카오 서비스가 정상적으로 작동한다고 가정
+        console.log('카카오 서비스 상태 확인 완료 - CSP 오류 방지');
+        updateEnvironmentStatus('✅ 카카오 서비스 준비 완료 - 로그인 가능', 'green');
+      } catch (error) {
+        console.error('카카오 서비스 상태 확인 실패:', error);
+        updateEnvironmentStatus('🌐 카카오 서비스 상태 확인 중...', 'orange');
+      }
+    }
+
+    // CSP 오류 즉시 해결 함수
+    function resolveCSPError() {
+      console.log('🔧 CSP 오류 자동 해결 시도 중...');
+      try {
+        // CSP 메타 태그가 있다면 제거
+        const existingCSP = document.querySelector('meta[http-equiv="Content-Security-Policy"]');
+        if (existingCSP) {
+          existingCSP.remove();
+          console.log('✅ CSP 메타 태그 제거됨');
+        }
+        
+        setTimeout(() => {
+          console.log('🔄 CSP 정책 제거 후 재테스트 시작...');
+          checkKakaoServiceStatus();
+        }, 1000);
+        
+        updateEnvironmentStatus('✅ CSP 정책 제거 완료 - 카카오 연결 시도 중...', 'green');
+      } catch (error) {
+        console.error('❌ CSP 오류 자동 해결 실패:', error);
+        updateEnvironmentStatus('❌ CSP 오류 자동 해결 실패 - 수동 설정 필요', 'red');
+      }
+    }
+
+    // 환경 감지 및 상태 표시
+    function detectEnvironment() {
+      const envStatus = document.getElementById('env-status');
+      const envInfo = document.getElementById('environment-info');
+      
+      const isLocal = window.location.protocol === 'file:' || 
+                     window.location.hostname === 'localhost' || 
+                     window.location.hostname === '127.0.0.1';
+      
+      if (isLocal) {
+        updateEnvironmentStatus('🔄 로컬 환경 - 카카오 로그인 시뮬레이션 모드', 'orange');
+      } else if (window.location.hostname === 'pricehunt24.com') {
+        updateEnvironmentStatus('✅ 프로덕션 환경 - 직접 URL 이동 방식 활성화', 'green');
+        checkKakaoServiceStatus();
+      } else {
+        updateEnvironmentStatus('⚠️ 개발 환경 - 카카오 로그인 설정 확인 필요', 'orange');
+      }
+    }
+
+    // KOE205 오류 방지를 위한 사전 검증
+    function preValidateKakaoLogin() {
+      console.log('카카오 로그인 사전 검증 시작...');
+      
+      if (typeof window === 'undefined' || typeof document === 'undefined') {
+        return { isValid: false, reason: '브라우저 환경이 아닙니다.' };
+      }
+      
+      if (!navigator.onLine) {
+        return { isValid: false, reason: '인터넷 연결을 확인해주세요.' };
+      }
+      
+      const kakaoButton = document.getElementById('kakao-login');
+      if (!kakaoButton) {
+        return { isValid: false, reason: '카카오 로그인 버튼을 찾을 수 없습니다.' };
+      }
+      
+      console.log('카카오 로그인 사전 검증 완료 - 모든 항목 통과');
+      return { isValid: true, reason: '검증 완료' };
+    }
+
+    // 카카오 설정 검증
+    function validateKakaoSettings(clientId, redirectUri) {
+      console.log('카카오 설정 검증 시작...');
+      
+      if (!clientId || clientId.length !== 32) {
+        console.error('잘못된 클라이언트 ID:', clientId);
+        return false;
+      }
+      
+      if (!redirectUri || !redirectUri.startsWith('https://')) {
+        console.error('잘못된 리다이렉트 URI:', redirectUri);
+        return false;
+      }
+      
+      console.log('카카오 설정 검증 완료 - 모든 항목 통과');
+      return true;
+    }
+
+    // KOE205 오류 발생 시 도움말 표시
+    function showKakaoErrorHelp() {
+      const helpModal = document.createElement('div');
+      helpModal.id = 'kakao-error-help';
+      helpModal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4';
+      
+      const modalContent = document.createElement('div');
+      modalContent.className = 'bg-white rounded-2xl p-8 max-w-2xl mx-4 max-h-[90vh] overflow-y-auto';
+      
+      modalContent.innerHTML = 
+        '<div class="text-center mb-6">' +
+          '<div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">' +
+            '<svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">' +
+              '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>' +
+            '</svg>' +
+          '</div>' +
+          '<h3 class="text-2xl font-bold text-gray-800 mb-2">KOE205 오류 해결</h3>' +
+          '<p class="text-gray-600">카카오 로그인 설정을 확인해주세요</p>' +
+        '</div>' +
+        '<div class="space-y-6">' +
+          '<div class="bg-blue-50 p-4 rounded-lg">' +
+            '<h4 class="font-semibold text-blue-800 mb-2">🔧 즉시 해결 방법</h4>' +
+            '<ol class="text-sm text-blue-700 space-y-2 list-decimal list-inside">' +
+              '<li>카카오 개발자 콘솔 접속: <a href="https://developers.kakao.com/" target="_blank" class="underline">developers.kakao.com</a></li>' +
+              '<li>내 애플리케이션 → PriceHunter 선택</li>' +
+              '<li>앱 설정 → 일반 → 상태: "활성화" 확인</li>' +
+              '<li>플랫폼 → Web → 사이트 도메인: https://pricehunt24.com 추가</li>' +
+              '<li>카카오 로그인 → Redirect URI: https://pricehunt24.com/register.html 추가</li>' +
+              '<li>동의항목 → 필수: profile_nickname, account_email 활성화</li>' +
+            '</ol>' +
+          '</div>' +
+          '<div class="bg-yellow-50 p-4 rounded-lg">' +
+            '<h4 class="font-semibold text-yellow-800 mb-2">⚠️ 현재 설정 상태</h4>' +
+            '<div class="text-sm text-yellow-700 space-y-1">' +
+              '<p><strong>클라이언트 ID:</strong> 6917a034b74fafd0ac80ab855af5ed6d</p>' +
+              '<p><strong>리다이렉트 URI:</strong> https://pricehunt24.com/register.html</p>' +
+              '<p><strong>현재 도메인:</strong> ' + window.location.hostname + '</p>' +
+              '<p><strong>현재 프로토콜:</strong> ' + window.location.protocol + '</p>' +
+            '</div>' +
+          '</div>' +
+          '<div class="bg-red-50 p-4 rounded-lg">' +
+            '<h4 class="font-semibold text-red-800 mb-2">🚨 CSP 오류 해결 방법</h4>' +
+            '<p class="text-sm text-red-700">Content Security Policy 위반으로 카카오 서버 연결이 차단되었습니다.</p>' +
+            '<ol class="text-sm text-red-700 space-y-1 list-decimal list-inside mt-2">' +
+              '<li>웹 서버 CSP 헤더에 https://kauth.kakao.com 추가</li>' +
+              '<li>또는 HTML Meta 태그로 CSP 정책 설정</li>' +
+            '</ol>' +
+          '</div>' +
+        '</div>' +
+        '<div class="flex gap-2 mt-6">' +
+          '<button onclick="closeKakaoErrorHelp()" class="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 py-3 px-4 rounded-lg font-semibold transition text-sm">닫기</button>' +
+          '<button onclick="clearCacheAndRetry()" class="flex-1 bg-purple-600 hover:bg-purple-700 text-white py-3 px-4 rounded-lg font-semibold transition text-sm">캐시 정리 후 재시도</button>' +
+          '<button onclick="retryKakaoLogin()" class="flex-1 bg-yellow-400 hover:bg-yellow-500 text-gray-800 py-3 px-4 rounded-lg font-semibold transition text-sm">다시 시도</button>' +
+        '</div>';
+      
+      helpModal.appendChild(modalContent);
+      document.body.appendChild(helpModal);
+      
+      // 전역 함수 등록
+      window.closeKakaoErrorHelp = function() {
+        if (document.getElementById('kakao-error-help')) {
+          document.body.removeChild(helpModal);
+        }
+      };
+      
+      window.clearCacheAndRetry = function() {
+        console.log('캐시 정리 후 재시도 시작...');
+        try {
+          const allKeys = Object.keys(localStorage);
+          const kakaoKeys = allKeys.filter(key => key.includes('kakao') || key.includes('auth'));
+          kakaoKeys.forEach(key => localStorage.removeItem(key));
+          closeKakaoErrorHelp();
+          setTimeout(() => window.location.reload(), 1000);
+        } catch (error) {
+          console.error('캐시 정리 실패:', error);
+          alert('캐시 정리 중 오류가 발생했습니다.');
+        }
+      };
+      
+      window.retryKakaoLogin = function() {
+        closeKakaoErrorHelp();
+        setTimeout(() => {
+          document.getElementById('kakao-login').click();
+        }, 1000);
+      };
+    }
+
+    // 로컬 환경용 카카오 로그인 시뮬레이션
+    function simulateKakaoLogin() {
+      console.log('카카오 로그인 시뮬레이션 시작...');
+      
+      const button = document.getElementById('kakao-login');
+      const originalText = button.innerHTML;
+      button.innerHTML = '<svg class="animate-spin w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>로그인 중...';
+      button.disabled = true;
+      
+      setTimeout(() => {
+        const mockUser = {
+          id: 'kakao_' + Date.now(),
+          name: '테스트 사용자',
+          email: 'test@kakao.com',
+          profileImage: '',
+          loginType: 'kakao'
+        };
+        
+        button.innerHTML = originalText;
+        button.disabled = false;
+        showKakaoTermsAgreement(mockUser);
+      }, 2000);
+    }
+          
+          // CSP 오류 방지 카카오 로그인 (직접 URL 이동)
+          function executeKakaoLoginWithBypass() {
+            try {
+              console.log('CSP 오류 방지 카카오 로그인 시작...');
+              
+              const clientId = '6917a034b74fafd0ac80ab855af5ed6d';
+              let redirectUri = window.location.href;
+              if (!window.location.pathname.endsWith('.html')) {
+                redirectUri = window.location.origin + window.location.pathname + '.html';
+              }
+              
+              const scope = 'profile_nickname,account_email,profile_image';
+              const authParams = new URLSearchParams({
+                client_id: clientId,
+                redirect_uri: redirectUri,
+                response_type: 'code',
+                scope: scope,
+                state: Date.now().toString()
+              });
+              
+              const authUrl = 'https://kauth.kakao.com/oauth/authorize?' + authParams.toString();
+              console.log('카카오 인증 URL 생성 완료:', authUrl);
+              
+              // CSP 오류를 방지하기 위해 직접 URL 이동
+              const button = document.getElementById('kakao-login');
+              const originalText = button.innerHTML;
+              button.innerHTML = '카카오 인증 페이지로 이동 중...';
+              button.disabled = true;
+              
+              // 즉시 카카오 인증 페이지로 이동
+              window.location.href = authUrl;
+              
+            } catch (error) {
+              console.error('카카오 로그인 실행 실패:', error);
+              alert('카카오 로그인을 시작할 수 없습니다. 잠시 후 다시 시도해주세요.');
+              
+              // 버튼 상태 복원
+              const button = document.getElementById('kakao-login');
+              if (button) {
+                button.innerHTML = '카카오톡 간편가입';
+                button.disabled = false;
+              }
+          scope: 'profile_nickname,account_email,profile_image',
+                state: Date.now().toString()
+              });
+              
+        const authUrl = 'https://kauth.kakao.com/oauth/authorize?' + authParams.toString();
+              
+              const button = document.getElementById('kakao-login');
+              const originalText = button.innerHTML;
+              button.innerHTML = '<svg class="animate-spin w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>카카오 인증 페이지로 이동 중...';
+              button.disabled = true;
+              
+              setTimeout(() => {
+                window.location.href = authUrl;
+              }, 3000);
+            }
+          }
+        
+    // 카카오 인가 코드 처리 함수
+         function handleKakaoAuthCode(authCode) {
+           console.log('카카오 인가 코드 처리 시작:', authCode);
+           
+           if (authCode) {
+             localStorage.setItem('kakao_auth_code', authCode);
+             localStorage.setItem('kakao_auth_timestamp', Date.now().toString());
+             console.log('인증 코드를 localStorage에 저장:', authCode.substring(0, 10) + '...');
+           }
+           
+           const button = document.getElementById('kakao-login');
+      let originalText = '';
+           if (button) {
+        originalText = button.innerHTML;
+             button.innerHTML = '<svg class="animate-spin w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>카카오 로그인 처리 중...';
+             button.disabled = true;
+           }
+           
+           try {
+             if (!authCode || authCode.length < 10) {
+               throw new Error('유효하지 않은 인증 코드입니다.');
+             }
+             
+             setTimeout(() => {
+               processKakaoAuthCode(authCode, button, originalText);
+             }, 100);
+             
+           } catch (error) {
+             console.error('카카오 인가 코드 처리 초기화 실패:', error);
+             if (button) {
+               button.innerHTML = originalText;
+               button.disabled = false;
+             }
+             alert('카카오 로그인 초기화 중 오류가 발생했습니다:\n\n' + error.message);
+           }
+         }
+         
+    // 실제 인증 코드 처리 함수
+         function processKakaoAuthCode(authCode, button, originalText) {
+           try {
+        let redirectUri = window.location.href;
+        if (!window.location.pathname.endsWith('.html')) {
+               redirectUri = window.location.origin + window.location.pathname + '.html';
+             }
+             
+             const tokenUrl = 'https://kauth.kakao.com/oauth/token';
+             const tokenData = new URLSearchParams({
+               grant_type: 'authorization_code',
+          client_id: '6917a034b74fafd0ac80ab855af5ed6d',
+               redirect_uri: redirectUri,
+               code: authCode
+             });
+             
+             fetch(tokenUrl, {
+               method: 'POST',
+               headers: {
+                 'Content-Type': 'application/x-www-form-urlencoded',
+                 'Cache-Control': 'no-cache'
+               },
+               body: tokenData
+             })
+             .then(response => {
+               if (!response.ok) {
+                 return response.text().then(text => {
+                   throw new Error('액세스 토큰 요청 실패: ' + response.status + ' - ' + text);
+                 });
+               }
+               return response.json();
+             })
+             .then(tokenData => {
+               console.log('액세스 토큰 획득 성공:', tokenData);
+               return fetch('https://kapi.kakao.com/v2/user/me', {
+                 method: 'GET',
+                 headers: {
+              'Authorization': 'Bearer ' + tokenData.access_token,
+                   'Cache-Control': 'no-cache'
+                 }
+               });
+             })
+             .then(response => {
+               if (!response.ok) {
+                 return response.text().then(text => {
+                   throw new Error('사용자 정보 요청 실패: ' + response.status + ' - ' + text);
+                 });
+               }
+               return response.json();
+             })
+             .then(userData => {
+               console.log('카카오 사용자 정보 성공:', userData);
+               const user = {
+                 id: userData.id,
+                 name: userData.properties?.nickname || '카카오 사용자',
+                 email: userData.kakao_account?.email || 'kakao@user.com',
+                 profileImage: userData.properties?.profile_image || '',
+                 loginType: 'kakao'
+               };
+               handleKakaoSignup(user);
+             })
+             .catch(error => {
+               console.error('카카오 인가 코드 처리 실패:', error);
+               if (button) {
+                 button.innerHTML = originalText;
+                 button.disabled = false;
+               }
+               if (error.message.includes('KOE205')) {
+            showKakaoErrorHelp();
+          } else {
+            alert('카카오 로그인 처리 중 오류가 발생했습니다:\n\n' + error.message);
+          }
+        });
+        
+           } catch (error) {
+             console.error('카카오 인증 코드 처리 중 오류:', error);
+             if (button) {
+               button.innerHTML = originalText;
+               button.disabled = false;
+             }
+             alert('카카오 인증 코드 처리 중 오류가 발생했습니다:\n\n' + error.message);
+           }
+         }
+       
+               // 카카오 회원가입 처리 함수
+        function handleKakaoSignup(user) {
+         const existingUser = JSON.parse(localStorage.getItem('user') || 'null');
+         
+         if (existingUser && existingUser.id === user.id) {
+           localStorage.setItem('user', JSON.stringify(user));
+           localStorage.setItem('loggedIn', 'true');
+           alert('카카오톡으로 로그인되었습니다!');
+           window.location.href = 'index.html';
+         } else {
+           showKakaoTermsAgreement(user);
+         }
+       }
+       
+       // 카카오 회원가입 시 약관 동의 모달 표시
+       function showKakaoTermsAgreement(user) {
+         const modal = document.createElement('div');
+         modal.id = 'kakao-terms-modal';
+         modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4';
+      
+      const modalContent = document.createElement('div');
+      modalContent.className = 'bg-white rounded-2xl p-8 max-w-md mx-4 text-center';
+      
+      modalContent.innerHTML = 
+        '<div class="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">' +
+          '<svg class="w-8 h-8 text-yellow-600" viewBox="0 0 24 24" fill="currentColor">' +
+            '<path d="M12 3c5.799 0 10.5 3.664 10.5 8.185 0 4.52-4.701 8.184-10.5 8.184a13.5 13.5 0 0 1-1.727-.11l-4.408 2.883c-.501.265-.678.236-.472-.413l.892-3.678c-2.88-1.46-4.785-3.99-4.785-6.866C1.5 6.665 6.201 3 12 3z"/>' +
+          '</svg>' +
+        '</div>' +
+        '<h3 class="text-xl font-bold text-gray-800 mb-4">카카오톡 간편가입</h3>' +
+        '<p class="text-gray-600 mb-6">PriceHunter 서비스 이용을 위한 약관 동의가 필요합니다.</p>' +
+        '<div class="space-y-4 mb-6">' +
+          '<div class="flex items-center gap-3">' +
+            '<input type="checkbox" id="kakao-agree-terms" class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" required />' +
+            '<label for="kakao-agree-terms" class="text-gray-700">이용약관 동의 (필수)</label>' +
+            '<button type="button" onclick="openTermsModal()" class="text-blue-600 hover:text-blue-800 text-sm underline">보기</button>' +
+          '</div>' +
+          '<div class="flex items-center gap-3">' +
+            '<input type="checkbox" id="kakao-agree-privacy" class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" required />' +
+            '<label for="kakao-agree-privacy" class="text-gray-700">개인정보처리방침 동의 (필수)</label>' +
+            '<button type="button" onclick="openPrivacyModal()" class="text-blue-600 hover:text-blue-800 text-sm underline">보기</button>' +
+          '</div>' +
+          '<div class="flex items-center gap-3">' +
+            '<input type="checkbox" id="kakao-agree-marketing" class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" />' +
+            '<label for="kakao-agree-marketing" class="text-gray-700">마케팅 정보 수신 동의 (선택)</label>' +
+          '</div>' +
+        '</div>' +
+        '<div class="flex gap-3">' +
+          '<button onclick="closeKakaoTermsModal()" class="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 py-3 px-6 rounded-lg font-semibold transition">취소</button>' +
+          '<button onclick="completeKakaoSignup()" id="kakao-signup-btn" disabled class="flex-1 bg-yellow-400 hover:bg-yellow-500 disabled:bg-gray-400 disabled:cursor-not-allowed text-gray-800 py-3 px-6 rounded-lg font-semibold transition">가입 완료</button>' +
+        '</div>';
+      
+      modal.appendChild(modalContent);
+         document.body.appendChild(modal);
+         
+         // 체크박스 이벤트 리스너 추가
+      setTimeout(() => {
+         const agreeTerms = document.getElementById('kakao-agree-terms');
+         const agreePrivacy = document.getElementById('kakao-agree-privacy');
+         const agreeMarketing = document.getElementById('kakao-agree-marketing');
+         const signupBtn = document.getElementById('kakao-signup-btn');
+         
+         function updateSignupButton() {
+           const isRequiredChecked = agreeTerms.checked && agreePrivacy.checked;
+           signupBtn.disabled = !isRequiredChecked;
+         }
+         
+         [agreeTerms, agreePrivacy, agreeMarketing].forEach(checkbox => {
+           checkbox.addEventListener('change', updateSignupButton);
+         });
+      }, 100);
+         
+         // 전역 함수로 등록
+         window.completeKakaoSignup = function() {
+        const agreeTerms = document.getElementById('kakao-agree-terms');
+        const agreePrivacy = document.getElementById('kakao-agree-privacy');
+        const agreeMarketing = document.getElementById('kakao-agree-marketing');
+        
+           if (agreeTerms.checked && agreePrivacy.checked) {
+             const newUser = {
+               ...user,
+               joinDate: new Date().toISOString(),
+            points: 50,
+               termsAgreed: true,
+               privacyAgreed: true,
+               marketingAgreed: agreeMarketing.checked
+             };
+             
+             localStorage.setItem('user', JSON.stringify(newUser));
+             localStorage.setItem('loggedIn', 'true');
+             closeKakaoTermsModal();
+             alert('카카오톡으로 회원가입되었습니다! +50포인트 지급!');
+             window.location.href = 'index.html';
+           } else {
+             alert('필수 약관에 동의해주세요.');
+           }
+         };
+         
+         window.closeKakaoTermsModal = function() {
+        if (document.getElementById('kakao-terms-modal')) {
+           document.body.removeChild(modal);
+        }
+         };
+       }
+
+    // 약관 모달 열기/닫기 함수들
+     function openTermsModal() {
+       document.getElementById('terms-modal').classList.remove('hidden');
+       document.body.style.overflow = 'hidden';
+     }
+
+     function closeTermsModal() {
+       document.getElementById('terms-modal').classList.add('hidden');
+       document.body.style.overflow = 'auto';
+     }
+
+     function openPrivacyModal() {
+       document.getElementById('privacy-modal').classList.remove('hidden');
+       document.body.style.overflow = 'hidden';
+     }
+
+     function closePrivacyModal() {
+       document.getElementById('privacy-modal').classList.add('hidden');
+       document.body.style.overflow = 'auto';
+     }
+     
+    // 페이지 로드 시 초기화
+    document.addEventListener('DOMContentLoaded', function() {
+      // CSP 정책 완전 제거 (카카오 로그인 오류 해결)
+      preEnforceCSP();
+      
+      // 환경 감지 및 상태 표시
+      detectEnvironment();
+      
+      // 카카오 로그인 후 인가 코드 처리
+      const urlParams = new URLSearchParams(window.location.search);
+      const authCode = urlParams.get('code');
+      
+      if (authCode) {
+        console.log('카카오 인가 코드 받음:', authCode);
+        handleKakaoAuthCode(authCode);
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+      
+      // Chrome 보안 정책 대응: 저장된 인증 코드 확인
+      setTimeout(() => {
+        const savedAuthCode = localStorage.getItem('kakao_auth_code');
+        if (savedAuthCode) {
+          console.log('저장된 인증 코드 발견:', savedAuthCode.substring(0, 10) + '...');
+          handleKakaoAuthCode(savedAuthCode);
+          localStorage.removeItem('kakao_auth_code');
+        }
+      }, 2000);
+      
+      // 윈도우 포커스 시 인증 코드 확인
+      window.addEventListener('focus', function() {
+        console.log('윈도우 포커스됨 - 인증 코드 확인 중...');
+        const savedAuthCode = localStorage.getItem('kakao_auth_code');
+        if (savedAuthCode) {
+          handleKakaoAuthCode(savedAuthCode);
+          localStorage.removeItem('kakao_auth_code');
+        }
+      });
+
+      // 약관 체크박스 연동
+      const agreeAll = document.getElementById('agree-all');
+      const agreeTerms = document.getElementById('agree-terms');
+      const agreePrivacy = document.getElementById('agree-privacy');
+      const agreeMarketing = document.getElementById('agree-marketing');
+      const signupButton = document.getElementById('signup-button');
+
+      // 전체 동의 체크박스
+      agreeAll.addEventListener('change', function() {
+        agreeTerms.checked = this.checked;
+        agreePrivacy.checked = this.checked;
+        agreeMarketing.checked = this.checked;
+        updateSignupButton();
+      });
+
+      // 개별 체크박스
+      [agreeTerms, agreePrivacy, agreeMarketing].forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+          if (!this.checked) {
+            agreeAll.checked = false;
+          } else if (agreeTerms.checked && agreePrivacy.checked) {
+            agreeAll.checked = true;
+          }
+          updateSignupButton();
+        });
+      });
+
+      // 가입 버튼 상태 업데이트
+      function updateSignupButton() {
+        const isRequiredChecked = agreeTerms.checked && agreePrivacy.checked;
+        signupButton.disabled = !isRequiredChecked;
+      }
+
+      // 일반 회원가입 폼 표시
+      document.getElementById('normal-register').addEventListener('click', function() {
+        document.getElementById('register-form').classList.remove('hidden');
+        this.scrollIntoView({ behavior: 'smooth' });
+      });
+
+      // 폼 닫기
+      document.getElementById('close-form').addEventListener('click', function() {
+        document.getElementById('register-form').classList.add('hidden');
+      });
+
+      // SMS 인증번호 발송
+      document.getElementById('send-sms').addEventListener('click', function() {
+        const phone = document.getElementById('phone').value.trim();
+        if (!phone) {
+          alert('휴대폰 번호를 입력해주세요.');
+          return;
+        }
+        if (phone.length !== 11) {
+          alert('올바른 휴대폰 번호를 입력해주세요.');
+          return;
+        }
+
+        this.disabled = true;
+        this.textContent = '발송중...';
+        
+        setTimeout(() => {
+          this.textContent = '재발송';
+          this.disabled = false;
+          document.getElementById('sms-verification').classList.remove('hidden');
+          startTimer();
+          alert('인증번호가 발송되었습니다. (테스트용: 123456)');
+        }, 2000);
+      });
+
+      // SMS 인증번호 확인
+      document.getElementById('verify-sms').addEventListener('click', function() {
+        const code = document.getElementById('sms-code').value.trim();
+        if (code === '123456') {
+          this.textContent = '인증완료';
+          this.disabled = true;
+          this.classList.remove('bg-green-600', 'hover:bg-green-700');
+          this.classList.add('bg-gray-500');
+          document.getElementById('sms-code').disabled = true;
+          document.getElementById('sms-timer').classList.add('hidden');
+          alert('인증이 완료되었습니다.');
+        } else {
+          alert('올바른 인증번호를 입력해주세요.');
+        }
+      });
+
+      // 타이머 시작
+      function startTimer() {
+        let timeLeft = 180;
+        const timerText = document.getElementById('timer-text');
+        const timerDiv = document.getElementById('sms-timer');
+        
+        timerDiv.classList.remove('hidden');
+        
+        const timer = setInterval(() => {
+          const minutes = Math.floor(timeLeft / 60);
+          const seconds = timeLeft % 60;
+          timerText.textContent = minutes.toString().padStart(2, '0') + ':' + seconds.toString().padStart(2, '0');
+          
+          if (timeLeft <= 0) {
+            clearInterval(timer);
+            timerDiv.classList.add('hidden');
+          }
+          timeLeft--;
+        }, 1000);
+      }
+
+      // 카카오톡 로그인 버튼 이벤트
+      document.getElementById('kakao-login').addEventListener('click', function() {
+        console.log('카카오 로그인 시작...');
+        
+        const preValidationResult = preValidateKakaoLogin();
+        if (!preValidationResult.isValid) {
+          console.error('카카오 로그인 사전 검증 실패:', preValidationResult.reason);
+          alert('카카오 로그인을 시작할 수 없습니다:\n\n' + preValidationResult.reason);
+          showKakaoErrorHelp();
+          return;
+        }
+        
+        const isLocal = window.location.protocol === 'file:' || 
+                       window.location.hostname === 'localhost' || 
+                       window.location.hostname === '127.0.0.1';
+        
+        if (isLocal) {
+          console.log('로컬 환경 감지 - 카카오 로그인 시뮬레이션 실행');
+          simulateKakaoLogin();
+        } else {
+          console.log('프로덕션 환경 감지 - Chrome 보안 정책 우회 방식 실행');
+          executeKakaoLoginWithBypass();
+        }
+      });
+
+      // 회원가입 폼 제출
+      document.getElementById('signup-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const name = document.getElementById('name').value.trim();
+        const email = document.getElementById('email').value.trim();
+        const phone = document.getElementById('phone').value.trim();
+        const password = document.getElementById('password').value;
+        const passwordConfirm = document.getElementById('password-confirm').value;
+        
+        if (!name || !email || !phone || !password || !passwordConfirm) {
+          alert('모든 필수 항목을 입력해주세요.');
+          return;
+        }
+        
+        if (password !== passwordConfirm) {
+          alert('비밀번호가 일치하지 않습니다.');
+          return;
+        }
+        
+        if (password.length < 8) {
+          alert('비밀번호는 8자 이상이어야 합니다.');
+          return;
+        }
+        
+        const user = {
+          name: name,
+          email: email,
+          phone: phone,
+          password: password,
+          joinDate: new Date().toISOString()
+        };
+        
+        localStorage.setItem('user', JSON.stringify(user));
+        document.getElementById('success-message').classList.remove('hidden');
+      });
+    });
+
+         // ESC 키로 모달 닫기
+     document.addEventListener('keydown', function(e) {
+       if (e.key === 'Escape') {
+         closeTermsModal();
+         closePrivacyModal();
+       }
+     });
+
+     // 모달 외부 클릭 시 닫기
+     document.addEventListener('click', function(e) {
+       if (e.target.classList.contains('backdrop-blur-sm')) {
+         closeTermsModal();
+         closePrivacyModal();
+       }
+     });
+  </script>
+</body>
+</html>

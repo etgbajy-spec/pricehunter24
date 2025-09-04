@@ -128,7 +128,7 @@
           -moz-user-select: none;
           -ms-user-select: none;
           user-select: none;
-          cursor: pointer;
+          cursor: default;
         }
       </style>
     </section>
@@ -956,6 +956,23 @@
           </div>
         </div>
         
+        <!-- 카카오 간편로그인 -->
+        <div class="mb-6">
+          <button id="kakao-login-btn" class="w-full bg-yellow-400 hover:bg-yellow-500 text-gray-800 font-bold py-3 px-6 rounded-lg transition-all duration-300 transform hover:scale-105 flex items-center justify-center gap-3 mb-4">
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 3c5.799 0 10.5 3.664 10.5 8.185 0 4.52-4.701 8.184-10.5 8.184a13.5 13.5 0 0 1-1.727-.11l-4.408 2.883c-.501.265-.678.236-.472-.413l.892-3.678c-2.88-1.46-4.785-3.99-4.785-6.866C1.5 6.665 6.201 3 12 3z"/>
+            </svg>
+            카카오톡으로 간편로그인
+          </button>
+          
+          <!-- 구분선 -->
+          <div class="flex items-center mb-4">
+            <div class="flex-1 border-t border-gray-300"></div>
+            <span class="px-4 text-gray-500 text-sm">또는</span>
+            <div class="flex-1 border-t border-gray-300"></div>
+          </div>
+        </div>
+
         <form id="login-form" class="space-y-4">
           <div>
             <label class="block text-gray-700 font-semibold mb-1" for="login-email">이메일</label>
@@ -1893,6 +1910,269 @@
             window.location.href = 'admin-dashboard.html';
           };
         }
+        // 포인트 관리 시스템
+        function addPoints(userEmail, points, reason) {
+          try {
+            // 기존 포인트 데이터 가져오기
+            let pointsData = JSON.parse(localStorage.getItem('userPoints') || '{}');
+            
+            if (!pointsData[userEmail]) {
+              pointsData[userEmail] = {
+                total: 0,
+                history: []
+              };
+            }
+            
+            // 포인트 추가
+            pointsData[userEmail].total += points;
+            
+            // 포인트 히스토리에 기록
+            pointsData[userEmail].history.push({
+              points: points,
+              reason: reason,
+              date: new Date().toISOString(),
+              type: 'earn'
+            });
+            
+            // localStorage에 저장
+            localStorage.setItem('userPoints', JSON.stringify(pointsData));
+            
+            console.log(`포인트 적립 완료: ${userEmail}에게 ${points}포인트 추가 (${reason})`);
+            return true;
+          } catch (error) {
+            console.error('포인트 적립 실패:', error);
+            return false;
+          }
+        }
+
+        function getPoints(userEmail) {
+          try {
+            const pointsData = JSON.parse(localStorage.getItem('userPoints') || '{}');
+            return pointsData[userEmail] ? pointsData[userEmail].total : 0;
+          } catch (error) {
+            console.error('포인트 조회 실패:', error);
+            return 0;
+          }
+        }
+
+        function usePoints(userEmail, points, reason) {
+          try {
+            const pointsData = JSON.parse(localStorage.getItem('userPoints') || '{}');
+            
+            if (!pointsData[userEmail] || pointsData[userEmail].total < points) {
+              return false; // 포인트 부족
+            }
+            
+            // 포인트 차감
+            pointsData[userEmail].total -= points;
+            
+            // 포인트 히스토리에 기록
+            pointsData[userEmail].history.push({
+              points: -points,
+              reason: reason,
+              date: new Date().toISOString(),
+              type: 'use'
+            });
+            
+            // localStorage에 저장
+            localStorage.setItem('userPoints', JSON.stringify(pointsData));
+            
+            console.log(`포인트 사용 완료: ${userEmail}에서 ${points}포인트 차감 (${reason})`);
+            return true;
+          } catch (error) {
+            console.error('포인트 사용 실패:', error);
+            return false;
+          }
+        }
+
+        // 포인트 열람 시스템 (24시간)
+        function checkPurchaseCaseAccess() {
+          const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+          if (!currentUser.email) {
+            showToast('🔒 로그인이 필요합니다!', 'error');
+            return false;
+          }
+
+          const userEmail = currentUser.email;
+          const accessKey = `case_access_${userEmail}`;
+          const lastAccess = localStorage.getItem(accessKey);
+          
+          if (lastAccess) {
+            const lastAccessTime = new Date(lastAccess);
+            const now = new Date();
+            const timeDiff = now - lastAccessTime;
+            const hoursDiff = timeDiff / (1000 * 60 * 60);
+            
+            if (hoursDiff < 24) {
+              // 24시간 내 재열람 가능
+              return true;
+            }
+          }
+          
+          // 포인트로 열람
+          const requiredPoints = 10;
+          const currentPoints = getPoints(userEmail);
+          
+          if (currentPoints < requiredPoints) {
+            showToast(`포인트가 부족합니다. 필요: ${requiredPoints}P, 보유: ${currentPoints}P`, 'error');
+            return false;
+          }
+          
+          // 포인트 차감 및 열람 권한 부여
+          if (usePoints(userEmail, requiredPoints, '구매사례 열람')) {
+            localStorage.setItem(accessKey, new Date().toISOString());
+            showToast(`구매사례를 열람했습니다. 24시간 동안 재열람 가능합니다. (-${requiredPoints}P)`, 'success');
+            return true;
+          }
+          
+          return false;
+        }
+
+        // 카카오 로그인 함수들
+        function executeKakaoLogin() {
+          try {
+            console.log('카카오 로그인 시작...');
+            
+            // 카카오 설정
+            const KAKAO_CONFIG = {
+              clientId: '6917a034b74fafd0ac80ab855af5ed6d',
+              redirectUri: window.location.hostname === 'pricehunt24.com' 
+                ? 'https://pricehunt24.com/index.html' 
+                : window.location.origin + '/index.html',
+              scope: 'profile_nickname,account_email'
+            };
+            
+            // OAuth 파라미터
+            const authParams = new URLSearchParams({
+              client_id: KAKAO_CONFIG.clientId,
+              redirect_uri: KAKAO_CONFIG.redirectUri,
+              response_type: 'code',
+              scope: KAKAO_CONFIG.scope,
+              state: 'kakao_login'
+            });
+            
+            const authUrl = 'https://kauth.kakao.com/oauth/authorize?' + authParams.toString();
+            console.log('카카오 인증 URL:', authUrl);
+            
+            // 카카오 인증 페이지로 이동
+            window.location.href = authUrl;
+            
+          } catch (error) {
+            console.error('카카오 로그인 실행 실패:', error);
+            showToast('카카오 로그인을 시작할 수 없습니다. 잠시 후 다시 시도해주세요.', 'error');
+          }
+        }
+
+        function handleKakaoAuthCode(authCode) {
+          console.log('카카오 인가 코드 처리:', authCode);
+          
+          if (!authCode) return;
+          
+          // 인증 코드를 localStorage에 저장
+          localStorage.setItem('kakao_auth_code', authCode);
+          localStorage.setItem('kakao_auth_timestamp', Date.now().toString());
+          
+          // 토큰 요청 및 사용자 정보 획득
+          processKakaoAuthCode(authCode);
+        }
+
+        async function processKakaoAuthCode(authCode) {
+          try {
+            const button = document.getElementById('kakao-login-btn');
+            const originalText = button.innerHTML;
+            button.innerHTML = '<svg class="animate-spin w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>로그인 처리 중...';
+            button.disabled = true;
+
+            // 액세스 토큰 요청
+            const KAKAO_CONFIG = {
+              clientId: '6917a034b74fafd0ac80ab855af5ed6d',
+              redirectUri: window.location.hostname === 'pricehunt24.com' 
+                ? 'https://pricehunt24.com/index.html' 
+                : window.location.origin + '/index.html'
+            };
+
+            const tokenResponse = await fetch('https://kauth.kakao.com/oauth/token', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+              },
+              body: new URLSearchParams({
+                grant_type: 'authorization_code',
+                client_id: KAKAO_CONFIG.clientId,
+                redirect_uri: KAKAO_CONFIG.redirectUri,
+                code: authCode
+              })
+            });
+
+            if (!tokenResponse.ok) {
+              throw new Error('토큰 요청 실패: ' + tokenResponse.status);
+            }
+
+            const tokenData = await tokenResponse.json();
+            console.log('액세스 토큰 획득:', tokenData);
+
+            // 사용자 정보 요청
+            const userResponse = await fetch('https://kapi.kakao.com/v2/user/me', {
+              headers: {
+                'Authorization': 'Bearer ' + tokenData.access_token
+              }
+            });
+
+            if (!userResponse.ok) {
+              throw new Error('사용자 정보 요청 실패: ' + userResponse.status);
+            }
+
+            const userData = await userResponse.json();
+            console.log('사용자 정보:', userData);
+
+            // 기존 사용자 정보 확인
+            const existingUser = findKakaoUser(userData.id);
+            
+            if (existingUser) {
+              // 기존 사용자 로그인
+              existingUser.lastLogin = Date.now();
+              localStorage.setItem('currentUser', JSON.stringify(existingUser));
+              localStorage.setItem('loggedIn', 'true');
+              
+              document.getElementById('login-modal').classList.add('hidden');
+              updateAuthUI();
+              showToast('카카오톡으로 로그인되었습니다!', 'success');
+            } else {
+              // 새 사용자 등록
+              showToast('카카오 계정이 등록되지 않았습니다. 회원가입을 먼저 진행해주세요.', 'error');
+            }
+
+          } catch (error) {
+            console.error('카카오 인증 처리 실패:', error);
+            showToast('카카오 로그인 처리 중 오류가 발생했습니다: ' + error.message, 'error');
+            
+            // 버튼 상태 복원
+            const button = document.getElementById('kakao-login-btn');
+            if (button) {
+              button.innerHTML = '카카오톡으로 간편로그인';
+              button.disabled = false;
+            }
+          }
+        }
+
+        function findKakaoUser(kakaoId) {
+          // localStorage에서 kakao_ 키로 시작하는 사용자 찾기
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith('kakao_')) {
+              try {
+                const user = JSON.parse(localStorage.getItem(key));
+                if (user.id === kakaoId) {
+                  return user;
+                }
+              } catch (e) {
+                console.error('사용자 데이터 파싱 오류:', e);
+              }
+            }
+          }
+          return null;
+        }
+
         // 로그인 모달 열기/닫기
         document.getElementById('login-btn').onclick = function() {
           document.getElementById('login-modal').classList.remove('hidden');
@@ -1903,6 +2183,11 @@
           document.getElementById('login-error').classList.add('hidden');
           document.body.style.overflow = '';
         };
+        // 카카오 로그인 버튼 이벤트
+        document.getElementById('kakao-login-btn').onclick = function() {
+          executeKakaoLogin();
+        };
+
         // 로그인 폼 제출
         document.getElementById('login-form').onsubmit = function(e) {
           e.preventDefault();
@@ -2008,6 +2293,16 @@
           adminDashboardBtn.onclick = function() {
             window.location.href = 'admin-dashboard.html';
           };
+        }
+
+        // 카카오 인가 코드 처리
+        const urlParams = new URLSearchParams(window.location.search);
+        const authCode = urlParams.get('code');
+        
+        if (authCode) {
+          console.log('카카오 인가 코드 받음:', authCode);
+          handleKakaoAuthCode(authCode);
+          window.history.replaceState({}, document.title, window.location.pathname);
         }
       });
     </script>
@@ -2628,25 +2923,8 @@ if (mypageBtn) {
       
       // 절감왕 섹션 버튼 함수들
       function showEvidence() {
-        const user = JSON.parse(localStorage.getItem('user') || 'null');
-        const isLoggedIn = localStorage.getItem('loggedIn') === 'true';
-        
-        if (!isLoggedIn || !user) {
-          alert('🔒 로그인이 필요합니다!\n\n실제 절약 사례를 보려면 회원가입 후 로그인해 주세요.');
-          return;
-        }
-        
-        const userPoints = getUserPoints();
-        const requiredPoints = 50; // 실제 사례 보기에 필요한 포인트
-        
-        if (userPoints >= requiredPoints) {
-          if (confirm(`💎 실제 절약 사례를 보시겠습니까?\n\n필요 포인트: ${requiredPoints}포인트\n현재 포인트: ${userPoints}포인트\n\n확인하시면 포인트가 차감됩니다.`)) {
-            if (useUserPoints(requiredPoints)) {
-              window.location.href = 'gallery.html';
-            }
-          }
-        } else {
-          alert(`🔒 포인트가 부족합니다!\n\n필요 포인트: ${requiredPoints}포인트\n현재 포인트: ${userPoints}포인트\n\n💡 포인트 획득 방법:\n• 의뢰 완료: +100포인트\n• 1:1 문의: +10포인트\n• 첫 로그인: +50포인트`);
+        if (checkPurchaseCaseAccess()) {
+          window.location.href = 'gallery.html';
         }
       }
       

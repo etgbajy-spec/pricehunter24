@@ -84,31 +84,12 @@
         </button>
         <p class="text-sm text-gray-500 text-center mt-2">카카오톡 계정으로 빠르게 가입하세요</p>
         
-                 <!-- 환경 안내 메시지 -->
-         <div id="environment-info" class="mt-3 p-3 bg-blue-50 rounded-lg text-center">
-           <p class="text-sm text-blue-700">
-             <span id="env-status">환경 확인 중...</span>
-           </p>
-                       <!-- 카카오 개발자 콘솔 설정 안내 -->
-            <div id="kakao-setup-guide" class="mt-3 p-3 bg-yellow-50 rounded-lg text-left text-xs text-yellow-800 hidden">
-              <h4 class="font-semibold mb-2">🔧 카카오 개발자 콘솔 설정 확인</h4>
-              <div class="space-y-1">
-                <p><strong>1. 플랫폼 설정:</strong> Web 플랫폼 추가</p>
-                <p><strong>2. 사이트 도메인:</strong> pricehunt24.com</p>
-                <p><strong>3. Redirect URI:</strong> https://pricehunt24.com/register.html</p>
-                <p><strong>4. 동의항목:</strong> 프로필 정보, 이메일 필수</p>
-              </div>
-              <div class="mt-2 p-2 bg-red-50 rounded text-red-700 text-xs">
-                <strong>🚨 400 오류 발생 시 즉시 확인:</strong>
-                <p>• 앱 상태가 "활성화"인지 확인</p>
-                <p>• JavaScript 키가 정확한지 확인</p>
-                <p>• 도메인 제한 설정 확인</p>
-              </div>
-              <button onclick="showDetailedKakaoSetup()" class="mt-2 text-blue-600 hover:text-blue-800 underline text-xs">
-                자세한 설정 방법 보기
-              </button>
-            </div>
-         </div>
+                                   <!-- 환경 안내 메시지 -->
+          <div id="environment-info" class="mt-3 p-3 bg-blue-50 rounded-lg text-center">
+            <p class="text-sm text-blue-700">
+              <span id="env-status">환경 확인 중...</span>
+            </p>
+          </div>
       </div>
 
       <!-- 구분선 -->
@@ -472,12 +453,57 @@
   </div>
 
   <script>
-    // 카카오 로그인 설정
-    const KAKAO_CONFIG = {
-      clientId: '6917a034b74fafd0ac80ab855af5ed6d',
-      redirectUri: '',
-      scope: 'profile_nickname,account_email,profile_image'
-    };
+         // 카카오 로그인 설정
+     const KAKAO_CONFIG = {
+       clientId: '6917a034b74fafd0ac80ab855af5ed6d',
+       redirectUri: '',
+       scope: 'profile_nickname,account_email,profile_image'
+     };
+
+     // 포인트 관리 시스템
+     function addPoints(userEmail, points, reason) {
+       try {
+         // 기존 포인트 데이터 가져오기
+         let pointsData = JSON.parse(localStorage.getItem('userPoints') || '{}');
+         
+         if (!pointsData[userEmail]) {
+           pointsData[userEmail] = {
+             total: 0,
+             history: []
+           };
+         }
+         
+         // 포인트 추가
+         pointsData[userEmail].total += points;
+         
+         // 포인트 히스토리에 기록
+         pointsData[userEmail].history.push({
+           points: points,
+           reason: reason,
+           date: new Date().toISOString(),
+           type: 'earn'
+         });
+         
+         // localStorage에 저장
+         localStorage.setItem('userPoints', JSON.stringify(pointsData));
+         
+         console.log(`포인트 적립 완료: ${userEmail}에게 ${points}포인트 추가 (${reason})`);
+         return true;
+       } catch (error) {
+         console.error('포인트 적립 실패:', error);
+         return false;
+       }
+     }
+
+     function getPoints(userEmail) {
+       try {
+         const pointsData = JSON.parse(localStorage.getItem('userPoints') || '{}');
+         return pointsData[userEmail] ? pointsData[userEmail].total : 0;
+       } catch (error) {
+         console.error('포인트 조회 실패:', error);
+         return 0;
+       }
+     }
 
     // 환경별 redirect_uri 설정
     function setKakaoRedirectUri() {
@@ -518,123 +544,22 @@
       }
     }
 
-    // 환경 감지
-    function detectEnvironment() {
-      const isLocal = window.location.protocol === 'file:' || 
-                     window.location.hostname === 'localhost' || 
-                     window.location.hostname === '127.0.0.1';
-      
-      if (isLocal) {
-        updateEnvironmentStatus('🔄 로컬 환경 - 카카오 로그인 시뮬레이션 모드', 'orange');
-      } else if (window.location.hostname === 'pricehunt24.com') {
-        updateEnvironmentStatus('✅ 프로덕션 환경 - 카카오 로그인 활성화', 'green');
-        // 프로덕션 환경에서 설정 가이드 표시
-        showKakaoSetupGuide();
-      } else {
-        updateEnvironmentStatus('⚠️ 개발 환경 - 카카오 로그인 설정 확인 필요', 'orange');
-        // 개발 환경에서도 설정 가이드 표시
-        showKakaoSetupGuide();
-      }
-    }
+         // 환경 감지
+     function detectEnvironment() {
+       const isLocal = window.location.protocol === 'file:' || 
+                      window.location.hostname === 'localhost' || 
+                      window.location.hostname === '127.0.0.1';
+       
+       if (isLocal) {
+         updateEnvironmentStatus('🔄 로컬 환경 - 카카오 로그인 시뮬레이션 모드', 'orange');
+       } else if (window.location.hostname === 'pricehunt24.com') {
+         updateEnvironmentStatus('✅ 프로덕션 환경 - 카카오 로그인 활성화', 'green');
+       } else {
+         updateEnvironmentStatus('✅ 카카오 로그인 활성화', 'green');
+       }
+     }
 
-    // 카카오 설정 가이드 표시
-    function showKakaoSetupGuide() {
-      const guide = document.getElementById('kakao-setup-guide');
-      if (guide) {
-        guide.classList.remove('hidden');
-      }
-    }
-
-    // 자세한 카카오 설정 방법 표시
-    function showDetailedKakaoSetup() {
-      const modal = document.createElement('div');
-      modal.id = 'kakao-setup-modal';
-      modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4';
-      
-      modal.innerHTML = `
-        <div class="bg-white rounded-2xl p-8 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-          <div class="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-            <h2 class="text-2xl font-bold text-gray-800">🔧 카카오 개발자 콘솔 설정 방법</h2>
-            <button onclick="closeKakaoSetupModal()" class="text-gray-400 hover:text-gray-600 transition">
-              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-              </svg>
-            </button>
-          </div>
-          <div class="px-6 py-6 text-gray-700 leading-relaxed">
-            <div class="space-y-6">
-              <section>
-                <h3 class="text-lg font-semibold text-gray-800 mb-3">1. 플랫폼 설정</h3>
-                <div class="bg-gray-50 p-4 rounded-lg">
-                  <p class="mb-2"><strong>카카오 개발자 콘솔 → 내 애플리케이션 → 앱 선택 → 플랫폼</strong></p>
-                  <ul class="list-disc list-inside ml-4 space-y-1 text-sm">
-                    <li>Web 플랫폼 추가</li>
-                    <li>사이트 도메인: <code class="bg-gray-200 px-2 py-1 rounded">pricehunt24.com</code></li>
-                    <li>Redirect URI: <code class="bg-gray-200 px-2 py-1 rounded">https://pricehunt24.com/register.html</code></li>
-                  </ul>
-                </div>
-              </section>
-
-              <section>
-                <h3 class="text-lg font-semibold text-gray-800 mb-3">2. 동의항목 설정</h3>
-                <div class="bg-gray-50 p-4 rounded-lg">
-                  <p class="mb-2"><strong>카카오 개발자 콘솔 → 내 애플리케이션 → 앱 선택 → 동의항목</strong></p>
-                  <ul class="list-disc list-inside ml-4 space-y-1 text-sm">
-                    <li><strong>필수:</strong> 프로필 정보(닉네임/프로필 사진), 이메일</li>
-                    <li><strong>선택:</strong> 연령대, 성별</li>
-                  </ul>
-                </div>
-              </section>
-
-              <section>
-                <h3 class="text-lg font-semibold text-gray-800 mb-3">3. 보안 설정</h3>
-                <div class="bg-gray-50 p-4 rounded-lg">
-                  <p class="mb-2"><strong>카카오 개발자 콘솔 → 내 애플리케이션 → 앱 선택 → 보안</strong></p>
-                  <ul class="list-disc list-inside ml-4 space-y-1 text-sm">
-                    <li>Client Secret 확인</li>
-                    <li>IP 주소 제한 설정 (필요시)</li>
-                  </ul>
-                </div>
-              </section>
-
-              <section>
-                <h3 class="text-lg font-semibold text-gray-800 mb-3">4. 현재 설정 확인</h3>
-                <div class="bg-blue-50 p-4 rounded-lg">
-                  <p class="mb-2"><strong>현재 코드 설정:</strong></p>
-                  <ul class="list-disc list-inside ml-4 space-y-1 text-sm">
-                    <li>JavaScript 키: <code class="bg-blue-200 px-2 py-1 rounded">${KAKAO_CONFIG.clientId}</code></li>
-                    <li>Redirect URI: <code class="bg-blue-200 px-2 py-1 rounded">${KAKAO_CONFIG.redirectUri || '설정되지 않음'}</code></li>
-                    <li>Scope: <code class="bg-blue-200 px-2 py-1 rounded">${KAKAO_CONFIG.scope}</code></li>
-                  </ul>
-                </div>
-              </section>
-
-              <section>
-                <h3 class="text-lg font-semibold text-gray-800 mb-3">5. KOE205 오류 해결 방법</h3>
-                <div class="bg-red-50 p-4 rounded-lg">
-                  <p class="mb-2"><strong>KOE205 오류는 다음 중 하나가 원인입니다:</strong></p>
-                  <ul class="list-disc list-inside ml-4 space-y-1 text-sm">
-                    <li>Redirect URI가 카카오 개발자 콘솔에 등록된 값과 정확히 일치하지 않음</li>
-                    <li>도메인이 허용되지 않음</li>
-                    <li>JavaScript 키가 잘못됨</li>
-                    <li>동의항목이 설정되지 않음</li>
-                  </ul>
-                </div>
-              </section>
-            </div>
-          </div>
-        </div>
-      `;
-      
-      document.body.appendChild(modal);
-      
-      // 전역 함수 등록
-      window.closeKakaoSetupModal = function() {
-        if (document.getElementById('kakao-setup-modal')) {
-          document.body.removeChild(modal);
-        }
-      };
-    }
+    
 
     // 로컬 환경용 카카오 로그인 시뮬레이션
     function simulateKakaoLogin() {
@@ -675,16 +600,7 @@
           setKakaoRedirectUri();
         }
         
-        console.log('사용할 redirect_uri:', KAKAO_CONFIG.redirectUri);
-        
-        // 카카오 개발자 콘솔에 등록된 redirect_uri와 정확히 일치하는지 확인
-        const expectedRedirectUri = 'https://pricehunt24.com/register.html';
-        if (KAKAO_CONFIG.redirectUri !== expectedRedirectUri) {
-          console.warn('⚠️ redirect_uri 불일치!');
-          console.warn('설정된 값:', KAKAO_CONFIG.redirectUri);
-          console.warn('예상 값:', expectedRedirectUri);
-          console.warn('카카오 개발자 콘솔에 등록된 값과 정확히 일치해야 합니다.');
-        }
+                 console.log('사용할 redirect_uri:', KAKAO_CONFIG.redirectUri);
         
         // OAuth 파라미터 단순화 (400 오류 해결)
         const authParams = new URLSearchParams({
@@ -698,20 +614,14 @@
         const authUrl = 'https://kauth.kakao.com/oauth/authorize?' + authParams.toString();
         console.log('카카오 인증 URL:', authUrl);
         
-        // OAuth 파라미터 상세 검증
-        console.log('🔍 OAuth 파라미터 검증:');
-        console.log('- client_id:', KAKAO_CONFIG.clientId);
-        console.log('- redirect_uri:', KAKAO_CONFIG.redirectUri);
-        console.log('- response_type: code');
-        console.log('- scope: profile_nickname,account_email');
-        console.log('- state: kakao_login');
-        
-        // 카카오 개발자 콘솔 설정 확인 안내
-        console.log('⚠️ 400 오류 발생 시 확인사항:');
-        console.log('1. 카카오 개발자 콘솔에서 앱이 활성화 상태인지 확인');
-        console.log('2. JavaScript 키가 정확한지 확인');
-        console.log('3. 플랫폼 설정에서 도메인이 허용되었는지 확인');
-        console.log('4. Redirect URI가 정확히 등록되었는지 확인');
+                 // OAuth 파라미터 로깅
+         console.log('🔍 OAuth 파라미터:', {
+           client_id: KAKAO_CONFIG.clientId,
+           redirect_uri: KAKAO_CONFIG.redirectUri,
+           response_type: 'code',
+           scope: 'profile_nickname,account_email',
+           state: 'kakao_login'
+         });
         
         // 카카오 인증 페이지로 이동
         window.location.href = authUrl;
@@ -876,17 +786,24 @@
             marketingAgreed: agreeMarketing.checked
           };
           
-          // 일반 user 키로 저장
-          localStorage.setItem('user', JSON.stringify(newUser));
-          localStorage.setItem('loggedIn', 'true');
-          
-          // 관리자 대시보드에서 확인할 수 있도록 kakao_ 키로도 저장
-          const kakaoKey = 'kakao_' + Date.now();
-          localStorage.setItem(kakaoKey, JSON.stringify(newUser));
-          
-          closeKakaoTermsModal();
-          alert('카카오톡으로 회원가입되었습니다! +50포인트 지급!');
-          window.location.href = 'index.html';
+                     // 일반 user 키로 저장
+           localStorage.setItem('user', JSON.stringify(newUser));
+           localStorage.setItem('loggedIn', 'true');
+           
+           // 관리자 대시보드에서 확인할 수 있도록 kakao_ 키로도 저장
+           const kakaoKey = 'kakao_' + Date.now();
+           localStorage.setItem(kakaoKey, JSON.stringify(newUser));
+           
+           // 포인트 적립
+           const pointsAdded = addPoints(newUser.email, 50, '카카오 회원가입 보너스');
+           
+           closeKakaoTermsModal();
+           if (pointsAdded) {
+             alert(`카카오톡으로 회원가입되었습니다! +50포인트 지급 완료!\n현재 포인트: ${getPoints(newUser.email)}P`);
+           } else {
+             alert('카카오톡으로 회원가입되었습니다! +50포인트 지급 중 오류가 발생했습니다.');
+           }
+           window.location.href = 'index.html';
         } else {
           alert('필수 약관에 동의해주세요.');
         }

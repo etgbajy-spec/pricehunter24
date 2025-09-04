@@ -573,10 +573,17 @@
           // 포인트 지급 (의뢰 접수 시)
           const user = JSON.parse(localStorage.getItem('user') || 'null');
           if (user && user.email) {
-            const currentPoints = parseInt(localStorage.getItem(`points_${user.email}`) || '0');
-            const newPoints = currentPoints + 10; // 의뢰 접수 시 10포인트 지급
-            localStorage.setItem(`points_${user.email}`, newPoints.toString());
-            console.log(`${user.email}에게 의뢰 접수 포인트 10점 지급. 총 ${newPoints}포인트`);
+            // 새로운 포인트 시스템 사용
+            if (typeof addPoints === 'function') {
+              addPoints(user.email, 50, '의뢰 접수 보너스');
+              console.log(`${user.email}에게 의뢰 접수 포인트 50점 지급 완료`);
+            } else {
+              // 기존 포인트 시스템 (fallback)
+              const currentPoints = parseInt(localStorage.getItem(`points_${user.email}`) || '0');
+              const newPoints = currentPoints + 50; // 의뢰 접수 시 50포인트 지급
+              localStorage.setItem(`points_${user.email}`, newPoints.toString());
+              console.log(`${user.email}에게 의뢰 접수 포인트 50점 지급. 총 ${newPoints}포인트`);
+            }
           }
           
           setTimeout(() => { window.location.href = 'request-complete.html'; }, 1200);
