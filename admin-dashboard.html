@@ -23,12 +23,32 @@
         measurementId: "G-4BKLV4EVB9"
       };
       
-      // Firebase SDK 동적 로딩 (수정된 버전)
+      // Firebase SDK 로딩 (로컬 파일 사용)
       function loadFirebaseSDK() {
         return new Promise((resolve, reject) => {
-          console.log('🔄 Firebase SDK 로드 시작...');
+          console.log('🔄 Firebase SDK 로드 시작 (로컬 파일)...');
           
-          // Firebase 8.x 버전의 단일 번들 사용 (더 안정적)
+          // 로컬에 설치된 Firebase 사용
+          const script = document.createElement('script');
+          script.src = './node_modules/firebase/dist/firebase.js';
+          script.onload = () => {
+            console.log('✅ 로컬 Firebase SDK 로드 완료');
+            resolve();
+          };
+          script.onerror = () => {
+            console.error('❌ 로컬 Firebase SDK 로드 실패, CDN으로 대체 시도...');
+            // 로컬 로드 실패 시 CDN으로 대체
+            loadFirebaseFromCDN().then(resolve).catch(reject);
+          };
+          document.head.appendChild(script);
+        });
+      }
+      
+      // CDN 대체 로딩 함수
+      function loadFirebaseFromCDN() {
+        return new Promise((resolve, reject) => {
+          console.log('🔄 CDN에서 Firebase SDK 로드 시도...');
+          
           const cdnOptions = [
             'https://unpkg.com/firebase@8.10.1/dist/firebase.js',
             'https://cdn.jsdelivr.net/npm/firebase@8.10.1/dist/firebase.js',
