@@ -3,6 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' 'unsafe-eval' https://developers.kakao.com https://cdn.tailwindcss.com https://t1.kakaocdn.net https://www.gstatic.com https://firebase.google.com;">
     <title>관리자 대시보드 - PriceHunter</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -16,28 +17,45 @@
       import { getFirestore, collection, doc, setDoc, getDocs, batch } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
       import { getAuth } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
 
-      // Your web app's Firebase configuration
-      const firebaseConfig = {
-        apiKey: "AIzaSyDBZxKyMS7eeBTbPnbZkj0WWOZQHNldoL4",
-        authDomain: "pricehunter-99a1b.firebaseapp.com",
-        projectId: "pricehunter-99a1b",
-        storageBucket: "pricehunter-99a1b.firebasestorage.app",
-        messagingSenderId: "242265693919",
-        appId: "1:242265693919:web:74234d942b82a51541136a",
-        measurementId: "G-4BKLV4EVB9"
-      };
-
-      // Initialize Firebase
-      const app = initializeApp(firebaseConfig);
-      const db = getFirestore(app);
-      const auth = getAuth(app);
-
-      // 전역 변수로 설정
-      window.firebaseApp = app;
-      window.firestore = db;
-      window.auth = auth;
+      // Firebase 스크립트 로딩 상태 확인
+      console.log('🔄 Firebase 스크립트 로딩 시작...');
       
-      console.log('✅ Firebase 초기화 완료!');
+      try {
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+          apiKey: "AIzaSyDBZxKyMS7eeBTbPnbZkj0WWOZQHNldoL4",
+          authDomain: "pricehunter-99a1b.firebaseapp.com",
+          projectId: "pricehunter-99a1b",
+          storageBucket: "pricehunter-99a1b.firebasestorage.app",
+          messagingSenderId: "242265693919",
+          appId: "1:242265693919:web:74234d942b82a51541136a",
+          measurementId: "G-4BKLV4EVB9"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        // 전역 변수로 설정
+        window.firebaseApp = app;
+        window.firestore = db;
+        window.auth = auth;
+        
+        console.log('✅ Firebase 초기화 완료!');
+        console.log('app:', app);
+        console.log('db:', db);
+        console.log('auth:', auth);
+        
+      } catch (error) {
+        console.error('❌ Firebase 초기화 실패:', error);
+        
+        // CSP 오류인지 확인
+        if (error.message.includes('Content Security Policy')) {
+          console.error('🚨 CSP 정책 위반으로 Firebase 스크립트 로딩 실패');
+          console.error('해결방법: CSP 정책에 https://www.gstatic.com 도메인 추가 필요');
+        }
+      }
     </script>
     
     <style>
