@@ -888,7 +888,10 @@
             <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
             </svg>
-            <span class="font-medium">로그아웃</button>
+            <span class="font-medium">로그아웃</span>
+          </button>
+
+
         </nav>
       </div>
     </div>
@@ -1346,6 +1349,8 @@
              adminCleanupBtn.classList.toggle('hidden', !isAdmin);
              console.log('테스트데이터정리 버튼 표시 상태:', !isAdmin ? '숨김' : '표시');
            }
+        
+
         
         // 사례 카드 편집 기능 활성화/비활성화
         enableCaseTextEdit(isAdmin);
@@ -1996,6 +2001,268 @@
             timestamp: new Date().toISOString()
           });
         }
+
+
+
+
+
+        function restoreAllData() {
+          try {
+            // 관리자 권한 확인
+            if (localStorage.getItem('isAdmin') !== 'true') {
+              showToast('관리자만 전체 데이터를 복원할 수 있습니다.', 'error');
+              return;
+            }
+            
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            
+            input.onchange = function(e) {
+              const file = e.target.files[0];
+              if (!file) return;
+              
+              const reader = new FileReader();
+              reader.onload = function(e) {
+                try {
+                  const data = JSON.parse(e.target.result);
+                  
+                  // 백업 파일 검증
+                  if (!data.backupInfo || data.backupInfo.type !== 'full_backup') {
+                    showToast('올바른 전체 백업 파일이 아닙니다.', 'error');
+                    return;
+                  }
+                  
+                  // 관리자 확인
+                  const confirmRestore = confirm(
+                    `전체 데이터를 복원하시겠습니까?\n\n` +
+                    `⚠️ 주의사항:\n` +
+                    `• 현재 모든 데이터가 백업 파일로 덮어써집니다\n` +
+                    `• 복원 전 현재 데이터를 자동으로 백업합니다\n` +
+                    `• 이 작업은 되돌릴 수 없습니다\n\n` +
+                    `백업 파일: ${data.backupInfo.description}\n` +
+                    `데이터 수: ${data.backupInfo.dataCount}개\n` +
+                    `백업 시간: ${new Date(data.backupInfo.timestamp).toLocaleString()}`
+                  );
+                  
+                  if (!confirmRestore) {
+                    return;
+                  }
+                  
+                  // 현재 데이터 전체 백업
+                  const currentBackup = {};
+                  for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key) {
+                      currentBackup[key] = localStorage.getItem(key);
+                    }
+                  }
+                  
+                  // 현재 데이터 백업 파일로 저장
+                  currentBackup.backupInfo = {
+                    timestamp: new Date().toISOString(),
+                    type: 'before_restore_backup',
+                    admin: true,
+                    dataCount: Object.keys(currentBackup).length - 1,
+                    description: '복원 전 현재 데이터 백업'
+                  };
+                  
+                  const backupStr = JSON.stringify(currentBackup, null, 2);
+                  const backupBlob = new Blob([backupStr], { type: 'application/json' });
+                  const backupUrl = URL.createObjectURL(backupBlob);
+                  
+                  const backupA = document.createElement('a');
+                  backupA.href = backupUrl;
+                  backupA.download = `pricehunter_BEFORE_RESTORE_${new Date().toISOString().split('T')[0]}_${new Date().toISOString().split('T')[1].split('.')[0]}.json`;
+                  document.body.appendChild(backupA);
+                  backupA.click();
+                  document.body.removeChild(backupA);
+                  URL.revokeObjectURL(backupUrl);
+                  
+                  // localStorage 완전 초기화
+                  localStorage.clear();
+                  
+                  // 새 데이터로 복원
+                  for (const [key, value] of Object.entries(data)) {
+                    if (key !== 'backupInfo') {
+                      localStorage.setItem(key, value);
+                    }
+                  }
+                  
+                  console.log('전체 데이터 복원 완료 ✅', data.backupInfo);
+                  showToast('전체 데이터가 복원되었습니다!', 'success');
+                  
+                  // UI 업데이트
+                  updateAuthUI();
+                  
+                } catch (error) {
+                  console.error('전체 데이터 복원 실패:', error);
+                  showToast('전체 데이터 복원에 실패했습니다.', 'error');
+                }
+              };
+              
+              reader.readAsText(file);
+            };
+            
+            input.click();
+          } catch (error) {
+            console.error('파일 선택 실패:', error);
+            showToast('파일 선택에 실패했습니다.', 'error');
+          }
+        }
+
+        function restoreUserData() {
+          try {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            
+            input.onchange = function(e) {
+              const file = e.target.files[0];
+              if (!file) return;
+              
+              const reader = new FileReader();
+              reader.onload = function(e) {
+                try {
+                  const data = JSON.parse(e.target.result);
+                  
+                  // 백업 파일 검증
+                  if (!data.backupInfo || !data.backupInfo.userEmail) {
+                    showToast('올바른 백업 파일이 아닙니다.', 'error');
+                    return;
+                  }
+                  
+                  // 현재 로그인된 사용자와 백업 파일의 사용자가 일치하는지 확인
+                  const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+                  const currentEmail = currentUser.email;
+                  
+                  if (currentEmail && currentEmail !== data.backupInfo.userEmail) {
+                    const confirmRestore = confirm(
+                      `현재 로그인된 사용자(${currentEmail})와 백업 파일의 사용자(${data.backupInfo.userEmail})가 다릅니다.\n\n` +
+                      `계속 진행하시겠습니까?\n` +
+                      `⚠️ 주의: 다른 사용자의 데이터가 현재 사용자 데이터를 덮어쓸 수 있습니다.`
+                    );
+                    
+                    if (!confirmRestore) {
+                      return;
+                    }
+                  }
+                  
+                  // 기존 데이터 백업 (현재 사용자만)
+                  const backupData = {};
+                  if (currentEmail) {
+                    // 현재 사용자와 관련된 데이터만 백업
+                    const keys = Object.keys(localStorage);
+                    for (const key of keys) {
+                      if (key === 'user' || key.startsWith('kakao_') || key.startsWith('user_') || key.startsWith('member_')) {
+                        try {
+                          const userData = JSON.parse(localStorage.getItem(key));
+                          if (userData && userData.email === currentEmail) {
+                            backupData[key] = localStorage.getItem(key);
+                          }
+                        } catch (e) {
+                          // 파싱 실패 시 원본 데이터 저장
+                          backupData[key] = localStorage.getItem(key);
+                        }
+                      }
+                    }
+                    
+                    // 포인트 데이터 백업
+                    if (localStorage.getItem('userPoints')) {
+                      try {
+                        const pointsData = JSON.parse(localStorage.getItem('userPoints'));
+                        if (pointsData[currentEmail]) {
+                          backupData.userPoints = JSON.stringify({ [userEmail]: pointsData[currentEmail] });
+                        }
+                      } catch (e) {
+                        console.warn('포인트 데이터 백업 실패:', e);
+                      }
+                    }
+                  }
+                  
+                  // 백업 파일명으로 저장
+                  if (Object.keys(backupData).length > 0) {
+                    const backupStr = JSON.stringify(backupData, null, 2);
+                    const backupBlob = new Blob([backupStr], { type: 'application/json' });
+                    const backupUrl = URL.createObjectURL(backupBlob);
+                    
+                    const backupA = document.createElement('a');
+                    backupA.href = backupUrl;
+                    backupA.download = `pricehunter_backup_before_restore_${currentEmail || 'unknown'}_${new Date().toISOString().split('T')[0]}.json`;
+                    document.body.appendChild(backupA);
+                    backupA.click();
+                    document.body.removeChild(backupA);
+                    URL.revokeObjectURL(backupUrl);
+                  }
+                  
+                  // 새 데이터로 복원 (기존 데이터는 유지)
+                  for (const [key, value] of Object.entries(data)) {
+                    if (key !== 'backupInfo') {
+                      localStorage.setItem(key, value);
+                    }
+                  }
+                  
+                  console.log('사용자별 데이터 복원 완료 ✅', data.backupInfo);
+                  showToast(`${data.backupInfo.userName}님의 데이터가 복원되었습니다!`, 'success');
+                  
+                  // UI 업데이트
+                  updateAuthUI();
+                  
+                } catch (error) {
+                  console.error('데이터 복원 실패:', error);
+                  showToast('데이터 복원에 실패했습니다.', 'error');
+                }
+              };
+              
+              reader.readAsText(file);
+            };
+            
+            input.click();
+          } catch (error) {
+            console.error('파일 선택 실패:', error);
+            showToast('파일 선택에 실패했습니다.', 'error');
+          }
+        }
+
+        // 자동 백업 설정 (사용자별)
+        function setupAutoBackup() {
+          // 1시간마다 자동 백업
+          setInterval(() => {
+            const currentUser = localStorage.getItem('user');
+            if (currentUser) {
+              try {
+                const user = JSON.parse(currentUser);
+                if (user.email) {
+                  console.log('자동 백업 실행...', user.email);
+                  backupUserData();
+                }
+              } catch (e) {
+                console.warn('사용자 정보 파싱 실패:', e);
+              }
+            }
+          }, 60 * 60 * 1000); // 1시간
+          
+          // 페이지 언로드 시 백업
+          window.addEventListener('beforeunload', () => {
+            const currentUser = localStorage.getItem('user');
+            if (currentUser) {
+              try {
+                const user = JSON.parse(currentUser);
+                if (user.email) {
+                  console.log('페이지 언로드 시 백업 실행...', user.email);
+                  backupUserData();
+                }
+              } catch (e) {
+                console.warn('사용자 정보 파싱 실패:', e);
+              }
+            }
+          });
+        }
+
+        // 페이지 로드 시 자동 백업 설정
+        document.addEventListener('DOMContentLoaded', () => {
+          setupAutoBackup();
+        });
 
         // 카카오 로그인 함수 (실제 카카오 OAuth 로그인) - 회원가입 페이지 방식으로 단순화
         function executeKakaoLogin() {
@@ -3510,6 +3777,8 @@ if (mypageBtn) {
           closeTermsOfService();
         }
       });
+
+      
     </script>
   </body>
 </html>
