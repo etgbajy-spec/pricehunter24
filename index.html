@@ -1467,6 +1467,19 @@
     window.addEventListener('DOMContentLoaded', function() {
       requestNotificationPermission();
       
+      // 브라우저 뒤로가기/앞으로가기 이벤트 처리 (KOE205 에러 방지)
+      window.addEventListener('popstate', function(event) {
+        try {
+          console.log('popstate 이벤트 발생:', event);
+          // 페이지 상태 복원
+          location.reload();
+        } catch (error) {
+          console.warn('popstate 이벤트 처리 실패:', error);
+          // 대안: 강제 새로고침
+          window.location.reload();
+        }
+      });
+      
       // 기존 회원 데이터 마이그레이션 (한 번만 실행)
       (function migrateExistingUsers() {
         const users = JSON.parse(localStorage.getItem('users') || '[]');
@@ -1841,12 +1854,54 @@
           return false;
         }
 
-        // 카카오 로그인 함수들 (KOE205 에러 방지)
+        // 중복 로그인 체크 함수
+        function checkDuplicateLogin(email) {
+          try {
+            // localStorage에서 기존 사용자 확인
+            const existingUser = localStorage.getItem('user');
+            if (existingUser) {
+              const user = JSON.parse(existingUser);
+              if (user.email === email) {
+                return {
+                  isDuplicate: true,
+                  user: user,
+                  message: '이미 로그인된 계정입니다.'
+                };
+              }
+            }
+            
+            // kakao_ 키로 저장된 사용자들도 확인
+            const keys = Object.keys(localStorage);
+            for (const key of keys) {
+              if (key.startsWith('kakao_')) {
+                try {
+                  const kakaoUser = JSON.parse(localStorage.getItem(key));
+                  if (kakaoUser.email === email) {
+                    return {
+                      isDuplicate: true,
+                      user: kakaoUser,
+                      message: '이미 카카오톡으로 가입된 계정입니다. 로그인 처리합니다.'
+                    };
+                  }
+                } catch (e) {
+                  console.warn('kakao 사용자 데이터 파싱 실패:', e);
+                }
+              }
+            }
+            
+            return { isDuplicate: false };
+          } catch (error) {
+            console.error('중복 로그인 체크 실패:', error);
+            return { isDuplicate: false };
+          }
+        }
+
+        // 카카오 로그인 함수들 (KOE006, 400 Bad Request 오류 방지)
         function executeKakaoLogin() {
           try {
             console.log('카카오 로그인 시작...');
             
-            // 카카오 설정
+            // 카카오 설정 (KOE006 오류 방지)
             const KAKAO_CONFIG = {
               clientId: '6917a034b74fafd0ac80ab855af5ed6d',
               redirectUri: window.location.hostname === 'pricehunt24.com' 
@@ -1855,17 +1910,24 @@
               scope: 'profile_nickname,account_email'
             };
             
-            // OAuth 파라미터
+            // OAuth 파라미터 단순화 (400 Bad Request 오류 방지)
+            // through_account, additional_auth_login 등 불필요한 파라미터 제거
             const authParams = new URLSearchParams({
               client_id: KAKAO_CONFIG.clientId,
               redirect_uri: KAKAO_CONFIG.redirectUri,
               response_type: 'code',
-              scope: KAKAO_CONFIG.scope,
-              state: 'kakao_login'
+              scope: KAKAO_CONFIG.scope
+              // state 파라미터 제거 (KOE006 오류 방지)
             });
             
             const authUrl = 'https://kauth.kakao.com/oauth/authorize?' + authParams.toString();
             console.log('카카오 인증 URL:', authUrl);
+            console.log('OAuth 파라미터:', Object.fromEntries(authParams));
+            
+            // KOE006 오류 방지를 위한 추가 검증
+            if (!KAKAO_CONFIG.clientId || !KAKAO_CONFIG.redirectUri) {
+              throw new Error('카카오 설정이 올바르지 않습니다.');
+            }
             
             // 카카오 인증 페이지로 이동 (KOE205 에러 방지)
             // window.location.href 대신 window.location.replace 사용
@@ -1951,13 +2013,37 @@
             const userData = await userResponse.json();
             console.log('사용자 정보:', userData);
 
-            // 기존 사용자 정보 확인
+            const user = {
+              id: userData.id,
+              name: userData.properties?.nickname || '카카오 사용자',
+              email: userData.kakao_account?.email || 'kakao@user.com',
+              profileImage: userData.properties?.profile_image || '',
+              loginType: 'kakao'
+            };
+
+            // 중복 로그인 체크
+            const duplicateCheck = checkDuplicateLogin(user.email);
+            if (duplicateCheck.isDuplicate) {
+              console.log('중복 로그인 감지:', duplicateCheck.message);
+              
+              // 기존 사용자 정보로 로그인 처리
+              localStorage.setItem('user', JSON.stringify(duplicateCheck.user));
+              localStorage.setItem('loggedIn', 'true');
+              
+              // 로그인 모달 닫기
+              document.getElementById('login-modal').classList.add('hidden');
+              updateAuthUI();
+              showToast(duplicateCheck.message, 'success');
+              return;
+            }
+
+            // 기존 사용자 정보 확인 (kakao ID 기준)
             const existingUser = findKakaoUser(userData.id);
             
             if (existingUser) {
               // 기존 사용자 로그인
               existingUser.lastLogin = Date.now();
-              localStorage.setItem('currentUser', JSON.stringify(existingUser));
+              localStorage.setItem('user', JSON.stringify(existingUser));
               localStorage.setItem('loggedIn', 'true');
               
               document.getElementById('login-modal').classList.add('hidden');
