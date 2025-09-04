@@ -713,9 +713,14 @@
                   <span id="cloud-status-icon" class="text-2xl">🌐</span>
                   <span id="cloud-status-text" class="text-sm font-medium text-gray-700">클라우드 연동 상태 확인 중...</span>
                 </div>
-                <button onclick="checkCloudConnection()" class="px-3 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600 transition">
-                  🔄 상태 확인
-                </button>
+                <div class="flex gap-2">
+                  <button onclick="checkCloudConnection()" class="px-3 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600 transition">
+                    🔄 상태 확인
+                  </button>
+                  <button onclick="initializeFirebase()" class="px-3 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600 transition">
+                    🔧 수동 초기화
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -3314,6 +3319,11 @@ ${syncStatus.dataIntegrity.corruptedData > 0 ? '⚠️ 손상된 데이터가 �
       // Firebase 초기화
       function initializeFirebase() {
         try {
+          console.log('🔄 Firebase 초기화 시작...');
+          console.log('window.firebaseApp:', window.firebaseApp);
+          console.log('window.firestore:', window.firestore);
+          console.log('window.auth:', window.auth);
+          
           // 전역 변수에서 Firebase 인스턴스 가져오기
           firebaseApp = window.firebaseApp;
           firestore = window.firestore;
@@ -3321,9 +3331,13 @@ ${syncStatus.dataIntegrity.corruptedData > 0 ? '⚠️ 손상된 데이터가 �
 
           if (firebaseApp && firestore) {
             console.log('✅ Firebase 초기화 완료');
+            console.log('firebaseApp:', firebaseApp);
+            console.log('firestore:', firestore);
             return true;
           } else {
             console.error('❌ Firebase 인스턴스를 찾을 수 없습니다');
+            console.log('firebaseApp 존재:', !!firebaseApp);
+            console.log('firestore 존재:', !!firestore);
             return false;
           }
         } catch (error) {
@@ -3395,14 +3409,26 @@ ${syncStatus.dataIntegrity.corruptedData > 0 ? '⚠️ 손상된 데이터가 �
         const statusIcon = document.getElementById('cloud-status-icon');
         const statusText = document.getElementById('cloud-status-text');
         
+        console.log('🔍 클라우드 연동 상태 확인 중...');
+        console.log('firebaseApp:', firebaseApp);
+        console.log('firestore:', firestore);
+        console.log('window.firebaseApp:', window.firebaseApp);
+        console.log('window.firestore:', window.firestore);
+        
         if (firebaseApp && firestore) {
           statusIcon.textContent = '✅';
           statusText.textContent = '클라우드 연동 완료 - Firebase';
           statusText.className = 'text-sm font-medium text-green-700';
+          console.log('✅ 클라우드 연동 상태: 완료');
         } else {
           statusIcon.textContent = '❌';
           statusText.textContent = '클라우드 미연동 - Firebase 설정 필요';
           statusText.className = 'text-sm font-medium text-red-700';
+          console.log('❌ 클라우드 연동 상태: 미연동');
+          
+          // Firebase 재초기화 시도
+          console.log('🔄 Firebase 재초기화 시도...');
+          initializeFirebase();
         }
       }
 
@@ -4140,8 +4166,11 @@ ${cloudData.reduce((acc, item) => {
            });
          });
          
-         // Firebase 초기화
-         initializeFirebase();
+         // Firebase 초기화 (지연 실행)
+         setTimeout(() => {
+           console.log('🔄 페이지 로드 후 Firebase 초기화 시작...');
+           initializeFirebase();
+         }, 1000);
          
          // 자동 백업 리스너 설정
          setupAutoBackupListener();
