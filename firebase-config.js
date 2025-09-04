@@ -61,42 +61,84 @@ function initializeFirebase() {
   }
 }
 
-// 대체 Firebase CDN 로드 함수
+// 대체 Firebase CDN 로드 함수 (강화된 버전)
 function loadAlternativeFirebaseCDN() {
   console.log('🔄 대체 Firebase CDN 로드 시작...');
   
-  // unpkg CDN 사용
-  const alternativeCDNs = [
-    'https://unpkg.com/firebase@8.10.1/dist/firebase-app.js',
-    'https://unpkg.com/firebase@8.10.1/dist/firebase-firestore.js',
-    'https://unpkg.com/firebase@8.10.1/dist/firebase-auth.js'
+  // 여러 CDN 옵션 시도
+  const cdnOptions = [
+    // unpkg CDN (1순위)
+    [
+      'https://unpkg.com/firebase@8.10.1/dist/firebase-app.js',
+      'https://unpkg.com/firebase@8.10.1/dist/firebase-firestore.js',
+      'https://unpkg.com/firebase@8.10.1/dist/firebase-auth.js'
+    ],
+    // jsDelivr CDN (2순위)
+    [
+      'https://cdn.jsdelivr.net/npm/firebase@8.10.1/dist/firebase-app.js',
+      'https://cdn.jsdelivr.net/npm/firebase@8.10.1/dist/firebase-firestore.js',
+      'https://cdn.jsdelivr.net/npm/firebase@8.10.1/dist/firebase-auth.js'
+    ],
+    // cdnjs CDN (3순위)
+    [
+      'https://cdnjs.cloudflare.com/ajax/libs/firebase/8.10.1/firebase-app.js',
+      'https://cdnjs.cloudflare.com/ajax/libs/firebase/8.10.1/firebase-firestore.js',
+      'https://cdnjs.cloudflare.com/ajax/libs/firebase/8.10.1/firebase-auth.js'
+    ]
   ];
   
-  let loadedCount = 0;
+  let currentCDNIndex = 0;
   
-  alternativeCDNs.forEach((cdn, index) => {
-    const script = document.createElement('script');
-    script.src = cdn;
-    script.onload = () => {
-      console.log(`✅ 대체 CDN ${index + 1} 로드 완료:`, cdn);
-      loadedCount++;
-      
-      if (loadedCount === alternativeCDNs.length) {
-        console.log('🎉 모든 대체 CDN 로드 완료!');
-        // 다시 초기화 시도
-        setTimeout(() => {
-          if (typeof firebase !== 'undefined') {
-            console.log('🔄 대체 CDN으로 Firebase 초기화 재시도...');
-            initializeFirebase();
-          }
-        }, 1000);
-      }
-    };
-    script.onerror = () => {
-      console.error(`❌ 대체 CDN ${index + 1} 로드 실패:`, cdn);
-    };
-    document.head.appendChild(script);
-  });
+  function tryNextCDN() {
+    if (currentCDNIndex >= cdnOptions.length) {
+      console.error('❌ 모든 CDN 옵션 실패');
+      return;
+    }
+    
+    console.log(`🔄 CDN 옵션 ${currentCDNIndex + 1} 시도 중...`);
+    const currentCDNs = cdnOptions[currentCDNIndex];
+    
+    let loadedCount = 0;
+    let hasError = false;
+    
+    currentCDNs.forEach((cdn, index) => {
+      const script = document.createElement('script');
+      script.src = cdn;
+      script.onload = () => {
+        console.log(`✅ CDN ${currentCDNIndex + 1} - 스크립트 ${index + 1} 로드 완료:`, cdn);
+        loadedCount++;
+        
+        if (loadedCount === currentCDNs.length && !hasError) {
+          console.log(`🎉 CDN 옵션 ${currentCDNIndex + 1} 모든 스크립트 로드 완료!`);
+          // Firebase 초기화 재시도
+          setTimeout(() => {
+            if (typeof firebase !== 'undefined') {
+              console.log('🔄 대체 CDN으로 Firebase 초기화 재시도...');
+              initializeFirebase();
+            } else {
+              console.log('❌ 대체 CDN 로드 후에도 Firebase SDK 없음, 다음 CDN 시도...');
+              currentCDNIndex++;
+              tryNextCDN();
+            }
+          }, 1000);
+        }
+      };
+      script.onerror = () => {
+        console.error(`❌ CDN ${currentCDNIndex + 1} - 스크립트 ${index + 1} 로드 실패:`, cdn);
+        hasError = true;
+        
+        // 현재 CDN 옵션이 실패했으므로 다음 옵션 시도
+        if (loadedCount === 0) {
+          currentCDNIndex++;
+          tryNextCDN();
+        }
+      };
+      document.head.appendChild(script);
+    });
+  }
+  
+  // 첫 번째 CDN 옵션부터 시도
+  tryNextCDN();
 }
 
 // Firebase 상태 확인 함수
@@ -134,10 +176,26 @@ function testFirebaseConnection() {
   }
 }
 
+// 자동 복구 함수
+function autoRecoverFirebase() {
+  console.log('🔄 Firebase 자동 복구 시작...');
+  
+  if (typeof firebase === 'undefined') {
+    console.log('❌ Firebase SDK 없음, 대체 CDN 시도...');
+    loadAlternativeFirebaseCDN();
+  } else if (!window.firebaseApp || !window.firestore || !window.auth) {
+    console.log('❌ Firebase 서비스 일부 누락, 재초기화 시도...');
+    initializeFirebase();
+  } else {
+    console.log('✅ Firebase 정상 작동 중');
+  }
+}
+
 // 전역 함수로 노출
 window.initializeFirebase = initializeFirebase;
 window.checkFirebaseStatus = checkFirebaseStatus;
 window.testFirebaseConnection = testFirebaseConnection;
 window.loadAlternativeFirebaseCDN = loadAlternativeFirebaseCDN;
+window.autoRecoverFirebase = autoRecoverFirebase;
 
 console.log('✅ Firebase 설정 파일 로딩 완료');

@@ -12,26 +12,29 @@
     
     <!-- Firebase SDK -->
     <script>
-      // Firebase SDK 동적 로딩
+      // Firebase SDK 동적 로딩 (대체 CDN 우선 사용)
       function loadFirebaseSDK() {
         return new Promise((resolve, reject) => {
-          // Firebase App SDK 로드
-          const appScript = document.createElement('script');
-          appScript.src = 'https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js';
-          appScript.onload = () => {
-            console.log('✅ Firebase App SDK 로드 완료');
-            
-            // Firebase Firestore SDK 로드
-            const firestoreScript = document.createElement('script');
-            firestoreScript.src = 'https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js';
-            firestoreScript.onload = () => {
-              console.log('✅ Firebase Firestore SDK 로드 완료');
+          console.log('🔄 Firebase SDK 로드 시작 (대체 CDN 우선)...');
+          
+          // unpkg CDN 우선 사용 (CSP 문제 해결)
+          const alternativeCDNs = [
+            'https://unpkg.com/firebase@8.10.1/dist/firebase-app.js',
+            'https://unpkg.com/firebase@8.10.1/dist/firebase-firestore.js',
+            'https://unpkg.com/firebase@8.10.1/dist/firebase-auth.js'
+          ];
+          
+          let loadedCount = 0;
+          
+          alternativeCDNs.forEach((cdn, index) => {
+            const script = document.createElement('script');
+            script.src = cdn;
+            script.onload = () => {
+              console.log(`✅ 대체 CDN ${index + 1} 로드 완료:`, cdn);
+              loadedCount++;
               
-              // Firebase Auth SDK 로드
-              const authScript = document.createElement('script');
-              authScript.src = 'https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js';
-              authScript.onload = () => {
-                console.log('✅ Firebase Auth SDK 로드 완료');
+              if (loadedCount === alternativeCDNs.length) {
+                console.log('🎉 모든 대체 CDN 로드 완료!');
                 
                 // Firebase 설정 파일 로드
                 const configScript = document.createElement('script');
@@ -42,15 +45,15 @@
                 };
                 configScript.onerror = () => reject(new Error('Firebase 설정 파일 로드 실패'));
                 document.head.appendChild(configScript);
-              };
-              authScript.onerror = () => reject(new Error('Firebase Auth SDK 로드 실패'));
-              document.head.appendChild(authScript);
+              }
             };
-            firestoreScript.onerror = () => reject(new Error('Firebase Firestore SDK 로드 실패'));
-            document.head.appendChild(firestoreScript);
-          };
-          appScript.onerror = () => reject(new Error('Firebase App SDK 로드 실패'));
-          document.head.appendChild(appScript);
+            script.onerror = () => {
+              console.error(`❌ 대체 CDN ${index + 1} 로드 실패:`, cdn);
+              // 하나라도 실패하면 전체 실패로 처리
+              reject(new Error(`CDN ${index + 1} 로드 실패: ${cdn}`));
+            };
+            document.head.appendChild(script);
+          });
         });
       }
       
@@ -59,7 +62,50 @@
         console.log('🎉 모든 Firebase SDK 로드 완료!');
       }).catch((error) => {
         console.error('❌ Firebase SDK 로드 실패:', error);
+        console.log('🔄 Google CDN으로 재시도...');
+        
+        // Google CDN으로 재시도
+        loadGoogleCDN();
       });
+      
+      // Google CDN 로드 함수 (백업)
+      function loadGoogleCDN() {
+        console.log('🔄 Google CDN 로드 시도...');
+        
+        const googleCDNs = [
+          'https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js',
+          'https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js',
+          'https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js'
+        ];
+        
+        let loadedCount = 0;
+        
+        googleCDNs.forEach((cdn, index) => {
+          const script = document.createElement('script');
+          script.src = cdn;
+          script.onload = () => {
+            console.log(`✅ Google CDN ${index + 1} 로드 완료:`, cdn);
+            loadedCount++;
+            
+            if (loadedCount === googleCDNs.length) {
+              console.log('🎉 모든 Google CDN 로드 완료!');
+              
+              // Firebase 설정 파일 로드
+              const configScript = document.createElement('script');
+              configScript.src = 'firebase-config.js';
+              configScript.onload = () => {
+                console.log('✅ Firebase 설정 파일 로드 완료');
+              };
+              configScript.onerror = () => console.error('Firebase 설정 파일 로드 실패');
+              document.head.appendChild(configScript);
+            }
+          };
+          script.onerror = () => {
+            console.error(`❌ Google CDN ${index + 1} 로드 실패:`, cdn);
+          };
+          document.head.appendChild(script);
+        });
+      }
     </script>
     
     <script>
@@ -73,7 +119,16 @@
           console.log('firebase 타입:', typeof firebase);
           console.log('window.initializeFirebase:', typeof window.initializeFirebase);
           
-          if (typeof firebase !== 'undefined' && window.initializeFirebase) {
+          // Firebase SDK가 로드되지 않은 경우 대체 CDN 시도
+          if (typeof firebase === 'undefined') {
+            console.log('❌ Firebase SDK가 로드되지 않음, 대체 CDN 시도...');
+            if (window.loadAlternativeFirebaseCDN) {
+              window.loadAlternativeFirebaseCDN();
+            }
+            return false;
+          }
+          
+          if (window.initializeFirebase) {
             console.log('✅ Firebase SDK 및 함수 로딩 완료');
             
             try {
@@ -90,9 +145,7 @@
               return false;
             }
           } else {
-            console.log('⏳ Firebase SDK 또는 함수 로딩 대기 중...');
-            console.log('firebase:', typeof firebase);
-            console.log('initializeFirebase:', typeof window.initializeFirebase);
+            console.log('⏳ initializeFirebase 함수 로딩 대기 중...');
             return false;
           }
         }
@@ -111,11 +164,14 @@
           }
           
           if (attempts < maxAttempts) {
-            console.log(`⏳ ${attempts}초 후 재시도...`);
-            setTimeout(attemptInitialization, attempts * 1000);
+            console.log(`⏳ ${attempts * 0.5}초 후 재시도...`);
+            setTimeout(attemptInitialization, attempts * 500); // 0.5초, 1초, 1.5초...
           } else {
             console.error('❌ Firebase 초기화 최대 시도 횟수 초과');
-            alert('Firebase 초기화에 실패했습니다. 페이지를 새로고침해주세요.');
+            console.log('🔄 대체 CDN으로 최종 시도...');
+            if (window.loadAlternativeFirebaseCDN) {
+              window.loadAlternativeFirebaseCDN();
+            }
           }
         }
         
