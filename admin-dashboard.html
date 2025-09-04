@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' 'unsafe-eval' https://developers.kakao.com https://cdn.tailwindcss.com https://t1.kakaocdn.net https://www.gstatic.com https://firebase.google.com;">
+    <!-- CSP 정책 제거 - Firebase 사용을 위해 -->
     <title>관리자 대시보드 - PriceHunter</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -11,51 +11,49 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
     
     <!-- Firebase SDK -->
-    <script type="module">
-      // Import the functions you need from the SDKs you need
-      import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
-      import { getFirestore, collection, doc, setDoc, getDocs, batch } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
-      import { getAuth } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-
-      // Firebase 스크립트 로딩 상태 확인
-      console.log('🔄 Firebase 스크립트 로딩 시작...');
-      
-      try {
-        // Your web app's Firebase configuration
-        const firebaseConfig = {
-          apiKey: "AIzaSyDBZxKyMS7eeBTbPnbZkj0WWOZQHNldoL4",
-          authDomain: "pricehunter-99a1b.firebaseapp.com",
-          projectId: "pricehunter-99a1b",
-          storageBucket: "pricehunter-99a1b.firebasestorage.app",
-          messagingSenderId: "242265693919",
-          appId: "1:242265693919:web:74234d942b82a51541136a",
-          measurementId: "G-4BKLV4EVB9"
-        };
-
-        // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const auth = getAuth(app);
-
-        // 전역 변수로 설정
-        window.firebaseApp = app;
-        window.firestore = db;
-        window.auth = auth;
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js" onload="console.log('✅ Firebase App SDK 로드 완료')"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js" onload="console.log('✅ Firebase Firestore SDK 로드 완료')"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js" onload="console.log('✅ Firebase Auth SDK 로드 완료')"></script>
+    <script src="firebase-app.js" onload="console.log('✅ Firebase 앱 설정 파일 로드 완료')"></script>
+    
+    <script>
+      // Firebase 초기화 대기
+      document.addEventListener('DOMContentLoaded', function() {
+        console.log('🔄 DOM 로드 완료, Firebase 초기화 시작...');
         
-        console.log('✅ Firebase 초기화 완료!');
-        console.log('app:', app);
-        console.log('db:', db);
-        console.log('auth:', auth);
-        
-      } catch (error) {
-        console.error('❌ Firebase 초기화 실패:', error);
-        
-        // CSP 오류인지 확인
-        if (error.message.includes('Content Security Policy')) {
-          console.error('🚨 CSP 정책 위반으로 Firebase 스크립트 로딩 실패');
-          console.error('해결방법: CSP 정책에 https://www.gstatic.com 도메인 추가 필요');
+        // Firebase SDK 로딩 확인 및 재시도 로직
+        function tryInitializeFirebase() {
+          if (typeof firebase !== 'undefined') {
+            console.log('✅ Firebase SDK 로딩 완료');
+            // Firebase 초기화
+            if (window.initializeFirebase) {
+              const result = window.initializeFirebase();
+              if (result) {
+                console.log('✅ Firebase 초기화 성공');
+              } else {
+                console.error('❌ Firebase 초기화 실패');
+              }
+            } else {
+              console.error('❌ initializeFirebase 함수를 찾을 수 없습니다.');
+            }
+          } else {
+            console.log('⏳ Firebase SDK 로딩 대기 중...');
+            // 1초 후 재시도
+            setTimeout(tryInitializeFirebase, 1000);
+          }
         }
-      }
+        
+        // 초기 시도
+        tryInitializeFirebase();
+        
+        // 5초 후 Firebase 상태 재확인
+        setTimeout(function() {
+          console.log('🔄 5초 후 Firebase 상태 재확인...');
+          if (window.checkFirebaseStatus) {
+            window.checkFirebaseStatus();
+          }
+        }, 5000);
+      });
     </script>
     
     <style>
@@ -162,6 +160,9 @@
               </button>
               <button onclick="goToPage('member-dashboard.html')" class="px-4 py-2 bg-green-500 text-white rounded-lg font-semibold hover:bg-green-600 transition">
                 👤 회원대시보드로
+              </button>
+              <button onclick="testFirebaseConnection()" class="px-4 py-2 bg-purple-500 text-white rounded-lg font-semibold hover:bg-purple-600 transition">
+                🔥 Firebase 연결 테스트
               </button>
             </div>
           </div>
@@ -3334,28 +3335,26 @@ ${syncStatus.dataIntegrity.corruptedData > 0 ? '⚠️ 손상된 데이터가 �
       let firestore = null;
       let firebaseAuth = null;
 
-      // Firebase 초기화
+      // Firebase 초기화 (firebase-app.js에서 처리됨)
       function initializeFirebase() {
         try {
           console.log('🔄 Firebase 초기화 시작...');
-          console.log('window.firebaseApp:', window.firebaseApp);
-          console.log('window.firestore:', window.firestore);
-          console.log('window.auth:', window.auth);
           
-          // 전역 변수에서 Firebase 인스턴스 가져오기
-          firebaseApp = window.firebaseApp;
-          firestore = window.firestore;
-          firebaseAuth = window.auth;
-
-          if (firebaseApp && firestore) {
+          // firebase-app.js에서 초기화된 전역 변수 사용
+          if (window.firebaseApp && window.firestore && window.auth) {
+            firebaseApp = window.firebaseApp;
+            firestore = window.firestore;
+            firebaseAuth = window.auth;
+            
             console.log('✅ Firebase 초기화 완료');
             console.log('firebaseApp:', firebaseApp);
             console.log('firestore:', firestore);
             return true;
           } else {
             console.error('❌ Firebase 인스턴스를 찾을 수 없습니다');
-            console.log('firebaseApp 존재:', !!firebaseApp);
-            console.log('firestore 존재:', !!firestore);
+            console.log('window.firebaseApp 존재:', !!window.firebaseApp);
+            console.log('window.firestore 존재:', !!window.firestore);
+            console.log('window.auth 존재:', !!window.auth);
             return false;
           }
         } catch (error) {
@@ -4189,6 +4188,33 @@ ${cloudData.reduce((acc, item) => {
            console.log('🔄 페이지 로드 후 Firebase 초기화 시작...');
            initializeFirebase();
          }, 1000);
+         
+         // Firebase 연결 테스트 함수
+         window.testFirebaseConnection = function() {
+           console.log('🔥 Firebase 연결 테스트 시작...');
+           
+           // Firebase SDK 로딩 상태 확인
+           if (typeof firebase === 'undefined') {
+             alert('❌ Firebase SDK가 로드되지 않았습니다.\n\n페이지를 새로고침하거나 잠시 후 다시 시도해주세요.');
+             return;
+           }
+           
+           // Firebase 초기화 상태 확인
+           if (window.firebaseApp && window.firestore && window.auth) {
+             alert('✅ Firebase 연결 성공!\n\n- App: ' + (window.firebaseApp ? '초기화됨' : '초기화 안됨') + 
+                   '\n- Firestore: ' + (window.firestore ? '연결됨' : '연결 안됨') + 
+                   '\n- Auth: ' + (window.auth ? '연결됨' : '연결 안됨'));
+           } else {
+             alert('❌ Firebase 연결 실패!\n\n현재 상태:\n- App: ' + (window.firebaseApp ? '초기화됨' : '초기화 안됨') + 
+                   '\n- Firestore: ' + (window.firestore ? '연결됨' : '연결 안됨') + 
+                   '\n- Auth: ' + (window.auth ? '연결됨' : '연결 안됨') + 
+                   '\n\nFirebase 초기화를 다시 시도해주세요.');
+             
+             // 자동으로 Firebase 초기화 재시도
+             console.log('🔄 Firebase 초기화 재시도...');
+             initializeFirebase();
+           }
+         };
          
          // 자동 백업 리스너 설정
          setupAutoBackupListener();
