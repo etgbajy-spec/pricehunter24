@@ -11,10 +11,56 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
     
     <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js" onload="console.log('✅ Firebase App SDK 로드 완료')"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js" onload="console.log('✅ Firebase Firestore SDK 로드 완료')"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js" onload="console.log('✅ Firebase Auth SDK 로드 완료')"></script>
-    <script src="firebase-app.js" onload="console.log('✅ Firebase 앱 설정 파일 로드 완료')"></script>
+    <script>
+      // Firebase SDK 동적 로딩
+      function loadFirebaseSDK() {
+        return new Promise((resolve, reject) => {
+          // Firebase App SDK 로드
+          const appScript = document.createElement('script');
+          appScript.src = 'https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js';
+          appScript.onload = () => {
+            console.log('✅ Firebase App SDK 로드 완료');
+            
+            // Firebase Firestore SDK 로드
+            const firestoreScript = document.createElement('script');
+            firestoreScript.src = 'https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js';
+            firestoreScript.onload = () => {
+              console.log('✅ Firebase Firestore SDK 로드 완료');
+              
+              // Firebase Auth SDK 로드
+              const authScript = document.createElement('script');
+              authScript.src = 'https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js';
+              authScript.onload = () => {
+                console.log('✅ Firebase Auth SDK 로드 완료');
+                
+                // Firebase 설정 파일 로드
+                const configScript = document.createElement('script');
+                configScript.src = 'firebase-config.js';
+                configScript.onload = () => {
+                  console.log('✅ Firebase 설정 파일 로드 완료');
+                  resolve();
+                };
+                configScript.onerror = () => reject(new Error('Firebase 설정 파일 로드 실패'));
+                document.head.appendChild(configScript);
+              };
+              authScript.onerror = () => reject(new Error('Firebase Auth SDK 로드 실패'));
+              document.head.appendChild(authScript);
+            };
+            firestoreScript.onerror = () => reject(new Error('Firebase Firestore SDK 로드 실패'));
+            document.head.appendChild(firestoreScript);
+          };
+          appScript.onerror = () => reject(new Error('Firebase App SDK 로드 실패'));
+          document.head.appendChild(appScript);
+        });
+      }
+      
+      // Firebase SDK 로드 시작
+      loadFirebaseSDK().then(() => {
+        console.log('🎉 모든 Firebase SDK 로드 완료!');
+      }).catch((error) => {
+        console.error('❌ Firebase SDK 로드 실패:', error);
+      });
+    </script>
     
     <script>
       // Firebase 초기화 대기
@@ -23,36 +69,66 @@
         
         // Firebase SDK 로딩 확인 및 재시도 로직
         function tryInitializeFirebase() {
-          if (typeof firebase !== 'undefined') {
-            console.log('✅ Firebase SDK 로딩 완료');
-            // Firebase 초기화
-            if (window.initializeFirebase) {
+          console.log('🔄 Firebase 초기화 시도...');
+          console.log('firebase 타입:', typeof firebase);
+          console.log('window.initializeFirebase:', typeof window.initializeFirebase);
+          
+          if (typeof firebase !== 'undefined' && window.initializeFirebase) {
+            console.log('✅ Firebase SDK 및 함수 로딩 완료');
+            
+            try {
               const result = window.initializeFirebase();
               if (result) {
                 console.log('✅ Firebase 초기화 성공');
+                return true;
               } else {
                 console.error('❌ Firebase 초기화 실패');
+                return false;
               }
-            } else {
-              console.error('❌ initializeFirebase 함수를 찾을 수 없습니다.');
+            } catch (error) {
+              console.error('❌ Firebase 초기화 중 에러:', error);
+              return false;
             }
           } else {
-            console.log('⏳ Firebase SDK 로딩 대기 중...');
-            // 1초 후 재시도
-            setTimeout(tryInitializeFirebase, 1000);
+            console.log('⏳ Firebase SDK 또는 함수 로딩 대기 중...');
+            console.log('firebase:', typeof firebase);
+            console.log('initializeFirebase:', typeof window.initializeFirebase);
+            return false;
           }
         }
         
         // 초기 시도
-        tryInitializeFirebase();
+        let attempts = 0;
+        const maxAttempts = 10;
         
-        // 5초 후 Firebase 상태 재확인
+        function attemptInitialization() {
+          attempts++;
+          console.log(`🔄 Firebase 초기화 시도 ${attempts}/${maxAttempts}`);
+          
+          if (tryInitializeFirebase()) {
+            console.log('✅ Firebase 초기화 성공!');
+            return;
+          }
+          
+          if (attempts < maxAttempts) {
+            console.log(`⏳ ${attempts}초 후 재시도...`);
+            setTimeout(attemptInitialization, attempts * 1000);
+          } else {
+            console.error('❌ Firebase 초기화 최대 시도 횟수 초과');
+            alert('Firebase 초기화에 실패했습니다. 페이지를 새로고침해주세요.');
+          }
+        }
+        
+        // 초기화 시작
+        attemptInitialization();
+        
+        // 10초 후 Firebase 상태 재확인
         setTimeout(function() {
-          console.log('🔄 5초 후 Firebase 상태 재확인...');
+          console.log('🔄 10초 후 Firebase 상태 재확인...');
           if (window.checkFirebaseStatus) {
             window.checkFirebaseStatus();
           }
-        }, 5000);
+        }, 10000);
       });
     </script>
     

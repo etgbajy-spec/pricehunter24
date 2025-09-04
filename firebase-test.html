@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firebase 연결 테스트</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .warning { background-color: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        .info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background-color: #0056b3; }
+        .log {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 10px 0;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔥 Firebase 연결 테스트</h1>
+        
+        <div id="status" class="status info">
+            🔄 Firebase 연결 테스트 준비 중...
+        </div>
+        
+        <div>
+            <button onclick="testFirebaseConnection()">🧪 Firebase 연결 테스트</button>
+            <button onclick="loadAlternativeCDN()">🔄 대체 CDN 시도</button>
+            <button onclick="clearLog()">🗑️ 로그 지우기</button>
+        </div>
+        
+        <h3>📋 테스트 결과</h3>
+        <div id="log" class="log"></div>
+        
+        <h3>🔧 수동 테스트</h3>
+        <div>
+            <button onclick="checkFirebaseSDK()">Firebase SDK 확인</button>
+            <button onclick="checkFirebaseConfig()">Firebase 설정 확인</button>
+            <button onclick="testFirestore()">Firestore 테스트</button>
+            <button onclick="testAuth()">Auth 테스트</button>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script>
+        // Firebase SDK 동적 로딩
+        function loadFirebaseSDK() {
+            return new Promise((resolve, reject) => {
+                log('🔄 Firebase SDK 로드 시작...');
+                
+                // Firebase App SDK 로드
+                const appScript = document.createElement('script');
+                appScript.src = 'https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js';
+                appScript.onload = () => {
+                    log('✅ Firebase App SDK 로드 완료');
+                    
+                    // Firebase Firestore SDK 로드
+                    const firestoreScript = document.createElement('script');
+                    firestoreScript.src = 'https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js';
+                    firestoreScript.onload = () => {
+                        log('✅ Firebase Firestore SDK 로드 완료');
+                        
+                        // Firebase Auth SDK 로드
+                        const authScript = document.createElement('script');
+                        authScript.src = 'https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js';
+                        authScript.onload = () => {
+                            log('✅ Firebase Auth SDK 로드 완료');
+                            resolve();
+                        };
+                        authScript.onerror = () => reject(new Error('Firebase Auth SDK 로드 실패'));
+                        document.head.appendChild(authScript);
+                    };
+                    firestoreScript.onerror = () => reject(new Error('Firebase Firestore SDK 로드 실패'));
+                    document.head.appendChild(firestoreScript);
+                };
+                appScript.onerror = () => reject(new Error('Firebase App SDK 로드 실패'));
+                document.head.appendChild(appScript);
+            });
+        }
+        
+        // Firebase 설정
+        const firebaseConfig = {
+            apiKey: "AIzaSyDBZxKyMS7eeBTbPnbZkj0WWOZQHNldoL4",
+            authDomain: "pricehunter-99a1b.firebaseapp.com",
+            projectId: "pricehunter-99a1b",
+            storageBucket: "pricehunter-99a1b.firebasestorage.app",
+            messagingSenderId: "242265693919",
+            appId: "1:242265693919:web:74234d942b82a51541136a",
+            measurementId: "G-4BKLV4EVB9"
+        };
+        
+        // Firebase 초기화
+        function initializeFirebase() {
+            try {
+                log('🔄 Firebase 초기화 시작...');
+                
+                if (typeof firebase === 'undefined') {
+                    log('❌ Firebase SDK가 로드되지 않았습니다.');
+                    return false;
+                }
+                
+                log('✅ Firebase SDK 확인됨');
+                log('Firebase 버전: ' + (firebase.SDK_VERSION || '알 수 없음'));
+                
+                // Firebase 앱 초기화
+                if (!firebase.apps.length) {
+                    window.firebaseApp = firebase.initializeApp(firebaseConfig);
+                    log('✅ Firebase 앱 초기화 완료');
+                } else {
+                    window.firebaseApp = firebase.app();
+                    log('✅ 기존 Firebase 앱 사용');
+                }
+                
+                // Firestore 초기화
+                window.firestore = firebase.firestore();
+                log('✅ Firestore 초기화 완료');
+                
+                // Auth 초기화
+                window.auth = firebase.auth();
+                log('✅ Auth 초기화 완료');
+                
+                log('🎉 Firebase 모든 서비스 초기화 완료!');
+                updateStatus('success', '✅ Firebase 연결 성공!');
+                return true;
+                
+            } catch (error) {
+                log('❌ Firebase 초기화 실패: ' + error.message);
+                updateStatus('error', '❌ Firebase 초기화 실패');
+                return false;
+            }
+        }
+        
+        // 로그 함수
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `[${timestamp}] ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+        
+        // 상태 업데이트
+        function updateStatus(type, message) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.className = `status ${type}`;
+            statusDiv.textContent = message;
+        }
+        
+        // Firebase 연결 테스트
+        function testFirebaseConnection() {
+            log('🧪 Firebase 연결 테스트 시작...');
+            
+            if (typeof firebase === 'undefined') {
+                log('❌ Firebase SDK가 로드되지 않았습니다.');
+                updateStatus('error', '❌ Firebase SDK 로드 실패');
+                return;
+            }
+            
+            if (window.firebaseApp && window.firestore && window.auth) {
+                log('✅ Firebase 연결 성공!');
+                updateStatus('success', '✅ Firebase 연결 성공!');
+            } else {
+                log('❌ Firebase 연결 실패');
+                updateStatus('error', '❌ Firebase 연결 실패');
+            }
+        }
+        
+        // 대체 CDN 로드
+        function loadAlternativeCDN() {
+            log('🔄 대체 Firebase CDN 로드 시작...');
+            
+            const alternativeCDNs = [
+                'https://unpkg.com/firebase@8.10.1/dist/firebase-app.js',
+                'https://unpkg.com/firebase@8.10.1/dist/firebase-firestore.js',
+                'https://unpkg.com/firebase@8.10.1/dist/firebase-auth.js'
+            ];
+            
+            let loadedCount = 0;
+            
+            alternativeCDNs.forEach((cdn, index) => {
+                const script = document.createElement('script');
+                script.src = cdn;
+                script.onload = () => {
+                    log(`✅ 대체 CDN ${index + 1} 로드 완료: ${cdn}`);
+                    loadedCount++;
+                    
+                    if (loadedCount === alternativeCDNs.length) {
+                        log('🎉 모든 대체 CDN 로드 완료!');
+                        setTimeout(() => {
+                            if (typeof firebase !== 'undefined') {
+                                log('🔄 대체 CDN으로 Firebase 초기화 시도...');
+                                initializeFirebase();
+                            }
+                        }, 1000);
+                    }
+                };
+                script.onerror = () => {
+                    log(`❌ 대체 CDN ${index + 1} 로드 실패: ${cdn}`);
+                };
+                document.head.appendChild(script);
+            });
+        }
+        
+        // 로그 지우기
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+        
+        // Firebase SDK 확인
+        function checkFirebaseSDK() {
+            log('🔍 Firebase SDK 상태 확인...');
+            log('firebase 타입: ' + typeof firebase);
+            log('firebase.SDK_VERSION: ' + (firebase?.SDK_VERSION || '알 수 없음'));
+        }
+        
+        // Firebase 설정 확인
+        function checkFirebaseConfig() {
+            log('🔍 Firebase 설정 확인...');
+            log('firebaseConfig: ' + JSON.stringify(firebaseConfig, null, 2));
+        }
+        
+        // Firestore 테스트
+        function testFirestore() {
+            log('🔍 Firestore 테스트...');
+            if (window.firestore) {
+                log('✅ Firestore 인스턴스 존재');
+                log('Firestore 타입: ' + typeof window.firestore);
+            } else {
+                log('❌ Firestore 인스턴스 없음');
+            }
+        }
+        
+        // Auth 테스트
+        function testAuth() {
+            log('🔍 Auth 테스트...');
+            if (window.auth) {
+                log('✅ Auth 인스턴스 존재');
+                log('Auth 타입: ' + typeof window.auth);
+            } else {
+                log('❌ Auth 인스턴스 없음');
+            }
+        }
+        
+        // 페이지 로드 시 Firebase SDK 로드
+        window.addEventListener('DOMContentLoaded', function() {
+            log('🔄 페이지 로드 완료, Firebase SDK 로드 시작...');
+            
+            loadFirebaseSDK().then(() => {
+                log('🎉 모든 Firebase SDK 로드 완료!');
+                updateStatus('info', '✅ Firebase SDK 로드 완료, 초기화 준비됨');
+                
+                // Firebase 초기화
+                setTimeout(() => {
+                    initializeFirebase();
+                }, 1000);
+                
+            }).catch((error) => {
+                log('❌ Firebase SDK 로드 실패: ' + error.message);
+                updateStatus('error', '❌ Firebase SDK 로드 실패');
+            });
+        });
+    </script>
+</body>
+</html>
