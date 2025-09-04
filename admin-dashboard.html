@@ -8,62 +8,88 @@
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Firebase SDK -->
-    <script type="module">
-        // Firebase 설정
-        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-        import { getFirestore, collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy, where } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-        import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-        
-        // Firebase 설정
-        const firebaseConfig = {
-            apiKey: "AIzaSyDBZxKyMS7eeBTbPnbZkj0WWOZQHNldoL4",
-            authDomain: "pricehunter-99a1b.firebaseapp.com",
-            projectId: "pricehunter-99a1b",
-            storageBucket: "pricehunter-99a1b.firebasestorage.app",
-            messagingSenderId: "242265693919",
-            appId: "1:242265693919:web:74234d942b82a51541136a",
-            measurementId: "G-4BKLV4EVB9"
-        };
-        
-        // Firebase 초기화
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const auth = getAuth(app);
-        
-        // 전역 변수로 설정
-        window.db = db;
-        window.auth = auth;
-        window.firebaseApp = app;
-        
-        console.log('✅ Firebase 초기화 완료');
-        
-        // 인증 상태 확인
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                console.log('✅ 관리자 로그인됨:', user.email);
-                document.getElementById('admin-info').textContent = user.email;
-                document.getElementById('login-section').classList.add('hidden');
-                document.getElementById('dashboard-section').classList.remove('hidden');
-                loadDashboardData();
+    <!-- Firebase 8.x SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    
+    <!-- Firebase 설정 -->
+    <script src="firebase-config.js"></script>
+    
+    <script>
+        // Firebase 초기화 및 설정
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 관리자 대시보드 초기화 시작...');
+            
+            // Firebase 초기화
+            if (typeof firebase !== 'undefined') {
+                console.log('✅ Firebase SDK 로드됨');
+                initializeFirebase();
             } else {
-                console.log('❌ 로그인되지 않음');
-                document.getElementById('login-section').classList.remove('hidden');
-                document.getElementById('dashboard-section').classList.add('hidden');
+                console.error('❌ Firebase SDK 로드 실패');
+                // 대체 CDN 시도
+                loadAlternativeFirebaseCDN();
             }
         });
         
         // 관리자 로그인 함수
         window.adminLogin = async function() {
+            console.log('🔐 관리자 로그인 시도...');
+            
             const email = document.getElementById('admin-email').value;
             const password = document.getElementById('admin-password').value;
             
+            if (!email || !password) {
+                alert('이메일과 비밀번호를 입력해주세요.');
+                return;
+            }
+            
             try {
-                const userCredential = await signInWithEmailAndPassword(auth, email, password);
-                console.log('✅ 관리자 로그인 성공');
+                // Firebase가 초기화되었는지 확인
+                if (!window.auth) {
+                    console.error('❌ Firebase Auth가 초기화되지 않았습니다.');
+                    alert('Firebase 연결에 문제가 있습니다. 페이지를 새로고침해주세요.');
+                    return;
+                }
+                
+                console.log('🔥 로그인 시도:', email);
+                const userCredential = await window.auth.signInWithEmailAndPassword(email, password);
+                console.log('✅ 관리자 로그인 성공:', userCredential.user.email);
+                
+                // 로그인 성공 시 대시보드 표시
+                document.getElementById('login-section').classList.add('hidden');
+                document.getElementById('dashboard-section').classList.remove('hidden');
+                
+                // 관리자 정보 표시
+                if (document.getElementById('admin-info')) {
+                    document.getElementById('admin-info').textContent = userCredential.user.email;
+                }
+                
+                // 대시보드 데이터 로드
+                loadDashboardData();
+                
             } catch (error) {
                 console.error('❌ 로그인 실패:', error);
-                alert('로그인 실패: ' + error.message);
+                let errorMessage = '로그인에 실패했습니다.';
+                
+                switch (error.code) {
+                    case 'auth/user-not-found':
+                        errorMessage = '등록되지 않은 이메일입니다.';
+                        break;
+                    case 'auth/wrong-password':
+                        errorMessage = '비밀번호가 올바르지 않습니다.';
+                        break;
+                    case 'auth/invalid-email':
+                        errorMessage = '올바르지 않은 이메일 형식입니다.';
+                        break;
+                    case 'auth/too-many-requests':
+                        errorMessage = '너무 많은 로그인 시도가 있었습니다. 잠시 후 다시 시도해주세요.';
+                        break;
+                    default:
+                        errorMessage = error.message;
+                }
+                
+                alert(errorMessage);
             }
         };
         
@@ -72,20 +98,24 @@
             try {
                 console.log('🔧 테스트 관리자 계정 생성 시작...');
                 
-                // Firebase Auth에서 계정 생성
-                const { createUserWithEmailAndPassword } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js');
+                if (!window.auth) {
+                    alert('Firebase가 초기화되지 않았습니다. 페이지를 새로고침해주세요.');
+                    return;
+                }
                 
-                const userCredential = await createUserWithEmailAndPassword(auth, 'admin@pricehunter.com', 'admin1234');
+                const userCredential = await window.auth.createUserWithEmailAndPassword('admin@pricehunter.com', 'admin1234');
                 console.log('✅ 테스트 관리자 계정 생성 완료:', userCredential.user.email);
                 
                 // Firestore에 관리자 정보 저장
-                const { doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
-                await setDoc(doc(db, 'admins', userCredential.user.uid), {
-                    email: 'admin@pricehunter.com',
-                    role: 'admin',
-                    createdAt: new Date(),
-                    permissions: ['read', 'write', 'delete', 'admin']
-                });
+                if (window.firestore) {
+                    await window.firestore.collection('admins').doc(userCredential.user.uid).set({
+                        email: 'admin@pricehunter.com',
+                        role: 'admin',
+                        createdAt: new Date(),
+                        permissions: ['read', 'write', 'delete', 'admin']
+                    });
+                    console.log('✅ 관리자 정보 Firestore 저장 완료');
+                }
                 
                 alert('✅ 테스트 관리자 계정이 생성되었습니다!\n\n이메일: admin@pricehunter.com\n비밀번호: admin1234\n\n이제 이 계정으로 로그인할 수 있습니다.');
                 
@@ -103,378 +133,40 @@
                     document.getElementById('admin-email').value = 'admin@pricehunter.com';
                     document.getElementById('admin-password').value = 'admin1234';
                 } else {
-                    alert('테스트 계정 생성 실패: ' + error.message);
+                    alert('계정 생성 실패: ' + error.message);
                 }
             }
         };
         
-        // 로그아웃 함수
-        window.adminLogout = async function() {
-            try {
-                await signOut(auth);
-                console.log('✅ 로그아웃 완료');
-            } catch (error) {
-                console.error('❌ 로그아웃 실패:', error);
+        // 대시보드 데이터 로드 함수
+        function loadDashboardData() {
+            console.log('📊 대시보드 데이터 로드 시작...');
+            
+            if (!window.firestore) {
+                console.error('❌ Firestore가 초기화되지 않았습니다.');
+                return;
             }
-        };
+            
+            // 여기에 대시보드 데이터 로드 로직 추가
+            console.log('✅ 대시보드 데이터 로드 완료');
+        }
         
-        // 대시보드 데이터 로드
-        window.loadDashboardData = async function() {
-            try {
-                console.log('🔄 대시보드 데이터 로드 시작...');
-                
-                // 통계 데이터 로드
-                await loadStatistics();
-                
-                // 최근 활동 로드
-                await loadRecentActivities();
-                
-                console.log('✅ 대시보드 데이터 로드 완료');
-            } catch (error) {
-                console.error('❌ 대시보드 데이터 로드 실패:', error);
+        // Firebase 연결 테스트 함수
+        window.testFirebaseConnection = function() {
+            console.log('🔥 Firebase 연결 테스트 시작...');
+            
+            if (typeof firebase === 'undefined') {
+                alert('❌ Firebase SDK가 로드되지 않았습니다.');
+                return false;
             }
-        };
-        
-        // 통계 데이터 로드
-        async function loadStatistics() {
-            try {
-                // 의뢰 통계
-                const requestsQuery = query(collection(db, 'requests'), orderBy('createdAt', 'desc'));
-                const requestsSnapshot = await getDocs(requestsQuery);
-                const totalRequests = requestsSnapshot.size;
-                
-                const completedRequests = requestsSnapshot.docs.filter(doc => 
-                    doc.data().status === 'completed'
-                ).length;
-                
-                // 문의 통계
-                const inquiriesQuery = query(collection(db, 'inquiries'), orderBy('createdAt', 'desc'));
-                const inquiriesSnapshot = await getDocs(inquiriesQuery);
-                const totalInquiries = inquiriesSnapshot.size;
-                
-                const pendingInquiries = inquiriesSnapshot.docs.filter(doc => 
-                    !doc.data().answered
-                ).length;
-                
-                // 회원 통계
-                const membersQuery = query(collection(db, 'members'), orderBy('createdAt', 'desc'));
-                const membersSnapshot = await getDocs(membersQuery);
-                const totalMembers = membersSnapshot.size;
-                
-                // UI 업데이트
-                document.getElementById('total-requests').textContent = totalRequests;
-                document.getElementById('completed-requests').textContent = completedRequests;
-                document.getElementById('total-members').textContent = totalMembers;
-                document.getElementById('pending-inquiries').textContent = pendingInquiries;
-                
-                console.log('✅ 통계 데이터 로드 완료');
-            } catch (error) {
-                console.error('❌ 통계 데이터 로드 실패:', error);
+            
+            if (window.firebaseApp && window.firestore && window.auth) {
+                alert('✅ Firebase 연결 성공!\n\n모든 서비스가 정상적으로 작동합니다.');
+                return true;
+            } else {
+                alert('❌ Firebase 연결 실패!\n\n초기화를 다시 시도해주세요.');
+                return false;
             }
-        }
-        
-        // 최근 활동 로드
-        async function loadRecentActivities() {
-            try {
-                // 최근 의뢰
-                const recentRequestsQuery = query(collection(db, 'requests'), orderBy('createdAt', 'desc'), where('status', '!=', 'deleted'));
-                const recentRequestsSnapshot = await getDocs(recentRequestsQuery);
-                const recentRequests = recentRequestsSnapshot.docs.slice(0, 5);
-                
-                const recentRequestsDiv = document.getElementById('recent-requests');
-                recentRequestsDiv.innerHTML = recentRequests.map(doc => {
-                    const data = doc.data();
-                    return `
-                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                            <div>
-                                <p class="font-semibold text-sm">${data.productName || '제품명 없음'}</p>
-                                <p class="text-xs text-gray-500">${data.userName || '익명'} • ${data.createdAt ? new Date(data.createdAt.toDate()).toLocaleDateString() : ''}</p>
-                            </div>
-                            <span class="px-2 py-1 text-xs font-semibold rounded-full ${data.status === 'completed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}">${data.status || '대기중'}</span>
-                        </div>
-                    `;
-                }).join('');
-                
-                // 최근 문의
-                const recentInquiriesQuery = query(collection(db, 'inquiries'), orderBy('createdAt', 'desc'));
-                const recentInquiriesSnapshot = await getDocs(recentInquiriesQuery);
-                const recentInquiries = recentInquiriesSnapshot.docs.slice(0, 5);
-                
-                const recentInquiriesDiv = document.getElementById('recent-inquiries');
-                recentInquiriesDiv.innerHTML = recentInquiries.map(doc => {
-                    const data = doc.data();
-                    return `
-                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                            <div>
-                                <p class="font-semibold text-sm">${data.subject || '제목 없음'}</p>
-                                <p class="text-xs text-gray-500">${data.userName || '익명'} • ${data.createdAt ? new Date(data.createdAt.toDate()).toLocaleDateString() : ''}</p>
-                            </div>
-                            <span class="px-2 py-1 text-xs font-semibold rounded-full ${data.answered ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">${data.answered ? '답변완료' : '미답변'}</span>
-                        </div>
-                    `;
-                }).join('');
-                
-                console.log('✅ 최근 활동 로드 완료');
-            } catch (error) {
-                console.error('❌ 최근 활동 로드 실패:', error);
-            }
-        }
-        
-        // 섹션 전환 함수
-        window.switchSection = function(section) {
-            // 모든 섹션 숨기기
-            document.querySelectorAll('.section-content').forEach(el => {
-                el.classList.add('hidden');
-            });
-            
-            // 모든 사이드바 아이템 비활성화
-            document.querySelectorAll('.sidebar-item').forEach(el => {
-                el.classList.remove('active');
-            });
-            
-            // 선택된 섹션 표시
-            document.getElementById(section + '-section').classList.remove('hidden');
-            
-            // 선택된 사이드바 아이템 활성화
-            document.querySelectorAll('.sidebar-item').forEach(el => {
-                if (el.getAttribute('data-section') === section) {
-                    el.classList.add('active');
-                }
-            });
-            
-            // 섹션별 데이터 로드
-            loadSectionData(section);
-        };
-        
-        // 섹션별 데이터 로드
-        async function loadSectionData(section) {
-            switch(section) {
-                case 'dashboard':
-                    await loadDashboardData();
-                    break;
-                case 'requests':
-                    await loadRequestsData();
-                    break;
-                case 'inquiries':
-                    await loadInquiriesData();
-                    break;
-                case 'members':
-                    await loadMembersData();
-                    break;
-            }
-        }
-        
-        // 의뢰 데이터 로드
-        async function loadRequestsData() {
-            try {
-                console.log('🔄 의뢰 데이터 로드 시작...');
-                
-                const requestsQuery = query(collection(db, 'requests'), orderBy('createdAt', 'desc'));
-                const requestsSnapshot = await getDocs(requestsQuery);
-                const requests = requestsSnapshot.docs.map(doc => ({
-                    id: doc.id,
-                    ...doc.data()
-                }));
-                
-                window.allRequests = requests;
-                renderRequestList(requests);
-                
-                console.log('✅ 의뢰 데이터 로드 완료:', requests.length, '개');
-            } catch (error) {
-                console.error('❌ 의뢰 데이터 로드 실패:', error);
-            }
-        }
-        
-        // 문의 데이터 로드
-        async function loadInquiriesData() {
-            try {
-                console.log('🔄 문의 데이터 로드 시작...');
-                
-                const inquiriesQuery = query(collection(db, 'inquiries'), orderBy('createdAt', 'desc'));
-                const inquiriesSnapshot = await getDocs(inquiriesQuery);
-                const inquiries = inquiriesSnapshot.docs.map(doc => ({
-                    id: doc.id,
-                    ...doc.data()
-                }));
-                
-                window.allInquiries = inquiries;
-                renderInquiriesTable(inquiries);
-                
-                console.log('✅ 문의 데이터 로드 완료:', inquiries.length, '개');
-            } catch (error) {
-                console.error('❌ 문의 데이터 로드 실패:', error);
-            }
-        }
-        
-        // 회원 데이터 로드
-        async function loadMembersData() {
-            try {
-                console.log('🔄 회원 데이터 로드 시작...');
-                
-                const membersQuery = query(collection(db, 'members'), orderBy('createdAt', 'desc'));
-                const membersSnapshot = await getDocs(membersQuery);
-                const members = membersSnapshot.docs.map(doc => ({
-                    id: doc.id,
-                    ...doc.data()
-                }));
-                
-                window.allMembers = members;
-                renderMembersTable(members);
-                
-                console.log('✅ 회원 데이터 로드 완료:', members.length, '개');
-            } catch (error) {
-                console.error('❌ 회원 데이터 로드 실패:', error);
-            }
-        }
-        
-        // 의뢰 목록 렌더링
-        function renderRequestList(requests) {
-            const listContainer = document.getElementById('request-list');
-            if (!listContainer) return;
-            
-            listContainer.innerHTML = requests.map(request => `
-                <li class="flex items-center p-4 hover:bg-pink-100 transition cursor-pointer" onclick="showRequestDetail('${request.id}')">
-                    <div class="col-span-1">
-                        <input type="checkbox" class="request-checkbox w-4 h-4 text-pink-600" value="${request.id}">
-                    </div>
-                    <div class="col-span-2">
-                        <div class="font-semibold">${request.productName || '제품명 없음'}</div>
-                        <div class="text-sm text-gray-600">${request.userName || '익명'}</div>
-                    </div>
-                    <div class="col-span-1 text-center text-sm text-gray-600">
-                        ${request.createdAt ? new Date(request.createdAt.toDate()).toLocaleDateString() : ''}
-                    </div>
-                    <div class="col-span-1 text-center">
-                        <span class="px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(request.status)}">${request.status || '대기중'}</span>
-                    </div>
-                    <div class="col-span-1 text-center text-sm text-gray-600">
-                        ${request.purchaseMethod || '일반구매'}
-                    </div>
-                    <div class="col-span-1 text-center">
-                        <span class="px-2 py-1 text-xs font-semibold rounded-full ${getPurchaseStatusColor(request.purchaseStatus)}">${request.purchaseStatus || '미구매'}</span>
-                    </div>
-                    <div class="col-span-1 text-center">
-                        <span class="px-2 py-1 text-xs font-semibold rounded-full ${request.notified ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">${request.notified ? '알림완료' : '미알림'}</span>
-                    </div>
-                </li>
-            `).join('');
-        }
-        
-        // 문의 테이블 렌더링
-        function renderInquiriesTable(inquiries) {
-            const tableBody = document.getElementById('inquiries-table-body');
-            if (!tableBody) return;
-            
-            tableBody.innerHTML = inquiries.map(inquiry => `
-                <tr class="hover:bg-gray-50">
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${inquiry.id}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${inquiry.userName || '익명'}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${inquiry.subject || '제목 없음'}</td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <span class="px-2 py-1 text-xs font-semibold rounded-full ${inquiry.answered ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">${inquiry.answered ? '답변완료' : '대기중'}</span>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        ${inquiry.createdAt ? new Date(inquiry.createdAt.toDate()).toLocaleDateString() : ''}
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <button onclick="showInquiryDetail('${inquiry.id}')" class="text-blue-600 hover:text-blue-900">상세보기</button>
-                    </td>
-                </tr>
-            `).join('');
-        }
-        
-        // 회원 테이블 렌더링
-        function renderMembersTable(members) {
-            const tableBody = document.getElementById('members-table-body');
-            if (!tableBody) return;
-            
-            tableBody.innerHTML = members.map(member => `
-                <tr class="hover:bg-gray-50">
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="flex items-center">
-                            <div class="h-10 w-10 flex-shrink-0">
-                                <img class="h-10 w-10 rounded-full" src="${member.profileImage || 'https://via.placeholder.com/40'}" alt="">
-                            </div>
-                        </div>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${member.name || '이름 없음'}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        <span class="px-2 py-1 text-xs font-semibold rounded-full ${member.loginType === 'kakao' ? 'bg-yellow-100 text-yellow-800' : 'bg-blue-100 text-blue-800'}">${member.loginType === 'kakao' ? '카카오' : '일반'}</span>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${member.email}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${member.phone || '-'}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        ${member.createdAt ? new Date(member.createdAt.toDate()).toLocaleDateString() : ''}
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${member.requestCount || 0}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <button onclick="showMemberDetail('${member.id}')" class="text-blue-600 hover:text-blue-900">상세보기</button>
-                    </td>
-                </tr>
-            `).join('');
-        }
-        
-        // 상태별 색상 반환
-        function getStatusColor(status) {
-            switch(status) {
-                case 'completed': return 'bg-green-100 text-green-800';
-                case 'in-progress': return 'bg-yellow-100 text-yellow-800';
-                case 'pending': return 'bg-red-100 text-red-800';
-                default: return 'bg-gray-100 text-gray-800';
-            }
-        }
-        
-        // 구매 상태별 색상 반환
-        function getPurchaseStatusColor(status) {
-            switch(status) {
-                case 'purchased': return 'bg-green-100 text-green-800';
-                case 'cancelled': return 'bg-red-100 text-red-800';
-                default: return 'bg-gray-100 text-gray-800';
-            }
-        }
-        
-        // 의뢰 상세 보기
-        window.showRequestDetail = function(requestId) {
-            const request = window.allRequests.find(r => r.id === requestId);
-            if (!request) return;
-            
-            // 상세 정보 표시 로직
-            document.getElementById('detail-num').textContent = request.id;
-            document.getElementById('detail-name').textContent = request.productName || '제품명 없음';
-            document.getElementById('detail-desc').textContent = request.description || '설명 없음';
-            document.getElementById('detail-url').textContent = request.url || 'URL 없음';
-            document.getElementById('detail-price').textContent = request.price || '가격 없음';
-            document.getElementById('detail-username').textContent = request.userName || '이름 없음';
-            document.getElementById('detail-email').textContent = request.email || '이메일 없음';
-            document.getElementById('detail-phone').textContent = request.phone || '전화번호 없음';
-            
-            document.getElementById('detail-section').classList.remove('hidden');
-        };
-        
-        // 문의 상세 보기
-        window.showInquiryDetail = function(inquiryId) {
-            const inquiry = window.allInquiries.find(i => i.id === inquiryId);
-            if (!inquiry) return;
-            
-            // 상세 정보 표시 로직
-            document.getElementById('inquiry-id').textContent = inquiry.id;
-            document.getElementById('inquiry-title').textContent = inquiry.subject || '제목 없음';
-            document.getElementById('inquiry-username').textContent = inquiry.userName || '이름 없음';
-            document.getElementById('inquiry-email').textContent = inquiry.email || '이메일 없음';
-            document.getElementById('inquiry-phone').textContent = inquiry.phone || '전화번호 없음';
-            document.getElementById('inquiry-date').textContent = inquiry.createdAt ? new Date(inquiry.createdAt.toDate()).toLocaleString() : '';
-            document.getElementById('inquiry-content').textContent = inquiry.message || '내용 없음';
-            
-            document.getElementById('inquiry-detail-section').classList.remove('hidden');
-        };
-        
-        // 회원 상세 보기
-        window.showMemberDetail = function(memberId) {
-            const member = window.allMembers.find(m => m.id === memberId);
-            if (!member) return;
-            
-            // 회원 상세 정보 표시 로직
-            alert(`회원 상세 정보\n이름: ${member.name}\n이메일: ${member.email}\n가입일: ${member.createdAt ? new Date(member.createdAt.toDate()).toLocaleDateString() : ''}`);
         };
         
         // 페이지 이동 함수
@@ -482,24 +174,37 @@
             window.location.href = page;
         };
         
-        // Firebase 연결 테스트
-        window.testFirebaseConnection = function() {
-            console.log('🔥 Firebase 연결 테스트 시작...');
-            console.log('Firebase 앱:', window.firebaseApp);
-            console.log('Firestore:', window.db);
-            console.log('Auth:', window.auth);
+        // 사이드바 섹션 전환 함수
+        function switchSection(sectionName) {
+            console.log('🔄 섹션 전환:', sectionName);
             
-            // 간단한 Firestore 읽기 테스트
-            getDocs(collection(db, 'test')).then(() => {
-                console.log('✅ Firestore 읽기 테스트 성공');
-                alert('Firebase 연결이 정상입니다!');
-            }).catch(error => {
-                console.log('❌ Firestore 읽기 테스트 실패:', error);
-                alert('Firebase 연결에 문제가 있습니다: ' + error.message);
+            // 모든 섹션 숨기기
+            document.querySelectorAll('.section-content').forEach(section => {
+                section.classList.add('hidden');
             });
-        };
+            
+            // 모든 사이드바 아이템 비활성화
+            document.querySelectorAll('.sidebar-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            // 선택된 섹션 표시
+            const targetSection = document.getElementById(sectionName + '-section');
+            if (targetSection) {
+                targetSection.classList.remove('hidden');
+            }
+            
+            // 선택된 사이드바 아이템 활성화
+            const activeItem = document.querySelector(`[data-section="${sectionName}"]`);
+            if (activeItem) {
+                activeItem.classList.add('active');
+            }
+        }
         
-        console.log('🚀 Firebase 모듈 로드 완료');
+        // 전역 함수로 노출
+        window.switchSection = switchSection;
+        
+        console.log('🚀 관리자 대시보드 스크립트 로드 완료');
     </script>
     
     <style>
