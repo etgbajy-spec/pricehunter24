@@ -642,6 +642,9 @@
       localStorage.setItem('kakao_auth_code', authCode);
       localStorage.setItem('kakao_auth_timestamp', Date.now().toString());
       
+      // URL에서 인증 코드 제거하여 깔끔하게 유지
+      window.history.replaceState({}, document.title, window.location.pathname);
+      
       // 토큰 요청 및 사용자 정보 획득
       processKakaoAuthCode(authCode);
     }
@@ -786,24 +789,27 @@
             marketingAgreed: agreeMarketing.checked
           };
           
-                     // 일반 user 키로 저장
-           localStorage.setItem('user', JSON.stringify(newUser));
-           localStorage.setItem('loggedIn', 'true');
-           
-           // 관리자 대시보드에서 확인할 수 있도록 kakao_ 키로도 저장
-           const kakaoKey = 'kakao_' + Date.now();
-           localStorage.setItem(kakaoKey, JSON.stringify(newUser));
-           
-           // 포인트 적립
-           const pointsAdded = addPoints(newUser.email, 50, '카카오 회원가입 보너스');
-           
-           closeKakaoTermsModal();
-           if (pointsAdded) {
-             alert(`카카오톡으로 회원가입되었습니다! +50포인트 지급 완료!\n현재 포인트: ${getPoints(newUser.email)}P`);
-           } else {
-             alert('카카오톡으로 회원가입되었습니다! +50포인트 지급 중 오류가 발생했습니다.');
-           }
-           window.location.href = 'index.html';
+                                 // 일반 user 키로 저장
+            localStorage.setItem('user', JSON.stringify(newUser));
+            localStorage.setItem('loggedIn', 'true');
+            
+            // 관리자 대시보드에서 확인할 수 있도록 kakao_ 키로도 저장
+            const kakaoKey = 'kakao_' + Date.now();
+            localStorage.setItem(kakaoKey, JSON.stringify(newUser));
+            
+            // 포인트 적립
+            const pointsAdded = addPoints(newUser.email, 50, '카카오 회원가입 보너스');
+            
+            closeKakaoTermsModal();
+            if (pointsAdded) {
+              alert(`카카오톡으로 회원가입되었습니다! +50포인트 지급 완료!\n현재 포인트: ${getPoints(newUser.email)}P`);
+            } else {
+              alert('카카오톡으로 회원가입되었습니다! +50포인트 지급 중 오류가 발생했습니다.');
+            }
+            
+            // 페이지 이동 전 상태 정리
+            window.history.replaceState({}, document.title, window.location.pathname);
+            window.location.href = 'index.html';
         } else {
           alert('필수 약관에 동의해주세요.');
         }
@@ -852,8 +858,15 @@
       if (authCode) {
         console.log('카카오 인가 코드 받음:', authCode);
         handleKakaoAuthCode(authCode);
+        // URL 정리하여 뒤로가기 시 깔끔하게 유지
         window.history.replaceState({}, document.title, window.location.pathname);
       }
+      
+      // 브라우저 뒤로가기/앞으로가기 이벤트 처리
+      window.addEventListener('popstate', function(event) {
+        // 페이지 상태 복원
+        location.reload();
+      });
       
       // 카카오 로그인 버튼 이벤트
       document.getElementById('kakao-login').addEventListener('click', function() {
