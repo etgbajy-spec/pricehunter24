@@ -89,12 +89,12 @@
         });
     </script>
     
-    <!-- Firebase 8.x SDK (단순화된 로딩 방식) -->
+    <!-- Firebase 8.x SDK (최적화된 로딩 방식) -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     
-    <!-- Firebase 설정 -->
+    <!-- Firebase 설정 (단일 진실 소스) -->
     <script src="firebase-config.js"></script>
     
     <script>
@@ -106,18 +106,24 @@
             waitForFirebaseAndInitialize();
         });
         
-        // Firebase SDK 로딩 대기 함수 (단순화)
+        // Firebase SDK 로딩 대기 함수 (개선된 버전)
         function waitForFirebaseAndInitialize() {
-            const maxAttempts = 10; // 10초 대기
+            const maxAttempts = 15; // 15초 대기 (CSP 환경에서 더 여유있게)
             let attempts = 0;
             
             const checkFirebase = () => {
                 attempts++;
                 console.log(`🔍 Firebase SDK 확인 시도 ${attempts}/${maxAttempts}`);
                 
-                if (typeof firebase !== 'undefined' && firebase.apps) {
-                    console.log('✅ Firebase SDK 로드됨');
+                // Firebase SDK 로드 확인 (더 엄격한 검증)
+                if (typeof firebase !== 'undefined' && 
+                    firebase.apps !== undefined && 
+                    firebase.auth !== undefined && 
+                    firebase.firestore !== undefined) {
+                    
+                    console.log('✅ Firebase SDK 완전 로드됨');
                     console.log('Firebase 버전:', firebase.SDK_VERSION);
+                    console.log('Firebase 앱 수:', firebase.apps.length);
                     
                     // Firebase 초기화 시도
                     try {
@@ -127,7 +133,7 @@
                             setupAdminDashboard();
                         } else {
                             console.error('❌ Firebase 초기화 실패');
-                            showFirebaseError('Firebase 초기화에 실패했습니다.');
+                            showFirebaseError('Firebase 초기화에 실패했습니다. 서버 CSP 헤더를 확인해주세요.');
                         }
                     } catch (error) {
                         console.error('❌ Firebase 초기화 중 오류:', error);
@@ -135,17 +141,24 @@
                     }
                 } else if (attempts < maxAttempts) {
                     console.log('⏳ Firebase SDK 로딩 대기 중...');
+                    console.log('현재 상태:', {
+                        firebase: typeof firebase,
+                        apps: typeof firebase !== 'undefined' ? firebase.apps : 'undefined',
+                        auth: typeof firebase !== 'undefined' ? typeof firebase.auth : 'undefined',
+                        firestore: typeof firebase !== 'undefined' ? typeof firebase.firestore : 'undefined'
+                    });
                     setTimeout(checkFirebase, 1000);
                 } else {
                     console.error('❌ Firebase SDK 로딩 시간 초과');
-                    showFirebaseError('Firebase SDK 로딩 시간이 초과되었습니다. 서버 CSP 정책을 확인해주세요.');
+                    console.error('🔒 CSP 관련 문제일 가능성이 높습니다.');
+                    showFirebaseError('Firebase SDK 로딩 시간이 초과되었습니다.\n\n서버 CSP 정책에서 다음 도메인들이 허용되어야 합니다:\n- https://www.gstatic.com\n- https://www.gstatic.com/firebasejs\n\n브라우저 DevTools → Network → Response Headers에서 CSP를 확인하세요.');
                 }
             };
             
             checkFirebase();
         }
         
-        // Firebase 오류 표시 함수 (개선된 버전)
+        // Firebase 오류 표시 함수 (CSP 최적화 버전)
         function showFirebaseError(message) {
             const errorDiv = document.createElement('div');
             errorDiv.className = 'fixed top-4 right-4 bg-red-500 text-white p-4 rounded-lg shadow-lg z-50 max-w-md';
@@ -153,18 +166,22 @@
                 <div class="font-bold mb-2">🔥 Firebase 오류</div>
                 <div class="text-sm mb-2">${message}</div>
                 <div class="text-xs mb-3 p-2 bg-red-600 rounded">
-                    <strong>해결 방법:</strong><br>
-                    1. 서버 재시작 후 새로고침<br>
-                    2. 브라우저 캐시 삭제<br>
-                    3. 네트워크 연결 확인<br>
-                    4. 서버 CSP 헤더 확인
+                    <strong>CSP 해결 방법:</strong><br>
+                    1. DevTools → Network → Response Headers 확인<br>
+                    2. content-security-policy에 www.gstatic.com 포함 확인<br>
+                    3. 서버 재시작 후 새로고침<br>
+                    4. 브라우저 캐시 완전 삭제<br>
+                    5. 서비스워커 등록 해제
                 </div>
-                <div class="flex gap-2">
+                <div class="flex gap-2 flex-wrap">
                     <button onclick="location.reload()" class="px-3 py-1 bg-white text-red-500 rounded text-xs font-bold hover:bg-gray-100">
                         🔄 새로고침
                     </button>
                     <button onclick="testFirebaseConnection()" class="px-3 py-1 bg-yellow-500 text-white rounded text-xs font-bold hover:bg-yellow-600">
                         🧪 연결 테스트
+                    </button>
+                    <button onclick="clearCacheAndReload()" class="px-3 py-1 bg-orange-500 text-white rounded text-xs font-bold hover:bg-orange-600">
+                        🧹 캐시 정리
                     </button>
                     <button onclick="this.parentElement.parentElement.remove()" class="px-3 py-1 bg-gray-500 text-white rounded text-xs font-bold hover:bg-gray-600">
                         ✕ 닫기
@@ -173,12 +190,12 @@
             `;
             document.body.appendChild(errorDiv);
             
-            // 15초 후 자동 제거
+            // 20초 후 자동 제거 (CSP 문제는 해결 시간이 더 필요)
             setTimeout(() => {
                 if (errorDiv.parentElement) {
                     errorDiv.remove();
                 }
-            }, 15000);
+            }, 20000);
         }
         
         // 관리자 대시보드 설정
@@ -357,32 +374,35 @@
             }
         };
         
-        // 캐시 및 서비스워커 정리 함수
+        // 캐시 및 서비스워커 정리 함수 (CSP 최적화)
         window.clearCacheAndReload = function() {
             console.log('🧹 캐시 및 서비스워커 정리 시작...');
             
+            let cleanupPromises = [];
+            
             // 서비스워커 등록 해제
             if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.getRegistrations().then(function(registrations) {
-                    for(let registration of registrations) {
+                const swPromise = navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                    const unregisterPromises = registrations.map(registration => {
                         console.log('🗑️ 서비스워커 등록 해제:', registration.scope);
-                        registration.unregister();
-                    }
+                        return registration.unregister();
+                    });
+                    return Promise.all(unregisterPromises);
                 });
+                cleanupPromises.push(swPromise);
             }
             
             // 캐시 스토리지 정리
             if ('caches' in window) {
-                caches.keys().then(function(cacheNames) {
+                const cachePromise = caches.keys().then(function(cacheNames) {
                     return Promise.all(
                         cacheNames.map(function(cacheName) {
                             console.log('🗑️ 캐시 삭제:', cacheName);
                             return caches.delete(cacheName);
                         })
                     );
-                }).then(function() {
-                    console.log('✅ 모든 캐시가 삭제되었습니다.');
                 });
+                cleanupPromises.push(cachePromise);
             }
             
             // 로컬 스토리지 정리
@@ -394,10 +414,16 @@
                 console.log('⚠️ 스토리지 정리 중 오류:', e);
             }
             
-            // 새로고침 (캐시 무시)
-            setTimeout(() => {
-                window.location.reload(true);
-            }, 1000);
+            // 모든 정리 작업 완료 후 새로고침
+            Promise.all(cleanupPromises).then(() => {
+                console.log('✅ 모든 캐시 정리 완료');
+                // 강제 새로고침 (캐시 무시)
+                window.location.href = window.location.href + '?v=' + Date.now();
+            }).catch(error => {
+                console.error('❌ 캐시 정리 중 오류:', error);
+                // 오류가 있어도 새로고침
+                window.location.href = window.location.href + '?v=' + Date.now();
+            });
         };
         
         // 페이지 이동 함수
