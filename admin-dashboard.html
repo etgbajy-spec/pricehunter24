@@ -98,82 +98,7 @@
     <!-- Firebase 설정 (단일 진실 소스) -->
     <script src="firebase-config.js?v=20241220-2"></script>
     
-    <script>
-        // 즉시 실행으로 스크립트 로딩 확인
-        console.log('🚀 admin-dashboard.html 스크립트 로딩 시작...');
-        console.log('🕐 현재 시간:', new Date().toISOString());
-        console.log('🌐 현재 URL:', window.location.href);
-        console.log('📄 문서 상태:', document.readyState);
-        
-        // Firebase 초기화 및 설정 (로컬 성공 방식)
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('🚀 관리자 대시보드 초기화 시작...');
-            
-            // Firebase SDK 로딩 대기 및 초기화
-            waitForFirebaseAndInitialize();
-        });
-        
-        // DOMContentLoaded가 이미 발생했을 경우를 대비한 즉시 실행
-        if (document.readyState === 'loading') {
-            console.log('📄 DOM 로딩 중 - DOMContentLoaded 대기');
-        } else {
-            console.log('📄 DOM 이미 로드됨 - 즉시 초기화 실행');
-            console.log('🚀 관리자 대시보드 즉시 초기화 시작...');
-            waitForFirebaseAndInitialize();
-        }
-        
-        // Firebase SDK 로딩 대기 함수 (로컬 성공 방식)
-        function waitForFirebaseAndInitialize() {
-            console.log('🔄 waitForFirebaseAndInitialize 함수 시작...');
-            const maxAttempts = 8; // 8초 대기
-            let attempts = 0;
-            
-            const checkFirebase = () => {
-                attempts++;
-                console.log(`🔍 Firebase SDK 확인 시도 ${attempts}/${maxAttempts}`);
-                console.log('🔍 typeof firebase:', typeof firebase);
-                console.log('🔍 firebase.apps:', firebase?.apps);
-                console.log('🔍 firebase.auth:', firebase?.auth);
-                console.log('🔍 firebase.firestore:', firebase?.firestore);
-                
-                // Firebase SDK 완전 로드 확인 (로컬 성공 방식)
-                if (typeof firebase !== 'undefined' && 
-                    firebase.apps !== undefined && 
-                    firebase.auth !== undefined && 
-                    firebase.firestore !== undefined) {
-                    
-                    console.log('✅ Firebase SDK 완전 로드됨');
-                    console.log('Firebase 버전:', firebase.SDK_VERSION);
-                    
-                    // Firebase 초기화 시도
-                    try {
-                        console.log('🔄 initializeFirebase 함수 호출...');
-                        const initResult = initializeFirebase();
-                        console.log('🔄 initializeFirebase 결과:', initResult);
-                        
-                        if (initResult) {
-                            console.log('✅ Firebase 초기화 완료');
-                            console.log('🔄 setupAdminDashboard 함수 호출...');
-                            setupAdminDashboard();
-                        } else {
-                            console.error('❌ Firebase 초기화 실패');
-                            showFirebaseError('Firebase 초기화에 실패했습니다. Netlify CSP 헤더를 확인해주세요.');
-                        }
-                    } catch (error) {
-                        console.error('❌ Firebase 초기화 중 오류:', error);
-                        showFirebaseError('Firebase 초기화 중 오류가 발생했습니다: ' + error.message);
-                    }
-                } else if (attempts < maxAttempts) {
-                    console.log('⏳ Firebase SDK 로딩 대기 중...');
-                    setTimeout(checkFirebase, 1000);
-                } else {
-                    console.error('❌ Firebase SDK 로딩 시간 초과');
-                    showFirebaseError('Firebase SDK 로딩 시간이 초과되었습니다.\n\nNetlify CSP 정책에서 다음 도메인들이 허용되어야 합니다:\n- https://www.gstatic.com\n- https://www.gstatic.com/firebasejs\n\nnetlify.toml 파일의 CSP 설정을 확인하세요.');
-                }
-            };
-            
-            checkFirebase();
-        }
+    <!-- 스크립트는 body 끝으로 이동됨 -->
         
         // Firebase 오류 표시 함수 (CSP 최적화 버전)
         function showFirebaseError(message) {
@@ -2016,6 +1941,30 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
         });
     </script>
 
-    <!-- 중복 스크립트 제거됨 -->
+    <!-- 메인 스크립트 (body 끝에 위치) -->
+    <script>
+        // 즉시 실행으로 스크립트 로딩 확인
+        console.log('🚀 admin-dashboard.html 스크립트 로딩 시작...');
+        console.log('🕐 현재 시간:', new Date().toISOString());
+        console.log('🌐 현재 URL:', window.location.href);
+        console.log('📄 문서 상태:', document.readyState);
+        
+        // Firebase 초기화 및 설정 (로컬 성공 방식)
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 관리자 대시보드 초기화 시작...');
+            
+            // Firebase SDK 로딩 대기 및 초기화
+            waitForFirebaseAndInitialize();
+        });
+        
+        // DOMContentLoaded가 이미 발생했을 경우를 대비한 즉시 실행
+        if (document.readyState === 'loading') {
+            console.log('📄 DOM 로딩 중 - DOMContentLoaded 대기');
+        } else {
+            console.log('📄 DOM 이미 로드됨 - 즉시 초기화 실행');
+            console.log('🚀 관리자 대시보드 즉시 초기화 시작...');
+            waitForFirebaseAndInitialize();
+        }
+    </script>
 </body>
 </html>
