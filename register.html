@@ -704,6 +704,7 @@
         console.log('액세스 토큰 획득:', tokenData);
 
         // Netlify Function으로 커스텀토큰 요청
+        console.log('🔄 Netlify Function으로 커스텀토큰 요청 중...');
         const exchangeResponse = await fetch('/.netlify/functions/kakao-exchange', {
           method: 'POST',
           headers: {
@@ -714,22 +715,28 @@
           })
         });
 
+        console.log('📡 커스텀토큰 응답 상태:', exchangeResponse.status);
         if (!exchangeResponse.ok) {
           throw new Error('커스텀토큰 요청 실패: ' + exchangeResponse.status);
         }
 
         const exchangeData = await exchangeResponse.json();
-        console.log('커스텀토큰 획득:', exchangeData);
+        console.log('📋 커스텀토큰 응답 데이터:', exchangeData);
 
         if (!exchangeData.success || !exchangeData.token) {
           throw new Error('커스텀토큰 획득 실패');
         }
 
         // Firebase 커스텀토큰으로 로그인
+        console.log('🔥 Firebase 커스텀토큰으로 로그인 시도 중...');
         const userCredential = await window.auth.signInWithCustomToken(exchangeData.token);
         const user = userCredential.user;
         
-        console.log('Firebase 로그인 성공:', user);
+        console.log('✅ Firebase 로그인 성공:', {
+          uid: user.uid,
+          email: user.email,
+          displayName: user.displayName
+        });
 
         // Firestore에 회원 정보 저장/업데이트 (단 한 번만)
         if (window.firestore) {
@@ -744,12 +751,37 @@
             updatedAt: new Date()
           };
           
+          console.log('📝 카카오 회원 정보 Firestore 저장 시도:', {
+            uid: user.uid,
+            memberData: memberData
+          });
+          
           try {
-            await window.firestore.collection('members').doc(user.uid).set(memberData, { merge: true });
+            console.log('🔄 Firestore 저장 시작:', {
+              collection: 'members',
+              docId: user.uid,
+              data: memberData
+            });
+            
+            const result = await window.firestore.collection('members').doc(user.uid).set(memberData, { merge: true });
             console.log('✅ 카카오 회원 정보 Firestore 저장/업데이트 완료:', user.uid);
+            console.log('✅ 저장된 데이터:', memberData);
+            console.log('✅ Firestore 응답:', result);
+            
+            // 저장 성공 후 즉시 확인
+            const savedDoc = await window.firestore.collection('members').doc(user.uid).get();
+            if (savedDoc.exists) {
+              console.log('✅ 저장 확인됨:', savedDoc.data());
+            } else {
+              console.error('❌ 저장 확인 실패: 문서가 존재하지 않음');
+            }
           } catch (error) {
             console.error('❌ 카카오 회원 정보 Firestore 저장 실패:', error);
+            console.error('❌ 오류 상세:', error.message, error.code);
+            console.error('❌ 오류 스택:', error.stack);
           }
+        } else {
+          console.error('❌ Firestore가 초기화되지 않았습니다.');
         }
 
         // 사용자 정보를 localStorage에 저장 (기존 호환성)
@@ -762,6 +794,7 @@
           loginType: 'kakao'
         };
 
+        console.log('💾 localStorage에 사용자 정보 저장:', userInfo);
         localStorage.setItem('user', JSON.stringify(userInfo));
         localStorage.setItem('loggedIn', 'true');
 
@@ -1018,10 +1051,27 @@
               };
               
               try {
-                await window.firestore.collection('members').doc(user.uid).set(memberData, { merge: true });
+                console.log('🔄 이메일 회원 Firestore 저장 시작:', {
+                  collection: 'members',
+                  docId: user.uid,
+                  data: memberData
+                });
+                
+                const result = await window.firestore.collection('members').doc(user.uid).set(memberData, { merge: true });
                 console.log('✅ 이메일 회원 정보 Firestore 저장/업데이트 완료:', user.uid);
+                console.log('✅ Firestore 응답:', result);
+                
+                // 저장 성공 후 즉시 확인
+                const savedDoc = await window.firestore.collection('members').doc(user.uid).get();
+                if (savedDoc.exists) {
+                  console.log('✅ 이메일 회원 저장 확인됨:', savedDoc.data());
+                } else {
+                  console.error('❌ 이메일 회원 저장 확인 실패: 문서가 존재하지 않음');
+                }
               } catch (error) {
                 console.error('❌ 이메일 회원 정보 Firestore 저장 실패:', error);
+                console.error('❌ 오류 상세:', error.message, error.code);
+                console.error('❌ 오류 스택:', error.stack);
               }
             }
 

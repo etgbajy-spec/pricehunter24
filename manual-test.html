@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>수동 Firestore 테스트</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold mb-8">🧪 수동 Firestore 테스트</h1>
+        
+        <!-- Firebase 상태 -->
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">Firebase 상태</h2>
+            <div id="firebase-status" class="text-gray-600">로딩 중...</div>
+            <button onclick="checkFirebaseStatus()" class="mt-2 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                상태 확인
+            </button>
+        </div>
+        
+        <!-- 로그인 상태 -->
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">로그인 상태</h2>
+            <div id="login-status" class="text-gray-600">확인 중...</div>
+            <button onclick="checkLoginStatus()" class="mt-2 bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+                로그인 상태 확인
+            </button>
+        </div>
+        
+        <!-- 수동 데이터 추가 -->
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">수동 데이터 추가</h2>
+            
+            <!-- 회원 추가 -->
+            <div class="mb-4">
+                <h3 class="text-lg font-medium mb-2">회원 추가</h3>
+                <div class="grid grid-cols-2 gap-4">
+                    <input type="text" id="member-name" placeholder="이름" class="border rounded px-3 py-2">
+                    <input type="email" id="member-email" placeholder="이메일" class="border rounded px-3 py-2">
+                    <input type="text" id="member-provider" placeholder="provider (kakao/email)" class="border rounded px-3 py-2">
+                    <input type="text" id="member-role" placeholder="role (viewer/admin)" class="border rounded px-3 py-2">
+                </div>
+                <button onclick="addMember()" class="mt-2 bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600">
+                    회원 추가
+                </button>
+            </div>
+            
+            <!-- 의뢰 추가 -->
+            <div class="mb-4">
+                <h3 class="text-lg font-medium mb-2">의뢰 추가</h3>
+                <div class="grid grid-cols-2 gap-4">
+                    <input type="text" id="request-title" placeholder="제목" class="border rounded px-3 py-2">
+                    <input type="text" id="request-description" placeholder="설명" class="border rounded px-3 py-2">
+                    <input type="text" id="request-email" placeholder="이메일" class="border rounded px-3 py-2">
+                    <input type="text" id="request-status" placeholder="상태 (pending/completed)" class="border rounded px-3 py-2">
+                </div>
+                <button onclick="addRequest()" class="mt-2 bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600">
+                    의뢰 추가
+                </button>
+            </div>
+            
+            <!-- 문의 추가 -->
+            <div class="mb-4">
+                <h3 class="text-lg font-medium mb-2">문의 추가</h3>
+                <div class="grid grid-cols-2 gap-4">
+                    <input type="text" id="inquiry-title" placeholder="제목" class="border rounded px-3 py-2">
+                    <input type="text" id="inquiry-message" placeholder="메시지" class="border rounded px-3 py-2">
+                    <input type="text" id="inquiry-name" placeholder="이름" class="border rounded px-3 py-2">
+                    <input type="email" id="inquiry-email" placeholder="이메일" class="border rounded px-3 py-2">
+                </div>
+                <button onclick="addInquiry()" class="mt-2 bg-teal-500 text-white px-4 py-2 rounded hover:bg-teal-600">
+                    문의 추가
+                </button>
+            </div>
+        </div>
+        
+        <!-- 실시간 데이터 확인 -->
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">실시간 데이터 확인</h2>
+            <div class="grid grid-cols-3 gap-4">
+                <div>
+                    <h3 class="font-medium mb-2">회원 수</h3>
+                    <div id="members-count" class="text-2xl font-bold text-blue-600">0</div>
+                </div>
+                <div>
+                    <h3 class="font-medium mb-2">의뢰 수</h3>
+                    <div id="requests-count" class="text-2xl font-bold text-orange-600">0</div>
+                </div>
+                <div>
+                    <h3 class="font-medium mb-2">문의 수</h3>
+                    <div id="inquiries-count" class="text-2xl font-bold text-teal-600">0</div>
+                </div>
+            </div>
+            <button onclick="startRealtimeListeners()" class="mt-4 bg-indigo-500 text-white px-4 py-2 rounded hover:bg-indigo-600">
+                실시간 리스너 시작
+            </button>
+        </div>
+        
+        <!-- 콘솔 로그 -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-xl font-semibold mb-4">콘솔 로그</h2>
+            <div id="console-log" class="bg-gray-900 text-green-400 p-4 rounded font-mono text-sm h-64 overflow-y-auto">
+                콘솔 로그가 여기에 표시됩니다...
+            </div>
+            <button onclick="clearLog()" class="mt-2 bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">
+                로그 지우기
+            </button>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="firebase-config.js"></script>
+
+    <script>
+        // 콘솔 로그 함수
+        function log(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            const logElement = document.getElementById('console-log');
+            logElement.innerHTML += `[${timestamp}] ${message}\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(message);
+        }
+
+        function clearLog() {
+            document.getElementById('console-log').innerHTML = '콘솔 로그가 여기에 표시됩니다...\n';
+        }
+
+        // Firebase 상태 확인
+        function checkFirebaseStatus() {
+            log('🔍 Firebase 상태 확인 중...');
+            
+            if (typeof firebase === 'undefined') {
+                document.getElementById('firebase-status').innerHTML = '❌ Firebase SDK 로드 실패';
+                log('❌ Firebase SDK가 로드되지 않았습니다.');
+                return;
+            }
+            
+            if (window.firebaseApp && window.firestore && window.auth) {
+                const projectId = window.firebaseApp.options.projectId;
+                document.getElementById('firebase-status').innerHTML = `✅ Firebase 정상 (${projectId})`;
+                log(`✅ Firebase 정상 작동 - 프로젝트: ${projectId}`);
+            } else {
+                document.getElementById('firebase-status').innerHTML = '❌ Firebase 초기화 실패';
+                log('❌ Firebase 초기화 실패');
+            }
+        }
+
+        // 로그인 상태 확인
+        function checkLoginStatus() {
+            log('🔍 로그인 상태 확인 중...');
+            
+            if (!window.auth) {
+                document.getElementById('login-status').innerHTML = '❌ Auth 초기화 실패';
+                log('❌ Auth가 초기화되지 않았습니다.');
+                return;
+            }
+            
+            const user = window.auth.currentUser;
+            if (user) {
+                document.getElementById('login-status').innerHTML = `✅ 로그인됨 (${user.email})`;
+                log(`✅ 로그인된 사용자: ${user.email} (${user.uid})`);
+            } else {
+                document.getElementById('login-status').innerHTML = '❌ 로그인되지 않음';
+                log('❌ 로그인되지 않은 상태');
+            }
+        }
+
+        // 회원 추가
+        async function addMember() {
+            log('🔄 회원 추가 시작...');
+            
+            const name = document.getElementById('member-name').value;
+            const email = document.getElementById('member-email').value;
+            const provider = document.getElementById('member-provider').value;
+            const role = document.getElementById('member-role').value;
+            
+            if (!name || !email || !provider || !role) {
+                log('❌ 모든 필드를 입력해주세요.');
+                return;
+            }
+            
+            if (!window.auth.currentUser) {
+                log('❌ 로그인이 필요합니다.');
+                return;
+            }
+            
+            const user = window.auth.currentUser;
+            const memberData = {
+                name: name,
+                email: email,
+                provider: provider,
+                role: role,
+                status: 'active',
+                createdAt: new Date(),
+                updatedAt: new Date()
+            };
+            
+            try {
+                log(`📝 회원 데이터 저장 시도: ${JSON.stringify(memberData)}`);
+                await window.firestore.collection('members').doc(user.uid).set(memberData, { merge: true });
+                log('✅ 회원 추가 성공');
+                
+                // 입력 필드 초기화
+                document.getElementById('member-name').value = '';
+                document.getElementById('member-email').value = '';
+                document.getElementById('member-provider').value = '';
+                document.getElementById('member-role').value = '';
+            } catch (error) {
+                log(`❌ 회원 추가 실패: ${error.message}`);
+            }
+        }
+
+        // 의뢰 추가
+        async function addRequest() {
+            log('🔄 의뢰 추가 시작...');
+            
+            const title = document.getElementById('request-title').value;
+            const description = document.getElementById('request-description').value;
+            const email = document.getElementById('request-email').value;
+            const status = document.getElementById('request-status').value;
+            
+            if (!title || !description || !email || !status) {
+                log('❌ 모든 필드를 입력해주세요.');
+                return;
+            }
+            
+            if (!window.auth.currentUser) {
+                log('❌ 로그인이 필요합니다.');
+                return;
+            }
+            
+            const user = window.auth.currentUser;
+            const requestData = {
+                title: title,
+                description: description,
+                email: email,
+                status: status,
+                createdBy: user.uid,
+                createdByEmail: user.email,
+                createdAt: new Date(),
+                updatedAt: new Date()
+            };
+            
+            try {
+                log(`📝 의뢰 데이터 저장 시도: ${JSON.stringify(requestData)}`);
+                const docRef = await window.firestore.collection('requests').add(requestData);
+                log(`✅ 의뢰 추가 성공 - 문서 ID: ${docRef.id}`);
+                
+                // 입력 필드 초기화
+                document.getElementById('request-title').value = '';
+                document.getElementById('request-description').value = '';
+                document.getElementById('request-email').value = '';
+                document.getElementById('request-status').value = '';
+            } catch (error) {
+                log(`❌ 의뢰 추가 실패: ${error.message}`);
+            }
+        }
+
+        // 문의 추가
+        async function addInquiry() {
+            log('🔄 문의 추가 시작...');
+            
+            const title = document.getElementById('inquiry-title').value;
+            const message = document.getElementById('inquiry-message').value;
+            const name = document.getElementById('inquiry-name').value;
+            const email = document.getElementById('inquiry-email').value;
+            
+            if (!title || !message || !name || !email) {
+                log('❌ 모든 필드를 입력해주세요.');
+                return;
+            }
+            
+            if (!window.auth.currentUser) {
+                log('❌ 로그인이 필요합니다.');
+                return;
+            }
+            
+            const user = window.auth.currentUser;
+            const inquiryData = {
+                title: title,
+                message: message,
+                name: name,
+                email: email,
+                status: 'new',
+                createdBy: user.uid,
+                createdByEmail: user.email,
+                createdAt: new Date(),
+                updatedAt: new Date()
+            };
+            
+            try {
+                log(`📝 문의 데이터 저장 시도: ${JSON.stringify(inquiryData)}`);
+                const docRef = await window.firestore.collection('inquiries').add(inquiryData);
+                log(`✅ 문의 추가 성공 - 문서 ID: ${docRef.id}`);
+                
+                // 입력 필드 초기화
+                document.getElementById('inquiry-title').value = '';
+                document.getElementById('inquiry-message').value = '';
+                document.getElementById('inquiry-name').value = '';
+                document.getElementById('inquiry-email').value = '';
+            } catch (error) {
+                log(`❌ 문의 추가 실패: ${error.message}`);
+            }
+        }
+
+        // 실시간 리스너 시작
+        function startRealtimeListeners() {
+            log('🔄 실시간 리스너 시작...');
+            
+            if (!window.firestore) {
+                log('❌ Firestore가 초기화되지 않았습니다.');
+                return;
+            }
+            
+            // 회원 리스너
+            window.firestore.collection('members')
+                .onSnapshot((snapshot) => {
+                    const count = snapshot.size;
+                    document.getElementById('members-count').textContent = count;
+                    log(`👥 회원 수 업데이트: ${count}개`);
+                }, (error) => {
+                    log(`❌ 회원 리스너 오류: ${error.message}`);
+                });
+            
+            // 의뢰 리스너
+            window.firestore.collection('requests')
+                .onSnapshot((snapshot) => {
+                    const count = snapshot.size;
+                    document.getElementById('requests-count').textContent = count;
+                    log(`📋 의뢰 수 업데이트: ${count}개`);
+                }, (error) => {
+                    log(`❌ 의뢰 리스너 오류: ${error.message}`);
+                });
+            
+            // 문의 리스너
+            window.firestore.collection('inquiries')
+                .onSnapshot((snapshot) => {
+                    const count = snapshot.size;
+                    document.getElementById('inquiries-count').textContent = count;
+                    log(`💬 문의 수 업데이트: ${count}개`);
+                }, (error) => {
+                    log(`❌ 문의 리스너 오류: ${error.message}`);
+                });
+            
+            log('✅ 실시간 리스너 시작 완료');
+        }
+
+        // 페이지 로드 시 초기화
+        document.addEventListener('DOMContentLoaded', function() {
+            log('🚀 페이지 로드 완료');
+            
+            // Firebase 초기화
+            if (typeof initializeFirebase === 'function') {
+                initializeFirebase();
+                setTimeout(() => {
+                    checkFirebaseStatus();
+                    checkLoginStatus();
+                }, 1000);
+            } else {
+                log('❌ Firebase 초기화 함수를 찾을 수 없습니다.');
+            }
+        });
+    </script>
+</body>
+</html>

@@ -273,6 +273,8 @@
                 const idTokenResult = await user.getIdTokenResult();
                 const claims = idTokenResult.claims;
                 
+                console.log('🔍 토큰 클레임 상세:', claims);
+                
                 if (claims.role === 'admin') {
                     console.log('✅ Custom Claims에서 관리자 확인됨:', user.email);
                     return true;
@@ -285,6 +287,44 @@
             } catch (error) {
                 console.error('❌ 권한 확인 중 오류:', error);
                 return false;
+            }
+        }
+        
+        // 보안 규칙 테스트 함수
+        async function testSecurityRules() {
+            console.log('🧪 보안 규칙 테스트 시작...');
+            
+            if (!window.auth.currentUser) {
+                console.error('❌ 로그인되지 않은 사용자입니다.');
+                return;
+            }
+            
+            const user = window.auth.currentUser;
+            console.log('👤 테스트 사용자:', user.email, user.uid);
+            
+            try {
+                // 1. 본인 문서 읽기 테스트
+                console.log('🔍 본인 문서 읽기 테스트...');
+                const ownDoc = await window.firestore.collection('members').doc(user.uid).get();
+                if (ownDoc.exists) {
+                    console.log('✅ 본인 문서 읽기 성공:', ownDoc.data());
+                } else {
+                    console.log('⚠️ 본인 문서가 존재하지 않음');
+                }
+                
+                // 2. 컬렉션 쿼리 테스트
+                console.log('🔍 컬렉션 쿼리 테스트...');
+                const membersSnapshot = await window.firestore.collection('members').limit(5).get();
+                console.log('✅ 컬렉션 쿼리 성공:', membersSnapshot.size, '개 문서');
+                
+                // 3. 관리자 권한 확인
+                const isAdmin = await checkAdminPermission(user);
+                console.log('🔍 관리자 권한:', isAdmin);
+                
+            } catch (error) {
+                console.error('❌ 보안 규칙 테스트 실패:', error);
+                console.error('❌ 오류 코드:', error.code);
+                console.error('❌ 오류 메시지:', error.message);
             }
         }
 
@@ -640,6 +680,15 @@
                         id: doc.id,
                         data: doc.data()
                     })));
+                    
+                    // 첫 번째 문서 정보 로깅
+                    if (snapshot.size > 0) {
+                        const firstDoc = snapshot.docs[0];
+                        console.log('📄 첫 번째 회원 문서:', {
+                            id: firstDoc.id,
+                            data: firstDoc.data()
+                        });
+                    }
                     
                     const members = [];
                     snapshot.forEach((doc) => {

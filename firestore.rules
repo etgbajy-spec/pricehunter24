@@ -28,6 +28,12 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
     
+    // 회원 컬렉션 전체 조회 (관리자 대시보드용) - 컬렉션 레벨 쿼리
+    match /members/{document=**} {
+      // 관리자는 모든 회원 조회 가능
+      allow read: if isAdmin();
+    }
+    
     // 의뢰 컬렉션
     match /requests/{requestId} {
       // 로그인한 사용자는 생성 가능
