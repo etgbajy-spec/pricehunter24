@@ -206,14 +206,13 @@
           updatedAt: new Date()
         };
         
-        window.firestore.collection('inquiries').add(inquiryData)
-          .then(() => {
-            console.log('✅ 문의 정보가 Firestore에 저장되었습니다.');
-          })
-          .catch((error) => {
-            console.error('❌ Firestore 저장 실패:', error);
-            alert('문의 저장에 실패했습니다: ' + error.message);
-          });
+        try {
+          await window.firestore.collection('inquiries').add(inquiryData);
+          console.log('✅ 문의 정보 Firestore 저장 완료');
+        } catch (error) {
+          console.error('❌ 문의 정보 Firestore 저장 실패:', error);
+          alert('문의 저장에 실패했습니다: ' + error.message);
+        }
       } else {
         console.warn('⚠️ Firestore가 초기화되지 않아 문의 정보를 저장할 수 없습니다.');
         alert('시스템 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');

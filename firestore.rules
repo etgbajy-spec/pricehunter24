@@ -19,7 +19,7 @@ service cloud.firestore {
     
     // 회원 컬렉션: 문서ID = uid
     match /members/{uid} {
-      // 본인은 읽기/생성/부분 업데이트 가능
+      // 본인은 읽기/생성/필요 필드 업데이트 가능
       allow read, create: if isAuthenticated() && request.auth.uid == uid;
       allow update: if isAuthenticated() && request.auth.uid == uid && 
                    !('role' in request.resource.data.diff(resource.data).affectedKeys()) &&

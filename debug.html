@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firebase 디버깅 - PriceHunter</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    
+    <!-- Firebase 설정 -->
+    <script src="firebase-config.js"></script>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold mb-8">Firebase 디버깅 페이지</h1>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Firebase 상태 -->
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h2 class="text-xl font-semibold mb-4">Firebase 상태</h2>
+                <div id="firebase-status" class="space-y-2">
+                    <div>Firebase: <span id="firebase-loaded" class="text-red-500">로딩 중...</span></div>
+                    <div>Auth: <span id="auth-loaded" class="text-red-500">로딩 중...</span></div>
+                    <div>Firestore: <span id="firestore-loaded" class="text-red-500">로딩 중...</span></div>
+                </div>
+            </div>
+            
+            <!-- 현재 사용자 -->
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h2 class="text-xl font-semibold mb-4">현재 사용자</h2>
+                <div id="current-user" class="text-gray-500">로그인되지 않음</div>
+            </div>
+            
+            <!-- 회원 데이터 -->
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h2 class="text-xl font-semibold mb-4">회원 데이터</h2>
+                <div id="members-count" class="text-gray-500">로딩 중...</div>
+                <div id="members-list" class="mt-4 max-h-64 overflow-y-auto"></div>
+            </div>
+            
+            <!-- 의뢰 데이터 -->
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h2 class="text-xl font-semibold mb-4">의뢰 데이터</h2>
+                <div id="requests-count" class="text-gray-500">로딩 중...</div>
+                <div id="requests-list" class="mt-4 max-h-64 overflow-y-auto"></div>
+            </div>
+        </div>
+        
+        <!-- 테스트 버튼 -->
+        <div class="mt-8 bg-white p-6 rounded-lg shadow">
+            <h2 class="text-xl font-semibold mb-4">테스트 버튼</h2>
+            <div class="space-x-4">
+                <button onclick="testFirestoreWrite()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                    Firestore 쓰기 테스트
+                </button>
+                <button onclick="refreshData()" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+                    데이터 새로고침
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Firebase 초기화 확인
+        function checkFirebaseStatus() {
+            const firebaseLoaded = document.getElementById('firebase-loaded');
+            const authLoaded = document.getElementById('auth-loaded');
+            const firestoreLoaded = document.getElementById('firestore-loaded');
+            
+            firebaseLoaded.textContent = window.firebase ? '✅ 로드됨' : '❌ 로드 안됨';
+            firebaseLoaded.className = window.firebase ? 'text-green-500' : 'text-red-500';
+            
+            authLoaded.textContent = window.auth ? '✅ 로드됨' : '❌ 로드 안됨';
+            authLoaded.className = window.auth ? 'text-green-500' : 'text-red-500';
+            
+            firestoreLoaded.textContent = window.firestore ? '✅ 로드됨' : '❌ 로드 안됨';
+            firestoreLoaded.className = window.firestore ? 'text-green-500' : 'text-red-500';
+        }
+        
+        // 현재 사용자 확인
+        function checkCurrentUser() {
+            const currentUserDiv = document.getElementById('current-user');
+            
+            if (window.auth && window.auth.currentUser) {
+                const user = window.auth.currentUser;
+                currentUserDiv.innerHTML = `
+                    <div class="text-sm">
+                        <div><strong>UID:</strong> ${user.uid}</div>
+                        <div><strong>Email:</strong> ${user.email}</div>
+                        <div><strong>Name:</strong> ${user.displayName || '없음'}</div>
+                    </div>
+                `;
+            } else {
+                currentUserDiv.textContent = '로그인되지 않음';
+            }
+        }
+        
+        // 회원 데이터 로드
+        function loadMembers() {
+            if (!window.firestore) {
+                document.getElementById('members-count').textContent = 'Firestore 로드 안됨';
+                return;
+            }
+            
+            window.firestore.collection('members')
+                .orderBy('createdAt', 'desc')
+                .limit(10)
+                .get()
+                .then((snapshot) => {
+                    const count = snapshot.size;
+                    document.getElementById('members-count').textContent = `총 ${count}명`;
+                    
+                    const listDiv = document.getElementById('members-list');
+                    if (count === 0) {
+                        listDiv.innerHTML = '<div class="text-gray-500">회원이 없습니다.</div>';
+                        return;
+                    }
+                    
+                    listDiv.innerHTML = snapshot.docs.map(doc => {
+                        const data = doc.data();
+                        return `
+                            <div class="border-b pb-2 mb-2">
+                                <div class="font-semibold">${data.name || '이름 없음'}</div>
+                                <div class="text-sm text-gray-500">${data.email}</div>
+                                <div class="text-xs text-gray-400">${data.provider} | ${doc.id}</div>
+                            </div>
+                        `;
+                    }).join('');
+                })
+                .catch((error) => {
+                    console.error('회원 데이터 로드 실패:', error);
+                    document.getElementById('members-count').textContent = `오류: ${error.message}`;
+                });
+        }
+        
+        // 의뢰 데이터 로드
+        function loadRequests() {
+            if (!window.firestore) {
+                document.getElementById('requests-count').textContent = 'Firestore 로드 안됨';
+                return;
+            }
+            
+            window.firestore.collection('requests')
+                .orderBy('createdAt', 'desc')
+                .limit(10)
+                .get()
+                .then((snapshot) => {
+                    const count = snapshot.size;
+                    document.getElementById('requests-count').textContent = `총 ${count}건`;
+                    
+                    const listDiv = document.getElementById('requests-list');
+                    if (count === 0) {
+                        listDiv.innerHTML = '<div class="text-gray-500">의뢰가 없습니다.</div>';
+                        return;
+                    }
+                    
+                    listDiv.innerHTML = snapshot.docs.map(doc => {
+                        const data = doc.data();
+                        return `
+                            <div class="border-b pb-2 mb-2">
+                                <div class="font-semibold">${data.title || '제목 없음'}</div>
+                                <div class="text-sm text-gray-500">${data.status} | ${data.createdByEmail}</div>
+                                <div class="text-xs text-gray-400">${doc.id}</div>
+                            </div>
+                        `;
+                    }).join('');
+                })
+                .catch((error) => {
+                    console.error('의뢰 데이터 로드 실패:', error);
+                    document.getElementById('requests-count').textContent = `오류: ${error.message}`;
+                });
+        }
+        
+        // Firestore 쓰기 테스트
+        function testFirestoreWrite() {
+            if (!window.firestore) {
+                alert('Firestore가 로드되지 않았습니다.');
+                return;
+            }
+            
+            const testData = {
+                name: '테스트 사용자',
+                email: 'test@example.com',
+                provider: 'test',
+                role: 'viewer',
+                status: 'active',
+                createdAt: new Date(),
+                updatedAt: new Date()
+            };
+            
+            window.firestore.collection('members').add(testData)
+                .then((docRef) => {
+                    console.log('테스트 데이터 저장 성공:', docRef.id);
+                    alert('테스트 데이터 저장 성공!');
+                    refreshData();
+                })
+                .catch((error) => {
+                    console.error('테스트 데이터 저장 실패:', error);
+                    alert('테스트 데이터 저장 실패: ' + error.message);
+                });
+        }
+        
+        // 데이터 새로고침
+        function refreshData() {
+            checkFirebaseStatus();
+            checkCurrentUser();
+            loadMembers();
+            loadRequests();
+        }
+        
+        // 페이지 로드 시 초기화
+        document.addEventListener('DOMContentLoaded', function() {
+            // Firebase 초기화 대기
+            setTimeout(() => {
+                if (typeof initializeFirebase === 'function') {
+                    initializeFirebase();
+                    
+                    // Firebase 프로젝트 확인
+                    setTimeout(() => {
+                        if (window.firebase && window.firebase.apps.length > 0) {
+                            const projectId = window.firebase.app().options.projectId;
+                            console.log('🔍 debug.html Firebase 프로젝트 ID:', projectId);
+                        }
+                    }, 500);
+                }
+                refreshData();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

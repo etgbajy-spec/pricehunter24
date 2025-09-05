@@ -602,19 +602,16 @@
               createdBy: currentUser.uid,
               createdByEmail: currentUser.email,
               createdAt: new Date(),
-              updatedAt: new Date(),
-              progress: 10,
-              estimatedTime: '2-3일 내 완료 예정'
+              updatedAt: new Date()
             };
             
-            window.firestore.collection('requests').add(requestData)
-              .then(() => {
-                console.log('✅ 의뢰 정보가 Firestore에 저장되었습니다.');
-              })
-              .catch((error) => {
-                console.error('❌ Firestore 저장 실패:', error);
-                alert('의뢰 저장에 실패했습니다: ' + error.message);
-              });
+            try {
+              await window.firestore.collection('requests').add(requestData);
+              console.log('✅ 의뢰 정보 Firestore 저장 완료');
+            } catch (error) {
+              console.error('❌ 의뢰 정보 Firestore 저장 실패:', error);
+              alert('의뢰 저장에 실패했습니다: ' + error.message);
+            }
           } else {
             console.warn('⚠️ Firestore가 초기화되지 않아 의뢰 정보를 저장할 수 없습니다.');
             alert('시스템 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');

@@ -205,8 +205,26 @@
             // Firebase 상태 재확인
             if (!window.auth || !window.firestore) {
                 console.error('❌ Firebase 서비스가 초기화되지 않았습니다.');
+                console.error('❌ Firebase 상태:', {
+                    auth: !!window.auth,
+                    firestore: !!window.firestore,
+                    firebase: !!window.firebase
+                });
                 showFirebaseError('Firebase 서비스 초기화에 실패했습니다.');
                 return;
+            }
+            
+            console.log('✅ Firebase 서비스 초기화 확인됨');
+            console.log('✅ Firebase 상태:', {
+                auth: !!window.auth,
+                firestore: !!window.firestore,
+                firebase: !!window.firebase
+            });
+            
+            // Firebase 프로젝트 확인
+            if (window.firebase && window.firebase.apps.length > 0) {
+                const projectId = window.firebase.app().options.projectId;
+                console.log('🔍 admin-dashboard.html Firebase 프로젝트 ID:', projectId);
             }
             
             // 인증 상태 감시 및 권한 확인
@@ -227,10 +245,12 @@
                     const isAdmin = await checkAdminPermission(user);
                     
                     if (isAdmin) {
-                        console.log('✅ 관리자 권한 확인됨');
+                        console.log('✅ 관리자 권한 확인됨 - 리스너 시작');
                         showDashboard(user);
+                        // 관리자 가드 통과 후에만 리스너 시작
+                        setupRealtimeListeners();
                     } else {
-                        console.log('❌ 관리자 권한 없음');
+                        console.log('❌ 관리자 권한 없음 - 리스너 시작 안함');
                         showAccessDenied(user.email);
                     }
                 } else {
@@ -608,11 +628,18 @@
                 return;
             }
 
+            console.log('🔍 회원 리스너 설정 시작...');
+            
+            // createdAt으로 정렬 시도, 실패하면 updatedAt으로 폴백
             window.firestore.collection('members')
                 .orderBy('createdAt', 'desc')
                 .limit(100)
                 .onSnapshot((snapshot) => {
                     console.log(`👥 회원 데이터 수신: ${snapshot.size}개 문서`);
+                    console.log('📊 회원 데이터 상세:', snapshot.docs.map(doc => ({
+                        id: doc.id,
+                        data: doc.data()
+                    })));
                     
                     const members = [];
                     snapshot.forEach((doc) => {
@@ -625,10 +652,38 @@
                         });
                     });
                     
+                    console.log('📋 처리된 회원 데이터:', members);
                     updateMembersTable(members);
                     updateMemberStats(members);
                 }, (error) => {
-                    console.error('❌ 회원 리스너 오류:', error);
+                    console.error('❌ 회원 리스너 오류 (createdAt):', error);
+                    
+                    // createdAt 정렬 실패 시 updatedAt으로 폴백
+                    if (error.code === 'failed-precondition') {
+                        console.log('🔄 updatedAt으로 폴백 시도...');
+                        window.firestore.collection('members')
+                            .orderBy('updatedAt', 'desc')
+                            .limit(100)
+                            .onSnapshot((snapshot) => {
+                                console.log(`👥 회원 데이터 수신 (폴백): ${snapshot.size}개 문서`);
+                                
+                                const members = [];
+                                snapshot.forEach((doc) => {
+                                    const data = doc.data();
+                                    members.push({
+                                        id: doc.id,
+                                        ...data,
+                                        createdAt: data.createdAt?.toDate?.() || new Date(),
+                                        updatedAt: data.updatedAt?.toDate?.() || new Date()
+                                    });
+                                });
+                                
+                                updateMembersTable(members);
+                                updateMemberStats(members);
+                            }, (fallbackError) => {
+                                console.error('❌ 회원 리스너 폴백 오류:', fallbackError);
+                            });
+                    }
                 });
         }
 
@@ -825,8 +880,15 @@
         }
 
         function updateMembersTable(members) {
+            console.log('🔄 updateMembersTable 호출됨:', members);
+            
             const tbody = document.getElementById('members-table-body');
-            if (!tbody) return;
+            if (!tbody) {
+                console.error('❌ members-table-body 요소를 찾을 수 없습니다.');
+                return;
+            }
+            
+            console.log('📊 회원 테이블 업데이트:', members.length, '명');
             
             if (members.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="8" class="px-6 py-4 text-center text-gray-500">회원이 없습니다.</td></tr>';
