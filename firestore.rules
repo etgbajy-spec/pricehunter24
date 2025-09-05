@@ -1,0 +1,109 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 관리자 권한 확인 함수
+    function isAdmin() {
+      return request.auth != null && (
+        // 화이트리스트 확인
+        request.auth.token.email in ['admin@pricehunter.com', 'manager@pricehunter.com', 'staff@pricehunter.com'] ||
+        // Custom Claims 확인
+        request.auth.token.role == 'admin'
+      );
+    }
+    
+    // 로그인 사용자 확인 함수
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // 의뢰 컬렉션
+    match /requests/{requestId} {
+      // 읽기: 로그인 사용자만
+      allow read: if isAuthenticated();
+      
+      // 쓰기: 관리자만
+      allow write: if isAdmin();
+      
+      // 삭제: 관리자만
+      allow delete: if isAdmin();
+    }
+    
+    // 문의 컬렉션
+    match /inquiries/{inquiryId} {
+      // 읽기: 로그인 사용자만
+      allow read: if isAuthenticated();
+      
+      // 쓰기: 관리자만
+      allow write: if isAdmin();
+      
+      // 삭제: 관리자만
+      allow delete: if isAdmin();
+    }
+    
+    // 회원 컬렉션
+    match /members/{memberId} {
+      // 읽기: 로그인 사용자만
+      allow read: if isAuthenticated();
+      
+      // 쓰기: 관리자만
+      allow write: if isAdmin();
+      
+      // 삭제: 관리자만
+      allow delete: if isAdmin();
+    }
+    
+    // 관리자 컬렉션
+    match /admins/{adminId} {
+      // 읽기: 관리자만
+      allow read: if isAdmin();
+      
+      // 쓰기: 관리자만
+      allow write: if isAdmin();
+      
+      // 삭제: 관리자만
+      allow delete: if isAdmin();
+    }
+    
+    // 동기화 설정 컬렉션
+    match /sync_config/{configId} {
+      // 읽기: 관리자만
+      allow read: if isAdmin();
+      
+      // 쓰기: 관리자만
+      allow write: if isAdmin();
+      
+      // 삭제: 관리자만
+      allow delete: if isAdmin();
+    }
+    
+    // 가져오기 오류 로그 컬렉션
+    match /import_errors/{errorId} {
+      // 읽기: 관리자만
+      allow read: if isAdmin();
+      
+      // 쓰기: 관리자만
+      allow write: if isAdmin();
+      
+      // 삭제: 관리자만
+      allow delete: if isAdmin();
+    }
+    
+    // 감사 로그 컬렉션
+    match /audit_logs/{logId} {
+      // 읽기: 관리자만
+      allow read: if isAdmin();
+      
+      // 쓰기: 관리자만 (서버에서만)
+      allow write: if isAdmin();
+      
+      // 삭제: 관리자만
+      allow delete: if isAdmin();
+    }
+    
+    // 기본 규칙: 다른 모든 문서는 거부
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

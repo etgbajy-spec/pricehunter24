@@ -1,0 +1,49 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    // 관리자 권한 확인 함수
+    function isAdmin() {
+      return request.auth != null && (
+        // 화이트리스트 확인
+        request.auth.token.email in ['admin@pricehunter.com', 'manager@pricehunter.com', 'staff@pricehunter.com'] ||
+        // Custom Claims 확인
+        request.auth.token.role == 'admin'
+      );
+    }
+    
+    // 로그인 사용자 확인 함수
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // CSV 업로드 폴더
+    match /uploads/csv/{fileName} {
+      // 읽기: 관리자만
+      allow read: if isAdmin();
+      
+      // 쓰기: 관리자만
+      allow write: if isAdmin();
+      
+      // 삭제: 관리자만
+      allow delete: if isAdmin();
+    }
+    
+    // 임시 파일 폴더
+    match /temp/{fileName} {
+      // 읽기: 관리자만
+      allow read: if isAdmin();
+      
+      // 쓰기: 관리자만
+      allow write: if isAdmin();
+      
+      // 삭제: 관리자만
+      allow delete: if isAdmin();
+    }
+    
+    // 기본 규칙: 다른 모든 파일은 거부
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
