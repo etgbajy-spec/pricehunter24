@@ -96,7 +96,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     
     <!-- Firebase 설정 (단일 진실 소스) -->
-    <script src="firebase-config.js?v=20241220"></script>
+    <script src="firebase-config.js?v=20241220-2"></script>
     
     <!-- 스크립트는 body 끝으로 이동됨 -->
         
@@ -2021,6 +2021,10 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
         // 즉시 실행되는 간단한 테스트
         console.log('🎯 즉시 실행 테스트 - 스크립트가 로드되었습니다!');
         console.log('🕐 실행 시간:', new Date().toISOString());
+        console.log('🌐 현재 URL:', window.location.href);
+        console.log('📄 문서 상태:', document.readyState);
+        console.log('🔍 Firebase SDK 상태:', typeof firebase);
+        console.log('🔍 initializeFirebase 함수 상태:', typeof initializeFirebase);
         
         // DOM이 로드되면 즉시 실행
         if (document.readyState === 'loading') {
