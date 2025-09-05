@@ -229,7 +229,9 @@
             }
             
             // 인증 상태 감시 및 권한 확인
+            console.log('🔄 setupAuthGuard 호출 시작...');
             setupAuthGuard();
+            console.log('🔄 setupAuthGuard 호출 완료');
             
             console.log('✅ 관리자 대시보드 설정 완료');
         }
@@ -237,13 +239,26 @@
         // 인증 가드 설정
         function setupAuthGuard() {
             console.log('🔐 인증 가드 설정 시작...');
+            console.log('🔍 window.auth 상태:', !!window.auth);
             
+            if (!window.auth) {
+                console.error('❌ window.auth가 없습니다!');
+                return;
+            }
+            
+            console.log('🔄 onAuthStateChanged 리스너 등록 중...');
             window.auth.onAuthStateChanged(async (user) => {
+                console.log('🔄 onAuthStateChanged 콜백 호출됨');
+                console.log('🔍 사용자 상태:', user ? `로그인됨 (${user.email})` : '로그아웃됨');
+                
                 if (user) {
                     console.log('👤 사용자 로그인 감지:', user.email);
+                    console.log('👤 사용자 UID:', user.uid);
                     
                     // 관리자 권한 확인
+                    console.log('🔄 관리자 권한 확인 시작...');
                     const isAdmin = await checkAdminPermission(user);
+                    console.log('🔄 관리자 권한 확인 결과:', isAdmin);
                     
                     if (isAdmin) {
                         console.log('✅ 관리자 권한 확인됨 - 리스너 시작');
@@ -259,6 +274,7 @@
                     showLoginForm();
                 }
             });
+            console.log('✅ onAuthStateChanged 리스너 등록 완료');
         }
 
         // 관리자 권한 확인
