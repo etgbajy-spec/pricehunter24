@@ -772,51 +772,14 @@
           displayName: user.displayName
         });
 
-        // Firestore에 회원 정보 저장/업데이트 (단 한 번만)
-        if (window.firestore) {
-          const memberData = {
-            email: user.email,
-            name: exchangeData.user.name,
-            provider: 'kakao',
-            role: 'viewer',
-            status: 'active',
-            profileImage: '',
-            createdAt: new Date(),
-            updatedAt: new Date()
-          };
-          
-          console.log('📝 카카오 회원 정보 Firestore 저장 시도:', {
-            uid: user.uid,
-            memberData: memberData
-          });
-          
-          try {
-            console.log('🔄 Firestore 저장 시작:', {
-              collection: 'members',
-              docId: user.uid,
-              data: memberData
-            });
-            
-            const result = await window.firestore.collection('members').doc(user.uid).set(memberData, { merge: true });
-            console.log('✅ 카카오 회원 정보 Firestore 저장/업데이트 완료:', user.uid);
-            console.log('✅ 저장된 데이터:', memberData);
-            console.log('✅ Firestore 응답:', result);
-            
-            // 저장 성공 후 즉시 확인
-            const savedDoc = await window.firestore.collection('members').doc(user.uid).get();
-            if (savedDoc.exists) {
-              console.log('✅ 저장 확인됨:', savedDoc.data());
-            } else {
-              console.error('❌ 저장 확인 실패: 문서가 존재하지 않음');
-            }
-          } catch (error) {
-            console.error('❌ 카카오 회원 정보 Firestore 저장 실패:', error);
-            console.error('❌ 오류 상세:', error.message, error.code);
-            console.error('❌ 오류 스택:', error.stack);
-          }
-        } else {
-          console.error('❌ Firestore가 초기화되지 않았습니다.');
-        }
+        // 서버사이드에서 이미 Firestore에 저장되었으므로 클라이언트에서는 저장하지 않음
+        console.log('✅ 서버사이드에서 회원 정보가 이미 Firestore에 저장되었습니다.');
+        console.log('📝 저장된 회원 정보:', {
+          uid: user.uid,
+          email: user.email,
+          name: exchangeData.user.name,
+          provider: 'kakao'
+        });
 
         // 사용자 정보를 localStorage에 저장 (기존 호환성)
         const userInfo = {

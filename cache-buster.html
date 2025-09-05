@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>캐시 버스터 - PriceHunter</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .step { margin: 20px 0; padding: 15px; background: #e3f2fd; border-radius: 5px; }
+        .important { background: #ffebee; border-left: 4px solid #f44336; }
+        button { background: #2196f3; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; margin: 5px; }
+        button:hover { background: #1976d2; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 캐시 문제 해결 가이드</h1>
+        
+        <div class="step important">
+            <h3>⚠️ 현재 문제</h3>
+            <p>admin-dashboard.html의 스크립트가 실행되지 않고 있습니다. 이는 브라우저 캐시 문제일 가능성이 높습니다.</p>
+        </div>
+
+        <div class="step">
+            <h3>1단계: 강력 새로고침</h3>
+            <p><strong>Ctrl + Shift + R</strong> (Windows) 또는 <strong>Cmd + Shift + R</strong> (Mac)</p>
+        </div>
+
+        <div class="step">
+            <h3>2단계: 개발자 도구에서 캐시 비활성화</h3>
+            <ol>
+                <li>F12 키를 눌러 개발자 도구 열기</li>
+                <li>Network 탭으로 이동</li>
+                <li><strong>"Disable cache"</strong> 체크박스 선택</li>
+                <li>개발자 도구가 열린 상태에서 새로고침</li>
+            </ol>
+        </div>
+
+        <div class="step">
+            <h3>3단계: 브라우저 캐시 완전 삭제</h3>
+            <p><strong>Chrome:</strong> 설정 → 개인정보 보호 및 보안 → 인터넷 사용 기록 삭제</p>
+            <p><strong>Edge:</strong> 설정 → 개인정보, 검색 및 서비스 → 검색 데이터 지우기</p>
+        </div>
+
+        <div class="step">
+            <h3>4단계: 시크릿 모드에서 테스트</h3>
+            <p>새 시크릿 창에서 <a href="admin-dashboard.html" target="_blank">admin-dashboard.html</a> 접속</p>
+        </div>
+
+        <div class="step important">
+            <h3>5단계: 예상 로그 확인</h3>
+            <p>캐시 삭제 후 다음과 같은 로그가 나타나야 합니다:</p>
+            <pre style="background: #f5f5f5; padding: 10px; border-radius: 5px;">
+🚀 admin-dashboard.html 스크립트 로딩 시작...
+📄 DOM 로딩 중 - DOMContentLoaded 대기
+🚀 관리자 대시보드 초기화 시작...
+🔍 Firebase SDK 확인 시도 1/8
+✅ Firebase SDK 완전 로드됨
+🔄 initializeFirebase 함수 호출...
+✅ Firebase 초기화 완료
+🔄 setupAdminDashboard 함수 호출...
+            </pre>
+        </div>
+
+        <div style="text-align: center; margin-top: 30px;">
+            <button onclick="window.open('admin-dashboard.html', '_blank')">관리자 대시보드 열기</button>
+            <button onclick="window.open('production-debug.html', '_blank')">디버그 페이지 열기</button>
+        </div>
+    </div>
+</body>
+</html>
