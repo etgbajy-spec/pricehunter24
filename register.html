@@ -520,15 +520,32 @@
 
     // 환경별 redirect_uri 설정
     function setKakaoRedirectUri() {
+      console.log('🔍 현재 환경 분석:', {
+        protocol: window.location.protocol,
+        hostname: window.location.hostname,
+        origin: window.location.origin,
+        href: window.location.href
+      });
+      
+      if (window.location.protocol === 'file:') {
+        // 로컬 파일 시스템에서 실행되는 경우
+        console.log('⚠️ 로컬 파일 시스템에서 실행됨 - 카카오 로그인 비활성화');
+        KAKAO_CONFIG.redirectUri = null;
+        return;
+      }
+      
       if (window.location.hostname === 'pricehunt24.com') {
         // 정확한 URL 설정 (프로토콜, 도메인, 경로 모두 포함)
         KAKAO_CONFIG.redirectUri = 'https://pricehunt24.com/register.html';
+      } else if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        // 로컬 개발 서버
+        KAKAO_CONFIG.redirectUri = window.location.origin + '/register.html';
       } else {
         // 다른 도메인인 경우 현재 URL 사용
         KAKAO_CONFIG.redirectUri = window.location.origin + '/register.html';
       }
       
-      console.log('카카오 redirect_uri 설정:', KAKAO_CONFIG.redirectUri);
+      console.log('✅ 카카오 redirect_uri 설정:', KAKAO_CONFIG.redirectUri);
       console.log('현재 페이지 URL:', window.location.href);
       console.log('현재 도메인:', window.location.hostname);
     }
@@ -553,8 +570,12 @@
 
          // 환경 감지
      function detectEnvironment() {
-       if (window.location.hostname === 'pricehunt24.com') {
+       if (window.location.protocol === 'file:') {
+         updateEnvironmentStatus('⚠️ 로컬 파일 환경 - 카카오 로그인 비활성화 (웹 서버 필요)', 'yellow');
+       } else if (window.location.hostname === 'pricehunt24.com') {
          updateEnvironmentStatus('✅ 프로덕션 환경 - 카카오 로그인 활성화', 'green');
+       } else if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+         updateEnvironmentStatus('✅ 개발 환경 - 카카오 로그인 활성화', 'green');
        } else {
          updateEnvironmentStatus('✅ 카카오 로그인 활성화', 'green');
        }
@@ -618,6 +639,12 @@
          // redirect_uri 재확인
          if (!KAKAO_CONFIG.redirectUri) {
            setKakaoRedirectUri();
+         }
+         
+         // file:// 프로토콜에서 실행되는 경우 차단
+         if (window.location.protocol === 'file:') {
+           alert('⚠️ 로컬 파일에서는 카카오 로그인이 지원되지 않습니다.\n\n웹 서버를 통해 접속해주세요:\n- http://localhost:3000/register.html\n- https://pricehunt24.com/register.html');
+           return;
          }
          
          console.log('사용할 redirect_uri:', KAKAO_CONFIG.redirectUri);
@@ -705,6 +732,9 @@
 
         // Netlify Function으로 커스텀토큰 요청
         console.log('🔄 Netlify Function으로 커스텀토큰 요청 중...');
+        console.log('🌐 요청 URL:', window.location.origin + '/.netlify/functions/kakao-exchange');
+        console.log('📤 요청 데이터:', { accessToken: tokenData.access_token });
+        
         const exchangeResponse = await fetch('/.netlify/functions/kakao-exchange', {
           method: 'POST',
           headers: {
@@ -716,8 +746,12 @@
         });
 
         console.log('📡 커스텀토큰 응답 상태:', exchangeResponse.status);
+        console.log('📡 응답 헤더:', Object.fromEntries(exchangeResponse.headers.entries()));
+        
         if (!exchangeResponse.ok) {
-          throw new Error('커스텀토큰 요청 실패: ' + exchangeResponse.status);
+          const errorText = await exchangeResponse.text();
+          console.error('❌ 커스텀토큰 요청 실패:', errorText);
+          throw new Error('커스텀토큰 요청 실패: ' + exchangeResponse.status + ' - ' + errorText);
         }
 
         const exchangeData = await exchangeResponse.json();
@@ -882,6 +916,71 @@
         console.log('카카오 로그인 실행');
         executeKakaoLogin();
       });
+      
+              // file:// 프로토콜에서 카카오 로그인 버튼 비활성화
+        if (window.location.protocol === 'file:') {
+          const kakaoButton = document.getElementById('kakao-login');
+          kakaoButton.disabled = true;
+          kakaoButton.classList.add('opacity-50', 'cursor-not-allowed');
+          kakaoButton.innerHTML = `
+            <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 3c5.799 0 10.5 3.664 10.5 8.185 0 4.52-4.701 8.184-10.5 8.184a13.5 13.5 0 0 1-1.727-.11l-4.408 2.883c-.501.265-.678.236-.472-.413l.892-3.678c-2.88-1.46-4.785-3.99-4.785-6.866C1.5 6.665 6.201 3 12 3z"/>
+            </svg>
+            카카오톡 로그인 (로컬 파일에서 비활성화)
+          `;
+          console.log('⚠️ file:// 프로토콜에서 카카오 로그인 버튼 비활성화됨');
+        }
+        
+        // 실제 웹사이트에서 디버깅 정보 표시
+        if (window.location.hostname === 'pricehunt24.com') {
+          console.log('🌐 실제 웹사이트에서 실행 중 - 디버깅 모드 활성화');
+          console.log('🔍 현재 환경:', {
+            hostname: window.location.hostname,
+            protocol: window.location.protocol,
+            origin: window.location.origin,
+            href: window.location.href
+          });
+          
+          // 디버깅 정보를 화면에 표시
+          const debugInfo = document.createElement('div');
+          debugInfo.id = 'debug-info';
+          debugInfo.className = 'fixed top-4 right-4 bg-black bg-opacity-75 text-white p-4 rounded-lg text-xs z-50 max-w-sm';
+          debugInfo.innerHTML = `
+            <div class="font-bold mb-2">🔍 디버깅 정보</div>
+            <div>도메인: ${window.location.hostname}</div>
+            <div>프로토콜: ${window.location.protocol}</div>
+            <div>Firebase: <span id="firebase-status">확인 중...</span></div>
+            <div>카카오 설정: <span id="kakao-status">확인 중...</span></div>
+            <button onclick="this.parentElement.remove()" class="mt-2 bg-red-500 text-white px-2 py-1 rounded text-xs">닫기</button>
+          `;
+          document.body.appendChild(debugInfo);
+          
+          // Firebase 상태 업데이트
+          setTimeout(() => {
+            const firebaseStatus = document.getElementById('firebase-status');
+            if (firebaseStatus) {
+              if (window.firebaseApp && window.firestore && window.auth) {
+                firebaseStatus.textContent = '✅ 정상';
+                firebaseStatus.className = 'text-green-400';
+              } else {
+                firebaseStatus.textContent = '❌ 오류';
+                firebaseStatus.className = 'text-red-400';
+              }
+            }
+            
+            // 카카오 설정 상태 업데이트
+            const kakaoStatus = document.getElementById('kakao-status');
+            if (kakaoStatus) {
+              if (KAKAO_CONFIG.redirectUri) {
+                kakaoStatus.textContent = '✅ 설정됨';
+                kakaoStatus.className = 'text-green-400';
+              } else {
+                kakaoStatus.textContent = '❌ 미설정';
+                kakaoStatus.className = 'text-red-400';
+              }
+            }
+          }, 2000);
+        }
 
       // 일반 회원가입 폼 표시
       document.getElementById('normal-register').addEventListener('click', function() {

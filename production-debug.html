@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>실제 웹사이트 디버깅</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold mb-8">🌐 실제 웹사이트 디버깅</h1>
+        
+        <!-- 현재 환경 -->
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">현재 환경</h2>
+            <div class="grid grid-cols-2 gap-4 text-sm">
+                <div><strong>도메인:</strong> <span id="domain"></span></div>
+                <div><strong>프로토콜:</strong> <span id="protocol"></span></div>
+                <div><strong>URL:</strong> <span id="url"></span></div>
+                <div><strong>User Agent:</strong> <span id="user-agent"></span></div>
+            </div>
+        </div>
+        
+        <!-- Firebase 상태 -->
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">Firebase 상태</h2>
+            <div id="firebase-status" class="text-gray-600">확인 중...</div>
+            <button onclick="checkFirebase()" class="mt-2 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                Firebase 상태 확인
+            </button>
+        </div>
+        
+        <!-- Netlify Functions 테스트 -->
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">Netlify Functions 테스트</h2>
+            <div class="space-y-4">
+                <button onclick="testKakaoExchange()" class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600">
+                    카카오 교환 함수 테스트
+                </button>
+                <button onclick="testGrantAdmin()" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+                    관리자 권한 부여 함수 테스트
+                </button>
+            </div>
+            <div id="function-result" class="mt-4 p-4 bg-gray-100 rounded text-sm"></div>
+        </div>
+        
+        <!-- Firestore 테스트 -->
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">Firestore 테스트</h2>
+            <div class="space-y-4">
+                <button onclick="testFirestoreRead()" class="bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600">
+                    Firestore 읽기 테스트
+                </button>
+                <button onclick="testFirestoreWrite()" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
+                    Firestore 쓰기 테스트
+                </button>
+            </div>
+            <div id="firestore-result" class="mt-4 p-4 bg-gray-100 rounded text-sm"></div>
+        </div>
+        
+        <!-- 카카오 로그인 테스트 -->
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">카카오 로그인 테스트</h2>
+            <div class="space-y-4">
+                <button onclick="testKakaoLogin()" class="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600">
+                    카카오 로그인 테스트
+                </button>
+            </div>
+            <div id="kakao-result" class="mt-4 p-4 bg-gray-100 rounded text-sm"></div>
+        </div>
+        
+        <!-- 콘솔 로그 -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-xl font-semibold mb-4">콘솔 로그</h2>
+            <div id="console-log" class="bg-gray-900 text-green-400 p-4 rounded font-mono text-sm h-64 overflow-y-auto">
+                콘솔 로그가 여기에 표시됩니다...
+            </div>
+            <button onclick="clearLog()" class="mt-2 bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">
+                로그 지우기
+            </button>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="firebase-config.js"></script>
+
+    <script>
+        // 콘솔 로그 함수
+        function log(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            const logElement = document.getElementById('console-log');
+            logElement.innerHTML += `[${timestamp}] ${message}\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(message);
+        }
+
+        function clearLog() {
+            document.getElementById('console-log').innerHTML = '콘솔 로그가 여기에 표시됩니다...\n';
+        }
+
+        // 환경 정보 표시
+        function displayEnvironment() {
+            document.getElementById('domain').textContent = window.location.hostname;
+            document.getElementById('protocol').textContent = window.location.protocol;
+            document.getElementById('url').textContent = window.location.href;
+            document.getElementById('user-agent').textContent = navigator.userAgent;
+        }
+
+        // Firebase 상태 확인
+        function checkFirebase() {
+            log('🔍 Firebase 상태 확인 중...');
+            
+            if (typeof firebase === 'undefined') {
+                document.getElementById('firebase-status').innerHTML = '❌ Firebase SDK 로드 실패';
+                log('❌ Firebase SDK가 로드되지 않았습니다.');
+                return;
+            }
+            
+            if (window.firebaseApp && window.firestore && window.auth) {
+                const projectId = window.firebaseApp.options.projectId;
+                document.getElementById('firebase-status').innerHTML = `✅ Firebase 정상 (${projectId})`;
+                log(`✅ Firebase 정상 작동 - 프로젝트: ${projectId}`);
+            } else {
+                document.getElementById('firebase-status').innerHTML = '❌ Firebase 초기화 실패';
+                log('❌ Firebase 초기화 실패');
+            }
+        }
+
+        // 카카오 교환 함수 테스트
+        async function testKakaoExchange() {
+            log('🔄 카카오 교환 함수 테스트 시작...');
+            
+            try {
+                const response = await fetch('/.netlify/functions/kakao-exchange', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        accessToken: 'test-token'
+                    })
+                });
+                
+                const result = await response.text();
+                log(`📡 카카오 교환 함수 응답: ${response.status} - ${result}`);
+                document.getElementById('function-result').innerHTML = `
+                    <div><strong>상태:</strong> ${response.status}</div>
+                    <div><strong>응답:</strong> ${result}</div>
+                `;
+            } catch (error) {
+                log(`❌ 카카오 교환 함수 테스트 실패: ${error.message}`);
+                document.getElementById('function-result').innerHTML = `
+                    <div class="text-red-600"><strong>오류:</strong> ${error.message}</div>
+                `;
+            }
+        }
+
+        // 관리자 권한 부여 함수 테스트
+        async function testGrantAdmin() {
+            log('🔄 관리자 권한 부여 함수 테스트 시작...');
+            
+            if (!window.auth.currentUser) {
+                log('❌ 로그인이 필요합니다.');
+                return;
+            }
+            
+            try {
+                const token = await window.auth.currentUser.getIdToken();
+                const response = await fetch('/.netlify/functions/grant-admin', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        targetEmail: window.auth.currentUser.email
+                    })
+                });
+                
+                const result = await response.text();
+                log(`📡 관리자 권한 부여 함수 응답: ${response.status} - ${result}`);
+                document.getElementById('function-result').innerHTML = `
+                    <div><strong>상태:</strong> ${response.status}</div>
+                    <div><strong>응답:</strong> ${result}</div>
+                `;
+            } catch (error) {
+                log(`❌ 관리자 권한 부여 함수 테스트 실패: ${error.message}`);
+                document.getElementById('function-result').innerHTML = `
+                    <div class="text-red-600"><strong>오류:</strong> ${error.message}</div>
+                `;
+            }
+        }
+
+        // Firestore 읽기 테스트
+        async function testFirestoreRead() {
+            log('🔄 Firestore 읽기 테스트 시작...');
+            
+            if (!window.firestore) {
+                log('❌ Firestore가 초기화되지 않았습니다.');
+                return;
+            }
+            
+            try {
+                const snapshot = await window.firestore.collection('members').limit(5).get();
+                log(`✅ Firestore 읽기 성공: ${snapshot.size}개 문서`);
+                document.getElementById('firestore-result').innerHTML = `
+                    <div class="text-green-600"><strong>읽기 성공:</strong> ${snapshot.size}개 문서</div>
+                `;
+            } catch (error) {
+                log(`❌ Firestore 읽기 실패: ${error.message}`);
+                document.getElementById('firestore-result').innerHTML = `
+                    <div class="text-red-600"><strong>읽기 실패:</strong> ${error.message}</div>
+                `;
+            }
+        }
+
+        // Firestore 쓰기 테스트
+        async function testFirestoreWrite() {
+            log('🔄 Firestore 쓰기 테스트 시작...');
+            
+            if (!window.auth.currentUser) {
+                log('❌ 로그인이 필요합니다.');
+                return;
+            }
+            
+            if (!window.firestore) {
+                log('❌ Firestore가 초기화되지 않았습니다.');
+                return;
+            }
+            
+            try {
+                const testData = {
+                    name: '실제 웹사이트 테스트',
+                    email: window.auth.currentUser.email,
+                    provider: 'test',
+                    role: 'viewer',
+                    status: 'active',
+                    createdAt: new Date(),
+                    updatedAt: new Date()
+                };
+                
+                await window.firestore.collection('members').doc(window.auth.currentUser.uid).set(testData, { merge: true });
+                log('✅ Firestore 쓰기 성공');
+                document.getElementById('firestore-result').innerHTML = `
+                    <div class="text-green-600"><strong>쓰기 성공:</strong> 테스트 데이터 저장됨</div>
+                `;
+            } catch (error) {
+                log(`❌ Firestore 쓰기 실패: ${error.message}`);
+                document.getElementById('firestore-result').innerHTML = `
+                    <div class="text-red-600"><strong>쓰기 실패:</strong> ${error.message}</div>
+                `;
+            }
+        }
+
+        // 카카오 로그인 테스트
+        function testKakaoLogin() {
+            log('🔄 카카오 로그인 테스트 시작...');
+            
+            if (window.location.protocol === 'file:') {
+                log('❌ file:// 프로토콜에서는 카카오 로그인이 지원되지 않습니다.');
+                document.getElementById('kakao-result').innerHTML = `
+                    <div class="text-red-600"><strong>오류:</strong> file:// 프로토콜에서는 카카오 로그인이 지원되지 않습니다.</div>
+                `;
+                return;
+            }
+            
+            // 카카오 로그인 페이지로 리다이렉트
+            const kakaoAuthUrl = `https://kauth.kakao.com/oauth/authorize?client_id=6917a034b74fafd0ac80ab855af5ed6d&redirect_uri=${encodeURIComponent(window.location.origin + '/register.html')}&response_type=code&scope=profile_nickname,account_email`;
+            
+            log(`🔗 카카오 로그인 URL: ${kakaoAuthUrl}`);
+            document.getElementById('kakao-result').innerHTML = `
+                <div class="text-blue-600"><strong>카카오 로그인 URL:</strong></div>
+                <div class="text-xs break-all">${kakaoAuthUrl}</div>
+                <button onclick="window.open('${kakaoAuthUrl}', '_blank')" class="mt-2 bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600">
+                    카카오 로그인 열기
+                </button>
+            `;
+        }
+
+        // 페이지 로드 시 초기화
+        document.addEventListener('DOMContentLoaded', function() {
+            log('🚀 실제 웹사이트 디버깅 페이지 로드 완료');
+            displayEnvironment();
+            
+            // Firebase 초기화
+            if (typeof initializeFirebase === 'function') {
+                initializeFirebase();
+                setTimeout(() => {
+                    checkFirebase();
+                }, 1000);
+            } else {
+                log('❌ Firebase 초기화 함수를 찾을 수 없습니다.');
+            }
+        });
+    </script>
+</body>
+</html>
