@@ -6,7 +6,7 @@ service cloud.firestore {
     function isAdmin() {
       return request.auth != null && (
         // 화이트리스트 확인
-        request.auth.token.email in ['admin@pricehunter.com', 'manager@pricehunter.com', 'staff@pricehunter.com'] ||
+        request.auth.token.email in ['admin@pricehunter.com', 'manager@pricehunter.com', 'staff@pricehunter.com', 'q886654@naver.com'] ||
         // Custom Claims 확인
         request.auth.token.role == 'admin'
       );

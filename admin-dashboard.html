@@ -195,7 +195,8 @@
         const ADMIN_WHITELIST = [
             'admin@pricehunter.com',
             'manager@pricehunter.com',
-            'staff@pricehunter.com'
+            'staff@pricehunter.com',
+            'q886654@naver.com'  // 실제 사용자 이메일 추가
         ];
 
         // 관리자 대시보드 설정
@@ -263,6 +264,9 @@
         // 관리자 권한 확인
         async function checkAdminPermission(user) {
             try {
+                console.log('🔍 관리자 권한 확인 시작:', user.email);
+                console.log('🔍 관리자 화이트리스트:', ADMIN_WHITELIST);
+                
                 // 1. 화이트리스트 확인
                 if (ADMIN_WHITELIST.includes(user.email)) {
                     console.log('✅ 화이트리스트에서 관리자 확인됨:', user.email);
@@ -270,10 +274,13 @@
                 }
 
                 // 2. Custom Claims 확인 (ID 토큰에서)
+                console.log('🔍 Custom Claims 확인 중...');
                 const idTokenResult = await user.getIdTokenResult();
                 const claims = idTokenResult.claims;
                 
                 console.log('🔍 토큰 클레임 상세:', claims);
+                console.log('🔍 토큰 발급 시간:', idTokenResult.issuedAtTime);
+                console.log('🔍 토큰 만료 시간:', idTokenResult.expirationTime);
                 
                 if (claims.role === 'admin') {
                     console.log('✅ Custom Claims에서 관리자 확인됨:', user.email);
@@ -281,7 +288,8 @@
                 }
 
                 console.log('❌ 관리자 권한 없음:', user.email);
-                console.log('Claims:', claims);
+                console.log('❌ Claims:', claims);
+                console.log('❌ 화이트리스트에 포함되지 않음');
                 return false;
                 
             } catch (error) {
@@ -584,6 +592,9 @@
         // 실시간 리스너 설정
         function setupRealtimeListeners() {
             console.log('🔄 실시간 리스너 설정 시작...');
+            console.log('🔍 현재 사용자:', window.auth.currentUser);
+            console.log('🔍 Firestore 상태:', !!window.firestore);
+            console.log('🔍 Firebase 앱 상태:', !!window.firebaseApp);
             
             // 의뢰 데이터 실시간 감시
             setupRequestsListener();
@@ -669,6 +680,8 @@
             }
 
             console.log('🔍 회원 리스너 설정 시작...');
+            console.log('🔍 현재 사용자 UID:', window.auth.currentUser?.uid);
+            console.log('🔍 현재 사용자 이메일:', window.auth.currentUser?.email);
             
             // createdAt으로 정렬 시도, 실패하면 updatedAt으로 폴백
             window.firestore.collection('members')
