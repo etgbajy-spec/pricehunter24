@@ -1,7 +1,7 @@
-// Firebase 설정 및 초기화 (Firebase 8.x 버전)
+// Firebase 설정 및 초기화 (Firebase 8.x 버전) - 단일 진실 소스
 console.log('🔥 Firebase 설정 파일 로딩 시작...');
 
-// Firebase 설정
+// Firebase 설정 - 단일 진실 소스
 const firebaseConfig = {
   apiKey: "AIzaSyDBZxKyMS7eeBTbPnbZkj0WWOZQHNldoL4",
   authDomain: "pricehunter-99a1b.firebaseapp.com",
@@ -12,21 +12,35 @@ const firebaseConfig = {
   measurementId: "G-4BKLV4EVB9"
 };
 
+// Firebase 초기화 상태 추적
+let isInitializing = false;
+let isInitialized = false;
+
 // Firebase 초기화 함수
 function initializeFirebase() {
+  // 이미 초기화 중이거나 완료된 경우
+  if (isInitializing || isInitialized) {
+    console.log('🔄 Firebase 이미 초기화 중이거나 완료됨');
+    return isInitialized;
+  }
+  
   try {
+    isInitializing = true;
     console.log('🔄 Firebase 초기화 시작...');
     
-    // Firebase가 이미 로드되었는지 확인
+    // Firebase SDK 로드 확인
     if (typeof firebase === 'undefined') {
       console.error('❌ Firebase SDK가 로드되지 않았습니다.');
-      return false;
+      console.error('CSP 정책에서 다음 도메인들이 허용되어야 합니다:');
+      console.error('- https://www.gstatic.com');
+      console.error('- https://www.gstatic.com/firebasejs');
+      throw new Error('Firebase SDK not loaded - check CSP policy');
     }
 
     console.log('✅ Firebase SDK 확인됨:', typeof firebase);
     console.log('Firebase 버전:', firebase.SDK_VERSION);
 
-    // Firebase 앱 초기화
+    // Firebase 앱 초기화 (중복 방지)
     if (!firebase.apps.length) {
       window.firebaseApp = firebase.initializeApp(firebaseConfig);
       console.log('✅ Firebase 앱 초기화 완료');
@@ -43,6 +57,10 @@ function initializeFirebase() {
     window.auth = firebase.auth();
     console.log('✅ Auth 초기화 완료');
 
+    // 초기화 완료 표시
+    isInitialized = true;
+    isInitializing = false;
+    
     console.log('🎉 Firebase 모든 서비스 초기화 완료!');
     console.log('app:', window.firebaseApp);
     console.log('db:', window.firestore);
@@ -50,9 +68,17 @@ function initializeFirebase() {
     
     return true;
   } catch (error) {
+    isInitializing = false;
     console.error('❌ Firebase 초기화 실패:', error);
     console.error('에러 상세:', error.message);
     console.error('에러 스택:', error.stack);
+    
+    // CSP 관련 오류인지 확인
+    if (error.message.includes('CSP') || error.message.includes('Content Security Policy')) {
+      console.error('🔒 CSP 정책 오류로 인한 Firebase 로딩 실패');
+      console.error('서버의 CSP 헤더에 Firebase 도메인이 포함되어 있는지 확인하세요.');
+    }
+    
     return false;
   }
 }
@@ -60,11 +86,13 @@ function initializeFirebase() {
 // Firebase 상태 확인 함수
 function checkFirebaseStatus() {
   console.log('🔍 Firebase 상태 확인...');
+  console.log('초기화 상태:', isInitialized);
+  console.log('초기화 중:', isInitializing);
   console.log('window.firebaseApp:', window.firebaseApp);
   console.log('window.firestore:', window.firestore);
   console.log('window.auth:', window.auth);
   
-  if (window.firebaseApp && window.firestore && window.auth) {
+  if (window.firebaseApp && window.firestore && window.auth && isInitialized) {
     console.log('✅ Firebase 모든 서비스가 정상적으로 초기화되었습니다.');
     return true;
   } else {
@@ -78,11 +106,11 @@ function testFirebaseConnection() {
   console.log('🧪 Firebase 연결 테스트 시작...');
   
   if (typeof firebase === 'undefined') {
-    alert('❌ Firebase SDK가 로드되지 않았습니다.');
+    alert('❌ Firebase SDK가 로드되지 않았습니다.\n\nCSP 정책을 확인해주세요.');
     return false;
   }
   
-  if (window.firebaseApp && window.firestore && window.auth) {
+  if (window.firebaseApp && window.firestore && window.auth && isInitialized) {
     alert('✅ Firebase 연결 성공!\n\n모든 서비스가 정상적으로 작동합니다.');
     return true;
   } else {
@@ -95,5 +123,6 @@ function testFirebaseConnection() {
 window.initializeFirebase = initializeFirebase;
 window.checkFirebaseStatus = checkFirebaseStatus;
 window.testFirebaseConnection = testFirebaseConnection;
+window.firebaseConfig = firebaseConfig; // 설정값도 전역으로 노출 (디버깅용)
 
 console.log('✅ Firebase 설정 파일 로딩 완료');

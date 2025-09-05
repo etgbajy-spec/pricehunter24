@@ -3,25 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="
-default-src 'self';
-script-src 'self' 'unsafe-inline' 'unsafe-eval'
-  https://www.gstatic.com https://www.gstatic.com/firebasejs
-  https://apis.google.com https://www.google.com
-  https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com;
-style-src  'self' 'unsafe-inline';
-img-src    'self' data: blob: https://www.gstatic.com;
-font-src   'self' data:;
-connect-src 'self'
-  https://firestore.googleapis.com
-  https://identitytoolkit.googleapis.com
-  https://securetoken.googleapis.com
-  https://firebasestorage.googleapis.com
-  https://content-firebaseappcheck.googleapis.com
-  https://www.googleapis.com
-  https://*.firebaseio.com wss://*.firebaseio.com;
-frame-src 'self' https://www.google.com https://recaptcha.google.com;
-">
     <title>관리자 대시보드 - PriceHunter</title>
     
     <!-- Tailwind CSS -->
@@ -32,21 +13,6 @@ frame-src 'self' https://www.google.com https://recaptcha.google.com;
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     
-    <!-- Firebase 초기화 -->
-    <script>
-      const firebaseConfig = {
-        apiKey: "AIzaSyDBZxKyMS7eeBTbPnbZkj0WWOZQHNldoL4",
-        authDomain: "pricehunter-99a1b.firebaseapp.com",
-        projectId: "pricehunter-99a1b",
-        storageBucket: "pricehunter-99a1b.firebasestorage.app",
-        messagingSenderId: "242265693919",
-        appId: "1:242265693919:web:74234d942b82a51541136a"
-      };
-      if (!firebase.apps.length) {
-        firebase.initializeApp(firebaseConfig);
-      }
-    </script>
-    
     <!-- Firebase 설정 -->
     <script src="firebase-config.js"></script>
     
@@ -55,15 +21,65 @@ frame-src 'self' https://www.google.com https://recaptcha.google.com;
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🚀 관리자 대시보드 초기화 시작...');
             
-            // Firebase 초기화
-            if (typeof firebase !== 'undefined') {
-                console.log('✅ Firebase SDK 로드됨');
-                initializeFirebase();
-            } else {
-                console.error('❌ Firebase SDK 로드 실패');
-                alert('Firebase SDK 로딩에 실패했습니다. 페이지를 새로고침해주세요.');
+            // Firebase SDK 로드 확인
+            if (typeof firebase === 'undefined') {
+                console.error('❌ Firebase SDK가 로드되지 않았습니다.');
+                showFirebaseError('Firebase SDK 로딩에 실패했습니다. CSP 정책을 확인해주세요.');
+                return;
+            }
+            
+            console.log('✅ Firebase SDK 로드됨');
+            console.log('Firebase 버전:', firebase.SDK_VERSION);
+            
+            // Firebase 초기화 시도
+            try {
+                const initResult = initializeFirebase();
+                if (initResult) {
+                    console.log('✅ Firebase 초기화 완료');
+                    setupAdminDashboard();
+                } else {
+                    console.error('❌ Firebase 초기화 실패');
+                    showFirebaseError('Firebase 초기화에 실패했습니다.');
+                }
+            } catch (error) {
+                console.error('❌ Firebase 초기화 중 오류:', error);
+                showFirebaseError('Firebase 초기화 중 오류가 발생했습니다: ' + error.message);
             }
         });
+        
+        // Firebase 오류 표시 함수
+        function showFirebaseError(message) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'fixed top-4 right-4 bg-red-500 text-white p-4 rounded-lg shadow-lg z-50';
+            errorDiv.innerHTML = `
+                <div class="font-bold">Firebase 오류</div>
+                <div class="text-sm">${message}</div>
+                <div class="text-xs mt-2">CSP 정책이나 네트워크 연결을 확인해주세요.</div>
+                <button onclick="this.parentElement.remove()" class="absolute top-2 right-2 text-white hover:text-gray-200">×</button>
+            `;
+            document.body.appendChild(errorDiv);
+            
+            // 10초 후 자동 제거
+            setTimeout(() => {
+                if (errorDiv.parentElement) {
+                    errorDiv.remove();
+                }
+            }, 10000);
+        }
+        
+        // 관리자 대시보드 설정
+        function setupAdminDashboard() {
+            console.log('🔧 관리자 대시보드 설정 시작...');
+            
+            // Firebase 상태 재확인
+            if (!window.auth || !window.firestore) {
+                console.error('❌ Firebase 서비스가 초기화되지 않았습니다.');
+                showFirebaseError('Firebase 서비스 초기화에 실패했습니다.');
+                return;
+            }
+            
+            console.log('✅ 관리자 대시보드 설정 완료');
+        }
         
         // 관리자 로그인 함수
         window.adminLogin = async function() {
@@ -77,19 +93,19 @@ frame-src 'self' https://www.google.com https://recaptcha.google.com;
                 return;
             }
             
+            // Firebase 가드 확인
+            if (typeof firebase === 'undefined') {
+                alert('Firebase SDK가 로드되지 않았습니다. CSP 정책을 확인해주세요.');
+                return;
+            }
+            
+            if (!window.auth) {
+                console.error('❌ Firebase Auth가 초기화되지 않았습니다.');
+                alert('Firebase Auth 초기화에 실패했습니다. 페이지를 새로고침해주세요.');
+                return;
+            }
+            
             try {
-                // Firebase가 초기화되었는지 확인
-                if (!firebase.auth) { 
-                    alert("Firebase Auth 초기화 실패"); 
-                    throw new Error("Auth not initialized"); 
-                }
-                
-                if (!window.auth) {
-                    console.error('❌ Firebase Auth가 초기화되지 않았습니다.');
-                    alert('Firebase 연결에 문제가 있습니다. 페이지를 새로고침해주세요.');
-                    return;
-                }
-                
                 console.log('🔥 로그인 시도:', email);
                 const userCredential = await window.auth.signInWithEmailAndPassword(email, password);
                 console.log('✅ 관리자 로그인 성공:', userCredential.user.email);
