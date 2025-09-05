@@ -16,7 +16,7 @@ const firebaseConfig = {
 let isInitializing = false;
 let isInitialized = false;
 
-// Firebase 초기화 함수
+// Firebase 초기화 함수 (개선된 버전)
 function initializeFirebase() {
   // 이미 초기화 중이거나 완료된 경우
   if (isInitializing || isInitialized) {
@@ -28,13 +28,14 @@ function initializeFirebase() {
     isInitializing = true;
     console.log('🔄 Firebase 초기화 시작...');
     
-    // Firebase SDK 로드 확인
+    // Firebase SDK 로드 확인 (강화된 가드)
     if (typeof firebase === 'undefined') {
       console.error('❌ Firebase SDK가 로드되지 않았습니다.');
-      console.error('CSP 정책에서 다음 도메인들이 허용되어야 합니다:');
+      console.error('🔒 서버 CSP 헤더에서 다음 도메인들이 허용되어야 합니다:');
       console.error('- https://www.gstatic.com');
       console.error('- https://www.gstatic.com/firebasejs');
-      throw new Error('Firebase SDK not loaded - check CSP policy');
+      console.error('📋 현재 CSP 정책을 확인하려면 브라우저 DevTools → Network → Response Headers를 확인하세요.');
+      throw new Error('Firebase SDK not loaded - check server CSP headers');
     }
 
     console.log('✅ Firebase SDK 확인됨:', typeof firebase);
@@ -74,9 +75,12 @@ function initializeFirebase() {
     console.error('에러 스택:', error.stack);
     
     // CSP 관련 오류인지 확인
-    if (error.message.includes('CSP') || error.message.includes('Content Security Policy')) {
-      console.error('🔒 CSP 정책 오류로 인한 Firebase 로딩 실패');
-      console.error('서버의 CSP 헤더에 Firebase 도메인이 포함되어 있는지 확인하세요.');
+    if (error.message.includes('CSP') || error.message.includes('Content Security Policy') || error.message.includes('server CSP')) {
+      console.error('🔒 서버 CSP 헤더 오류로 인한 Firebase 로딩 실패');
+      console.error('📋 해결 방법:');
+      console.error('1. 서버의 CSP 헤더에 www.gstatic.com이 포함되어 있는지 확인');
+      console.error('2. 브라우저 DevTools → Network → Response Headers에서 CSP 값 확인');
+      console.error('3. 서버 재시작 후 새로고침');
     }
     
     return false;
@@ -106,7 +110,7 @@ function testFirebaseConnection() {
   console.log('🧪 Firebase 연결 테스트 시작...');
   
   if (typeof firebase === 'undefined') {
-    alert('❌ Firebase SDK가 로드되지 않았습니다.\n\nCSP 정책을 확인해주세요.');
+    alert('❌ Firebase SDK가 로드되지 않았습니다.\n\n서버 CSP 헤더에 www.gstatic.com이 포함되어 있는지 확인하세요.');
     return false;
   }
   

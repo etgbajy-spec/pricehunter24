@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>관리자 대시보드 - PriceHunter</title>
     
+    <!-- CSP는 서버에서 설정됨 - HTML 메타는 제거하여 충돌 방지 -->
+    
     <!-- Tailwind CSS (개선된 로딩 방식) -->
     <script>
         // Tailwind CSS 동적 로딩
@@ -87,135 +89,16 @@
         });
     </script>
     
-    <!-- Firebase 8.x SDK (개선된 로딩 방식) -->
-    <script>
-        // Firebase SDK 동적 로딩 함수 (개선된 버전)
-        function loadFirebaseSDK() {
-            return new Promise((resolve, reject) => {
-                const scripts = [
-                    'https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js',
-                    'https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js',
-                    'https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js'
-                ];
-                
-                let loadedCount = 0;
-                const totalScripts = scripts.length;
-                let hasError = false;
-                
-                scripts.forEach((src, index) => {
-                    const script = document.createElement('script');
-                    script.src = src;
-                    script.onload = () => {
-                        if (!hasError) {
-                            loadedCount++;
-                            console.log(`✅ Firebase 스크립트 ${index + 1}/${totalScripts} 로드됨: ${src}`);
-                            if (loadedCount === totalScripts) {
-                                resolve();
-                            }
-                        }
-                    };
-                    script.onerror = (error) => {
-                        if (!hasError) {
-                            hasError = true;
-                            console.error(`❌ Firebase 스크립트 로드 실패: ${src}`, error);
-                            console.log('🔄 대체 Firebase 로딩 방식 시도...');
-                            
-                            // CDN 실패 시 대체 방식 시도
-                            loadFirebaseAlternative().then(resolve).catch(reject);
-                        }
-                    };
-                    document.head.appendChild(script);
-                });
-            });
-        }
-        
-        // 대체 Firebase 로딩 방식 (다른 CDN 또는 로컬)
-        function loadFirebaseAlternative() {
-            return new Promise((resolve, reject) => {
-                console.log('🔄 대체 Firebase CDN 시도...');
-                
-                // 대체 CDN 목록
-                const alternativeCDNs = [
-                    'https://cdn.jsdelivr.net/npm/firebase@8.10.1/dist/firebase-app.min.js',
-                    'https://unpkg.com/firebase@8.10.1/dist/firebase-app.min.js',
-                    'https://cdnjs.cloudflare.com/ajax/libs/firebase/8.10.1/firebase-app.min.js'
-                ];
-                
-                let cdnIndex = 0;
-                
-                const tryNextCDN = () => {
-                    if (cdnIndex >= alternativeCDNs.length) {
-                        console.error('❌ 모든 Firebase CDN 로딩 실패');
-                        reject(new Error('All Firebase CDNs failed'));
-                        return;
-                    }
-                    
-                    const cdnUrl = alternativeCDNs[cdnIndex];
-                    console.log(`🔄 CDN 시도 ${cdnIndex + 1}/${alternativeCDNs.length}: ${cdnUrl}`);
-                    
-                    const script = document.createElement('script');
-                    script.src = cdnUrl;
-                    script.onload = () => {
-                        console.log(`✅ 대체 Firebase CDN 로드 성공: ${cdnUrl}`);
-                        // 나머지 Firebase 모듈들도 로드
-                        loadRemainingFirebaseModules().then(resolve).catch(reject);
-                    };
-                    script.onerror = () => {
-                        console.error(`❌ CDN 실패: ${cdnUrl}`);
-                        cdnIndex++;
-                        tryNextCDN();
-                    };
-                    document.head.appendChild(script);
-                };
-                
-                tryNextCDN();
-            });
-        }
-        
-        // 나머지 Firebase 모듈 로드
-        function loadRemainingFirebaseModules() {
-            return new Promise((resolve, reject) => {
-                const modules = [
-                    'https://cdn.jsdelivr.net/npm/firebase@8.10.1/dist/firebase-auth.min.js',
-                    'https://cdn.jsdelivr.net/npm/firebase@8.10.1/dist/firebase-firestore.min.js'
-                ];
-                
-                let loadedCount = 0;
-                const totalModules = modules.length;
-                
-                modules.forEach((src, index) => {
-                    const script = document.createElement('script');
-                    script.src = src;
-                    script.onload = () => {
-                        loadedCount++;
-                        console.log(`✅ Firebase 모듈 ${index + 1}/${totalModules} 로드됨: ${src}`);
-                        if (loadedCount === totalModules) {
-                            resolve();
-                        }
-                    };
-                    script.onerror = (error) => {
-                        console.error(`❌ Firebase 모듈 로드 실패: ${src}`, error);
-                        reject(error);
-                    };
-                    document.head.appendChild(script);
-                });
-            });
-        }
-        
-        // Firebase SDK 로딩 시작
-        loadFirebaseSDK().then(() => {
-            console.log('🎉 모든 Firebase SDK 로드 완료');
-        }).catch((error) => {
-            console.error('❌ Firebase SDK 로딩 실패:', error);
-            console.log('⚠️ Firebase 없이 기본 기능만 사용합니다.');
-        });
-    </script>
+    <!-- Firebase 8.x SDK (단순화된 로딩 방식) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     
     <!-- Firebase 설정 -->
     <script src="firebase-config.js"></script>
     
     <script>
-        // Firebase 초기화 및 설정 (개선된 버전)
+        // Firebase 초기화 및 설정 (단순화된 버전)
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🚀 관리자 대시보드 초기화 시작...');
             
@@ -223,9 +106,9 @@
             waitForFirebaseAndInitialize();
         });
         
-        // Firebase SDK 로딩 대기 함수
+        // Firebase SDK 로딩 대기 함수 (단순화)
         function waitForFirebaseAndInitialize() {
-            const maxAttempts = 30; // 30초 대기
+            const maxAttempts = 10; // 10초 대기
             let attempts = 0;
             
             const checkFirebase = () => {
@@ -255,7 +138,7 @@
                     setTimeout(checkFirebase, 1000);
                 } else {
                     console.error('❌ Firebase SDK 로딩 시간 초과');
-                    showFirebaseError('Firebase SDK 로딩 시간이 초과되었습니다. CSP 정책을 확인해주세요.');
+                    showFirebaseError('Firebase SDK 로딩 시간이 초과되었습니다. 서버 CSP 정책을 확인해주세요.');
                 }
             };
             
@@ -274,7 +157,7 @@
                     1. 서버 재시작 후 새로고침<br>
                     2. 브라우저 캐시 삭제<br>
                     3. 네트워크 연결 확인<br>
-                    4. CSP 정책 확인
+                    4. 서버 CSP 헤더 확인
                 </div>
                 <div class="flex gap-2">
                     <button onclick="location.reload()" class="px-3 py-1 bg-white text-red-500 rounded text-xs font-bold hover:bg-gray-100">
@@ -326,7 +209,7 @@
             
             // Firebase 가드 확인
             if (typeof firebase === 'undefined') {
-                alert('Firebase SDK가 로드되지 않았습니다. CSP 정책을 확인해주세요.');
+                alert('Firebase SDK가 로드되지 않았습니다. 서버 CSP 헤더를 확인해주세요.');
                 return;
             }
             
@@ -451,7 +334,7 @@
             console.log('🔥 Firebase 연결 테스트 시작...');
             
             if (typeof firebase === 'undefined') {
-                alert('❌ Firebase SDK가 로드되지 않았습니다.');
+                alert('❌ Firebase SDK가 로드되지 않았습니다.\n\n서버 CSP 헤더에 www.gstatic.com이 포함되어 있는지 확인하세요.');
                 return false;
             }
             
@@ -472,6 +355,49 @@
                 alert('❌ Firebase 연결 실패!\n\n초기화를 다시 시도해주세요.');
                 return false;
             }
+        };
+        
+        // 캐시 및 서비스워커 정리 함수
+        window.clearCacheAndReload = function() {
+            console.log('🧹 캐시 및 서비스워커 정리 시작...');
+            
+            // 서비스워커 등록 해제
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                    for(let registration of registrations) {
+                        console.log('🗑️ 서비스워커 등록 해제:', registration.scope);
+                        registration.unregister();
+                    }
+                });
+            }
+            
+            // 캐시 스토리지 정리
+            if ('caches' in window) {
+                caches.keys().then(function(cacheNames) {
+                    return Promise.all(
+                        cacheNames.map(function(cacheName) {
+                            console.log('🗑️ 캐시 삭제:', cacheName);
+                            return caches.delete(cacheName);
+                        })
+                    );
+                }).then(function() {
+                    console.log('✅ 모든 캐시가 삭제되었습니다.');
+                });
+            }
+            
+            // 로컬 스토리지 정리
+            try {
+                localStorage.clear();
+                sessionStorage.clear();
+                console.log('✅ 로컬/세션 스토리지가 정리되었습니다.');
+            } catch (e) {
+                console.log('⚠️ 스토리지 정리 중 오류:', e);
+            }
+            
+            // 새로고침 (캐시 무시)
+            setTimeout(() => {
+                window.location.reload(true);
+            }, 1000);
         };
         
         // 페이지 이동 함수
@@ -608,6 +534,9 @@
                             </button>
                             <button onclick="testFirebaseConnection()" class="px-4 py-2 bg-purple-500 text-white rounded-lg font-semibold hover:bg-purple-600 transition">
                                 🔥 Firebase 연결 테스트
+                            </button>
+                            <button onclick="clearCacheAndReload()" class="px-4 py-2 bg-orange-500 text-white rounded-lg font-semibold hover:bg-orange-600 transition">
+                                🧹 캐시 정리 & 새로고침
                             </button>
                         </div>
                     </div>
