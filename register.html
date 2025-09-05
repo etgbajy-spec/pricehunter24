@@ -841,7 +841,7 @@
       }, 100);
       
       // 전역 함수 등록
-      window.completeKakaoSignup = function() {
+      window.completeKakaoSignup = async function() {
         const agreeTerms = document.getElementById('kakao-agree-terms');
         const agreePrivacy = document.getElementById('kakao-agree-privacy');
         const agreeMarketing = document.getElementById('kakao-agree-marketing');
@@ -856,13 +856,39 @@
             marketingAgreed: agreeMarketing.checked
           };
           
-                                 // 일반 user 키로 저장
+          try {
+            // localStorage에 저장
             localStorage.setItem('user', JSON.stringify(newUser));
             localStorage.setItem('loggedIn', 'true');
             
             // 관리자 대시보드에서 확인할 수 있도록 kakao_ 키로도 저장
             const kakaoKey = 'kakao_' + Date.now();
             localStorage.setItem(kakaoKey, JSON.stringify(newUser));
+            
+            // Firestore에 회원 정보 저장 (관리자 대시보드용)
+            if (window.firestore) {
+              const memberData = {
+                name: newUser.name,
+                email: newUser.email,
+                provider: 'kakao',
+                profileImage: newUser.profileImage || '',
+                phone: newUser.phone || '',
+                role: 'member',
+                status: 'active',
+                createdAt: new Date(),
+                updatedAt: new Date(),
+                joinDate: new Date(newUser.joinDate),
+                termsAgreed: newUser.termsAgreed,
+                privacyAgreed: newUser.privacyAgreed,
+                marketingAgreed: newUser.marketingAgreed,
+                requestCount: 0
+              };
+              
+              await window.firestore.collection('members').add(memberData);
+              console.log('✅ 회원 정보가 Firestore에 저장되었습니다.');
+            } else {
+              console.warn('⚠️ Firestore가 초기화되지 않아 회원 정보를 저장할 수 없습니다.');
+            }
             
             // 포인트 적립
             const pointsAdded = addPoints(newUser.email, 50, '카카오 회원가입 보너스');
@@ -878,6 +904,11 @@
             window.history.replaceState({}, document.title, window.location.pathname);
             // index.html로 이동하면서 히스토리 정리
             window.location.replace('index.html');
+            
+          } catch (error) {
+            console.error('❌ 회원가입 중 오류:', error);
+            alert('회원가입 중 오류가 발생했습니다. 다시 시도해주세요.');
+          }
         } else {
           alert('필수 약관에 동의해주세요.');
         }
@@ -1089,7 +1120,35 @@
           joinDate: new Date().toISOString()
         };
         
+        // localStorage에 저장
         localStorage.setItem('user', JSON.stringify(user));
+        
+        // Firestore에 회원 정보 저장 (관리자 대시보드용)
+        if (window.firestore) {
+          const memberData = {
+            name: name,
+            email: email,
+            provider: 'email',
+            phone: phone,
+            role: 'member',
+            status: 'active',
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            joinDate: new Date(),
+            requestCount: 0
+          };
+          
+          window.firestore.collection('members').add(memberData)
+            .then(() => {
+              console.log('✅ 회원 정보가 Firestore에 저장되었습니다.');
+            })
+            .catch((error) => {
+              console.error('❌ Firestore 저장 실패:', error);
+            });
+        } else {
+          console.warn('⚠️ Firestore가 초기화되지 않아 회원 정보를 저장할 수 없습니다.');
+        }
+        
         document.getElementById('success-message').classList.remove('hidden');
       });
     });

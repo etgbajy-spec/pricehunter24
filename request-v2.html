@@ -566,8 +566,41 @@
         };
         
         try {
+          // localStorage에 저장
           localStorage.setItem('request-' + reqNum, JSON.stringify(reqData));
           sessionStorage.setItem('request', JSON.stringify({...reqData, reqNum}));
+          
+          // Firestore에 의뢰 정보 저장 (관리자 대시보드용)
+          if (window.firestore) {
+            const requestData = {
+              title: name,
+              description: desc,
+              url: urls,
+              images: imgArr,
+              email: email,
+              phone: phone,
+              price: price,
+              userName: userName,
+              requestNumber: reqNum,
+              status: 'pending',
+              priority: 'normal',
+              createdAt: new Date(),
+              updatedAt: new Date(),
+              progress: 10,
+              estimatedTime: '2-3일 내 완료 예정'
+            };
+            
+            window.firestore.collection('requests').add(requestData)
+              .then(() => {
+                console.log('✅ 의뢰 정보가 Firestore에 저장되었습니다.');
+              })
+              .catch((error) => {
+                console.error('❌ Firestore 저장 실패:', error);
+              });
+          } else {
+            console.warn('⚠️ Firestore가 초기화되지 않아 의뢰 정보를 저장할 수 없습니다.');
+          }
+          
           document.getElementById('submit-success').classList.remove('hidden');
           
           // 포인트 지급 (의뢰 접수 시)
