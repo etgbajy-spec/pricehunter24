@@ -6,7 +6,7 @@ const port = 8000;
 // 정적 파일 제공
 app.use(express.static(__dirname));
 
-// CSP 헤더 설정 - Firebase 및 Google 도메인 완전 허용
+// CSP 헤더 설정 - Firebase 및 Google 도메인 완전 허용 (개선된 버전)
 app.use((req, res, next) => {
   res.setHeader(
     'Content-Security-Policy',
@@ -14,6 +14,7 @@ app.use((req, res, next) => {
     "script-src 'self' 'unsafe-inline' 'unsafe-eval' " +
     "https://www.gstatic.com " +
     "https://www.gstatic.com/firebasejs " +
+    "https://www.gstatic.com/firebasejs/ " +
     "https://apis.google.com " +
     "https://www.google.com " +
     "https://developers.kakao.com " +
@@ -21,7 +22,17 @@ app.use((req, res, next) => {
     "https://cdn.tailwindcss.com " +
     "https://unpkg.com " +
     "https://cdn.jsdelivr.net " +
-    "https://cdnjs.cloudflare.com; " +
+    "https://cdnjs.cloudflare.com " +
+    "https://*.gstatic.com " +
+    "https://*.googleapis.com; " +
+    "script-src-elem 'self' 'unsafe-inline' " +
+    "https://www.gstatic.com " +
+    "https://www.gstatic.com/firebasejs " +
+    "https://www.gstatic.com/firebasejs/ " +
+    "https://developers.kakao.com " +
+    "https://t1.kakaocdn.net " +
+    "https://cdn.tailwindcss.com " +
+    "https://*.gstatic.com; " +
     "style-src 'self' 'unsafe-inline' " +
     "https://cdn.tailwindcss.com " +
     "https://fonts.googleapis.com; " +
@@ -29,6 +40,7 @@ app.use((req, res, next) => {
     "https://fonts.gstatic.com; " +
     "img-src 'self' data: blob: " +
     "https://www.gstatic.com " +
+    "https://*.gstatic.com " +
     "https:; " +
     "connect-src 'self' " +
     "https://firestore.googleapis.com " +
@@ -38,6 +50,7 @@ app.use((req, res, next) => {
     "https://content-firebaseappcheck.googleapis.com " +
     "https://www.googleapis.com " +
     "https://*.firebaseio.com " +
+    "https://*.googleapis.com " +
     "wss://*.firebaseio.com; " +
     "frame-src 'self' " +
     "https://www.google.com " +
