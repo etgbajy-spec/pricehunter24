@@ -106,16 +106,16 @@
             waitForFirebaseAndInitialize();
         });
         
-        // Firebase SDK 로딩 대기 함수 (개선된 버전)
+        // Firebase SDK 로딩 대기 함수 (단순화된 버전)
         function waitForFirebaseAndInitialize() {
-            const maxAttempts = 15; // 15초 대기 (CSP 환경에서 더 여유있게)
+            const maxAttempts = 8; // 8초 대기
             let attempts = 0;
             
             const checkFirebase = () => {
                 attempts++;
                 console.log(`🔍 Firebase SDK 확인 시도 ${attempts}/${maxAttempts}`);
                 
-                // Firebase SDK 로드 확인 (더 엄격한 검증)
+                // Firebase SDK 완전 로드 확인
                 if (typeof firebase !== 'undefined' && 
                     firebase.apps !== undefined && 
                     firebase.auth !== undefined && 
@@ -123,7 +123,6 @@
                     
                     console.log('✅ Firebase SDK 완전 로드됨');
                     console.log('Firebase 버전:', firebase.SDK_VERSION);
-                    console.log('Firebase 앱 수:', firebase.apps.length);
                     
                     // Firebase 초기화 시도
                     try {
@@ -133,7 +132,7 @@
                             setupAdminDashboard();
                         } else {
                             console.error('❌ Firebase 초기화 실패');
-                            showFirebaseError('Firebase 초기화에 실패했습니다. 서버 CSP 헤더를 확인해주세요.');
+                            showFirebaseError('Firebase 초기화에 실패했습니다. Netlify CSP 헤더를 확인해주세요.');
                         }
                     } catch (error) {
                         console.error('❌ Firebase 초기화 중 오류:', error);
@@ -141,17 +140,10 @@
                     }
                 } else if (attempts < maxAttempts) {
                     console.log('⏳ Firebase SDK 로딩 대기 중...');
-                    console.log('현재 상태:', {
-                        firebase: typeof firebase,
-                        apps: typeof firebase !== 'undefined' ? firebase.apps : 'undefined',
-                        auth: typeof firebase !== 'undefined' ? typeof firebase.auth : 'undefined',
-                        firestore: typeof firebase !== 'undefined' ? typeof firebase.firestore : 'undefined'
-                    });
                     setTimeout(checkFirebase, 1000);
                 } else {
                     console.error('❌ Firebase SDK 로딩 시간 초과');
-                    console.error('🔒 CSP 관련 문제일 가능성이 높습니다.');
-                    showFirebaseError('Firebase SDK 로딩 시간이 초과되었습니다.\n\n서버 CSP 정책에서 다음 도메인들이 허용되어야 합니다:\n- https://www.gstatic.com\n- https://www.gstatic.com/firebasejs\n\n브라우저 DevTools → Network → Response Headers에서 CSP를 확인하세요.');
+                    showFirebaseError('Firebase SDK 로딩 시간이 초과되었습니다.\n\nNetlify CSP 정책에서 다음 도메인들이 허용되어야 합니다:\n- https://www.gstatic.com\n- https://www.gstatic.com/firebasejs\n\nnetlify.toml 파일의 CSP 설정을 확인하세요.');
                 }
             };
             
@@ -374,9 +366,71 @@
             }
         };
         
-        // 캐시 및 서비스워커 정리 함수 (CSP 최적화)
+        // CSP 헤더 확인 함수
+        window.checkCSPHeaders = function() {
+            console.log('🔍 CSP 헤더 확인 시작...');
+            
+            // 현재 페이지의 Response Headers 확인
+            fetch(window.location.href, { method: 'HEAD' })
+                .then(response => {
+                    const cspHeader = response.headers.get('content-security-policy');
+                    const serverHeader = response.headers.get('server');
+                    const cfRay = response.headers.get('cf-ray');
+                    const xVercelId = response.headers.get('x-vercel-id');
+                    const xCloudTrace = response.headers.get('x-cloud-trace-context');
+                    
+                    console.log('📋 Response Headers 분석:');
+                    console.log('Server:', serverHeader);
+                    console.log('CF-Ray:', cfRay);
+                    console.log('X-Vercel-ID:', xVercelId);
+                    console.log('X-Cloud-Trace:', xCloudTrace);
+                    console.log('CSP Header:', cspHeader);
+                    
+                    // CSP 주입 주체 판별
+                    let cspSource = 'Unknown';
+                    if (cfRay || response.headers.get('cf-cache-status')) {
+                        cspSource = 'Cloudflare';
+                    } else if (serverHeader && serverHeader.includes('nginx')) {
+                        cspSource = 'Nginx';
+                    } else if (serverHeader && serverHeader.includes('apache')) {
+                        cspSource = 'Apache';
+                    } else if (xVercelId) {
+                        cspSource = 'Vercel';
+                    } else if (serverHeader && serverHeader.includes('Firebase')) {
+                        cspSource = 'Firebase Hosting';
+                    }
+                    
+                    // Firebase 도메인 포함 여부 확인
+                    const hasFirebaseDomains = cspHeader && (
+                        cspHeader.includes('www.gstatic.com') || 
+                        cspHeader.includes('www.gstatic.com/firebasejs')
+                    );
+                    
+                    const result = `
+🔍 CSP 헤더 분석 결과:
+
+📡 CSP 주입 주체: ${cspSource}
+🔒 CSP 헤더 존재: ${cspHeader ? 'Yes' : 'No'}
+🔥 Firebase 도메인 포함: ${hasFirebaseDomains ? 'Yes' : 'No'}
+
+${cspHeader ? `📋 현재 CSP 정책:
+${cspHeader.substring(0, 200)}...` : '❌ CSP 헤더가 없습니다.'}
+
+${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았습니다!' : '✅ Firebase 도메인이 CSP에 포함되어 있습니다.'}
+                    `;
+                    
+                    alert(result);
+                    console.log('CSP 분석 완료:', result);
+                })
+                .catch(error => {
+                    console.error('❌ CSP 헤더 확인 실패:', error);
+                    alert('❌ CSP 헤더 확인에 실패했습니다.\n\n브라우저 DevTools → Network → Response Headers를 직접 확인하세요.');
+                });
+        };
+        
+        // 캐시 및 서비스워커 정리 함수 (CSP 완전 정리)
         window.clearCacheAndReload = function() {
-            console.log('🧹 캐시 및 서비스워커 정리 시작...');
+            console.log('🧹 캐시 및 서비스워커 완전 정리 시작...');
             
             let cleanupPromises = [];
             
@@ -414,15 +468,37 @@
                 console.log('⚠️ 스토리지 정리 중 오류:', e);
             }
             
+            // IndexedDB 정리
+            if ('indexedDB' in window) {
+                try {
+                    indexedDB.databases().then(databases => {
+                        databases.forEach(db => {
+                            indexedDB.deleteDatabase(db.name);
+                            console.log('🗑️ IndexedDB 삭제:', db.name);
+                        });
+                    });
+                } catch (e) {
+                    console.log('⚠️ IndexedDB 정리 중 오류:', e);
+                }
+            }
+            
             // 모든 정리 작업 완료 후 새로고침
             Promise.all(cleanupPromises).then(() => {
                 console.log('✅ 모든 캐시 정리 완료');
-                // 강제 새로고침 (캐시 무시)
-                window.location.href = window.location.href + '?v=' + Date.now();
+                // 강제 새로고침 (캐시 무시 + 타임스탬프)
+                const timestamp = Date.now();
+                const url = new URL(window.location);
+                url.searchParams.set('v', timestamp);
+                url.searchParams.set('cache', 'clear');
+                window.location.href = url.toString();
             }).catch(error => {
                 console.error('❌ 캐시 정리 중 오류:', error);
                 // 오류가 있어도 새로고침
-                window.location.href = window.location.href + '?v=' + Date.now();
+                const timestamp = Date.now();
+                const url = new URL(window.location);
+                url.searchParams.set('v', timestamp);
+                url.searchParams.set('cache', 'clear');
+                window.location.href = url.toString();
             });
         };
         
@@ -551,7 +627,7 @@
                 <div id="dashboard-section" class="section-content p-8">
                     <div class="flex justify-between items-center mb-6">
                         <h2 class="text-2xl font-bold text-gray-800">📊 대시보드</h2>
-                        <div class="flex gap-2">
+                        <div class="flex gap-2 flex-wrap">
                             <button onclick="goToPage('index.html')" class="px-4 py-2 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition">
                                 🏠 메인페이지로
                             </button>
@@ -560,6 +636,9 @@
                             </button>
                             <button onclick="testFirebaseConnection()" class="px-4 py-2 bg-purple-500 text-white rounded-lg font-semibold hover:bg-purple-600 transition">
                                 🔥 Firebase 연결 테스트
+                            </button>
+                            <button onclick="checkCSPHeaders()" class="px-4 py-2 bg-indigo-500 text-white rounded-lg font-semibold hover:bg-indigo-600 transition">
+                                🔍 CSP 헤더 확인
                             </button>
                             <button onclick="clearCacheAndReload()" class="px-4 py-2 bg-orange-500 text-white rounded-lg font-semibold hover:bg-orange-600 transition">
                                 🧹 캐시 정리 & 새로고침

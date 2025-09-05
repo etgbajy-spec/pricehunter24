@@ -8,10 +8,10 @@ app.use(express.static(__dirname));
 
 // CSP 헤더 설정 - Firebase 완전 지원 정책
 app.use((req, res, next) => {
-  // Firebase 8.x SDK 완전 지원 CSP 정책
+  // Firebase 8.x SDK 완전 지원 CSP 정책 (정확한 정책)
   const cspPolicy = [
     "default-src 'self'",
-    // Firebase 스크립트 허용 (script-src와 script-src-elem 동일하게 설정)
+    // Firebase 스크립트 허용 (script-src와 script-src-elem 동일하게 설정 - 필수!)
     "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com https://www.gstatic.com/firebasejs https://cdn.tailwindcss.com",
     "script-src-elem 'self' 'unsafe-inline' https://www.gstatic.com https://www.gstatic.com/firebasejs https://cdn.tailwindcss.com",
     // 스타일 허용
