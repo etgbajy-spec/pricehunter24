@@ -17,40 +17,39 @@ service cloud.firestore {
       return request.auth != null;
     }
     
+    // 회원 컬렉션: 문서ID = uid
+    match /members/{uid} {
+      // 본인은 읽기/생성/부분 업데이트 가능
+      allow read, create: if isAuthenticated() && request.auth.uid == uid;
+      allow update: if isAuthenticated() && request.auth.uid == uid && 
+                   !('role' in request.resource.data.diff(resource.data).affectedKeys()) &&
+                   !('status' in request.resource.data.diff(resource.data).affectedKeys());
+      // 관리자는 모든 작업 가능
+      allow read, write: if isAdmin();
+    }
+    
     // 의뢰 컬렉션
     match /requests/{requestId} {
-      // 읽기: 로그인 사용자만
-      allow read: if isAuthenticated();
-      
-      // 쓰기: 관리자만
-      allow write: if isAdmin();
-      
-      // 삭제: 관리자만
-      allow delete: if isAdmin();
+      // 로그인한 사용자는 생성 가능
+      allow create: if isAuthenticated();
+      // 본인이 작성한 것 또는 관리자는 읽기 가능
+      allow read: if isAuthenticated() && 
+                  (resource.data.createdBy == request.auth.uid || isAdmin());
+      // 작성자 또는 관리자는 업데이트/삭제 가능
+      allow update, delete: if isAuthenticated() && 
+                           (resource.data.createdBy == request.auth.uid || isAdmin());
     }
     
     // 문의 컬렉션
     match /inquiries/{inquiryId} {
-      // 읽기: 로그인 사용자만
-      allow read: if isAuthenticated();
-      
-      // 쓰기: 관리자만
-      allow write: if isAdmin();
-      
-      // 삭제: 관리자만
-      allow delete: if isAdmin();
-    }
-    
-    // 회원 컬렉션
-    match /members/{memberId} {
-      // 읽기: 로그인 사용자만
-      allow read: if isAuthenticated();
-      
-      // 쓰기: 관리자만
-      allow write: if isAdmin();
-      
-      // 삭제: 관리자만
-      allow delete: if isAdmin();
+      // 로그인한 사용자는 생성 가능
+      allow create: if isAuthenticated();
+      // 본인이 작성한 것 또는 관리자는 읽기 가능
+      allow read: if isAuthenticated() && 
+                  (resource.data.createdBy == request.auth.uid || isAdmin());
+      // 작성자 또는 관리자는 업데이트/삭제 가능
+      allow update, delete: if isAuthenticated() && 
+                           (resource.data.createdBy == request.auth.uid || isAdmin());
     }
     
     // 관리자 컬렉션

@@ -537,137 +537,145 @@
             console.log('✅ 실시간 리스너 설정 완료');
         }
 
-        // 의뢰 데이터 실시간 감시
+        // 의뢰 리스너 설정
         function setupRequestsListener() {
-            const requestsRef = window.firestore.collection('requests')
+            if (!window.firestore) {
+                console.warn('⚠️ Firestore가 초기화되지 않았습니다.');
+                return;
+            }
+
+            window.firestore.collection('requests')
                 .orderBy('createdAt', 'desc')
-                .limit(100);
-            
-            requestsRef.onSnapshot((snapshot) => {
-                console.log('📋 의뢰 데이터 업데이트:', snapshot.size, '개');
-                
-                const requests = [];
-                let totalRequests = 0;
-                let completedRequests = 0;
-                
-                snapshot.forEach((doc) => {
-                    const data = doc.data();
-                    requests.push({
-                        id: doc.id,
-                        ...data,
-                        createdAt: data.createdAt?.toDate?.() || new Date(data.createdAt)
+                .limit(100)
+                .onSnapshot((snapshot) => {
+                    console.log(`📋 의뢰 데이터 수신: ${snapshot.size}개 문서`);
+                    
+                    const requests = [];
+                    snapshot.forEach((doc) => {
+                        const data = doc.data();
+                        requests.push({
+                            id: doc.id,
+                            ...data,
+                            createdAt: data.createdAt?.toDate?.() || new Date(),
+                            updatedAt: data.updatedAt?.toDate?.() || new Date()
+                        });
                     });
                     
-                    totalRequests++;
-                    if (data.status === 'done') {
-                        completedRequests++;
-                    }
+                    updateRequestsTable(requests);
+                    updateRequestStats(requests);
+                    updateRecentRequests(requests.slice(0, 5));
+                }, (error) => {
+                    console.error('❌ 의뢰 리스너 오류:', error);
                 });
-                
-                // 통계 업데이트
-                updateRequestStats(totalRequests, completedRequests);
-                
-                // 최근 의뢰 목록 업데이트
-                updateRecentRequests(requests.slice(0, 5));
-                
-                // 의뢰 관리 섹션 업데이트
-                updateRequestsTable(requests);
-                
-            }, (error) => {
-                console.error('❌ 의뢰 데이터 리스너 오류:', error);
-            });
         }
 
-        // 문의 데이터 실시간 감시
+        // 문의 리스너 설정
         function setupInquiriesListener() {
-            const inquiriesRef = window.firestore.collection('inquiries')
+            if (!window.firestore) {
+                console.warn('⚠️ Firestore가 초기화되지 않았습니다.');
+                return;
+            }
+
+            window.firestore.collection('inquiries')
                 .orderBy('createdAt', 'desc')
-                .limit(100);
-            
-            inquiriesRef.onSnapshot((snapshot) => {
-                console.log('💬 문의 데이터 업데이트:', snapshot.size, '개');
-                
-                const inquiries = [];
-                let pendingInquiries = 0;
-                
-                snapshot.forEach((doc) => {
-                    const data = doc.data();
-                    inquiries.push({
-                        id: doc.id,
-                        ...data,
-                        createdAt: data.createdAt?.toDate?.() || new Date(data.createdAt)
+                .limit(100)
+                .onSnapshot((snapshot) => {
+                    console.log(`💬 문의 데이터 수신: ${snapshot.size}개 문서`);
+                    
+                    const inquiries = [];
+                    snapshot.forEach((doc) => {
+                        const data = doc.data();
+                        inquiries.push({
+                            id: doc.id,
+                            ...data,
+                            createdAt: data.createdAt?.toDate?.() || new Date(),
+                            updatedAt: data.updatedAt?.toDate?.() || new Date()
+                        });
                     });
                     
-                    if (data.status === 'new') {
-                        pendingInquiries++;
-                    }
+                    updateInquiriesTable(inquiries);
+                    updateInquiryStats(inquiries);
+                    updateRecentInquiries(inquiries.slice(0, 5));
+                }, (error) => {
+                    console.error('❌ 문의 리스너 오류:', error);
                 });
-                
-                // 통계 업데이트
-                updateInquiryStats(pendingInquiries);
-                
-                // 최근 문의 목록 업데이트
-                updateRecentInquiries(inquiries.slice(0, 5));
-                
-                // 문의 관리 섹션 업데이트
-                updateInquiriesTable(inquiries);
-                
-            }, (error) => {
-                console.error('❌ 문의 데이터 리스너 오류:', error);
-            });
         }
 
-        // 회원 데이터 실시간 감시
+        // 회원 리스너 설정
         function setupMembersListener() {
-            const membersRef = window.firestore.collection('members')
+            if (!window.firestore) {
+                console.warn('⚠️ Firestore가 초기화되지 않았습니다.');
+                return;
+            }
+
+            window.firestore.collection('members')
                 .orderBy('createdAt', 'desc')
-                .limit(100);
-            
-            membersRef.onSnapshot((snapshot) => {
-                console.log('👥 회원 데이터 업데이트:', snapshot.size, '개');
-                
-                const members = [];
-                let totalMembers = 0;
-                
-                snapshot.forEach((doc) => {
-                    const data = doc.data();
-                    members.push({
-                        id: doc.id,
-                        ...data,
-                        createdAt: data.createdAt?.toDate?.() || new Date(data.createdAt)
+                .limit(100)
+                .onSnapshot((snapshot) => {
+                    console.log(`👥 회원 데이터 수신: ${snapshot.size}개 문서`);
+                    
+                    const members = [];
+                    snapshot.forEach((doc) => {
+                        const data = doc.data();
+                        members.push({
+                            id: doc.id,
+                            ...data,
+                            createdAt: data.createdAt?.toDate?.() || new Date(),
+                            updatedAt: data.updatedAt?.toDate?.() || new Date()
+                        });
                     });
                     
-                    totalMembers++;
+                    updateMembersTable(members);
+                    updateMemberStats(members);
+                }, (error) => {
+                    console.error('❌ 회원 리스너 오류:', error);
                 });
-                
-                // 통계 업데이트
-                updateMemberStats(totalMembers);
-                
-                // 회원 관리 섹션 업데이트
-                updateMembersTable(members);
-                
-            }, (error) => {
-                console.error('❌ 회원 데이터 리스너 오류:', error);
-            });
         }
+
+
+
 
         // 통계 업데이트 함수들
-        function updateRequestStats(total, completed) {
+        function updateRequestStats(requests) {
+            const total = requests.length;
+            const completed = requests.filter(r => r.status === 'done').length;
+            const pending = requests.filter(r => r.status === 'pending').length;
+            
             const totalElement = document.getElementById('total-requests');
             const completedElement = document.getElementById('completed-requests');
+            const pendingElement = document.getElementById('pending-requests');
             
             if (totalElement) totalElement.textContent = total;
             if (completedElement) completedElement.textContent = completed;
-        }
-
-        function updateInquiryStats(pending) {
-            const pendingElement = document.getElementById('pending-inquiries');
             if (pendingElement) pendingElement.textContent = pending;
         }
 
-        function updateMemberStats(total) {
-            const totalElement = document.getElementById('total-members');
+        function updateInquiryStats(inquiries) {
+            const total = inquiries.length;
+            const pending = inquiries.filter(i => i.status === 'new').length;
+            const answered = inquiries.filter(i => i.status === 'answered').length;
+            
+            const totalElement = document.getElementById('total-inquiries');
+            const pendingElement = document.getElementById('pending-inquiries');
+            const answeredElement = document.getElementById('answered-inquiries');
+            
             if (totalElement) totalElement.textContent = total;
+            if (pendingElement) pendingElement.textContent = pending;
+            if (answeredElement) answeredElement.textContent = answered;
+        }
+
+        function updateMemberStats(members) {
+            const total = members.length;
+            const active = members.filter(m => m.status === 'active').length;
+            const blocked = members.filter(m => m.status === 'blocked').length;
+            
+            const totalElement = document.getElementById('total-members');
+            const activeElement = document.getElementById('active-members');
+            const blockedElement = document.getElementById('blocked-members');
+            
+            if (totalElement) totalElement.textContent = total;
+            if (activeElement) activeElement.textContent = active;
+            if (blockedElement) blockedElement.textContent = blocked;
         }
 
         // 최근 활동 업데이트 함수들

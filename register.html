@@ -13,6 +13,14 @@
   <!-- 로컬 CSS 파일 사용 -->
   <link rel="stylesheet" href="styles.css">
   
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+  
+  <!-- Firebase 설정 -->
+  <script src="firebase-config.js"></script>
+  
   <style>
     /* 텍스트 선택 허용 */
     body {
@@ -512,13 +520,7 @@
 
     // 환경별 redirect_uri 설정
     function setKakaoRedirectUri() {
-      const isLocal = window.location.protocol === 'file:' || 
-                     window.location.hostname === 'localhost' || 
-                     window.location.hostname === '127.0.0.1';
-      
-      if (isLocal) {
-        KAKAO_CONFIG.redirectUri = window.location.href;
-      } else if (window.location.hostname === 'pricehunt24.com') {
+      if (window.location.hostname === 'pricehunt24.com') {
         // 정확한 URL 설정 (프로토콜, 도메인, 경로 모두 포함)
         KAKAO_CONFIG.redirectUri = 'https://pricehunt24.com/register.html';
       } else {
@@ -551,13 +553,7 @@
 
          // 환경 감지
      function detectEnvironment() {
-       const isLocal = window.location.protocol === 'file:' || 
-                      window.location.hostname === 'localhost' || 
-                      window.location.hostname === '127.0.0.1';
-       
-       if (isLocal) {
-         updateEnvironmentStatus('🔄 로컬 환경 - 카카오 로그인 시뮬레이션 모드', 'orange');
-       } else if (window.location.hostname === 'pricehunt24.com') {
+       if (window.location.hostname === 'pricehunt24.com') {
          updateEnvironmentStatus('✅ 프로덕션 환경 - 카카오 로그인 활성화', 'green');
        } else {
          updateEnvironmentStatus('✅ 카카오 로그인 활성화', 'green');
@@ -566,29 +562,6 @@
 
     
 
-    // 로컬 환경용 카카오 로그인 시뮬레이션
-    function simulateKakaoLogin() {
-      console.log('카카오 로그인 시뮬레이션 시작...');
-      
-      const button = document.getElementById('kakao-login');
-      const originalText = button.innerHTML;
-      button.innerHTML = '<svg class="animate-spin w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>로그인 중...';
-      button.disabled = true;
-      
-      setTimeout(() => {
-        const mockUser = {
-          id: 'kakao_' + Date.now(),
-          name: '테스트 사용자',
-          email: 'test@kakao.com',
-          profileImage: '',
-          loginType: 'kakao'
-        };
-        
-        button.innerHTML = originalText;
-        button.disabled = false;
-        showKakaoTermsAgreement(mockUser);
-      }, 2000);
-    }
 
          // 중복 가입 체크 함수
      function checkDuplicateSignup(email) {
@@ -730,45 +703,50 @@
         const tokenData = await tokenResponse.json();
         console.log('액세스 토큰 획득:', tokenData);
 
-        // 사용자 정보 요청
-        const userResponse = await fetch('https://kapi.kakao.com/v2/user/me', {
+        // Netlify Function으로 커스텀토큰 요청
+        const exchangeResponse = await fetch('/.netlify/functions/kakao-exchange', {
+          method: 'POST',
           headers: {
-            'Authorization': 'Bearer ' + tokenData.access_token
-          }
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            accessToken: tokenData.access_token
+          })
         });
 
-        if (!userResponse.ok) {
-          throw new Error('사용자 정보 요청 실패: ' + userResponse.status);
+        if (!exchangeResponse.ok) {
+          throw new Error('커스텀토큰 요청 실패: ' + exchangeResponse.status);
         }
 
-        const userData = await userResponse.json();
-        console.log('사용자 정보:', userData);
+        const exchangeData = await exchangeResponse.json();
+        console.log('커스텀토큰 획득:', exchangeData);
 
-                 const user = {
-           id: userData.id,
-           name: userData.properties?.nickname || '카카오 사용자',
-           email: userData.kakao_account?.email || 'kakao@user.com',
-           profileImage: userData.properties?.profile_image || '',
-           loginType: 'kakao'
-         };
+        if (!exchangeData.success || !exchangeData.token) {
+          throw new Error('커스텀토큰 획득 실패');
+        }
 
-         // 중복 가입 체크
-         const duplicateCheck = checkDuplicateSignup(user.email);
-         if (duplicateCheck.isDuplicate) {
-           console.log('중복 가입 감지:', duplicateCheck.message);
-           alert(duplicateCheck.message);
-           
-           // 기존 사용자 정보로 로그인 처리
-           localStorage.setItem('user', JSON.stringify(duplicateCheck.user));
-           localStorage.setItem('loggedIn', 'true');
-           
-           // 로그인 페이지로 이동
-           window.location.replace('index.html');
-           return;
-         }
+        // Firebase 커스텀토큰으로 로그인
+        const userCredential = await window.auth.signInWithCustomToken(exchangeData.token);
+        const user = userCredential.user;
+        
+        console.log('Firebase 로그인 성공:', user);
 
-         // 약관 동의 모달 표시
-         showKakaoTermsAgreement(user);
+        // 사용자 정보를 localStorage에 저장 (기존 호환성)
+        const userInfo = {
+          uid: user.uid,
+          email: user.email,
+          name: exchangeData.user.name,
+          provider: 'kakao',
+          profileImage: '',
+          loginType: 'kakao'
+        };
+
+        localStorage.setItem('user', JSON.stringify(userInfo));
+        localStorage.setItem('loggedIn', 'true');
+
+        // 성공 메시지 및 리다이렉트
+        alert('카카오톡으로 로그인되었습니다!');
+        window.location.replace('index.html');
 
       } catch (error) {
         console.error('카카오 인증 처리 실패:', error);
@@ -783,143 +761,6 @@
       }
     }
 
-    // 카카오 약관 동의 모달
-    function showKakaoTermsAgreement(user) {
-      const modal = document.createElement('div');
-      modal.id = 'kakao-terms-modal';
-      modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4';
-      
-      modal.innerHTML = `
-        <div class="bg-white rounded-2xl p-8 max-w-md mx-4 text-center">
-          <div class="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg class="w-8 h-8 text-yellow-600" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 3c5.799 0 10.5 3.664 10.5 8.185 0 4.52-4.701 8.184-10.5 8.184a13.5 13.5 0 0 1-1.727-.11l-4.408 2.883c-.501.265-.678.236-.472-.413l.892-3.678c-2.88-1.46-4.785-3.99-4.785-6.866C1.5 6.665 6.201 3 12 3z"/>
-            </svg>
-          </div>
-          <h3 class="text-xl font-bold text-gray-800 mb-4">카카오톡 간편가입</h3>
-          <p class="text-gray-600 mb-6">PriceHunter 서비스 이용을 위한 약관 동의가 필요합니다.</p>
-          <div class="space-y-4 mb-6">
-            <div class="flex items-center gap-3">
-              <input type="checkbox" id="kakao-agree-terms" class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" required />
-              <label for="kakao-agree-terms" class="text-gray-700">이용약관 동의 (필수)</label>
-              <button type="button" onclick="openTermsModal()" class="text-blue-600 hover:text-blue-800 text-sm underline">보기</button>
-            </div>
-            <div class="flex items-center gap-3">
-              <input type="checkbox" id="kakao-agree-privacy" class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" required />
-              <label for="kakao-agree-privacy" class="text-gray-700">개인정보처리방침 동의 (필수)</label>
-              <button type="button" onclick="openPrivacyModal()" class="text-blue-600 hover:text-blue-800 text-sm underline">보기</button>
-            </div>
-            <div class="flex items-center gap-3">
-              <input type="checkbox" id="kakao-agree-marketing" class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" />
-              <label for="kakao-agree-marketing" class="text-gray-700">마케팅 정보 수신 동의 (선택)</label>
-            </div>
-          </div>
-          <div class="flex gap-3">
-            <button onclick="closeKakaoTermsModal()" class="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 py-3 px-6 rounded-lg font-semibold transition">취소</button>
-            <button onclick="completeKakaoSignup()" id="kakao-signup-btn" disabled class="flex-1 bg-yellow-400 hover:bg-yellow-500 disabled:bg-gray-400 disabled:cursor-not-allowed text-gray-800 py-3 px-6 rounded-lg font-semibold transition">가입 완료</button>
-          </div>
-        </div>
-      `;
-      
-      document.body.appendChild(modal);
-      
-      // 체크박스 이벤트 리스너
-      setTimeout(() => {
-        const agreeTerms = document.getElementById('kakao-agree-terms');
-        const agreePrivacy = document.getElementById('kakao-agree-privacy');
-        const agreeMarketing = document.getElementById('kakao-agree-marketing');
-        const signupBtn = document.getElementById('kakao-signup-btn');
-        
-        function updateSignupButton() {
-          const isRequiredChecked = agreeTerms.checked && agreePrivacy.checked;
-          signupBtn.disabled = !isRequiredChecked;
-        }
-        
-        [agreeTerms, agreePrivacy, agreeMarketing].forEach(checkbox => {
-          checkbox.addEventListener('change', updateSignupButton);
-        });
-      }, 100);
-      
-      // 전역 함수 등록
-      window.completeKakaoSignup = async function() {
-        const agreeTerms = document.getElementById('kakao-agree-terms');
-        const agreePrivacy = document.getElementById('kakao-agree-privacy');
-        const agreeMarketing = document.getElementById('kakao-agree-marketing');
-        
-        if (agreeTerms.checked && agreePrivacy.checked) {
-          const newUser = {
-            ...user,
-            joinDate: new Date().toISOString(),
-            points: 50,
-            termsAgreed: true,
-            privacyAgreed: true,
-            marketingAgreed: agreeMarketing.checked
-          };
-          
-          try {
-            // localStorage에 저장
-            localStorage.setItem('user', JSON.stringify(newUser));
-            localStorage.setItem('loggedIn', 'true');
-            
-            // 관리자 대시보드에서 확인할 수 있도록 kakao_ 키로도 저장
-            const kakaoKey = 'kakao_' + Date.now();
-            localStorage.setItem(kakaoKey, JSON.stringify(newUser));
-            
-            // Firestore에 회원 정보 저장 (관리자 대시보드용)
-            if (window.firestore) {
-              const memberData = {
-                name: newUser.name,
-                email: newUser.email,
-                provider: 'kakao',
-                profileImage: newUser.profileImage || '',
-                phone: newUser.phone || '',
-                role: 'member',
-                status: 'active',
-                createdAt: new Date(),
-                updatedAt: new Date(),
-                joinDate: new Date(newUser.joinDate),
-                termsAgreed: newUser.termsAgreed,
-                privacyAgreed: newUser.privacyAgreed,
-                marketingAgreed: newUser.marketingAgreed,
-                requestCount: 0
-              };
-              
-              await window.firestore.collection('members').add(memberData);
-              console.log('✅ 회원 정보가 Firestore에 저장되었습니다.');
-            } else {
-              console.warn('⚠️ Firestore가 초기화되지 않아 회원 정보를 저장할 수 없습니다.');
-            }
-            
-            // 포인트 적립
-            const pointsAdded = addPoints(newUser.email, 50, '카카오 회원가입 보너스');
-            
-            closeKakaoTermsModal();
-            if (pointsAdded) {
-              alert(`카카오톡으로 회원가입되었습니다! +50포인트 지급 완료!\n현재 포인트: ${getPoints(newUser.email)}P`);
-            } else {
-              alert('카카오톡으로 회원가입되었습니다! +50포인트 지급 중 오류가 발생했습니다.');
-            }
-            
-            // 페이지 이동 전 상태 정리 및 히스토리 정리
-            window.history.replaceState({}, document.title, window.location.pathname);
-            // index.html로 이동하면서 히스토리 정리
-            window.location.replace('index.html');
-            
-          } catch (error) {
-            console.error('❌ 회원가입 중 오류:', error);
-            alert('회원가입 중 오류가 발생했습니다. 다시 시도해주세요.');
-          }
-        } else {
-          alert('필수 약관에 동의해주세요.');
-        }
-      };
-      
-      window.closeKakaoTermsModal = function() {
-        if (document.getElementById('kakao-terms-modal')) {
-          document.body.removeChild(modal);
-        }
-      };
-    }
 
     // 약관 모달 열기/닫기
     function openTermsModal() {
@@ -947,6 +788,13 @@
       // 카카오 redirect_uri 설정
       setKakaoRedirectUri();
       
+      // Firebase 초기화
+      if (typeof initializeFirebase === 'function') {
+        initializeFirebase();
+      } else {
+        console.warn('⚠️ Firebase 초기화 함수를 찾을 수 없습니다.');
+      }
+      
       // 환경 감지
       detectEnvironment();
       
@@ -969,17 +817,8 @@
       
       // 카카오 로그인 버튼 이벤트
       document.getElementById('kakao-login').addEventListener('click', function() {
-        const isLocal = window.location.protocol === 'file:' || 
-                       window.location.hostname === 'localhost' || 
-                       window.location.hostname === '127.0.0.1';
-        
-        if (isLocal) {
-          console.log('로컬 환경 - 시뮬레이션 실행');
-          simulateKakaoLogin();
-        } else {
-          console.log('프로덕션 환경 - 실제 카카오 로그인 실행');
-          executeKakaoLogin();
-        }
+        console.log('카카오 로그인 실행');
+        executeKakaoLogin();
       });
 
       // 일반 회원가입 폼 표시

@@ -15,6 +15,14 @@
   </script>
   
   <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+  
+  <!-- Firebase 설정 -->
+  <script src="firebase-config.js"></script>
   <style>
     /* 텍스트 선택 허용 (드래그 가능) */
     body {
@@ -98,6 +106,13 @@
   <script>
     // 페이지 로드 시 로그인 체크
     document.addEventListener('DOMContentLoaded', function() {
+      // Firebase 초기화
+      if (typeof initializeFirebase === 'function') {
+        initializeFirebase();
+      } else {
+        console.warn('⚠️ Firebase 초기화 함수를 찾을 수 없습니다.');
+      }
+      
       checkLoginStatus();
     });
 
@@ -169,6 +184,13 @@
       const inquiryKey = 'inquiry-' + Date.now();
       localStorage.setItem(inquiryKey, JSON.stringify(inquiry));
       
+      // 로그인 체크
+      const currentUser = window.auth.currentUser;
+      if (!currentUser) {
+        alert('로그인이 필요합니다. 먼저 로그인해주세요.');
+        return;
+      }
+
       // Firestore에 문의 정보 저장 (관리자 대시보드용)
       if (window.firestore) {
         const inquiryData = {
@@ -178,6 +200,8 @@
           email: email,
           file: file,
           status: 'new',
+          createdBy: currentUser.uid,
+          createdByEmail: currentUser.email,
           createdAt: new Date(),
           updatedAt: new Date()
         };
@@ -188,9 +212,11 @@
           })
           .catch((error) => {
             console.error('❌ Firestore 저장 실패:', error);
+            alert('문의 저장에 실패했습니다: ' + error.message);
           });
       } else {
         console.warn('⚠️ Firestore가 초기화되지 않아 문의 정보를 저장할 수 없습니다.');
+        alert('시스템 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
       }
       
       document.getElementById('contact-success').classList.remove('hidden');

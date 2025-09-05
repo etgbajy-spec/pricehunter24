@@ -15,6 +15,14 @@
   </script>
   
   <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+  
+  <!-- Firebase 설정 -->
+  <script src="firebase-config.js"></script>
   <style>
     /* 텍스트 선택 허용 (드래그 가능) */
     body {
@@ -570,6 +578,13 @@
           localStorage.setItem('request-' + reqNum, JSON.stringify(reqData));
           sessionStorage.setItem('request', JSON.stringify({...reqData, reqNum}));
           
+          // 로그인 체크
+          const currentUser = window.auth.currentUser;
+          if (!currentUser) {
+            alert('로그인이 필요합니다. 먼저 로그인해주세요.');
+            return;
+          }
+
           // Firestore에 의뢰 정보 저장 (관리자 대시보드용)
           if (window.firestore) {
             const requestData = {
@@ -584,6 +599,8 @@
               requestNumber: reqNum,
               status: 'pending',
               priority: 'normal',
+              createdBy: currentUser.uid,
+              createdByEmail: currentUser.email,
               createdAt: new Date(),
               updatedAt: new Date(),
               progress: 10,
@@ -596,9 +613,11 @@
               })
               .catch((error) => {
                 console.error('❌ Firestore 저장 실패:', error);
+                alert('의뢰 저장에 실패했습니다: ' + error.message);
               });
           } else {
             console.warn('⚠️ Firestore가 초기화되지 않아 의뢰 정보를 저장할 수 없습니다.');
+            alert('시스템 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
           }
           
           document.getElementById('submit-success').classList.remove('hidden');
@@ -630,6 +649,13 @@
     });
     // 이메일 입력란 자동 채우기 및 읽기전용 처리
     window.addEventListener('DOMContentLoaded', function() {
+      // Firebase 초기화
+      if (typeof initializeFirebase === 'function') {
+        initializeFirebase();
+      } else {
+        console.warn('⚠️ Firebase 초기화 함수를 찾을 수 없습니다.');
+      }
+      
       var user = JSON.parse(localStorage.getItem('user') || 'null');
       var loggedIn = localStorage.getItem('loggedIn') === 'true';
       var emailInput = document.getElementById('userEmail');
