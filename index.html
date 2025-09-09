@@ -2048,15 +2048,13 @@
                          window.location.hostname === '127.0.0.1';
           
           if (isLocal) {
-            console.log('로컬 환경 감지 - 현재 URL 사용');
-            return window.location.href;
+            console.log('로컬 환경 감지 - localhost:8000 사용');
+            return 'http://localhost:8000/index.html';
           } else if (window.location.hostname === 'pricehunt24.com') {
             console.log('프로덕션 환경 감지 - HTTPS URL 사용');
-            // 정확한 URL 설정 (프로토콜, 도메인, 경로 모두 포함)
             return 'https://pricehunt24.com/index.html';
           } else {
             console.log('기타 환경 감지 - 현재 origin 사용');
-            // 다른 도메인인 경우 현재 URL 사용
             return window.location.origin + '/index.html';
           }
         }
