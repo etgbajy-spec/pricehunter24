@@ -14,8 +14,11 @@
     <meta http-equiv="Expires" content="0" />
     <meta name="cache-buster" content="v2.3-20241220" />
     <script>
-      // 강제 캐시 무효화
+      // 강제 캐시 무효화 및 디버깅
+      console.log('🚀 register.html v2.3 로드됨');
+      console.log('📍 현재 URL:', window.location.href);
       if (window.location.search.indexOf('v=') === -1) {
+        console.log('🔄 캐시 버스터 추가 중...');
         window.location.href = window.location.href + (window.location.search ? '&' : '?') + 'v=' + Date.now();
       }
     </script>
@@ -244,7 +247,7 @@
       // 카카오 로그인 설정 - 하드코딩으로 고정
      const KAKAO_CONFIG = {
        clientId: '6917a034b74fafd0ac80ab855af5ed6d',
-        redirectUri: 'https://pricehunt24.com/register.html', // 무조건 https로 고정
+        redirectUri: 'https://pricehunt24.com/register', // 무조건 https로 고정 (슬래시 제거)
        scope: 'profile_nickname,account_email,profile_image'
      };
 
@@ -747,7 +750,7 @@
           window.history.replaceState({}, document.title, cleanUrl);
           
           // 잠시 후 카카오 로그인 실행 (URL 정리 후)
-          setTimeout(() => {
+          setTimeout(function() {
             console.log('정리된 URL에서 카카오 로그인 실행');
             executeKakaoLogin();
           }, 100);
