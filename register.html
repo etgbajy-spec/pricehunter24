@@ -947,17 +947,13 @@
       
       // 카카오 로그인 버튼 이벤트
       document.getElementById('kakao-login').addEventListener('click', function() {
-        const isLocal = window.location.protocol === 'file:' || 
-                       window.location.hostname === 'localhost' || 
-                       window.location.hostname === '127.0.0.1';
+        console.log('카카오 로그인 버튼 클릭됨!');
+        console.log('현재 URL:', window.location.href);
+        console.log('현재 도메인:', window.location.hostname);
         
-        if (isLocal) {
-          console.log('로컬 환경 - 시뮬레이션 실행');
-          simulateKakaoLogin();
-        } else {
-          console.log('프로덕션 환경 - 실제 카카오 로그인 실행');
-          executeKakaoLogin();
-        }
+        // 항상 실제 카카오 로그인 실행
+        console.log('실제 카카오 로그인 실행');
+        executeKakaoLogin();
       });
 
       // 일반 회원가입 폼 표시
