@@ -512,20 +512,8 @@
 
     // 환경별 redirect_uri 설정
     function setKakaoRedirectUri() {
-      const isLocal = window.location.protocol === 'file:' || 
-                     window.location.hostname === 'localhost' || 
-                     window.location.hostname === '127.0.0.1';
-      
-      if (isLocal) {
-        KAKAO_CONFIG.redirectUri = window.location.href;
-      } else if (window.location.hostname === 'pricehunt24.com') {
-        // 정확한 URL 설정 (프로토콜, 도메인, 경로 모두 포함)
-        // 현재 페이지의 실제 URL을 사용 (register 또는 register.html)
-        KAKAO_CONFIG.redirectUri = window.location.origin + window.location.pathname;
-      } else {
-        // 다른 도메인인 경우 현재 URL 사용
-        KAKAO_CONFIG.redirectUri = window.location.origin + '/register.html';
-      }
+      // 항상 현재 페이지의 실제 URL을 사용 (가장 안전한 방법)
+      KAKAO_CONFIG.redirectUri = window.location.origin + window.location.pathname;
       
       console.log('카카오 redirect_uri 설정:', KAKAO_CONFIG.redirectUri);
       console.log('현재 페이지 URL:', window.location.href);
