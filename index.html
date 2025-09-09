@@ -2016,7 +2016,14 @@
             for (const key of keys) {
               if (key.startsWith('kakao_')) {
                 try {
-                  const kakaoUser = JSON.parse(localStorage.getItem(key));
+                  const storedData = localStorage.getItem(key);
+                  // JSON이 아닌 경우 건너뛰기
+                  if (!storedData || !storedData.startsWith('{')) {
+                    console.warn('kakao 사용자 데이터가 JSON 형식이 아님:', key, storedData);
+                    continue;
+                  }
+                  
+                  const kakaoUser = JSON.parse(storedData);
                   if (kakaoUser.email === email) {
                     console.log('카카오 사용자 중복 발견:', kakaoUser);
                     return {
@@ -2026,7 +2033,9 @@
                     };
                   }
                 } catch (e) {
-                  console.warn('kakao 사용자 데이터 파싱 실패:', e);
+                  console.warn('kakao 사용자 데이터 파싱 실패:', e, 'key:', key);
+                  // 잘못된 데이터 삭제
+                  localStorage.removeItem(key);
                 }
               }
             }
