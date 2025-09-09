@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firestore 데이터 확인 - PriceHunter</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        .container { max-width: 1000px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .section { margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background: #e8f5e8; border-color: #4caf50; }
+        .error { background: #ffebee; border-color: #f44336; }
+        .info { background: #e3f2fd; border-color: #2196f3; }
+        button { background: #2196f3; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; margin: 5px; }
+        button:hover { background: #1976d2; }
+        pre { background: #f5f5f5; padding: 10px; border-radius: 5px; overflow-x: auto; font-size: 12px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 8px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background-color: #f2f2f2; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Firestore 데이터 확인 도구</h1>
+        
+        <div id="results"></div>
+        
+        <div style="text-align: center; margin-top: 30px;">
+            <button onclick="checkFirestoreData()">Firestore 데이터 확인</button>
+            <button onclick="testKakaoLogin()">카카오 로그인 테스트</button>
+            <button onclick="clearResults()">결과 지우기</button>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="firebase-config.js"></script>
+
+    <script>
+        function addResult(title, content, type = 'info') {
+            const resultsDiv = document.getElementById('results');
+            const sectionDiv = document.createElement('div');
+            sectionDiv.className = `section ${type}`;
+            sectionDiv.innerHTML = `
+                <h3>${title}</h3>
+                <div>${content}</div>
+            `;
+            resultsDiv.appendChild(sectionDiv);
+        }
+
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+
+        async function checkFirestoreData() {
+            addResult('🔍 Firestore 데이터 확인 시작...', '데이터를 확인하는 중...', 'info');
+            
+            try {
+                // Firebase 초기화 확인
+                if (typeof firebase === 'undefined') {
+                    addResult('❌ Firebase SDK 오류', 'Firebase SDK가 로드되지 않았습니다.', 'error');
+                    return;
+                }
+
+                if (typeof initializeFirebase === 'undefined') {
+                    addResult('❌ Firebase 초기화 오류', 'initializeFirebase 함수가 없습니다.', 'error');
+                    return;
+                }
+
+                // Firebase 초기화
+                const initResult = initializeFirebase();
+                if (!initResult) {
+                    addResult('❌ Firebase 초기화 실패', 'Firebase 초기화에 실패했습니다.', 'error');
+                    return;
+                }
+
+                addResult('✅ Firebase 초기화 성공', 'Firebase가 정상적으로 초기화되었습니다.', 'success');
+
+                // Firestore 연결 테스트
+                if (!window.firestore) {
+                    addResult('❌ Firestore 연결 오류', 'Firestore가 초기화되지 않았습니다.', 'error');
+                    return;
+                }
+
+                addResult('✅ Firestore 연결 성공', 'Firestore가 정상적으로 연결되었습니다.', 'success');
+
+                // members 컬렉션 데이터 확인
+                const membersSnapshot = await window.firestore.collection('members').get();
+                const members = [];
+                membersSnapshot.forEach(doc => {
+                    members.push({
+                        id: doc.id,
+                        ...doc.data()
+                    });
+                });
+
+                addResult(`👥 Members 컬렉션 (${members.length}개)`, `
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>이메일</th>
+                                <th>이름</th>
+                                <th>Provider</th>
+                                <th>가입일</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${members.map(member => `
+                                <tr>
+                                    <td>${member.id}</td>
+                                    <td>${member.email || '-'}</td>
+                                    <td>${member.name || '-'}</td>
+                                    <td>${member.provider || '-'}</td>
+                                    <td>${member.createdAt ? new Date(member.createdAt.seconds * 1000).toLocaleString() : '-'}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `, members.length > 0 ? 'success' : 'error');
+
+                // requests 컬렉션 데이터 확인
+                const requestsSnapshot = await window.firestore.collection('requests').get();
+                const requests = [];
+                requestsSnapshot.forEach(doc => {
+                    requests.push({
+                        id: doc.id,
+                        ...doc.data()
+                    });
+                });
+
+                addResult(`📋 Requests 컬렉션 (${requests.length}개)`, `
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>제목</th>
+                                <th>이메일</th>
+                                <th>상태</th>
+                                <th>생성일</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${requests.map(request => `
+                                <tr>
+                                    <td>${request.id}</td>
+                                    <td>${request.title || '-'}</td>
+                                    <td>${request.email || '-'}</td>
+                                    <td>${request.status || '-'}</td>
+                                    <td>${request.createdAt ? new Date(request.createdAt.seconds * 1000).toLocaleString() : '-'}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `, requests.length > 0 ? 'success' : 'error');
+
+                // inquiries 컬렉션 데이터 확인
+                const inquiriesSnapshot = await window.firestore.collection('inquiries').get();
+                const inquiries = [];
+                inquiriesSnapshot.forEach(doc => {
+                    inquiries.push({
+                        id: doc.id,
+                        ...doc.data()
+                    });
+                });
+
+                addResult(`💬 Inquiries 컬렉션 (${inquiries.length}개)`, `
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>제목</th>
+                                <th>이메일</th>
+                                <th>상태</th>
+                                <th>생성일</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${inquiries.map(inquiry => `
+                                <tr>
+                                    <td>${inquiry.id}</td>
+                                    <td>${inquiry.title || '-'}</td>
+                                    <td>${inquiry.email || '-'}</td>
+                                    <td>${inquiry.status || '-'}</td>
+                                    <td>${inquiry.createdAt ? new Date(inquiry.createdAt.seconds * 1000).toLocaleString() : '-'}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `, inquiries.length > 0 ? 'success' : 'error');
+
+                // 전체 요약
+                const totalData = members.length + requests.length + inquiries.length;
+                addResult('📊 전체 데이터 요약', `
+                    <p><strong>총 데이터 개수:</strong> ${totalData}개</p>
+                    <p><strong>회원:</strong> ${members.length}명</p>
+                    <p><strong>의뢰:</strong> ${requests.length}개</p>
+                    <p><strong>문의:</strong> ${inquiries.length}개</p>
+                `, totalData > 0 ? 'success' : 'error');
+
+            } catch (error) {
+                addResult('❌ 오류 발생', `
+                    <p><strong>오류 메시지:</strong> ${error.message}</p>
+                    <p><strong>오류 코드:</strong> ${error.code || 'N/A'}</p>
+                    <pre>${error.stack}</pre>
+                `, 'error');
+            }
+        }
+
+        async function testKakaoLogin() {
+            addResult('🔍 카카오 로그인 테스트 시작...', '카카오 로그인을 테스트합니다.', 'info');
+            
+            try {
+                // 카카오 로그인 URL 생성
+                const clientId = '6917a034b74fafd0ac80ab855af5ed6d';
+                const redirectUri = window.location.origin + '/register.html';
+                const authUrl = `https://kauth.kakao.com/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=profile_nickname,account_email`;
+                
+                addResult('🔗 카카오 로그인 URL', `
+                    <p><strong>클라이언트 ID:</strong> ${clientId}</p>
+                    <p><strong>리다이렉트 URI:</strong> ${redirectUri}</p>
+                    <p><strong>인증 URL:</strong></p>
+                    <pre>${authUrl}</pre>
+                    <button onclick="window.open('${authUrl}', '_blank')">카카오 로그인 테스트</button>
+                `, 'info');
+
+                // Netlify Function 테스트
+                const testResponse = await fetch('/.netlify/functions/kakao-exchange', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        accessToken: 'test-token'
+                    })
+                });
+
+                addResult('🔧 Netlify Function 테스트', `
+                    <p><strong>응답 상태:</strong> ${testResponse.status}</p>
+                    <p><strong>응답 헤더:</strong></p>
+                    <pre>${JSON.stringify(Object.fromEntries(testResponse.headers.entries()), null, 2)}</pre>
+                `, testResponse.ok ? 'success' : 'error');
+
+            } catch (error) {
+                addResult('❌ 카카오 로그인 테스트 오류', `
+                    <p><strong>오류 메시지:</strong> ${error.message}</p>
+                    <pre>${error.stack}</pre>
+                `, 'error');
+            }
+        }
+
+        // 페이지 로드 시 자동 확인
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(checkFirestoreData, 1000);
+        });
+    </script>
+</body>
+</html>

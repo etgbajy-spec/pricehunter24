@@ -8,87 +8,57 @@
     
     <!-- CSP는 서버에서 설정됨 - HTML 메타는 제거하여 충돌 방지 -->
     
-    <!-- Tailwind CSS (개선된 로딩 방식) -->
-    <script>
-        // Tailwind CSS 동적 로딩
-        function loadTailwindCSS() {
-            return new Promise((resolve, reject) => {
-                const script = document.createElement('script');
-                script.src = 'https://cdn.tailwindcss.com';
-                script.onload = () => {
-                    console.log('✅ Tailwind CSS 로드됨');
-                    resolve();
-                };
-                script.onerror = (error) => {
-                    console.error('❌ Tailwind CSS 로드 실패:', error);
-                    // Tailwind 로드 실패 시 기본 스타일 적용
-                    applyFallbackStyles();
-                    reject(error);
-                };
-                document.head.appendChild(script);
-            });
-        }
-        
-        // Tailwind 로드 실패 시 대체 스타일
-        function applyFallbackStyles() {
-            const style = document.createElement('style');
-            style.textContent = `
-                body { font-family: system-ui, -apple-system, sans-serif; }
-                .bg-gradient-to-br { background: linear-gradient(135deg, #f3f4f6, #dbeafe, #d1fae5); }
-                .min-h-screen { min-height: 100vh; }
-                .flex { display: flex; }
-                .items-center { align-items: center; }
-                .justify-center { justify-content: center; }
-                .bg-white { background-color: white; }
-                .rounded-xl { border-radius: 0.75rem; }
-                .shadow-2xl { box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); }
-                .p-8 { padding: 2rem; }
-                .w-full { width: 100%; }
-                .max-w-md { max-width: 28rem; }
-                .text-center { text-align: center; }
-                .mb-8 { margin-bottom: 2rem; }
-                .text-3xl { font-size: 1.875rem; }
-                .font-bold { font-weight: 700; }
-                .text-pink-600 { color: #db2777; }
-                .text-gray-600 { color: #4b5563; }
-                .space-y-6 > * + * { margin-top: 1.5rem; }
-                .block { display: block; }
-                .text-sm { font-size: 0.875rem; }
-                .font-medium { font-weight: 500; }
-                .text-gray-700 { color: #374151; }
-                .mb-2 { margin-bottom: 0.5rem; }
-                .px-4 { padding-left: 1rem; padding-right: 1rem; }
-                .py-3 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
-                .border { border-width: 1px; }
-                .border-gray-300 { border-color: #d1d5db; }
-                .rounded-lg { border-radius: 0.5rem; }
-                .focus\\:ring-2:focus { box-shadow: 0 0 0 2px rgba(236, 72, 153, 0.5); }
-                .focus\\:ring-pink-400:focus { box-shadow: 0 0 0 2px rgba(244, 114, 182, 0.5); }
-                .focus\\:outline-none:focus { outline: none; }
-                .bg-gradient-to-r { background: linear-gradient(to right, #ec4899, #8b5cf6); }
-                .text-white { color: white; }
-                .hover\\:from-pink-600:hover { background: linear-gradient(to right, #db2777, #7c3aed); }
-                .hover\\:to-purple-600:hover { background: linear-gradient(to right, #ec4899, #7c3aed); }
-                .transition { transition: all 0.15s ease-in-out; }
-                .shadow-lg { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
-                .mt-6 { margin-top: 1.5rem; }
-                .text-pink-600 { color: #db2777; }
-                .hover\\:text-pink-700:hover { color: #be185d; }
-                .text-blue-600 { color: #2563eb; }
-                .hover\\:text-blue-700:hover { color: #1d4ed8; }
-                .text-xs { font-size: 0.75rem; }
-                .text-gray-500 { color: #6b7280; }
-                .mt-2 { margin-top: 0.5rem; }
-            `;
-            document.head.appendChild(style);
-            console.log('⚠️ Tailwind CSS 대체 스타일 적용됨');
-        }
-        
-        // Tailwind CSS 로딩 시작
-        loadTailwindCSS().catch(() => {
-            console.log('⚠️ Tailwind CSS 로딩 실패, 대체 스타일 사용');
-        });
-    </script>
+    <!-- Tailwind CSS (정적 로딩 - CSP 호환) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Tailwind CSS 로드 실패 시 대체 스타일 */
+        body { font-family: system-ui, -apple-system, sans-serif; }
+        .bg-gradient-to-br { background: linear-gradient(135deg, #f3f4f6, #dbeafe, #d1fae5); }
+        .min-h-screen { min-height: 100vh; }
+        .flex { display: flex; }
+        .items-center { align-items: center; }
+        .justify-center { justify-content: center; }
+        .bg-white { background-color: white; }
+        .rounded-xl { border-radius: 0.75rem; }
+        .shadow-2xl { box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); }
+        .p-8 { padding: 2rem; }
+        .w-full { width: 100%; }
+        .max-w-md { max-width: 28rem; }
+        .text-center { text-align: center; }
+        .mb-8 { margin-bottom: 2rem; }
+        .text-3xl { font-size: 1.875rem; }
+        .font-bold { font-weight: 700; }
+        .text-pink-600 { color: #db2777; }
+        .text-gray-600 { color: #4b5563; }
+        .space-y-6 > * + * { margin-top: 1.5rem; }
+        .block { display: block; }
+        .text-sm { font-size: 0.875rem; }
+        .font-medium { font-weight: 500; }
+        .text-gray-700 { color: #374151; }
+        .mb-2 { margin-bottom: 0.5rem; }
+        .px-4 { padding-left: 1rem; padding-right: 1rem; }
+        .py-3 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+        .border { border-width: 1px; }
+        .border-gray-300 { border-color: #d1d5db; }
+        .rounded-lg { border-radius: 0.5rem; }
+        .focus\\:ring-2:focus { box-shadow: 0 0 0 2px rgba(236, 72, 153, 0.5); }
+        .focus\\:ring-pink-400:focus { box-shadow: 0 0 0 2px rgba(244, 114, 182, 0.5); }
+        .focus\\:outline-none:focus { outline: none; }
+        .bg-gradient-to-r { background: linear-gradient(to right, #ec4899, #8b5cf6); }
+        .text-white { color: white; }
+        .hover\\:from-pink-600:hover { background: linear-gradient(to right, #db2777, #7c3aed); }
+        .hover\\:to-purple-600:hover { background: linear-gradient(to right, #ec4899, #7c3aed); }
+        .transition { transition: all 0.15s ease-in-out; }
+        .shadow-lg { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+        .mt-6 { margin-top: 1.5rem; }
+        .text-pink-600 { color: #db2777; }
+        .hover\\:text-pink-700:hover { color: #be185d; }
+        .text-blue-600 { color: #2563eb; }
+        .hover\\:text-blue-700:hover { color: #1d4ed8; }
+        .text-xs { font-size: 0.75rem; }
+        .text-gray-500 { color: #6b7280; }
+        .mt-2 { margin-top: 0.5rem; }
+    </style>
     
     <!-- Firebase 8.x SDK (최적화된 로딩 방식) -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>

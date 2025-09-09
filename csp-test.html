@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSP 테스트 - PriceHunter</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .test { margin: 20px 0; padding: 15px; border-radius: 5px; }
+        .success { background: #e8f5e8; border-left: 4px solid #4caf50; }
+        .error { background: #ffebee; border-left: 4px solid #f44336; }
+        .info { background: #e3f2fd; border-left: 4px solid #2196f3; }
+        button { background: #2196f3; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; margin: 5px; }
+        button:hover { background: #1976d2; }
+        pre { background: #f5f5f5; padding: 10px; border-radius: 5px; overflow-x: auto; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 CSP (Content Security Policy) 테스트</h1>
+        
+        <div id="results"></div>
+        
+        <div style="text-align: center; margin-top: 30px;">
+            <button onclick="runCSPTests()">CSP 테스트 실행</button>
+            <button onclick="clearResults()">결과 지우기</button>
+        </div>
+    </div>
+
+    <script>
+        function addResult(title, content, type = 'info') {
+            const resultsDiv = document.getElementById('results');
+            const testDiv = document.createElement('div');
+            testDiv.className = `test ${type}`;
+            testDiv.innerHTML = `
+                <h3>${title}</h3>
+                <div>${content}</div>
+            `;
+            resultsDiv.appendChild(testDiv);
+        }
+
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+
+        function runCSPTests() {
+            addResult('🔍 CSP 테스트 시작...', 'CSP 정책을 테스트합니다.', 'info');
+            
+            // 1. eval() 테스트
+            try {
+                eval('console.log("eval() 테스트 성공")');
+                addResult('✅ eval() 테스트', 'eval() 함수가 정상적으로 작동합니다.', 'success');
+            } catch (error) {
+                addResult('❌ eval() 테스트', `eval() 함수가 차단되었습니다: ${error.message}`, 'error');
+            }
+            
+            // 2. new Function() 테스트
+            try {
+                const func = new Function('return "new Function() 테스트 성공"');
+                const result = func();
+                addResult('✅ new Function() 테스트', `new Function()이 정상적으로 작동합니다: ${result}`, 'success');
+            } catch (error) {
+                addResult('❌ new Function() 테스트', `new Function()이 차단되었습니다: ${error.message}`, 'error');
+            }
+            
+            // 3. setTimeout with string 테스트
+            try {
+                setTimeout('console.log("setTimeout with string 테스트 성공")', 100);
+                addResult('✅ setTimeout with string 테스트', 'setTimeout with string이 정상적으로 작동합니다.', 'success');
+            } catch (error) {
+                addResult('❌ setTimeout with string 테스트', `setTimeout with string이 차단되었습니다: ${error.message}`, 'error');
+            }
+            
+            // 4. 인라인 스크립트 테스트
+            try {
+                const script = document.createElement('script');
+                script.textContent = 'console.log("인라인 스크립트 테스트 성공")';
+                document.head.appendChild(script);
+                addResult('✅ 인라인 스크립트 테스트', '인라인 스크립트가 정상적으로 작동합니다.', 'success');
+            } catch (error) {
+                addResult('❌ 인라인 스크립트 테스트', `인라인 스크립트가 차단되었습니다: ${error.message}`, 'error');
+            }
+            
+            // 5. 외부 스크립트 로딩 테스트
+            try {
+                const script = document.createElement('script');
+                script.src = 'https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js';
+                script.onload = () => {
+                    addResult('✅ 외부 스크립트 로딩 테스트', 'Firebase 스크립트가 정상적으로 로드되었습니다.', 'success');
+                };
+                script.onerror = () => {
+                    addResult('❌ 외부 스크립트 로딩 테스트', 'Firebase 스크립트 로딩이 차단되었습니다.', 'error');
+                };
+                document.head.appendChild(script);
+            } catch (error) {
+                addResult('❌ 외부 스크립트 로딩 테스트', `외부 스크립트 로딩이 차단되었습니다: ${error.message}`, 'error');
+            }
+            
+            // 6. 현재 CSP 헤더 확인
+            fetch(window.location.href, { method: 'HEAD' })
+                .then(response => {
+                    const cspHeader = response.headers.get('content-security-policy');
+                    addResult('🔍 현재 CSP 헤더', `
+                        <p><strong>CSP 헤더 존재:</strong> ${cspHeader ? 'Yes' : 'No'}</p>
+                        ${cspHeader ? `<pre>${cspHeader}</pre>` : '<p>❌ CSP 헤더가 없습니다.</p>'}
+                    `, cspHeader ? 'info' : 'error');
+                })
+                .catch(error => {
+                    addResult('❌ CSP 헤더 확인 실패', `CSP 헤더를 확인할 수 없습니다: ${error.message}`, 'error');
+                });
+        }
+
+        // 페이지 로드 시 자동 테스트
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(runCSPTests, 1000);
+        });
+    </script>
+</body>
+</html>
