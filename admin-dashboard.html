@@ -29,12 +29,6 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        
-        // Firestore 연결 설정 개선
-        const firestoreSettings = {
-          cacheSizeBytes: 1048576, // 1MB 캐시
-          ignoreUndefinedProperties: true
-        };
 
         // 전역으로 노출
         window.firebaseApp = app;
@@ -57,6 +51,9 @@
         alert('Firebase 초기화에 실패했습니다. 페이지를 새로고침해주세요.');
       }
     </script>
+    
+    <!-- Firebase 설정 파일 로드 -->
+    <script src="firebase-config.js"></script>
     
     <!-- Tailwind CSS (개선된 로딩 방식) -->
     <script>
@@ -155,9 +152,18 @@
             
             // Firebase 준비 대기 후 실시간 구독 시작
             setTimeout(async () => {
-                await waitForFirebase();
-                subscribeToUsers();
-                console.log('✅ 관리자 대시보드 Firebase 연동 완료');
+                try {
+                    await waitForFirebase();
+                    subscribeToUsers();
+                    console.log('✅ 관리자 대시보드 Firebase 연동 완료');
+                } catch (error) {
+                    console.error('❌ 관리자 대시보드 초기화 실패:', error);
+                    // 초기화 실패시 3초 후 재시도
+                    setTimeout(() => {
+                        console.log('🔄 관리자 대시보드 재시도...');
+                        location.reload();
+                    }, 3000);
+                }
             }, 1000);
         });
         
@@ -380,15 +386,31 @@
         let usersUnsubscribe = null;
 
         // Firebase 준비 상태 확인
-        function waitForFirebase() {
-            return new Promise((resolve) => {
+        async function waitForFirebase() {
+            try {
+                // firebase-config.js의 initializeFirebase 함수 사용
+                if (window.initializeFirebase) {
+                    const success = await window.initializeFirebase();
+                    if (success) {
+                        isFirebaseReady = true;
+                        console.log('✅ Firebase 초기화 성공');
+                        return;
+                    }
+                }
+                
+                // fallback: 기존 방식
                 if (window.firebaseAuth && window.firebaseDb) {
                     isFirebaseReady = true;
-                    resolve();
-                } else {
-                    setTimeout(() => waitForFirebase().then(resolve), 100);
+                    console.log('✅ Firebase 기존 방식으로 초기화 성공');
+                    return;
                 }
-            });
+                
+                // 재시도
+                setTimeout(() => waitForFirebase(), 100);
+            } catch (error) {
+                console.error('❌ Firebase 초기화 실패:', error);
+                setTimeout(() => waitForFirebase(), 1000);
+            }
         }
 
         // 실시간 사용자 목록 구독
