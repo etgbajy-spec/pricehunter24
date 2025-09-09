@@ -602,14 +602,14 @@
     function setKakaoRedirectUri() {
       // 카카오 개발자 콘솔에 등록된 URI 사용
       if (window.location.hostname === 'pricehunt24.com') {
-        // 프로덕션 환경에서는 정확한 경로 사용
+        // 프로덕션 환경에서는 정확한 경로 사용 (강제로 https)
         KAKAO_CONFIG.redirectUri = 'https://pricehunt24.com/register.html';
       } else if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
         // 로컬 개발 환경
         KAKAO_CONFIG.redirectUri = 'http://localhost:3000/register.html';
       } else {
-        // 기타 환경 (실제 도메인 사용)
-        KAKAO_CONFIG.redirectUri = window.location.origin + '/register.html';
+        // 기타 환경 (강제로 https 사용)
+        KAKAO_CONFIG.redirectUri = 'https://' + window.location.hostname + '/register.html';
       }
       
       console.log('🔗 카카오 redirect_uri 설정:', KAKAO_CONFIG.redirectUri);
