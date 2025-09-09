@@ -11,9 +11,9 @@ app.use((req, res, next) => {
   // Firebase 8.x SDK + Kakao 완전 지원 CSP 정책 (eval 제거)
   const cspPolicy = [
     "default-src 'self'",
-    // Firebase + Kakao 스크립트 허용 (eval 제거로 보안 강화)
-    "script-src 'self' 'unsafe-inline' https://www.gstatic.com https://www.gstatic.com/firebasejs https://cdn.tailwindcss.com https://developers.kakao.com https://t1.kakaocdn.net",
-    "script-src-elem 'self' 'unsafe-inline' https://www.gstatic.com https://www.gstatic.com/firebasejs https://cdn.tailwindcss.com https://developers.kakao.com https://t1.kakaocdn.net",
+    // Firebase + Kakao 스크립트 허용 (Kakao SDK 호환성을 위해 eval 허용)
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com https://www.gstatic.com/firebasejs https://cdn.tailwindcss.com https://developers.kakao.com https://t1.kakaocdn.net",
+    "script-src-elem 'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com https://www.gstatic.com/firebasejs https://cdn.tailwindcss.com https://developers.kakao.com https://t1.kakaocdn.net",
     // 스타일 허용
     "style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://fonts.googleapis.com",
     // 이미지 허용
