@@ -946,9 +946,11 @@
           const cleanUrl = window.location.origin + window.location.pathname;
           window.history.replaceState({}, document.title, cleanUrl);
           
-          // 페이지 새로고침 후 카카오 로그인 실행
-          console.log('페이지 새로고침 후 카카오 로그인 실행');
-          window.location.reload();
+          // 잠시 후 카카오 로그인 실행 (URL 정리 후)
+          setTimeout(() => {
+            console.log('정리된 URL에서 카카오 로그인 실행');
+            executeKakaoLogin();
+          }, 100);
         } else {
           // code 파라미터가 없으면 바로 실행
           console.log('새로운 카카오 로그인 실행');
