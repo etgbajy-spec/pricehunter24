@@ -1,6 +1,12 @@
 [build]
   publish = "."
 
+# 기본 인덱스 파일 설정 (URL 변경 없이 루트에서 index.html 로드)
+[[headers]]
+  for = "/"
+  [headers.values]
+    Content-Type = "text/html"
+
 # CSP 헤더 설정 - Firebase + Kakao 통합 지원 (단일 소스)
 [[headers]]
   for = "/*"
