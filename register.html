@@ -951,9 +951,23 @@
         console.log('현재 URL:', window.location.href);
         console.log('현재 도메인:', window.location.hostname);
         
-        // 항상 실제 카카오 로그인 실행
-        console.log('실제 카카오 로그인 실행');
-        executeKakaoLogin();
+        // URL에 code 파라미터가 있으면 제거하고 새로 시작
+        if (window.location.href.includes('?code=')) {
+          console.log('기존 인증 코드가 있음. URL을 정리하고 새로 시작');
+          // URL에서 code 파라미터 제거
+          const cleanUrl = window.location.origin + window.location.pathname;
+          window.history.replaceState({}, document.title, cleanUrl);
+          
+          // 잠시 후 카카오 로그인 실행 (URL 정리 후)
+          setTimeout(() => {
+            console.log('정리된 URL에서 카카오 로그인 실행');
+            executeKakaoLogin();
+          }, 100);
+        } else {
+          // code 파라미터가 없으면 바로 실행
+          console.log('새로운 카카오 로그인 실행');
+          executeKakaoLogin();
+        }
       });
 
       // 일반 회원가입 폼 표시
