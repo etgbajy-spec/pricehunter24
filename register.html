@@ -5,13 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>회원가입 - PriceHunter</title>
     
-    <!-- 캐시 제어 메타 태그 (Chrome 중간 웹사이트 상태 삭제 문제 해결) -->
+    <!-- Favicon 추가 -->
+    <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ec4899'><path d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z'/></svg>">
+    
+    <!-- 캐시 제어 메타 태그 -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
   
-  <!-- 로컬 CSS 파일 사용 -->
-  <link rel="stylesheet" href="styles.css">
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
   
   <!-- Firebase SDK v8 -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -464,26 +467,42 @@
   </div>
 
   <script>
-         // 카카오 로그인 설정
-     const KAKAO_CONFIG = {
-       clientId: '6917a034b74fafd0ac80ab855af5ed6d',
-       redirectUri: '',
-       scope: 'profile_nickname,account_email,profile_image'
-     };
+    // 카카오 로그인 설정
+    const KAKAO_CONFIG = {
+      clientId: '6917a034b74fafd0ac80ab855af5ed6d',
+      redirectUri: '',
+      scope: 'profile_nickname,account_email,profile_image'
+    };
 
-    // Firebase에 사용자 데이터 저장
+    // 전역 변수
+    let smsTimer = null;
+    let smsTimeLeft = 180;
+    let isSmsVerified = false;
+
+    // Firebase에 사용자 데이터 저장 (개선된 버전)
     async function saveUserToFirebase(userData) {
       try {
-        console.log('Firebase에 사용자 데이터 저장 시작:', userData);
+        console.log('🔥 Firebase에 사용자 데이터 저장 시작:', userData);
         
         // Firebase 초기화 확인
         if (typeof firebase === 'undefined' || !firebase.apps || firebase.apps.length === 0) {
-          console.warn('Firebase가 초기화되지 않음 - localStorage에만 저장');
+          console.warn('⚠️ Firebase가 초기화되지 않음 - localStorage에만 저장');
           return false;
         }
         
-        // Firestore에 사용자 데이터 저장
+        // 중복 이메일 체크
         const db = firebase.firestore();
+        const existingUserQuery = await db.collection('users')
+          .where('email', '==', userData.email)
+          .limit(1)
+          .get();
+        
+        if (!existingUserQuery.empty) {
+          console.warn('⚠️ 이미 존재하는 이메일:', userData.email);
+          return { success: false, error: '이미 가입된 이메일입니다.' };
+        }
+        
+        // Firestore에 사용자 데이터 저장
         const userRef = db.collection('users').doc();
         
         const firebaseUserData = {
@@ -495,10 +514,12 @@
           email: userData.email,
           phone: userData.phone || '',
           photoURL: userData.profileImage || '',
-          points: userData.points || 0,
+          points: userData.points || 50, // 회원가입 시 기본 50포인트
           termsAgreed: userData.termsAgreed || false,
           privacyAgreed: userData.privacyAgreed || false,
-          marketingAgreed: userData.marketingAgreed || false
+          marketingAgreed: userData.marketingAgreed || false,
+          isActive: true,
+          lastLoginAt: firebase.firestore.FieldValue.serverTimestamp()
         };
         
         await userRef.set(firebaseUserData);
@@ -508,17 +529,19 @@
         userData.firebaseId = userRef.id;
         localStorage.setItem('user', JSON.stringify(userData));
         
-        return true;
+        return { success: true, userId: userRef.id };
       } catch (error) {
         console.error('❌ Firebase 사용자 데이터 저장 실패:', error);
-        return false;
+        return { success: false, error: error.message };
       }
     }
 
-    // 포인트 관리 시스템
-    function addPoints(userEmail, points, reason) {
+    // 포인트 관리 시스템 (개선된 버전)
+    async function addPoints(userEmail, points, reason) {
       try {
-        // 기존 포인트 데이터 가져오기
+        console.log(`💰 포인트 적립 시작: ${userEmail}에게 ${points}포인트 (${reason})`);
+        
+        // localStorage 포인트 데이터 업데이트
         let pointsData = JSON.parse(localStorage.getItem('userPoints') || '{}');
         
         if (!pointsData[userEmail]) {
@@ -542,38 +565,56 @@
         // localStorage에 저장
         localStorage.setItem('userPoints', JSON.stringify(pointsData));
         
-        console.log(`포인트 적립 완료: ${userEmail}에게 ${points}포인트 추가 (${reason})`);
-        return true;
+        // Firebase에도 포인트 정보 저장 (선택사항)
+        if (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length > 0) {
+          try {
+            const db = firebase.firestore();
+            await db.collection('userPoints').doc(userEmail).set({
+              total: pointsData[userEmail].total,
+              history: pointsData[userEmail].history,
+              lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+            console.log('✅ Firebase 포인트 데이터 저장 완료');
+          } catch (firebaseError) {
+            console.warn('⚠️ Firebase 포인트 저장 실패:', firebaseError);
+          }
+        }
+        
+        console.log(`✅ 포인트 적립 완료: ${userEmail} 현재 포인트 ${pointsData[userEmail].total}P`);
+        return { success: true, totalPoints: pointsData[userEmail].total };
       } catch (error) {
-        console.error('포인트 적립 실패:', error);
-        return false;
+        console.error('❌ 포인트 적립 실패:', error);
+        return { success: false, error: error.message };
       }
     }
 
-     function getPoints(userEmail) {
-       try {
-         const pointsData = JSON.parse(localStorage.getItem('userPoints') || '{}');
-         return pointsData[userEmail] ? pointsData[userEmail].total : 0;
-       } catch (error) {
-         console.error('포인트 조회 실패:', error);
-         return 0;
-       }
-     }
+    function getPoints(userEmail) {
+      try {
+        const pointsData = JSON.parse(localStorage.getItem('userPoints') || '{}');
+        return pointsData[userEmail] ? pointsData[userEmail].total : 0;
+      } catch (error) {
+        console.error('❌ 포인트 조회 실패:', error);
+        return 0;
+      }
+    }
 
-    // 환경별 redirect_uri 설정
+    // 환경별 redirect_uri 설정 (개선된 버전)
     function setKakaoRedirectUri() {
       // 카카오 개발자 콘솔에 등록된 URI 사용
       if (window.location.hostname === 'pricehunt24.com') {
         // 프로덕션 환경에서는 정확한 경로 사용
         KAKAO_CONFIG.redirectUri = 'https://pricehunt24.com/register.html';
-      } else {
+      } else if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
         // 로컬 개발 환경
+        KAKAO_CONFIG.redirectUri = 'http://localhost:3000/register.html';
+      } else {
+        // 기타 환경
         KAKAO_CONFIG.redirectUri = window.location.origin + '/register.html';
       }
       
-      console.log('카카오 redirect_uri 설정:', KAKAO_CONFIG.redirectUri);
-      console.log('현재 페이지 URL:', window.location.href);
-      console.log('현재 도메인:', window.location.hostname);
+      console.log('🔗 카카오 redirect_uri 설정:', KAKAO_CONFIG.redirectUri);
+      console.log('📍 현재 페이지 URL:', window.location.href);
+      console.log('🌐 현재 도메인:', window.location.hostname);
     }
 
     // 환경 상태 업데이트
@@ -685,28 +726,28 @@
        }
      }
 
-    // 실제 카카오 로그인 실행
+    // 실제 카카오 로그인 실행 (개선된 버전)
     function executeKakaoLogin() {
       try {
-        console.log('카카오 로그인 시작...');
-        console.log('JavaScript 키:', KAKAO_CONFIG.clientId);
-        console.log('현재 URL:', window.location.href);
-        console.log('현재 도메인:', window.location.hostname);
+        console.log('🚀 카카오 로그인 시작...');
+        console.log('🔑 JavaScript 키:', KAKAO_CONFIG.clientId);
+        console.log('📍 현재 URL:', window.location.href);
+        console.log('🌐 현재 도메인:', window.location.hostname);
         
         // redirect_uri 재확인
         if (!KAKAO_CONFIG.redirectUri) {
           setKakaoRedirectUri();
         }
         
-        console.log('사용할 redirect_uri:', KAKAO_CONFIG.redirectUri);
+        console.log('🔗 사용할 redirect_uri:', KAKAO_CONFIG.redirectUri);
         
-        // 환경별 처리 - 프로덕션 환경에서도 실제 카카오 로그인 실행
+        // 환경별 처리
         const isLocal = window.location.protocol === 'file:' || 
                        window.location.hostname === 'localhost' || 
                        window.location.hostname === '127.0.0.1';
         
         if (isLocal) {
-          console.log('로컬 환경 감지 - 카카오 로그인 시뮬레이션 실행');
+          console.log('🏠 로컬 환경 감지 - 카카오 로그인 시뮬레이션 실행');
           simulateKakaoLogin();
           return;
         }
@@ -716,40 +757,59 @@
           client_id: KAKAO_CONFIG.clientId,
           redirect_uri: KAKAO_CONFIG.redirectUri,
           response_type: 'code',
-          scope: 'profile_nickname,account_email'
+          scope: 'profile_nickname,account_email,profile_image'
         });
         
         const authUrl = 'https://kauth.kakao.com/oauth/authorize?' + authParams.toString();
-        console.log('카카오 인증 URL:', authUrl);
+        console.log('🔗 카카오 인증 URL:', authUrl);
         
         // OAuth 파라미터 로깅
         console.log('🔍 OAuth 파라미터:', {
           client_id: KAKAO_CONFIG.clientId,
           redirect_uri: KAKAO_CONFIG.redirectUri,
           response_type: 'code',
-          scope: 'profile_nickname,account_email'
+          scope: 'profile_nickname,account_email,profile_image'
         });
         
-        // KOE006 오류 방지를 위한 추가 검증
+        // 설정 검증
         if (!KAKAO_CONFIG.clientId || !KAKAO_CONFIG.redirectUri) {
           throw new Error('카카오 설정이 올바르지 않습니다.');
         }
         
+        // 로딩 상태 표시
+        const button = document.getElementById('kakao-login');
+        const originalText = button.innerHTML;
+        button.innerHTML = '<svg class="animate-spin w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>카카오 인증 중...';
+        button.disabled = true;
+        
         // 카카오 인증 페이지로 이동
-        console.log('카카오 인증 페이지로 이동 중...');
-        window.location.href = authUrl;
+        console.log('🔄 카카오 인증 페이지로 이동 중...');
+        setTimeout(() => {
+          window.location.href = authUrl;
+        }, 500);
         
       } catch (error) {
-        console.error('카카오 로그인 실행 실패:', error);
-        alert('카카오 로그인을 시작할 수 없습니다. 잠시 후 다시 시도해주세요.');
+        console.error('❌ 카카오 로그인 실행 실패:', error);
+        
+        // 버튼 상태 복원
+        const button = document.getElementById('kakao-login');
+        if (button) {
+          button.innerHTML = '카카오톡으로 간편가입';
+          button.disabled = false;
+        }
+        
+        alert('카카오 로그인을 시작할 수 없습니다. 잠시 후 다시 시도해주세요.\n\n오류: ' + error.message);
       }
     }
 
-    // 카카오 인가 코드 처리
+    // 카카오 인가 코드 처리 (개선된 버전)
     function handleKakaoAuthCode(authCode) {
-      console.log('카카오 인가 코드 처리:', authCode);
+      console.log('🔐 카카오 인가 코드 처리:', authCode);
       
-      if (!authCode) return;
+      if (!authCode) {
+        console.warn('⚠️ 인가 코드가 없습니다.');
+        return;
+      }
       
       // 인증 코드를 localStorage에 저장
       localStorage.setItem('kakao_auth_code', authCode);
@@ -762,15 +822,18 @@
       processKakaoAuthCode(authCode);
     }
 
-    // 인증 코드로 토큰 요청 및 사용자 정보 획득
+    // 인증 코드로 토큰 요청 및 사용자 정보 획득 (개선된 버전)
     async function processKakaoAuthCode(authCode) {
       try {
+        console.log('🔄 카카오 인증 처리 시작...');
+        
         const button = document.getElementById('kakao-login');
         const originalText = button.innerHTML;
         button.innerHTML = '<svg class="animate-spin w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>로그인 처리 중...';
         button.disabled = true;
 
         // 액세스 토큰 요청
+        console.log('🔑 액세스 토큰 요청 중...');
         const tokenResponse = await fetch('https://kauth.kakao.com/oauth/token', {
           method: 'POST',
           headers: {
@@ -785,13 +848,16 @@
         });
 
         if (!tokenResponse.ok) {
+          const errorText = await tokenResponse.text();
+          console.error('❌ 토큰 요청 실패:', tokenResponse.status, errorText);
           throw new Error('토큰 요청 실패: ' + tokenResponse.status);
         }
 
         const tokenData = await tokenResponse.json();
-        console.log('액세스 토큰 획득:', tokenData);
+        console.log('✅ 액세스 토큰 획득:', tokenData);
 
         // 사용자 정보 요청
+        console.log('👤 사용자 정보 요청 중...');
         const userResponse = await fetch('https://kapi.kakao.com/v2/user/me', {
           headers: {
             'Authorization': 'Bearer ' + tokenData.access_token
@@ -799,46 +865,50 @@
         });
 
         if (!userResponse.ok) {
+          const errorText = await userResponse.text();
+          console.error('❌ 사용자 정보 요청 실패:', userResponse.status, errorText);
           throw new Error('사용자 정보 요청 실패: ' + userResponse.status);
         }
 
         const userData = await userResponse.json();
-        console.log('사용자 정보:', userData);
+        console.log('✅ 사용자 정보 획득:', userData);
 
-                 const user = {
-           id: userData.id,
-           name: userData.properties?.nickname || '카카오 사용자',
-           email: userData.kakao_account?.email || 'kakao@user.com',
-           profileImage: userData.properties?.profile_image || '',
-           loginType: 'kakao'
-         };
+        const user = {
+          id: userData.id,
+          name: userData.properties?.nickname || '카카오 사용자',
+          email: userData.kakao_account?.email || 'kakao@user.com',
+          profileImage: userData.properties?.profile_image || '',
+          loginType: 'kakao'
+        };
 
-         // 중복 가입 체크
-         const duplicateCheck = checkDuplicateSignup(user.email);
-         if (duplicateCheck.isDuplicate) {
-           console.log('중복 가입 감지:', duplicateCheck.message);
-           alert(duplicateCheck.message);
-           
-           // 기존 사용자 정보로 로그인 처리
-           localStorage.setItem('user', JSON.stringify(duplicateCheck.user));
-           localStorage.setItem('loggedIn', 'true');
-           
-           // 로그인 페이지로 이동
-           window.location.replace('index.html');
-           return;
-         }
+        // 중복 가입 체크
+        console.log('🔍 중복 가입 체크 중...');
+        const duplicateCheck = checkDuplicateSignup(user.email);
+        if (duplicateCheck.isDuplicate) {
+          console.log('⚠️ 중복 가입 감지:', duplicateCheck.message);
+          alert(duplicateCheck.message);
+          
+          // 기존 사용자 정보로 로그인 처리
+          localStorage.setItem('user', JSON.stringify(duplicateCheck.user));
+          localStorage.setItem('loggedIn', 'true');
+          
+          // 로그인 페이지로 이동
+          window.location.replace('index.html');
+          return;
+        }
 
-         // 약관 동의 모달 표시
-         showKakaoTermsAgreement(user);
+        // 약관 동의 모달 표시
+        console.log('📋 약관 동의 모달 표시...');
+        showKakaoTermsAgreement(user);
 
       } catch (error) {
-        console.error('카카오 인증 처리 실패:', error);
+        console.error('❌ 카카오 인증 처리 실패:', error);
         alert('카카오 로그인 처리 중 오류가 발생했습니다: ' + error.message);
         
         // 버튼 상태 복원
         const button = document.getElementById('kakao-login');
         if (button) {
-          button.innerHTML = '카카오톡 간편가입';
+          button.innerHTML = '카카오톡으로 간편가입';
           button.disabled = false;
         }
       }
@@ -901,13 +971,15 @@
         });
       }, 100);
       
-      // 전역 함수 등록
+      // 전역 함수 등록 (개선된 버전)
       window.completeKakaoSignup = async function() {
         const agreeTerms = document.getElementById('kakao-agree-terms');
         const agreePrivacy = document.getElementById('kakao-agree-privacy');
         const agreeMarketing = document.getElementById('kakao-agree-marketing');
         
         if (agreeTerms.checked && agreePrivacy.checked) {
+          console.log('✅ 카카오 회원가입 완료 처리 시작...');
+          
           const newUser = {
             ...user,
             joinDate: new Date().toISOString(),
@@ -918,7 +990,8 @@
           };
           
           // Firebase에 사용자 데이터 저장
-          const firebaseSaved = await saveUserToFirebase(newUser);
+          console.log('🔥 Firebase에 사용자 데이터 저장 중...');
+          const firebaseResult = await saveUserToFirebase(newUser);
           
           // localStorage에도 저장 (백업용)
           localStorage.setItem('user', JSON.stringify(newUser));
@@ -929,26 +1002,30 @@
           localStorage.setItem(kakaoKey, JSON.stringify(newUser));
           
           // 포인트 적립
-          const pointsAdded = addPoints(newUser.email, 50, '카카오 회원가입 보너스');
+          console.log('💰 포인트 적립 중...');
+          const pointsResult = await addPoints(newUser.email, 50, '카카오 회원가입 보너스');
           
           closeKakaoTermsModal();
           
-          if (firebaseSaved) {
-            if (pointsAdded) {
-              alert(`카카오톡으로 회원가입되었습니다! +50포인트 지급 완료!\n현재 포인트: ${getPoints(newUser.email)}P\n\n관리자 대시보드에서 확인 가능합니다.`);
+          // 결과 메시지 표시
+          if (firebaseResult && firebaseResult.success) {
+            if (pointsResult && pointsResult.success) {
+              alert(`🎉 카카오톡으로 회원가입되었습니다!\n\n💰 +50포인트 지급 완료!\n현재 포인트: ${pointsResult.totalPoints}P\n\n✅ 관리자 대시보드에서 확인 가능합니다.`);
             } else {
-              alert('카카오톡으로 회원가입되었습니다! +50포인트 지급 중 오류가 발생했습니다.\n\n관리자 대시보드에서 확인 가능합니다.');
+              alert('🎉 카카오톡으로 회원가입되었습니다!\n\n⚠️ 포인트 지급 중 오류가 발생했습니다.\n\n✅ 관리자 대시보드에서 확인 가능합니다.');
             }
           } else {
-            alert('카카오톡으로 회원가입되었습니다! (로컬 저장만 완료)\n\n관리자 대시보드 연동을 위해 Firebase 설정을 확인해주세요.');
+            alert('🎉 카카오톡으로 회원가입되었습니다!\n\n⚠️ 로컬 저장만 완료되었습니다.\n\n관리자 대시보드 연동을 위해 Firebase 설정을 확인해주세요.');
           }
           
           // 페이지 이동 전 상태 정리 및 히스토리 정리
           window.history.replaceState({}, document.title, window.location.pathname);
           // index.html로 이동하면서 히스토리 정리
-          window.location.replace('index.html');
+          setTimeout(() => {
+            window.location.replace('index.html');
+          }, 1000);
         } else {
-          alert('필수 약관에 동의해주세요.');
+          alert('⚠️ 필수 약관에 동의해주세요.');
         }
       };
       
@@ -1088,70 +1165,93 @@
         signupButton.disabled = !isRequiredChecked;
       }
 
-      // SMS 인증번호 발송
+      // SMS 인증번호 발송 (개선된 버전)
       document.getElementById('send-sms').addEventListener('click', function() {
         const phone = document.getElementById('phone').value.trim();
         if (!phone) {
-          alert('휴대폰 번호를 입력해주세요.');
+          alert('⚠️ 휴대폰 번호를 입력해주세요.');
           return;
         }
         if (phone.length !== 11) {
-          alert('올바른 휴대폰 번호를 입력해주세요.');
+          alert('⚠️ 올바른 휴대폰 번호를 입력해주세요. (11자리)');
+          return;
+        }
+        if (!/^010\d{8}$/.test(phone)) {
+          alert('⚠️ 010으로 시작하는 11자리 휴대폰 번호를 입력해주세요.');
           return;
         }
 
         this.disabled = true;
         this.textContent = '발송중...';
         
+        // 실제 SMS 발송 시뮬레이션 (3초)
         setTimeout(() => {
           this.textContent = '재발송';
           this.disabled = false;
           document.getElementById('sms-verification').classList.remove('hidden');
           startTimer();
-          alert('인증번호가 발송되었습니다. (테스트용: 123456)');
-        }, 2000);
+          alert('📱 인증번호가 발송되었습니다.\n\n테스트용 인증번호: 123456\n\n3분 내에 입력해주세요.');
+        }, 3000);
       });
 
-      // SMS 인증번호 확인
+      // SMS 인증번호 확인 (개선된 버전)
       document.getElementById('verify-sms').addEventListener('click', function() {
         const code = document.getElementById('sms-code').value.trim();
+        if (!code) {
+          alert('⚠️ 인증번호를 입력해주세요.');
+          return;
+        }
+        if (code.length !== 6) {
+          alert('⚠️ 6자리 인증번호를 입력해주세요.');
+          return;
+        }
         if (code === '123456') {
-          this.textContent = '인증완료';
+          this.textContent = '✅ 인증완료';
           this.disabled = true;
           this.classList.remove('bg-green-600', 'hover:bg-green-700');
           this.classList.add('bg-gray-500');
           document.getElementById('sms-code').disabled = true;
           document.getElementById('sms-timer').classList.add('hidden');
-          alert('인증이 완료되었습니다.');
+          isSmsVerified = true;
+          alert('✅ SMS 인증이 완료되었습니다!');
         } else {
-          alert('올바른 인증번호를 입력해주세요.');
+          alert('❌ 올바른 인증번호를 입력해주세요.\n\n테스트용 인증번호: 123456');
         }
       });
 
-      // 타이머 시작
+      // 타이머 시작 (개선된 버전)
       function startTimer() {
-        let timeLeft = 180;
+        smsTimeLeft = 180; // 3분
         const timerText = document.getElementById('timer-text');
         const timerDiv = document.getElementById('sms-timer');
         
         timerDiv.classList.remove('hidden');
         
-        const timer = setInterval(() => {
-          const minutes = Math.floor(timeLeft / 60);
-          const seconds = timeLeft % 60;
+        // 기존 타이머가 있으면 정리
+        if (smsTimer) {
+          clearInterval(smsTimer);
+        }
+        
+        smsTimer = setInterval(() => {
+          const minutes = Math.floor(smsTimeLeft / 60);
+          const seconds = smsTimeLeft % 60;
           timerText.textContent = minutes.toString().padStart(2, '0') + ':' + seconds.toString().padStart(2, '0');
           
-          if (timeLeft <= 0) {
-            clearInterval(timer);
+          if (smsTimeLeft <= 0) {
+            clearInterval(smsTimer);
             timerDiv.classList.add('hidden');
+            alert('⏰ 인증 시간이 만료되었습니다. 다시 인증번호를 발송해주세요.');
+            isSmsVerified = false;
           }
-          timeLeft--;
+          smsTimeLeft--;
         }, 1000);
       }
 
-      // 회원가입 폼 제출
+      // 회원가입 폼 제출 (개선된 버전)
       document.getElementById('signup-form').addEventListener('submit', async function(e) {
         e.preventDefault();
+        
+        console.log('📝 일반 회원가입 폼 제출 시작...');
         
         const name = document.getElementById('name').value.trim();
         const email = document.getElementById('email').value.trim();
@@ -1159,18 +1259,52 @@
         const password = document.getElementById('password').value;
         const passwordConfirm = document.getElementById('password-confirm').value;
         
+        // 입력값 검증
         if (!name || !email || !phone || !password || !passwordConfirm) {
-          alert('모든 필수 항목을 입력해주세요.');
+          alert('⚠️ 모든 필수 항목을 입력해주세요.');
           return;
         }
         
+        // 이메일 형식 검증
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+          alert('⚠️ 올바른 이메일 형식을 입력해주세요.');
+          return;
+        }
+        
+        // 휴대폰 번호 검증
+        if (!/^010\d{8}$/.test(phone)) {
+          alert('⚠️ 010으로 시작하는 11자리 휴대폰 번호를 입력해주세요.');
+          return;
+        }
+        
+        // SMS 인증 확인
+        if (!isSmsVerified) {
+          alert('⚠️ SMS 인증을 완료해주세요.');
+          return;
+        }
+        
+        // 비밀번호 검증
         if (password !== passwordConfirm) {
-          alert('비밀번호가 일치하지 않습니다.');
+          alert('⚠️ 비밀번호가 일치하지 않습니다.');
           return;
         }
         
         if (password.length < 8) {
-          alert('비밀번호는 8자 이상이어야 합니다.');
+          alert('⚠️ 비밀번호는 8자 이상이어야 합니다.');
+          return;
+        }
+        
+        // 비밀번호 강도 검증
+        const passwordRegex = /^(?=.*[a-zA-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).{8,}$/;
+        if (!passwordRegex.test(password)) {
+          alert('⚠️ 비밀번호는 영문, 숫자, 특수문자를 포함하여 8자 이상이어야 합니다.');
+          return;
+        }
+        
+        // 약관 동의 확인
+        if (!document.getElementById('agree-terms').checked || !document.getElementById('agree-privacy').checked) {
+          alert('⚠️ 필수 약관에 동의해주세요.');
           return;
         }
         
@@ -1178,33 +1312,37 @@
           name: name,
           email: email,
           phone: phone,
-          password: password,
+          password: password, // 실제 서비스에서는 해시화 필요
           joinDate: new Date().toISOString(),
           loginType: 'email',
           points: 50,
           termsAgreed: document.getElementById('agree-terms').checked,
           privacyAgreed: document.getElementById('agree-privacy').checked,
-          marketingAgreed: document.getElementById('agree-marketing').checked
+          marketingAgreed: document.getElementById('agree-marketing').checked,
+          smsVerified: true
         };
         
         // Firebase에 사용자 데이터 저장
-        const firebaseSaved = await saveUserToFirebase(user);
+        console.log('🔥 Firebase에 사용자 데이터 저장 중...');
+        const firebaseResult = await saveUserToFirebase(user);
         
         // localStorage에도 저장 (백업용)
         localStorage.setItem('user', JSON.stringify(user));
         localStorage.setItem('loggedIn', 'true');
         
         // 포인트 적립
-        const pointsAdded = addPoints(user.email, 50, '일반 회원가입 보너스');
+        console.log('💰 포인트 적립 중...');
+        const pointsResult = await addPoints(user.email, 50, '일반 회원가입 보너스');
         
-        if (firebaseSaved) {
-          if (pointsAdded) {
-            alert(`회원가입이 완료되었습니다! +50포인트 지급 완료!\n현재 포인트: ${getPoints(user.email)}P\n\n관리자 대시보드에서 확인 가능합니다.`);
+        // 결과 메시지 표시
+        if (firebaseResult && firebaseResult.success) {
+          if (pointsResult && pointsResult.success) {
+            alert(`🎉 회원가입이 완료되었습니다!\n\n💰 +50포인트 지급 완료!\n현재 포인트: ${pointsResult.totalPoints}P\n\n✅ 관리자 대시보드에서 확인 가능합니다.`);
           } else {
-            alert('회원가입이 완료되었습니다! +50포인트 지급 중 오류가 발생했습니다.\n\n관리자 대시보드에서 확인 가능합니다.');
+            alert('🎉 회원가입이 완료되었습니다!\n\n⚠️ 포인트 지급 중 오류가 발생했습니다.\n\n✅ 관리자 대시보드에서 확인 가능합니다.');
           }
         } else {
-          alert('회원가입이 완료되었습니다! (로컬 저장만 완료)\n\n관리자 대시보드 연동을 위해 Firebase 설정을 확인해주세요.');
+          alert('🎉 회원가입이 완료되었습니다!\n\n⚠️ 로컬 저장만 완료되었습니다.\n\n관리자 대시보드 연동을 위해 Firebase 설정을 확인해주세요.');
         }
         
         document.getElementById('success-message').classList.remove('hidden');

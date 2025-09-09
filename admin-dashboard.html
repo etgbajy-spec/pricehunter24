@@ -381,13 +381,15 @@
             }
         };
         
-        // Firebase v9 기반 함수들
+        // Firebase v9 기반 함수들 (개선된 버전)
         let isFirebaseReady = false;
         let usersUnsubscribe = null;
 
         // Firebase 준비 상태 확인 (Firebase v8)
         async function waitForFirebase() {
             try {
+                console.log('🔄 Firebase 준비 상태 확인 중...');
+                
                 // Firebase v8 초기화 확인
                 if (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length > 0) {
                     // Firebase v8 앱이 이미 초기화된 경우
@@ -422,8 +424,10 @@
             }
         }
 
-        // 실시간 사용자 목록 구독 (Firebase v8 + localStorage 백업)
+        // 실시간 사용자 목록 구독 (Firebase v8 + localStorage 백업) - 개선된 버전
         function subscribeToUsers() {
+            console.log('👥 사용자 목록 구독 시작...');
+            
             // localStorage에서 사용자 데이터도 가져오기
             loadLocalStorageUsers();
             
@@ -440,7 +444,12 @@
                 usersUnsubscribe = usersQuery.onSnapshot((snapshot) => {
                     const firebaseUsers = [];
                     snapshot.forEach((doc) => {
-                        firebaseUsers.push({ id: doc.id, ...doc.data() });
+                        const userData = doc.data();
+                        firebaseUsers.push({ 
+                            id: doc.id, 
+                            ...userData,
+                            source: 'Firebase'
+                        });
                     });
                     
                     console.log('📊 Firebase 사용자 데이터 업데이트:', firebaseUsers.length);
@@ -450,7 +459,14 @@
                     updateUsersTable(allUsers);
                     
                     // 회원수 업데이트
-                    document.getElementById('total-members').textContent = allUsers.length;
+                    const totalMembersElement = document.getElementById('total-members');
+                    if (totalMembersElement) {
+                        totalMembersElement.textContent = allUsers.length;
+                    }
+                    
+                    // 통계 업데이트
+                    updateMemberStats(allUsers);
+                    
                 }, (error) => {
                     console.error('❌ 사용자 목록 실시간 구독 실패:', error);
                     // Firebase 연결 실패시 localStorage 데이터만 표시
@@ -565,7 +581,52 @@
             return allUsers;
         }
 
-        // 사용자 테이블 업데이트
+        // 회원 통계 업데이트 함수
+        function updateMemberStats(users) {
+            try {
+                const kakaoUsers = users.filter(user => (user.loginMethod || user.loginType) === 'kakao').length;
+                const emailUsers = users.filter(user => (user.loginMethod || user.loginType) === 'email').length;
+                const firebaseUsers = users.filter(user => user.source === 'Firebase').length;
+                const localStorageUsers = users.filter(user => user.source === 'localStorage').length;
+                
+                console.log('📊 회원 통계:', {
+                    total: users.length,
+                    kakao: kakaoUsers,
+                    email: emailUsers,
+                    firebase: firebaseUsers,
+                    localStorage: localStorageUsers
+                });
+                
+                // 통계를 화면에 표시 (필요시)
+                const statsElement = document.getElementById('member-stats');
+                if (statsElement) {
+                    statsElement.innerHTML = `
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                            <div class="text-center">
+                                <div class="font-bold text-lg text-blue-600">${kakaoUsers}</div>
+                                <div class="text-gray-600">카카오톡</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="font-bold text-lg text-green-600">${emailUsers}</div>
+                                <div class="text-gray-600">이메일</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="font-bold text-lg text-purple-600">${firebaseUsers}</div>
+                                <div class="text-gray-600">Firebase</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="font-bold text-lg text-orange-600">${localStorageUsers}</div>
+                                <div class="text-gray-600">localStorage</div>
+                            </div>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('❌ 회원 통계 업데이트 실패:', error);
+            }
+        }
+
+        // 사용자 테이블 업데이트 (개선된 버전)
         function updateUsersTable(users) {
             const tbody = document.getElementById('members-table-body');
             if (!tbody) return;
@@ -587,7 +648,7 @@
                 const row = document.createElement('tr');
                 row.className = 'hover:bg-gray-50';
                 
-                const profileImage = user.photoURL || user.profileImage || '/default-avatar.png';
+                const profileImage = user.photoURL || user.profileImage || 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%236b7280"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>';
                 const loginMethod = user.loginMethod || user.loginType || 'email';
                 const joinDate = user.createdAt ? 
                     (user.createdAt.seconds ? new Date(user.createdAt.seconds * 1000).toLocaleDateString() : new Date(user.createdAt).toLocaleDateString()) : 
@@ -597,17 +658,19 @@
                     '알 수 없음';
                 const dataSource = user.source || 'Firebase';
                 const dataSourceColor = dataSource === 'localStorage' ? 'bg-orange-100 text-orange-800' : 'bg-green-100 text-green-800';
+                const points = user.points || 0;
                 
                 row.innerHTML = `
                     <td class="px-6 py-4 whitespace-nowrap">
                         <div class="flex items-center">
                             <div class="h-10 w-10 flex-shrink-0">
-                                <img class="h-10 w-10 rounded-full" src="${profileImage}" alt="${user.displayName || user.name || '사용자'}">
+                                <img class="h-10 w-10 rounded-full" src="${profileImage}" alt="${user.displayName || user.name || '사용자'}" onerror="this.src='data:image/svg+xml,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'%236b7280\'><path d=\'M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z\'/></svg>'">
                             </div>
                         </div>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
                         <div class="text-sm font-medium text-gray-900">${user.displayName || user.name || '이름 없음'}</div>
+                        <div class="text-xs text-gray-500">${points}P</div>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
                         <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${loginMethod === 'kakao' ? 'bg-yellow-100 text-yellow-800' : 'bg-blue-100 text-blue-800'}">
@@ -1194,6 +1257,29 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                         </div>
                     </div>
                     
+                    <!-- 회원 통계 -->
+                    <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">📊 회원 통계</h3>
+                        <div id="member-stats" class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                            <div class="text-center">
+                                <div class="font-bold text-lg text-blue-600">0</div>
+                                <div class="text-gray-600">카카오톡</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="font-bold text-lg text-green-600">0</div>
+                                <div class="text-gray-600">이메일</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="font-bold text-lg text-purple-600">0</div>
+                                <div class="text-gray-600">Firebase</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="font-bold text-lg text-orange-600">0</div>
+                                <div class="text-gray-600">localStorage</div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- 회원 목록 -->
                     <div class="bg-white rounded-xl shadow-lg overflow-hidden">
                         <div class="overflow-x-auto">
@@ -1201,7 +1287,7 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                                 <thead class="bg-green-50">
                                     <tr>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">프로필</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">회원명</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">회원명/포인트</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">로그인 방식</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">이메일</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">휴대폰</th>
