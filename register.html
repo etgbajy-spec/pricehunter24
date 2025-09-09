@@ -12,10 +12,10 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
-    <meta name="cache-buster" content="v2.3-20241220" />
+    <meta name="cache-buster" content="v2.5-20241220" />
     <script>
       // 강제 캐시 무효화 및 디버깅
-      console.log('🚀 register.html v2.3 로드됨');
+      console.log('🚀 register.html v2.5 로드됨 (URLSearchParams 적용)');
       console.log('📍 현재 URL:', window.location.href);
       if (window.location.search.indexOf('v=') === -1) {
         console.log('🔄 캐시 버스터 추가 중...');
@@ -247,7 +247,7 @@
       // 카카오 로그인 설정 - 하드코딩으로 고정
      const KAKAO_CONFIG = {
        clientId: '6917a034b74fafd0ac80ab855af5ed6d',
-        redirectUri: 'https://pricehunt24.com/register', // 무조건 https로 고정 (슬래시 제거)
+        redirectUri: 'https://pricehunt24.com/register.html', // 무조건 https로 고정
        scope: 'profile_nickname,account_email,profile_image'
      };
 
@@ -352,11 +352,23 @@
           
           console.log('🌐 실제 웹사이트 환경 - 카카오 로그인 실행');
         
-        // 프로덕션 환경에서 실제 카카오 로그인
-        const authUrl = `https://kauth.kakao.com/oauth/authorize?client_id=${KAKAO_CONFIG.clientId}&redirect_uri=${encodeURIComponent(KAKAO_CONFIG.redirectUri)}&response_type=code&scope=profile_nickname,account_email,profile_image`;
+        // 프로덕션 환경에서 실제 카카오 로그인 - URLSearchParams 사용
+        const authParams = new URLSearchParams({
+          client_id: KAKAO_CONFIG.clientId,
+          redirect_uri: KAKAO_CONFIG.redirectUri,   // URLSearchParams가 자동으로 인코딩
+          response_type: 'code',
+          scope: KAKAO_CONFIG.scope
+        });
+        
+        const authUrl = `https://kauth.kakao.com/oauth/authorize?${authParams.toString()}`;
           console.log('🔗 카카오 인증 URL:', authUrl);
+          console.log('🔍 URLSearchParams 결과:', authParams.toString());
           console.log('🔍 redirect_uri 확인:', KAKAO_CONFIG.redirectUri);
-          console.log('🔍 encodeURIComponent 결과:', encodeURIComponent(KAKAO_CONFIG.redirectUri));
+          console.log('🔍 전체 URL 파라미터 확인:');
+          console.log('  - client_id:', KAKAO_CONFIG.clientId);
+          console.log('  - redirect_uri:', KAKAO_CONFIG.redirectUri);
+          console.log('  - response_type: code');
+          console.log('  - scope:', KAKAO_CONFIG.scope);
         
         // OAuth 파라미터 로깅
         console.log('🔍 OAuth 파라미터:', {
@@ -433,7 +445,12 @@
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded'
           },
-          body: `grant_type=authorization_code&client_id=${KAKAO_CONFIG.clientId}&redirect_uri=${encodeURIComponent(KAKAO_CONFIG.redirectUri)}&code=${authCode}`
+          body: new URLSearchParams({
+            grant_type: 'authorization_code',
+            client_id: KAKAO_CONFIG.clientId,
+            redirect_uri: KAKAO_CONFIG.redirectUri,   // URLSearchParams가 자동으로 인코딩
+            code: authCode
+          })
         });
 
         if (!tokenResponse.ok) {
