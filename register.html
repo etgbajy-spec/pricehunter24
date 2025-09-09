@@ -520,7 +520,8 @@
         KAKAO_CONFIG.redirectUri = window.location.href;
       } else if (window.location.hostname === 'pricehunt24.com') {
         // 정확한 URL 설정 (프로토콜, 도메인, 경로 모두 포함)
-        KAKAO_CONFIG.redirectUri = 'https://pricehunt24.com/register.html';
+        // 현재 페이지의 실제 URL을 사용 (register 또는 register.html)
+        KAKAO_CONFIG.redirectUri = window.location.origin + window.location.pathname;
       } else {
         // 다른 도메인인 경우 현재 URL 사용
         KAKAO_CONFIG.redirectUri = window.location.origin + '/register.html';
