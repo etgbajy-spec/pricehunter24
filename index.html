@@ -14,6 +14,38 @@
     <title>PriceHunter</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Firebase v9 SDK (모듈식) -->
+    <script type="module">
+      import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
+      import { getAuth, signInWithCustomToken, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
+      import { getFirestore, doc, setDoc, getDoc, collection, query, orderBy, onSnapshot } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
+      
+      // Firebase 설정
+      const firebaseConfig = {
+        apiKey: "AIzaSyDBZxKyMS7eeBTbPnbZkj0WWOZQHNldoL4",
+        authDomain: "pricehunter-99a1b.firebaseapp.com",
+        projectId: "pricehunter-99a1b",
+        storageBucket: "pricehunter-99a1b.firebasestorage.app",
+        messagingSenderId: "242265693919",
+        appId: "1:242265693919:web:74234d942b82a51541136a",
+        measurementId: "G-4BKLV4EVB9"
+      };
+
+      // Firebase 초기화
+      const app = initializeApp(firebaseConfig);
+      const auth = getAuth(app);
+      const db = getFirestore(app);
+
+      // 전역으로 노출
+      window.firebaseApp = app;
+      window.firebaseAuth = auth;
+      window.firebaseDb = db;
+      window.firebaseAuthFunctions = { signInWithCustomToken, onAuthStateChanged, signOut };
+      window.firebaseFirestoreFunctions = { doc, setDoc, getDoc, collection, query, orderBy, onSnapshot };
+      
+      console.log('✅ Firebase v9 초기화 완료');
+    </script>
 
   </head>
   <body class="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-700 min-h-screen">
@@ -236,9 +268,8 @@
                 </div>
                 <div class="flex-1 text-center sm:text-left">
                   <h3 class="text-lg sm:text-xl md:text-2xl font-bold text-gray-800 mb-2 sm:mb-3 leading-tight">의뢰 접수 및 분석</h3>
-                  <p class="text-sm sm:text-base text-gray-600 mb-3 sm:mb-4 leading-relaxed">
-                    고객님이 원하는 상품의 <span class="font-semibold text-blue-600">제품명, 요청가격, 참고링크</span>를 입력하시면 
-                    전문 검증팀이 즉시 분석을 시작합니다.
+                  <p class="text-sm sm:text-base text-gray-600 mb-3 sm:mb-4 leading-relaxed break-words">
+                    고객님이 원하는 상품의 <span class="font-semibold text-blue-600">제품명, 요청가격, 참고링크</span>를 입력하시면 전문 검증팀이 즉시 분석을 시작합니다.
                   </p>
                   <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
                     <div class="bg-blue-50 rounded-lg p-3 sm:p-4">
@@ -277,9 +308,8 @@
                 </div>
                 <div class="flex-1 text-center sm:text-left">
                   <h3 class="text-lg sm:text-xl md:text-2xl font-bold text-gray-800 mb-2 sm:mb-3 leading-tight">실시간 검증 진행</h3>
-                  <p class="text-sm sm:text-base text-gray-600 mb-3 sm:mb-4 leading-relaxed">
-                    전문 검증팀이 <span class="font-semibold text-green-600">도매처 연동, 공장 직거래, 특별 경로</span> 등 
-                    다양한 경로를 통해 최저가를 찾아갑니다.
+                  <p class="text-sm sm:text-base text-gray-600 mb-3 sm:mb-4 leading-relaxed break-words">
+                    전문 검증팀이 <span class="font-semibold text-green-600">도매처 연동, 공장 직거래, 특별 경로</span> 등 다양한 경로를 통해 최저가를 찾아갑니다.
                   </p>
                   <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
                     <div class="bg-green-50 rounded-lg p-4">
@@ -318,9 +348,8 @@
                 </div>
                 <div class="flex-1 text-center sm:text-left">
                   <h3 class="text-lg sm:text-xl md:text-2xl font-bold text-gray-800 mb-2 sm:mb-3 leading-tight">종합 가격 분석</h3>
-                  <p class="text-sm sm:text-base text-gray-600 mb-3 sm:mb-4 leading-relaxed">
-                    수집된 모든 가격 정보를 <span class="font-semibold text-yellow-600">배송비, 관세, 수수료</span>를 포함하여 
-                    정확히 비교 분석합니다.
+                  <p class="text-sm sm:text-base text-gray-600 mb-3 sm:mb-4 leading-relaxed break-words">
+                    수집된 모든 가격 정보를 <span class="font-semibold text-yellow-600">배송비, 관세, 수수료</span>를 포함하여 정확히 비교 분석합니다.
                   </p>
                   <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
                     <div class="bg-yellow-50 rounded-lg p-3 sm:p-4">
@@ -359,9 +388,8 @@
                 </div>
                 <div class="flex-1 text-center sm:text-left">
                   <h3 class="text-lg sm:text-xl md:text-2xl font-bold text-gray-800 mb-2 sm:mb-3 leading-tight">검증 증거 수집</h3>
-                  <p class="text-sm sm:text-base text-gray-600 mb-3 sm:mb-4 leading-relaxed">
-                    최저가 발견 시 <span class="font-semibold text-purple-600">실시간 스크린샷, 구매링크, 검증 시점</span>을 
-                    모두 기록하여 객관적인 증거를 확보합니다.
+                  <p class="text-sm sm:text-base text-gray-600 mb-3 sm:mb-4 leading-relaxed break-words">
+                    최저가 발견 시 <span class="font-semibold text-purple-600">실시간 스크린샷, 구매링크, 검증 시점</span>을 모두 기록하여 객관적인 증거를 확보합니다.
                   </p>
                   <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
                     <div class="bg-purple-50 rounded-lg p-3 sm:p-4">
@@ -400,9 +428,8 @@
                 </div>
                 <div class="flex-1 text-center sm:text-left">
                   <h3 class="text-lg sm:text-xl md:text-2xl font-bold text-gray-800 mb-2 sm:mb-3 leading-tight">상세 결과 제공</h3>
-                  <p class="text-sm sm:text-base text-gray-600 mb-3 sm:mb-4 leading-relaxed">
-                    검증 완료 후 <span class="font-semibold text-red-600">최저가, 구매링크, 절약금액, 상세 분석</span>을<br class="sm:hidden"> 
-                    포함한 종합적인 결과를 제공합니다.
+                  <p class="text-sm sm:text-base text-gray-600 mb-3 sm:mb-4 leading-relaxed break-words">
+                    검증 완료 후 <span class="font-semibold text-red-600">최저가, 구매링크, 절약금액, 상세 분석</span>을 포함한 종합적인 결과를 제공합니다.
                   </p>
                   <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div class="bg-red-50 rounded-lg p-4">
@@ -1058,6 +1085,96 @@
       </div>
     </div>
     <script>
+      // Firebase v9 기반 공통 함수들
+      let isFirebaseReady = false;
+
+      // Firebase 준비 상태 확인
+      function waitForFirebase() {
+        return new Promise((resolve) => {
+          if (window.firebaseAuth && window.firebaseDb) {
+            isFirebaseReady = true;
+            resolve();
+          } else {
+            setTimeout(() => waitForFirebase().then(resolve), 100);
+          }
+        });
+      }
+
+      // 사용자 데이터 upsert 함수 (모든 로그인 경로에서 공통 사용)
+      async function upsertUser(userData, extra = {}) {
+        try {
+          await waitForFirebase();
+          
+          const { doc, setDoc } = window.firebaseFirestoreFunctions;
+          const userRef = doc(window.firebaseDb, 'users', userData.uid);
+          
+          const userDoc = {
+            uid: userData.uid,
+            email: userData.email,
+            displayName: userData.displayName || userData.name || userData.nickname || '',
+            photoURL: userData.photoURL || userData.profileImage || '',
+            loginMethod: userData.loginMethod || 'email',
+            createdAt: userData.createdAt || new Date(),
+            updatedAt: new Date(),
+            isActive: true,
+            ...extra
+          };
+
+          await setDoc(userRef, userDoc, { merge: true });
+          console.log('✅ 사용자 데이터 upsert 완료:', userData.email);
+          return true;
+        } catch (error) {
+          console.error('❌ 사용자 데이터 upsert 실패:', error);
+          return false;
+        }
+      }
+
+      // Firebase Auth 상태 변경 감지
+      function setupAuthStateListener() {
+        if (!window.firebaseAuthFunctions) return;
+        
+        const { onAuthStateChanged } = window.firebaseAuthFunctions;
+        onAuthStateChanged(window.firebaseAuth, (user) => {
+          if (user) {
+            console.log('✅ 사용자 로그인됨:', user.email);
+            // 로그인 상태 UI 업데이트
+            updateAuthUI();
+          } else {
+            console.log('❌ 사용자 로그아웃됨');
+            // 로그아웃 상태 UI 업데이트
+            updateAuthUI();
+          }
+        });
+      }
+
+      // Firebase 커스텀 토큰으로 로그인
+      async function signInWithFirebaseCustomToken(customToken) {
+        try {
+          await waitForFirebase();
+          
+          const { signInWithCustomToken } = window.firebaseAuthFunctions;
+          const result = await signInWithCustomToken(window.firebaseAuth, customToken);
+          console.log('✅ Firebase 커스텀 토큰 로그인 성공:', result.user.email);
+          return result.user;
+        } catch (error) {
+          console.error('❌ Firebase 커스텀 토큰 로그인 실패:', error);
+          throw error;
+        }
+      }
+
+      // Firebase 로그아웃
+      async function signOutFromFirebase() {
+        try {
+          await waitForFirebase();
+          
+          const { signOut } = window.firebaseAuthFunctions;
+          await signOut(window.firebaseAuth);
+          console.log('✅ Firebase 로그아웃 완료');
+        } catch (error) {
+          console.error('❌ Firebase 로그아웃 실패:', error);
+        }
+      }
+
       // 햄버거 메뉴 제어
       function initHamburgerMenu() {
         const hamburgerBtn = document.getElementById('hamburger-menu');
@@ -1575,6 +1692,11 @@
     });
       
       window.addEventListener('DOMContentLoaded', function() {
+        // Firebase Auth 상태 감지 설정
+        setTimeout(() => {
+          setupAuthStateListener();
+        }, 1000); // Firebase 모듈 로딩 대기
+        
         // --- 메인 폼 전환 기능 ---
         const requestFormArea = document.getElementById('request-form-area');
         const startBtn = document.getElementById('start-btn');
@@ -2451,12 +2573,55 @@
             console.log('사용자 정보 요청 성공 ✅');
 
             const user = {
+              uid: `kakao_${userData.id}`,
               id: userData.id,
               name: userData.properties?.nickname || '카카오 사용자',
               email: userData.kakao_account?.email || 'kakao@user.com',
               profileImage: userData.properties?.profile_image || '',
-              loginType: 'kakao'
+              loginType: 'kakao',
+              loginMethod: 'kakao',
+              kakaoId: userData.id,
+              loginTime: new Date().toISOString(),
+              userAgent: navigator.userAgent
             };
+
+            // 카카오 액세스 토큰으로 Firebase 커스텀 토큰 요청
+            try {
+              const customTokenResponse = await fetch('/api/kakao-to-firebase-token', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  kakaoAccessToken: tokenData.access_token,
+                  userData: user
+                })
+              });
+
+              if (customTokenResponse.ok) {
+                const { customToken } = await customTokenResponse.json();
+                
+                // Firebase 커스텀 토큰으로 로그인
+                const firebaseUser = await signInWithFirebaseCustomToken(customToken);
+                
+                // Firestore에 사용자 데이터 upsert
+                await upsertUser(user, {
+                  kakaoId: userData.id,
+                  kakaoAccessToken: tokenData.access_token
+                });
+
+                // 로그인 성공 처리
+                document.getElementById('login-modal').classList.add('hidden');
+                updateAuthUI();
+                showToast('카카오톡 로그인 성공!', 'success');
+                return;
+              } else {
+                throw new Error('Firebase 커스텀 토큰 요청 실패');
+              }
+            } catch (error) {
+              console.error('Firebase 커스텀 토큰 로그인 실패:', error);
+              // 폴백: 기존 방식으로 처리
+            }
             
             console.log('사용자 객체 생성 완료:', user);
 
@@ -2464,6 +2629,12 @@
             const duplicateCheck = checkDuplicateLogin(user.email);
             if (duplicateCheck.isDuplicate) {
               console.log('중복 로그인 감지:', duplicateCheck.message);
+              
+              // Firebase에 사용자 데이터 저장
+              const firebaseSaved = await saveUserToFirebase(duplicateCheck.user);
+              if (firebaseSaved) {
+                console.log('✅ 중복 사용자 데이터가 Firebase에 저장되었습니다');
+              }
               
               // 기존 사용자 정보로 로그인 처리
               localStorage.setItem('user', JSON.stringify(duplicateCheck.user));
@@ -2488,6 +2659,12 @@
               existingUser.loginType = 'kakao';
               existingUser.kakaoId = userData.id;
               
+              // Firebase에 사용자 데이터 저장
+              const firebaseSaved = await saveUserToFirebase(existingUser);
+              if (firebaseSaved) {
+                console.log('✅ 기존 사용자 데이터가 Firebase에 업데이트되었습니다');
+              }
+              
               // 업데이트된 사용자 정보 저장
               localStorage.setItem('user', JSON.stringify(existingUser));
               localStorage.setItem('loggedIn', 'true');
@@ -2505,6 +2682,12 @@
                 joinDate: new Date().toISOString(),
                 lastLogin: Date.now()
               };
+              
+              // Firebase에 새 사용자 데이터 저장
+              const firebaseSaved = await saveUserToFirebase(newUser);
+              if (firebaseSaved) {
+                console.log('✅ 새 사용자 데이터가 Firebase에 저장되었습니다');
+              }
               
               // 새 사용자 저장
               localStorage.setItem('user', JSON.stringify(newUser));
@@ -2674,13 +2857,41 @@
             return;
           }
           
-          const user = JSON.parse(localStorage.getItem('user') || 'null');
-          if (user && user.email === email && user.password === password) {
-            // 로그인 시간 업데이트
-            user.lastLogin = Date.now();
-            localStorage.setItem('user', JSON.stringify(user));
-            localStorage.setItem('currentUser', JSON.stringify(user));
-            localStorage.setItem('loggedIn', 'true');
+          // 기존 사용자 데이터 확인 (임시 - 실제로는 Firebase Auth 사용)
+          const existingUsers = JSON.parse(localStorage.getItem('users') || '[]');
+          const user = existingUsers.find(u => u.email === email && u.password === password);
+          
+          if (user) {
+            // Firebase Auth로 로그인 (이메일/비밀번호)
+            try {
+              await waitForFirebase();
+              
+              // 임시: Firebase Auth 이메일/비밀번호 로그인 대신 커스텀 토큰 사용
+              const userData = {
+                uid: user.uid || `email_${user.email.replace('@', '_').replace('.', '_')}`,
+                email: user.email,
+                displayName: user.name || user.nickname || '',
+                photoURL: user.profileImage || '',
+                loginMethod: 'email'
+              };
+
+              // Firestore에 사용자 데이터 upsert
+              await upsertUser(userData, {
+                lastLogin: new Date(),
+                loginCount: (user.loginCount || 0) + 1
+              });
+
+              // 로그인 성공 처리
+              document.getElementById('login-modal').classList.add('hidden');
+              document.getElementById('login-error').classList.add('hidden');
+              updateAuthUI();
+              showToast('로그인 성공!', 'success');
+              
+            } catch (error) {
+              console.error('Firebase 로그인 실패:', error);
+              document.getElementById('login-error').classList.remove('hidden');
+              showToast('로그인 처리 중 오류가 발생했습니다', 'error');
+            }
             
             // users 배열에서도 업데이트
             const users = JSON.parse(localStorage.getItem('users') || '[]');
@@ -2703,16 +2914,22 @@
         // 로그아웃
         var logoutBtn = document.getElementById('logout-btn');
         if (logoutBtn) {
-          logoutBtn.onclick = function() {
-            // 카카오 로그인 사용자인 경우 카카오 로그아웃 처리
-            const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-            
-            
-            // 로컬 스토리지 정리
-            localStorage.removeItem('loggedIn');
-            localStorage.removeItem('currentUser');
-            updateAuthUI();
-            showToast('로그아웃 되었습니다.', 'success');
+          logoutBtn.onclick = async function() {
+            try {
+              // Firebase 로그아웃
+              await signOutFromFirebase();
+              
+              // 로컬 스토리지 정리 (Firebase Auth가 자동으로 처리하지만 호환성을 위해)
+              localStorage.removeItem('loggedIn');
+              localStorage.removeItem('currentUser');
+              localStorage.removeItem('user');
+              
+              updateAuthUI();
+              showToast('로그아웃 되었습니다.', 'success');
+            } catch (error) {
+              console.error('로그아웃 실패:', error);
+              showToast('로그아웃 중 오류가 발생했습니다.', 'error');
+            }
           };
         }
         // 관리자 해제 버튼 null 체크 및 안내 메시지 보강

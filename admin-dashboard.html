@@ -7,6 +7,38 @@
     
     <!-- CSP는 서버에서 설정됨 - HTML 메타는 제거하여 충돌 방지 -->
     
+    <!-- Firebase v9 SDK (모듈식) -->
+    <script type="module">
+      import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
+      import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
+      import { getFirestore, collection, query, orderBy, onSnapshot } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
+      
+      // Firebase 설정
+      const firebaseConfig = {
+        apiKey: "AIzaSyDBZxKyMS7eeBTbPnbZkj0WWOZQHNldoL4",
+        authDomain: "pricehunter-99a1b.firebaseapp.com",
+        projectId: "pricehunter-99a1b",
+        storageBucket: "pricehunter-99a1b.firebasestorage.app",
+        messagingSenderId: "242265693919",
+        appId: "1:242265693919:web:74234d942b82a51541136a",
+        measurementId: "G-4BKLV4EVB9"
+      };
+
+      // Firebase 초기화
+      const app = initializeApp(firebaseConfig);
+      const auth = getAuth(app);
+      const db = getFirestore(app);
+
+      // 전역으로 노출
+      window.firebaseApp = app;
+      window.firebaseAuth = auth;
+      window.firebaseDb = db;
+      window.firebaseAuthFunctions = { onAuthStateChanged };
+      window.firebaseFirestoreFunctions = { collection, query, orderBy, onSnapshot };
+      
+      console.log('✅ 관리자 대시보드 Firebase v9 초기화 완료');
+    </script>
+    
     <!-- Tailwind CSS (개선된 로딩 방식) -->
     <script>
         // Tailwind CSS 동적 로딩
@@ -98,12 +130,16 @@
     <script src="firebase-config.js"></script>
     
     <script>
-        // Firebase 초기화 및 설정 (단순화된 버전)
+        // 관리자 대시보드 초기화
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🚀 관리자 대시보드 초기화 시작...');
             
-            // Firebase SDK 로딩 대기 및 초기화
-            waitForFirebaseAndInitialize();
+            // Firebase 준비 대기 후 실시간 구독 시작
+            setTimeout(async () => {
+                await waitForFirebase();
+                subscribeToUsers();
+                console.log('✅ 관리자 대시보드 Firebase 연동 완료');
+            }, 1000);
         });
         
         // Firebase SDK 로딩 대기 함수 (단순화된 버전)
@@ -320,13 +356,110 @@
             }
         };
         
+        // Firebase v9 기반 함수들
+        let isFirebaseReady = false;
+        let usersUnsubscribe = null;
+
+        // Firebase 준비 상태 확인
+        function waitForFirebase() {
+            return new Promise((resolve) => {
+                if (window.firebaseAuth && window.firebaseDb) {
+                    isFirebaseReady = true;
+                    resolve();
+                } else {
+                    setTimeout(() => waitForFirebase().then(resolve), 100);
+                }
+            });
+        }
+
+        // 실시간 사용자 목록 구독
+        function subscribeToUsers() {
+            if (!window.firebaseFirestoreFunctions) return;
+            
+            const { collection, query, orderBy, onSnapshot } = window.firebaseFirestoreFunctions;
+            
+            const usersQuery = query(
+                collection(window.firebaseDb, 'users'),
+                orderBy('createdAt', 'desc')
+            );
+
+            usersUnsubscribe = onSnapshot(usersQuery, (snapshot) => {
+                const users = [];
+                snapshot.forEach((doc) => {
+                    users.push({ id: doc.id, ...doc.data() });
+                });
+                
+                console.log('📊 실시간 사용자 데이터 업데이트:', users.length);
+                updateUsersTable(users);
+            }, (error) => {
+                console.error('❌ 사용자 목록 실시간 구독 실패:', error);
+            });
+        }
+
+        // 사용자 테이블 업데이트
+        function updateUsersTable(users) {
+            const tbody = document.getElementById('members-table-body');
+            if (!tbody) return;
+
+            tbody.innerHTML = '';
+
+            if (users.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="8" class="px-6 py-4 text-center text-gray-500">
+                            등록된 회원이 없습니다.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            users.forEach(user => {
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-gray-50';
+                
+                const profileImage = user.photoURL || '/default-avatar.png';
+                const loginMethod = user.loginMethod || 'email';
+                const joinDate = user.createdAt ? new Date(user.createdAt.seconds * 1000).toLocaleDateString() : '알 수 없음';
+                const lastUpdate = user.updatedAt ? new Date(user.updatedAt.seconds * 1000).toLocaleDateString() : '알 수 없음';
+                
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center">
+                            <div class="h-10 w-10 flex-shrink-0">
+                                <img class="h-10 w-10 rounded-full" src="${profileImage}" alt="${user.displayName || '사용자'}">
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm font-medium text-gray-900">${user.displayName || '이름 없음'}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${loginMethod === 'kakao' ? 'bg-yellow-100 text-yellow-800' : 'bg-blue-100 text-blue-800'}">
+                            ${loginMethod === 'kakao' ? '카카오톡' : '이메일'}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${user.email || '이메일 없음'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${user.phone || '-'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${joinDate}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${lastUpdate}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <button onclick="viewUserDetails('${user.id}')" class="text-indigo-600 hover:text-indigo-900 mr-3">상세보기</button>
+                        <button onclick="deleteUser('${user.id}')" class="text-red-600 hover:text-red-900">삭제</button>
+                    </td>
+                `;
+                
+                tbody.appendChild(row);
+            });
+        }
+
         // 대시보드 데이터 로드 함수
         function loadDashboardData() {
             console.log('📊 대시보드 데이터 로드 시작...');
             
-            if (!firebase.firestore) { 
-                alert("Firebase Firestore 초기화 실패"); 
-                throw new Error("Firestore not initialized"); 
+            if (!isFirebaseInitialized) { 
+                alert("Firebase 초기화 실패"); 
+                throw new Error("Firebase not initialized"); 
             }
             
             if (!window.firestore) {
@@ -534,8 +667,55 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             }
         }
         
+
+        // 사용자 상세보기 함수
+        function viewUserDetails(userId) {
+            alert(`사용자 ID: ${userId}\n상세보기 기능은 추후 구현 예정입니다.`);
+        }
+
+        // 사용자 삭제 함수
+        function deleteUser(userId) {
+            if (confirm('정말로 이 사용자를 삭제하시겠습니까?')) {
+                // Firebase에서 사용자 삭제 로직 구현
+                console.log('사용자 삭제:', userId);
+                alert('사용자 삭제 기능은 추후 구현 예정입니다.');
+            }
+        }
+
+        // 섹션 전환
+        function switchSection(section) {
+            // 기존 활성 섹션 숨기기
+            document.querySelectorAll('.section-content').forEach(content => {
+                content.classList.add('hidden');
+            });
+            
+            // 기존 활성 사이드바 아이템 비활성화
+            document.querySelectorAll('.sidebar-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            // 새 섹션 표시
+            const targetSection = document.getElementById(section + '-section');
+            if (targetSection) {
+                targetSection.classList.remove('hidden');
+            }
+            
+            // 새 사이드바 아이템 활성화
+            const activeItem = document.querySelector(`[data-section="${section}"]`);
+            if (activeItem) {
+                activeItem.classList.add('active');
+            }
+            
+            // 회원 관리 섹션인 경우 실시간 구독 시작 (이미 시작되어 있으면 무시)
+            if (section === 'members' && !usersUnsubscribe) {
+                subscribeToUsers();
+            }
+        }
+
         // 전역 함수로 노출
         window.switchSection = switchSection;
+        window.viewUserDetails = viewUserDetails;
+        window.deleteUser = deleteUser;
         
         console.log('🚀 관리자 대시보드 스크립트 로드 완료');
     </script>

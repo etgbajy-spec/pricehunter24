@@ -1,7 +1,37 @@
 const express = require('express');
 const path = require('path');
+const admin = require('firebase-admin');
 const app = express();
 const port = 8000;
+
+// Firebase Admin SDK 초기화
+const serviceAccount = {
+  type: "service_account",
+  project_id: "pricehunter-99a1b",
+  private_key_id: "your-private-key-id",
+  private_key: "-----BEGIN PRIVATE KEY-----\nYOUR_PRIVATE_KEY_HERE\n-----END PRIVATE KEY-----\n",
+  client_email: "firebase-adminsdk-xxxxx@pricehunter-99a1b.iam.gserviceaccount.com",
+  client_id: "your-client-id",
+  auth_uri: "https://accounts.google.com/o/oauth2/auth",
+  token_uri: "https://oauth2.googleapis.com/token",
+  auth_provider_x509_cert_url: "https://www.googleapis.com/oauth2/v1/certs",
+  client_x509_cert_url: "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-xxxxx%40pricehunter-99a1b.iam.gserviceaccount.com"
+};
+
+// Firebase Admin 초기화 (실제 서비스에서는 환경변수나 파일에서 키를 가져와야 함)
+try {
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+    projectId: "pricehunter-99a1b"
+  });
+  console.log('✅ Firebase Admin SDK 초기화 완료');
+} catch (error) {
+  console.error('❌ Firebase Admin SDK 초기화 실패:', error.message);
+  console.log('⚠️ 카카오 → Firebase 토큰 교환 기능이 비활성화됩니다.');
+}
+
+// JSON 파싱 미들웨어
+app.use(express.json());
 
 // 정적 파일 제공
 app.use(express.static(__dirname));
@@ -48,6 +78,46 @@ app.get('/', (req, res) => {
 
 app.get('/admin-dashboard', (req, res) => {
   res.sendFile(path.join(__dirname, 'admin-dashboard.html'));
+});
+
+// 카카오 액세스 토큰을 Firebase 커스텀 토큰으로 교환
+app.post('/api/kakao-to-firebase-token', async (req, res) => {
+  try {
+    const { kakaoAccessToken, userData } = req.body;
+    
+    if (!kakaoAccessToken || !userData) {
+      return res.status(400).json({ error: '카카오 액세스 토큰과 사용자 데이터가 필요합니다.' });
+    }
+
+    // 카카오 사용자 정보 검증
+    const kakaoUserResponse = await fetch('https://kapi.kakao.com/v2/user/me', {
+      headers: {
+        'Authorization': `Bearer ${kakaoAccessToken}`
+      }
+    });
+
+    if (!kakaoUserResponse.ok) {
+      return res.status(401).json({ error: '유효하지 않은 카카오 액세스 토큰입니다.' });
+    }
+
+    const kakaoUser = await kakaoUserResponse.json();
+    
+    // Firebase 커스텀 토큰 생성
+    const customToken = await admin.auth().createCustomToken(userData.uid, {
+      email: userData.email,
+      name: userData.name,
+      picture: userData.profileImage,
+      loginMethod: 'kakao',
+      kakaoId: userData.id
+    });
+
+    console.log('✅ Firebase 커스텀 토큰 생성 완료:', userData.email);
+    
+    res.json({ customToken });
+  } catch (error) {
+    console.error('❌ 카카오 → Firebase 토큰 교환 실패:', error);
+    res.status(500).json({ error: '토큰 교환 중 오류가 발생했습니다.' });
+  }
 });
 
 // 서버 시작
