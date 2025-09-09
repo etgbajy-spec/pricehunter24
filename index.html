@@ -12,6 +12,10 @@
     <meta name="robots" content="noindex, nofollow" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <title>PriceHunter</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🔍%3C/text%3E%3C/svg%3E">
+    
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     
@@ -1175,36 +1179,7 @@
         }
       }
 
-      // 햄버거 메뉴 제어
-      function initHamburgerMenu() {
-        const hamburgerBtn = document.getElementById('hamburger-menu');
-        const menuPanel = document.getElementById('menu-panel');
-        const menuOverlay = document.getElementById('menu-overlay');
-        const closeBtn = document.getElementById('close-menu');
-
-        function openMenu() {
-          menuPanel.classList.remove('-translate-x-full');
-          menuOverlay.classList.remove('hidden');
-          document.body.style.overflow = 'hidden';
-        }
-
-        function closeMenu() {
-          menuPanel.classList.add('-translate-x-full');
-          menuOverlay.classList.add('hidden');
-          document.body.style.overflow = '';
-        }
-
-        hamburgerBtn.addEventListener('click', openMenu);
-        closeBtn.addEventListener('click', closeMenu);
-        menuOverlay.addEventListener('click', closeMenu);
-
-        // ESC 키로 메뉴 닫기
-        document.addEventListener('keydown', (e) => {
-          if (e.key === 'Escape') {
-            closeMenu();
-          }
-        });
-      }
+      // 햄버거 메뉴 제어 함수는 전역 스코프로 이동됨
 
       // 로그인/회원가입/마이페이지/로그아웃/의뢰결과조회 버튼 제어
       function updateAuthUI() {
@@ -2840,7 +2815,7 @@
         }
 
         // 로그인 폼 제출
-        document.getElementById('login-form').onsubmit = function(e) {
+        document.getElementById('login-form').onsubmit = async function(e) {
           e.preventDefault();
           
           const email = sanitizeInput(document.getElementById('login-email').value.trim());
@@ -3615,6 +3590,42 @@ if (mypageBtn) {
       }
     </script>
     
+    <!-- 햄버거 메뉴 제어 함수 (전역 스코프) -->
+    <script>
+      // 햄버거 메뉴 제어
+      function initHamburgerMenu() {
+        const hamburgerBtn = document.getElementById('hamburger-menu');
+        const menuPanel = document.getElementById('menu-panel');
+        const menuOverlay = document.getElementById('menu-overlay');
+        const closeBtn = document.getElementById('close-menu');
+
+        function openMenu() {
+          menuPanel.classList.remove('-translate-x-full');
+          menuOverlay.classList.remove('hidden');
+          document.body.style.overflow = 'hidden';
+        }
+
+        function closeMenu() {
+          menuPanel.classList.add('-translate-x-full');
+          menuOverlay.classList.add('hidden');
+          document.body.style.overflow = '';
+        }
+
+        if (hamburgerBtn && menuPanel && menuOverlay && closeBtn) {
+          hamburgerBtn.addEventListener('click', openMenu);
+          closeBtn.addEventListener('click', closeMenu);
+          menuOverlay.addEventListener('click', closeMenu);
+
+          // ESC 키로 메뉴 닫기
+          document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+              closeMenu();
+            }
+          });
+        }
+      }
+    </script>
+
     <!-- 프로세스 애니메이션 스크립트 -->
     <script>
       window.addEventListener('DOMContentLoaded', function() {
