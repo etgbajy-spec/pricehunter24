@@ -512,8 +512,13 @@
 
     // 환경별 redirect_uri 설정
     function setKakaoRedirectUri() {
-      // 항상 현재 페이지의 실제 URL을 사용 (가장 깔끔한 방법)
-      KAKAO_CONFIG.redirectUri = window.location.origin + window.location.pathname;
+      // 카카오 개발자 콘솔에 등록된 URI 사용
+      if (window.location.hostname === 'pricehunt24.com') {
+        KAKAO_CONFIG.redirectUri = 'https://pricehunt24.com/register.html';
+      } else {
+        // 로컬 개발 환경
+        KAKAO_CONFIG.redirectUri = window.location.origin + window.location.pathname;
+      }
       
       console.log('카카오 redirect_uri 설정:', KAKAO_CONFIG.redirectUri);
       console.log('현재 페이지 URL:', window.location.href);
