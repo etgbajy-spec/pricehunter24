@@ -608,7 +608,7 @@
         // 로컬 개발 환경
         KAKAO_CONFIG.redirectUri = 'http://localhost:3000/register.html';
       } else {
-        // 기타 환경
+        // 기타 환경 (실제 도메인 사용)
         KAKAO_CONFIG.redirectUri = window.location.origin + '/register.html';
       }
       
@@ -646,7 +646,7 @@
        } else if (window.location.hostname === 'pricehunt24.com') {
          updateEnvironmentStatus('✅ 프로덕션 환경 - 카카오 로그인 활성화', 'green');
        } else {
-         updateEnvironmentStatus('✅ 카카오 로그인 활성화', 'green');
+         updateEnvironmentStatus('✅ 실제 웹사이트 - 카카오 로그인 활성화', 'green');
        }
      }
 
@@ -751,6 +751,8 @@
           simulateKakaoLogin();
           return;
         }
+        
+        console.log('🌐 실제 웹사이트 환경 - 카카오 로그인 실행');
         
         // 프로덕션 환경에서 실제 카카오 로그인
         const authParams = new URLSearchParams({
