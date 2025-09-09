@@ -6,142 +6,2016 @@
     <title>관리자 대시보드 - PriceHunter</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎯</text></svg>">
     
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- CSP는 서버에서 설정됨 - HTML 메타는 제거하여 충돌 방지 -->
     
-    <!-- Kakao SDK -->
-    <script src="https://developers.kakao.com/sdk/js/kakao.js"></script>
+    <!-- Tailwind CSS (개선된 로딩 방식) -->
+    <script>
+        // Tailwind CSS 동적 로딩
+        function loadTailwindCSS() {
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = 'https://cdn.tailwindcss.com';
+                script.onload = () => {
+                    console.log('✅ Tailwind CSS 로드됨');
+                    resolve();
+                };
+                script.onerror = (error) => {
+                    console.error('❌ Tailwind CSS 로드 실패:', error);
+                    // Tailwind 로드 실패 시 기본 스타일 적용
+                    applyFallbackStyles();
+                    reject(error);
+                };
+                document.head.appendChild(script);
+            });
+        }
+        
+        // Tailwind 로드 실패 시 대체 스타일
+        function applyFallbackStyles() {
+            const style = document.createElement('style');
+            style.textContent = `
+                body { font-family: system-ui, -apple-system, sans-serif; }
+                .bg-gradient-to-br { background: linear-gradient(135deg, #f3f4f6, #dbeafe, #d1fae5); }
+                .min-h-screen { min-height: 100vh; }
+                .flex { display: flex; }
+                .items-center { align-items: center; }
+                .justify-center { justify-content: center; }
+                .bg-white { background-color: white; }
+                .rounded-xl { border-radius: 0.75rem; }
+                .shadow-2xl { box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); }
+                .p-8 { padding: 2rem; }
+                .w-full { width: 100%; }
+                .max-w-md { max-width: 28rem; }
+                .text-center { text-align: center; }
+                .mb-8 { margin-bottom: 2rem; }
+                .text-3xl { font-size: 1.875rem; }
+                .font-bold { font-weight: 700; }
+                .text-pink-600 { color: #db2777; }
+                .text-gray-600 { color: #4b5563; }
+                .space-y-6 > * + * { margin-top: 1.5rem; }
+                .block { display: block; }
+                .text-sm { font-size: 0.875rem; }
+                .font-medium { font-weight: 500; }
+                .text-gray-700 { color: #374151; }
+                .mb-2 { margin-bottom: 0.5rem; }
+                .px-4 { padding-left: 1rem; padding-right: 1rem; }
+                .py-3 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+                .border { border-width: 1px; }
+                .border-gray-300 { border-color: #d1d5db; }
+                .rounded-lg { border-radius: 0.5rem; }
+                .focus\\:ring-2:focus { box-shadow: 0 0 0 2px rgba(236, 72, 153, 0.5); }
+                .focus\\:ring-pink-400:focus { box-shadow: 0 0 0 2px rgba(244, 114, 182, 0.5); }
+                .focus\\:outline-none:focus { outline: none; }
+                .bg-gradient-to-r { background: linear-gradient(to right, #ec4899, #8b5cf6); }
+                .text-white { color: white; }
+                .hover\\:from-pink-600:hover { background: linear-gradient(to right, #db2777, #7c3aed); }
+                .hover\\:to-purple-600:hover { background: linear-gradient(to right, #ec4899, #7c3aed); }
+                .transition { transition: all 0.15s ease-in-out; }
+                .shadow-lg { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+                .mt-6 { margin-top: 1.5rem; }
+                .text-pink-600 { color: #db2777; }
+                .hover\\:text-pink-700:hover { color: #be185d; }
+                .text-blue-600 { color: #2563eb; }
+                .hover\\:text-blue-700:hover { color: #1d4ed8; }
+                .text-xs { font-size: 0.75rem; }
+                .text-gray-500 { color: #6b7280; }
+                .mt-2 { margin-top: 0.5rem; }
+            `;
+            document.head.appendChild(style);
+            console.log('⚠️ Tailwind CSS 대체 스타일 적용됨');
+        }
+        
+        // Tailwind CSS 로딩 시작
+        loadTailwindCSS().catch(() => {
+            console.log('⚠️ Tailwind CSS 로딩 실패, 대체 스타일 사용');
+        });
+    </script>
+    
+    <!-- Firebase 8.x SDK (최적화된 로딩 방식) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    
+    <!-- Firebase 설정 (단일 진실 소스) -->
+    <script src="firebase-config.js?v=20241220-2"></script>
+    
+    <script>
+        // 즉시 실행으로 스크립트 로딩 확인
+        console.log('🚀 admin-dashboard.html 스크립트 로딩 시작...');
+        console.log('🕐 현재 시간:', new Date().toISOString());
+        console.log('🌐 현재 URL:', window.location.href);
+        console.log('📄 문서 상태:', document.readyState);
+        
+        // Firebase 초기화 및 설정 (로컬 성공 방식)
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 관리자 대시보드 초기화 시작...');
+            
+            // Firebase SDK 로딩 대기 및 초기화
+            waitForFirebaseAndInitialize();
+        });
+        
+        // DOMContentLoaded가 이미 발생했을 경우를 대비한 즉시 실행
+        if (document.readyState === 'loading') {
+            console.log('📄 DOM 로딩 중 - DOMContentLoaded 대기');
+        } else {
+            console.log('📄 DOM 이미 로드됨 - 즉시 초기화 실행');
+            console.log('🚀 관리자 대시보드 즉시 초기화 시작...');
+            waitForFirebaseAndInitialize();
+        }
+        
+        // Firebase SDK 로딩 대기 함수 (로컬 성공 방식)
+        function waitForFirebaseAndInitialize() {
+            console.log('🔄 waitForFirebaseAndInitialize 함수 시작...');
+            const maxAttempts = 8; // 8초 대기
+            let attempts = 0;
+            
+            const checkFirebase = () => {
+                attempts++;
+                console.log(`🔍 Firebase SDK 확인 시도 ${attempts}/${maxAttempts}`);
+                console.log('🔍 typeof firebase:', typeof firebase);
+                console.log('🔍 firebase.apps:', firebase?.apps);
+                console.log('🔍 firebase.auth:', firebase?.auth);
+                console.log('🔍 firebase.firestore:', firebase?.firestore);
+                
+                // Firebase SDK 완전 로드 확인 (로컬 성공 방식)
+                if (typeof firebase !== 'undefined' && 
+                    firebase.apps !== undefined && 
+                    firebase.auth !== undefined && 
+                    firebase.firestore !== undefined) {
+                    
+                    console.log('✅ Firebase SDK 완전 로드됨');
+                    console.log('Firebase 버전:', firebase.SDK_VERSION);
+                    
+                    // Firebase 초기화 시도
+                    try {
+                        console.log('🔄 initializeFirebase 함수 호출...');
+                        const initResult = initializeFirebase();
+                        console.log('🔄 initializeFirebase 결과:', initResult);
+                        
+                        if (initResult) {
+                            console.log('✅ Firebase 초기화 완료');
+                            console.log('🔄 setupAdminDashboard 함수 호출...');
+                            setupAdminDashboard();
+                        } else {
+                            console.error('❌ Firebase 초기화 실패');
+                            showFirebaseError('Firebase 초기화에 실패했습니다. Netlify CSP 헤더를 확인해주세요.');
+                        }
+                    } catch (error) {
+                        console.error('❌ Firebase 초기화 중 오류:', error);
+                        showFirebaseError('Firebase 초기화 중 오류가 발생했습니다: ' + error.message);
+                    }
+                } else if (attempts < maxAttempts) {
+                    console.log('⏳ Firebase SDK 로딩 대기 중...');
+                    setTimeout(checkFirebase, 1000);
+                } else {
+                    console.error('❌ Firebase SDK 로딩 시간 초과');
+                    showFirebaseError('Firebase SDK 로딩 시간이 초과되었습니다.\n\nNetlify CSP 정책에서 다음 도메인들이 허용되어야 합니다:\n- https://www.gstatic.com\n- https://www.gstatic.com/firebasejs\n\nnetlify.toml 파일의 CSP 설정을 확인하세요.');
+                }
+            };
+            
+            checkFirebase();
+        }
+        
+        // Firebase 오류 표시 함수 (CSP 최적화 버전)
+        function showFirebaseError(message) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'fixed top-4 right-4 bg-red-500 text-white p-4 rounded-lg shadow-lg z-50 max-w-md';
+            errorDiv.innerHTML = `
+                <div class="font-bold mb-2">🔥 Firebase 오류</div>
+                <div class="text-sm mb-2">${message}</div>
+                <div class="text-xs mb-3 p-2 bg-red-600 rounded">
+                    <strong>CSP 해결 방법:</strong><br>
+                    1. DevTools → Network → Response Headers 확인<br>
+                    2. content-security-policy에 www.gstatic.com 포함 확인<br>
+                    3. 서버 재시작 후 새로고침<br>
+                    4. 브라우저 캐시 완전 삭제<br>
+                    5. 서비스워커 등록 해제
+                </div>
+                <div class="flex gap-2 flex-wrap">
+                    <button onclick="location.reload()" class="px-3 py-1 bg-white text-red-500 rounded text-xs font-bold hover:bg-gray-100">
+                        🔄 새로고침
+                    </button>
+                    <button onclick="testFirebaseConnection()" class="px-3 py-1 bg-yellow-500 text-white rounded text-xs font-bold hover:bg-yellow-600">
+                        🧪 연결 테스트
+                    </button>
+                    <button onclick="clearCacheAndReload()" class="px-3 py-1 bg-orange-500 text-white rounded text-xs font-bold hover:bg-orange-600">
+                        🧹 캐시 정리
+                    </button>
+                    <button onclick="this.parentElement.parentElement.remove()" class="px-3 py-1 bg-gray-500 text-white rounded text-xs font-bold hover:bg-gray-600">
+                        ✕ 닫기
+                    </button>
+                </div>
+            `;
+            document.body.appendChild(errorDiv);
+            
+            // 20초 후 자동 제거 (CSP 문제는 해결 시간이 더 필요)
+            setTimeout(() => {
+                if (errorDiv.parentElement) {
+                    errorDiv.remove();
+                }
+            }, 20000);
+        }
+        
+        // 관리자 권한 체계 설정
+        const ADMIN_WHITELIST = [
+            'admin@pricehunter.com',
+            'manager@pricehunter.com',
+            'staff@pricehunter.com',
+            'q886654@naver.com'  // 실제 사용자 이메일 추가
+        ];
+
+        // 관리자 대시보드 설정
+        function setupAdminDashboard() {
+            console.log('🔧 관리자 대시보드 설정 시작...');
+            
+            // Firebase 상태 재확인
+            if (!window.auth || !window.firestore) {
+                console.error('❌ Firebase 서비스가 초기화되지 않았습니다.');
+                console.error('❌ Firebase 상태:', {
+                    auth: !!window.auth,
+                    firestore: !!window.firestore,
+                    firebase: !!window.firebase
+                });
+                showFirebaseError('Firebase 서비스 초기화에 실패했습니다.');
+                return;
+            }
+            
+            console.log('✅ Firebase 서비스 초기화 확인됨');
+            console.log('✅ Firebase 상태:', {
+                auth: !!window.auth,
+                firestore: !!window.firestore,
+                firebase: !!window.firebase
+            });
+            
+            // Firebase 프로젝트 확인
+            if (window.firebase && window.firebase.apps.length > 0) {
+                const projectId = window.firebase.app().options.projectId;
+                console.log('🔍 admin-dashboard.html Firebase 프로젝트 ID:', projectId);
+            }
+            
+            // 인증 상태 감시 및 권한 확인
+            console.log('🔄 setupAuthGuard 호출 시작...');
+            setupAuthGuard();
+            console.log('🔄 setupAuthGuard 호출 완료');
+            
+            console.log('✅ 관리자 대시보드 설정 완료');
+        }
+
+        // 인증 가드 설정
+        function setupAuthGuard() {
+            console.log('🔐 인증 가드 설정 시작...');
+            console.log('🔍 window.auth 상태:', !!window.auth);
+            
+            if (!window.auth) {
+                console.error('❌ window.auth가 없습니다!');
+                return;
+            }
+            
+            console.log('🔄 onAuthStateChanged 리스너 등록 중...');
+            window.auth.onAuthStateChanged(async (user) => {
+                console.log('🔄 onAuthStateChanged 콜백 호출됨');
+                console.log('🔍 사용자 상태:', user ? `로그인됨 (${user.email})` : '로그아웃됨');
+                
+                if (user) {
+                    console.log('👤 사용자 로그인 감지:', user.email);
+                    console.log('👤 사용자 UID:', user.uid);
+                    
+                    // 관리자 권한 확인
+                    console.log('🔄 관리자 권한 확인 시작...');
+                    const isAdmin = await checkAdminPermission(user);
+                    console.log('🔄 관리자 권한 확인 결과:', isAdmin);
+                    
+                    if (isAdmin) {
+                        console.log('✅ 관리자 권한 확인됨 - 리스너 시작');
+                        showDashboard(user);
+                        // 관리자 가드 통과 후에만 리스너 시작
+                        setupRealtimeListeners();
+                    } else {
+                        console.log('❌ 관리자 권한 없음 - 리스너 시작 안함');
+                        showAccessDenied(user.email);
+                    }
+                } else {
+                    console.log('👤 사용자 로그아웃 감지');
+                    showLoginForm();
+                }
+            });
+            console.log('✅ onAuthStateChanged 리스너 등록 완료');
+        }
+
+        // 관리자 권한 확인
+        async function checkAdminPermission(user) {
+            try {
+                console.log('🔍 관리자 권한 확인 시작:', user.email);
+                console.log('🔍 관리자 화이트리스트:', ADMIN_WHITELIST);
+                
+                // 1. 화이트리스트 확인
+                if (ADMIN_WHITELIST.includes(user.email)) {
+                    console.log('✅ 화이트리스트에서 관리자 확인됨:', user.email);
+                    return true;
+                }
+
+                // 2. Custom Claims 확인 (ID 토큰에서)
+                console.log('🔍 Custom Claims 확인 중...');
+                const idTokenResult = await user.getIdTokenResult();
+                const claims = idTokenResult.claims;
+                
+                console.log('🔍 토큰 클레임 상세:', claims);
+                console.log('🔍 토큰 발급 시간:', idTokenResult.issuedAtTime);
+                console.log('🔍 토큰 만료 시간:', idTokenResult.expirationTime);
+                
+                if (claims.role === 'admin') {
+                    console.log('✅ Custom Claims에서 관리자 확인됨:', user.email);
+                    return true;
+                }
+
+                console.log('❌ 관리자 권한 없음:', user.email);
+                console.log('❌ Claims:', claims);
+                console.log('❌ 화이트리스트에 포함되지 않음');
+                return false;
+                
+            } catch (error) {
+                console.error('❌ 권한 확인 중 오류:', error);
+                return false;
+            }
+        }
+        
+        // 보안 규칙 테스트 함수
+        async function testSecurityRules() {
+            console.log('🧪 보안 규칙 테스트 시작...');
+            
+            if (!window.auth.currentUser) {
+                console.error('❌ 로그인되지 않은 사용자입니다.');
+                return;
+            }
+            
+            const user = window.auth.currentUser;
+            console.log('👤 테스트 사용자:', user.email, user.uid);
+            
+            try {
+                // 1. 본인 문서 읽기 테스트
+                console.log('🔍 본인 문서 읽기 테스트...');
+                const ownDoc = await window.firestore.collection('members').doc(user.uid).get();
+                if (ownDoc.exists) {
+                    console.log('✅ 본인 문서 읽기 성공:', ownDoc.data());
+                } else {
+                    console.log('⚠️ 본인 문서가 존재하지 않음');
+                }
+                
+                // 2. 컬렉션 쿼리 테스트
+                console.log('🔍 컬렉션 쿼리 테스트...');
+                const membersSnapshot = await window.firestore.collection('members').limit(5).get();
+                console.log('✅ 컬렉션 쿼리 성공:', membersSnapshot.size, '개 문서');
+                
+                // 3. 관리자 권한 확인
+                const isAdmin = await checkAdminPermission(user);
+                console.log('🔍 관리자 권한:', isAdmin);
+                
+            } catch (error) {
+                console.error('❌ 보안 규칙 테스트 실패:', error);
+                console.error('❌ 오류 코드:', error.code);
+                console.error('❌ 오류 메시지:', error.message);
+            }
+        }
+
+        // 대시보드 표시
+        function showDashboard(user) {
+            document.getElementById('login-section').classList.add('hidden');
+            document.getElementById('dashboard-section').classList.remove('hidden');
+            
+            // 관리자 정보 표시
+            if (document.getElementById('admin-info')) {
+                document.getElementById('admin-info').textContent = user.email;
+            }
+            
+            // 사용자 역할 표시
+            updateUserRoleDisplay(user);
+            
+            // 대시보드 데이터 로드
+            loadDashboardData();
+        }
+
+        // 로그인 폼 표시
+        function showLoginForm() {
+            document.getElementById('login-section').classList.remove('hidden');
+            document.getElementById('dashboard-section').classList.add('hidden');
+        }
+
+        // 접근 거부 표시
+        function showAccessDenied(email) {
+            document.getElementById('login-section').classList.add('hidden');
+            document.getElementById('dashboard-section').classList.add('hidden');
+            
+            // 접근 거부 오버레이 표시
+            const accessDeniedDiv = document.createElement('div');
+            accessDeniedDiv.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+            accessDeniedDiv.innerHTML = `
+                <div class="bg-white rounded-xl shadow-2xl p-8 max-w-md mx-4">
+                    <div class="text-center">
+                        <div class="text-6xl mb-4">🚫</div>
+                        <h2 class="text-2xl font-bold text-red-600 mb-4">접근 거부</h2>
+                        <p class="text-gray-600 mb-6">
+                            관리자 권한이 필요합니다.<br>
+                            현재 계정: <strong>${email}</strong>
+                        </p>
+                        <div class="space-y-3">
+                            <button onclick="adminLogout()" class="w-full px-4 py-2 bg-red-500 text-white rounded-lg font-semibold hover:bg-red-600 transition">
+                                🔓 로그아웃
+                            </button>
+                            <button onclick="goToPage('index.html')" class="w-full px-4 py-2 bg-gray-500 text-white rounded-lg font-semibold hover:bg-gray-600 transition">
+                                🏠 메인페이지로
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(accessDeniedDiv);
+        }
+
+        // 사용자 역할 표시 업데이트
+        function updateUserRoleDisplay(user) {
+            const roleDisplay = document.getElementById('user-role-display');
+            if (roleDisplay) {
+                if (ADMIN_WHITELIST.includes(user.email)) {
+                    roleDisplay.innerHTML = '<span class="bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs font-bold">ADMIN</span>';
+                } else {
+                    roleDisplay.innerHTML = '<span class="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-bold">STAFF</span>';
+                }
+            }
+            
+            // 권한별 메뉴 표시/숨김
+            updateMenuVisibility(user);
+        }
+
+        // 권한별 메뉴 표시/숨김
+        function updateMenuVisibility(user) {
+            const isAdmin = ADMIN_WHITELIST.includes(user.email);
+            
+            // 관리자 전용 메뉴들
+            const adminOnlyMenus = [
+                'data-management',
+                'sync-settings'
+            ];
+            
+            adminOnlyMenus.forEach(menuId => {
+                const menuButton = document.querySelector(`[data-section="${menuId}"]`);
+                if (menuButton) {
+                    if (isAdmin) {
+                        menuButton.classList.remove('hidden');
+                        menuButton.disabled = false;
+                    } else {
+                        menuButton.classList.add('hidden');
+                        menuButton.disabled = true;
+                    }
+                }
+            });
+            
+            // 관리자 전용 기능들
+            const adminOnlyElements = [
+                'new-request-form',
+                'csv-upload-section',
+                'sync-configs-section'
+            ];
+            
+            adminOnlyElements.forEach(elementId => {
+                const element = document.getElementById(elementId);
+                if (element) {
+                    if (isAdmin) {
+                        element.classList.remove('hidden');
+                    } else {
+                        element.classList.add('hidden');
+                    }
+                }
+            });
+        }
+        
+        // 관리자 로그인 함수
+        window.adminLogin = async function() {
+            console.log('🔐 관리자 로그인 시도...');
+            
+            const email = document.getElementById('admin-email').value;
+            const password = document.getElementById('admin-password').value;
+            
+            if (!email || !password) {
+                alert('이메일과 비밀번호를 입력해주세요.');
+                return;
+            }
+            
+            // Firebase 가드 확인
+            if (typeof firebase === 'undefined') {
+                alert('Firebase SDK가 로드되지 않았습니다. 서버 CSP 헤더를 확인해주세요.');
+                return;
+            }
+            
+            if (!window.auth) {
+                console.error('❌ Firebase Auth가 초기화되지 않았습니다.');
+                alert('Firebase Auth 초기화에 실패했습니다. 페이지를 새로고침해주세요.');
+                return;
+            }
+            
+            try {
+                console.log('🔥 로그인 시도:', email);
+                const userCredential = await window.auth.signInWithEmailAndPassword(email, password);
+                console.log('✅ 로그인 성공:', userCredential.user.email);
+                
+                // onAuthStateChanged가 자동으로 권한 확인 및 대시보드 표시를 처리함
+                
+            } catch (error) {
+                console.error('❌ 로그인 실패:', error);
+                let errorMessage = '로그인에 실패했습니다.';
+                
+                switch (error.code) {
+                    case 'auth/user-not-found':
+                        errorMessage = '등록되지 않은 이메일입니다.';
+                        break;
+                    case 'auth/wrong-password':
+                        errorMessage = '비밀번호가 올바르지 않습니다.';
+                        break;
+                    case 'auth/invalid-email':
+                        errorMessage = '올바르지 않은 이메일 형식입니다.';
+                        break;
+                    case 'auth/too-many-requests':
+                        errorMessage = '너무 많은 로그인 시도가 있었습니다. 잠시 후 다시 시도해주세요.';
+                        break;
+                    default:
+                        errorMessage = error.message;
+                }
+                
+                alert(errorMessage);
+            }
+        };
+
+        // 관리자 로그아웃 함수
+        window.adminLogout = async function() {
+            try {
+                console.log('🔓 로그아웃 시도...');
+                await window.auth.signOut();
+                console.log('✅ 로그아웃 완료');
+                
+                // 접근 거부 오버레이 제거
+                const accessDeniedDiv = document.querySelector('.fixed.inset-0.bg-black');
+                if (accessDeniedDiv) {
+                    accessDeniedDiv.remove();
+                }
+                
+                // onAuthStateChanged가 자동으로 로그인 폼 표시를 처리함
+                
+            } catch (error) {
+                console.error('❌ 로그아웃 실패:', error);
+                alert('로그아웃에 실패했습니다: ' + error.message);
+            }
+        };
+        
+        // 테스트 관리자 계정 생성 함수
+        window.createAdminAccount = async function() {
+            try {
+                console.log('🔧 테스트 관리자 계정 생성 시작...');
+                
+                if (!firebase.auth) { 
+                    alert("Firebase Auth 초기화 실패"); 
+                    throw new Error("Auth not initialized"); 
+                }
+                
+                if (!window.auth) {
+                    alert('Firebase가 초기화되지 않았습니다. 페이지를 새로고침해주세요.');
+                    return;
+                }
+                
+                const userCredential = await window.auth.createUserWithEmailAndPassword('admin@pricehunter.com', 'admin1234');
+                console.log('✅ 테스트 관리자 계정 생성 완료:', userCredential.user.email);
+                
+                // Firestore에 관리자 정보 저장
+                if (window.firestore) {
+                    await window.firestore.collection('admins').doc(userCredential.user.uid).set({
+                        email: 'admin@pricehunter.com',
+                        role: 'admin',
+                        createdAt: new Date(),
+                        permissions: ['read', 'write', 'delete', 'admin']
+                    });
+                    console.log('✅ 관리자 정보 Firestore 저장 완료');
+                }
+                
+                alert('✅ 테스트 관리자 계정이 생성되었습니다!\n\n이메일: admin@pricehunter.com\n비밀번호: admin1234\n\n이제 이 계정으로 로그인할 수 있습니다.');
+                
+                // 입력 필드에 자동 입력
+                document.getElementById('admin-email').value = 'admin@pricehunter.com';
+                document.getElementById('admin-password').value = 'admin1234';
+                
+            } catch (error) {
+                console.error('❌ 테스트 계정 생성 실패:', error);
+                
+                if (error.code === 'auth/email-already-in-use') {
+                    alert('이미 존재하는 계정입니다!\n\n이메일: admin@pricehunter.com\n비밀번호: admin1234\n\n이 계정으로 로그인해보세요.');
+                    
+                    // 입력 필드에 자동 입력
+                    document.getElementById('admin-email').value = 'admin@pricehunter.com';
+                    document.getElementById('admin-password').value = 'admin1234';
+                } else {
+                    alert('계정 생성 실패: ' + error.message);
+                }
+            }
+        };
+        
+        // 대시보드 데이터 로드 함수
+        function loadDashboardData() {
+            console.log('📊 대시보드 데이터 로드 시작...');
+            
+            if (!window.firestore) {
+                console.error('❌ Firestore가 초기화되지 않았습니다.');
+                return;
+            }
+            
+            // 실시간 리스너 설정
+            setupRealtimeListeners();
+            
+            console.log('✅ 대시보드 데이터 로드 완료');
+        }
+
+        // 실시간 리스너 설정
+        function setupRealtimeListeners() {
+            console.log('🔄 실시간 리스너 설정 시작...');
+            console.log('🔍 현재 사용자:', window.auth.currentUser);
+            console.log('🔍 Firestore 상태:', !!window.firestore);
+            console.log('🔍 Firebase 앱 상태:', !!window.firebaseApp);
+            
+            // 의뢰 데이터 실시간 감시
+            setupRequestsListener();
+            
+            // 문의 데이터 실시간 감시
+            setupInquiriesListener();
+            
+            // 회원 데이터 실시간 감시
+            setupMembersListener();
+            
+            console.log('✅ 실시간 리스너 설정 완료');
+        }
+
+        // 의뢰 리스너 설정
+        function setupRequestsListener() {
+            if (!window.firestore) {
+                console.warn('⚠️ Firestore가 초기화되지 않았습니다.');
+                return;
+            }
+
+            window.firestore.collection('requests')
+                .orderBy('createdAt', 'desc')
+                .limit(100)
+                .onSnapshot((snapshot) => {
+                    console.log(`📋 의뢰 데이터 수신: ${snapshot.size}개 문서`);
+                    
+                    const requests = [];
+                    snapshot.forEach((doc) => {
+                        const data = doc.data();
+                        requests.push({
+                            id: doc.id,
+                            ...data,
+                            createdAt: data.createdAt?.toDate?.() || new Date(),
+                            updatedAt: data.updatedAt?.toDate?.() || new Date()
+                        });
+                    });
+                    
+                    updateRequestsTable(requests);
+                    updateRequestStats(requests);
+                    updateRecentRequests(requests.slice(0, 5));
+                }, (error) => {
+                    console.error('❌ 의뢰 리스너 오류:', error);
+                });
+        }
+
+        // 문의 리스너 설정
+        function setupInquiriesListener() {
+            if (!window.firestore) {
+                console.warn('⚠️ Firestore가 초기화되지 않았습니다.');
+                return;
+            }
+
+            window.firestore.collection('inquiries')
+                .orderBy('createdAt', 'desc')
+                .limit(100)
+                .onSnapshot((snapshot) => {
+                    console.log(`💬 문의 데이터 수신: ${snapshot.size}개 문서`);
+                    
+                    const inquiries = [];
+                    snapshot.forEach((doc) => {
+                        const data = doc.data();
+                        inquiries.push({
+                            id: doc.id,
+                            ...data,
+                            createdAt: data.createdAt?.toDate?.() || new Date(),
+                            updatedAt: data.updatedAt?.toDate?.() || new Date()
+                        });
+                    });
+                    
+                    updateInquiriesTable(inquiries);
+                    updateInquiryStats(inquiries);
+                    updateRecentInquiries(inquiries.slice(0, 5));
+                }, (error) => {
+                    console.error('❌ 문의 리스너 오류:', error);
+                });
+        }
+
+        // 회원 리스너 설정
+        function setupMembersListener() {
+            if (!window.firestore) {
+                console.warn('⚠️ Firestore가 초기화되지 않았습니다.');
+                return;
+            }
+
+            console.log('🔍 회원 리스너 설정 시작...');
+            console.log('🔍 현재 사용자 UID:', window.auth.currentUser?.uid);
+            console.log('🔍 현재 사용자 이메일:', window.auth.currentUser?.email);
+            
+            // createdAt으로 정렬 시도, 실패하면 updatedAt으로 폴백
+            window.firestore.collection('members')
+                .orderBy('createdAt', 'desc')
+                .limit(100)
+                .onSnapshot((snapshot) => {
+                    console.log(`👥 회원 데이터 수신: ${snapshot.size}개 문서`);
+                    console.log('📊 회원 데이터 상세:', snapshot.docs.map(doc => ({
+                        id: doc.id,
+                        data: doc.data()
+                    })));
+                    
+                    // 첫 번째 문서 정보 로깅
+                    if (snapshot.size > 0) {
+                        const firstDoc = snapshot.docs[0];
+                        console.log('📄 첫 번째 회원 문서:', {
+                            id: firstDoc.id,
+                            data: firstDoc.data()
+                        });
+                    }
+                    
+                    const members = [];
+                    snapshot.forEach((doc) => {
+                        const data = doc.data();
+                        members.push({
+                            id: doc.id,
+                            ...data,
+                            createdAt: data.createdAt?.toDate?.() || new Date(),
+                            updatedAt: data.updatedAt?.toDate?.() || new Date()
+                        });
+                    });
+                    
+                    console.log('📋 처리된 회원 데이터:', members);
+                    updateMembersTable(members);
+                    updateMemberStats(members);
+                }, (error) => {
+                    console.error('❌ 회원 리스너 오류 (createdAt):', error);
+                    
+                    // createdAt 정렬 실패 시 updatedAt으로 폴백
+                    if (error.code === 'failed-precondition') {
+                        console.log('🔄 updatedAt으로 폴백 시도...');
+                        window.firestore.collection('members')
+                            .orderBy('updatedAt', 'desc')
+                            .limit(100)
+                            .onSnapshot((snapshot) => {
+                                console.log(`👥 회원 데이터 수신 (폴백): ${snapshot.size}개 문서`);
+                                
+                                const members = [];
+                                snapshot.forEach((doc) => {
+                                    const data = doc.data();
+                                    members.push({
+                                        id: doc.id,
+                                        ...data,
+                                        createdAt: data.createdAt?.toDate?.() || new Date(),
+                                        updatedAt: data.updatedAt?.toDate?.() || new Date()
+                                    });
+                                });
+                                
+                                updateMembersTable(members);
+                                updateMemberStats(members);
+                            }, (fallbackError) => {
+                                console.error('❌ 회원 리스너 폴백 오류:', fallbackError);
+                            });
+                    }
+                });
+        }
+
+
+
+
+        // 통계 업데이트 함수들
+        function updateRequestStats(requests) {
+            const total = requests.length;
+            const completed = requests.filter(r => r.status === 'done').length;
+            const pending = requests.filter(r => r.status === 'pending').length;
+            
+            const totalElement = document.getElementById('total-requests');
+            const completedElement = document.getElementById('completed-requests');
+            const pendingElement = document.getElementById('pending-requests');
+            
+            if (totalElement) totalElement.textContent = total;
+            if (completedElement) completedElement.textContent = completed;
+            if (pendingElement) pendingElement.textContent = pending;
+        }
+
+        function updateInquiryStats(inquiries) {
+            const total = inquiries.length;
+            const pending = inquiries.filter(i => i.status === 'new').length;
+            const answered = inquiries.filter(i => i.status === 'answered').length;
+            
+            const totalElement = document.getElementById('total-inquiries');
+            const pendingElement = document.getElementById('pending-inquiries');
+            const answeredElement = document.getElementById('answered-inquiries');
+            
+            if (totalElement) totalElement.textContent = total;
+            if (pendingElement) pendingElement.textContent = pending;
+            if (answeredElement) answeredElement.textContent = answered;
+        }
+
+        function updateMemberStats(members) {
+            const total = members.length;
+            const active = members.filter(m => m.status === 'active').length;
+            const blocked = members.filter(m => m.status === 'blocked').length;
+            
+            const totalElement = document.getElementById('total-members');
+            const activeElement = document.getElementById('active-members');
+            const blockedElement = document.getElementById('blocked-members');
+            
+            if (totalElement) totalElement.textContent = total;
+            if (activeElement) activeElement.textContent = active;
+            if (blockedElement) blockedElement.textContent = blocked;
+        }
+
+        // 최근 활동 업데이트 함수들
+        function updateRecentRequests(requests) {
+            const container = document.getElementById('recent-requests');
+            if (!container) return;
+            
+            if (requests.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-sm">최근 의뢰가 없습니다.</p>';
+                return;
+            }
+            
+            container.innerHTML = requests.map(request => `
+                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div>
+                        <p class="font-semibold text-sm">${request.title || '제목 없음'}</p>
+                        <p class="text-xs text-gray-500">${request.email || '이메일 없음'}</p>
+                    </div>
+                    <div class="text-right">
+                        <span class="inline-block px-2 py-1 text-xs rounded-full ${
+                            request.status === 'done' ? 'bg-green-100 text-green-800' :
+                            request.status === 'in_progress' ? 'bg-blue-100 text-blue-800' :
+                            'bg-yellow-100 text-yellow-800'
+                        }">
+                            ${getStatusText(request.status)}
+                        </span>
+                        <p class="text-xs text-gray-500 mt-1">${formatDate(request.createdAt)}</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateRecentInquiries(inquiries) {
+            const container = document.getElementById('recent-inquiries');
+            if (!container) return;
+            
+            if (inquiries.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-sm">최근 문의가 없습니다.</p>';
+                return;
+            }
+            
+            container.innerHTML = inquiries.map(inquiry => `
+                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div>
+                        <p class="font-semibold text-sm">${inquiry.title || '제목 없음'}</p>
+                        <p class="text-xs text-gray-500">${inquiry.email || '이메일 없음'}</p>
+                    </div>
+                    <div class="text-right">
+                        <span class="inline-block px-2 py-1 text-xs rounded-full ${
+                            inquiry.status === 'answered' ? 'bg-green-100 text-green-800' :
+                            inquiry.status === 'closed' ? 'bg-gray-100 text-gray-800' :
+                            'bg-red-100 text-red-800'
+                        }">
+                            ${getInquiryStatusText(inquiry.status)}
+                        </span>
+                        <p class="text-xs text-gray-500 mt-1">${formatDate(inquiry.createdAt)}</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 테이블 업데이트 함수들
+        function updateRequestsTable(requests) {
+            const tbody = document.getElementById('request-list');
+            if (!tbody) return;
+            
+            if (requests.length === 0) {
+                tbody.innerHTML = '<li class="p-4 text-center text-gray-500">의뢰가 없습니다.</li>';
+                return;
+            }
+            
+            tbody.innerHTML = requests.map(request => `
+                <li class="p-4 hover:bg-pink-100 cursor-pointer" onclick="showRequestDetail('${request.id}')">
+                    <div class="grid grid-cols-8 gap-2 items-center text-sm">
+                        <div class="col-span-1">
+                            <input type="checkbox" class="rounded">
+                        </div>
+                        <div class="col-span-2">
+                            <div class="font-semibold">#${request.id.substring(0, 8)}</div>
+                            <div class="text-xs text-gray-500">${request.email || '이메일 없음'}</div>
+                        </div>
+                        <div class="col-span-1 text-center text-xs text-gray-500">
+                            ${formatDate(request.createdAt)}
+                        </div>
+                        <div class="col-span-1 text-center">
+                            <span class="inline-block px-2 py-1 text-xs rounded-full ${
+                                request.status === 'done' ? 'bg-green-100 text-green-800' :
+                                request.status === 'in_progress' ? 'bg-blue-100 text-blue-800' :
+                                'bg-yellow-100 text-yellow-800'
+                            }">
+                                ${getStatusText(request.status)}
+                            </span>
+                        </div>
+                        <div class="col-span-1 text-center text-xs text-gray-500">
+                            ${request.purchaseMethod || '-'}
+                        </div>
+                        <div class="col-span-1 text-center text-xs text-gray-500">
+                            ${request.purchaseStatus || '-'}
+                        </div>
+                        <div class="col-span-1 text-center text-xs text-gray-500">
+                            ${request.notificationStatus || '-'}
+                        </div>
+                    </div>
+                </li>
+            `).join('');
+        }
+
+        function updateInquiriesTable(inquiries) {
+            const tbody = document.getElementById('inquiries-table-body');
+            if (!tbody) return;
+            
+            if (inquiries.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">문의가 없습니다.</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = inquiries.map(inquiry => `
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        #${inquiry.id.substring(0, 8)}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        ${inquiry.name || '이름 없음'}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        ${inquiry.title || '제목 없음'}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                            inquiry.status === 'answered' ? 'bg-green-100 text-green-800' :
+                            inquiry.status === 'closed' ? 'bg-gray-100 text-gray-800' :
+                            'bg-red-100 text-red-800'
+                        }">
+                            ${getInquiryStatusText(inquiry.status)}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        ${formatDate(inquiry.createdAt)}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <button onclick="showInquiryDetail('${inquiry.id}')" class="text-pink-600 hover:text-pink-900">
+                            상세보기
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function updateMembersTable(members) {
+            console.log('🔄 updateMembersTable 호출됨:', members);
+            
+            const tbody = document.getElementById('members-table-body');
+            if (!tbody) {
+                console.error('❌ members-table-body 요소를 찾을 수 없습니다.');
+                return;
+            }
+            
+            console.log('📊 회원 테이블 업데이트:', members.length, '명');
+            
+            if (members.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="px-6 py-4 text-center text-gray-500">회원이 없습니다.</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = members.map(member => `
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex-shrink-0 h-10 w-10">
+                            <div class="h-10 w-10 rounded-full bg-pink-100 flex items-center justify-center">
+                                <span class="text-sm font-medium text-pink-600">
+                                    ${(member.name || member.email || 'U').charAt(0).toUpperCase()}
+                                </span>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        ${member.name || '이름 없음'}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        ${member.provider || 'email'}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        ${member.email || '이메일 없음'}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        ${member.phone || '-'}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        ${formatDate(member.createdAt)}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        ${member.requestCount || 0}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <button onclick="showMemberDetail('${member.id}')" class="text-pink-600 hover:text-pink-900">
+                            상세보기
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // 유틸리티 함수들
+        function getStatusText(status) {
+            const statusMap = {
+                'pending': '대기중',
+                'in_progress': '진행중',
+                'done': '완료',
+                'rejected': '거절'
+            };
+            return statusMap[status] || status;
+        }
+
+        function getInquiryStatusText(status) {
+            const statusMap = {
+                'new': '신규',
+                'answered': '답변완료',
+                'closed': '종료'
+            };
+            return statusMap[status] || status;
+        }
+
+        function formatDate(date) {
+            if (!date) return '-';
+            const d = new Date(date);
+            return d.toLocaleDateString('ko-KR') + ' ' + d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+        }
+
+        // 상세보기 함수들 (임시)
+        function showRequestDetail(requestId) {
+            console.log('의뢰 상세보기:', requestId);
+            // TODO: 의뢰 상세 모달 구현
+        }
+
+        function showInquiryDetail(inquiryId) {
+            console.log('문의 상세보기:', inquiryId);
+            // TODO: 문의 상세 모달 구현
+        }
+
+        function showMemberDetail(memberId) {
+            console.log('회원 상세보기:', memberId);
+            // TODO: 회원 상세 모달 구현
+        }
+
+        // CSV 업로드 함수
+        window.uploadCSV = async function() {
+            const fileInput = document.getElementById('csv-file');
+            const collectionSelect = document.getElementById('upload-collection');
+            const resultDiv = document.getElementById('upload-result');
+            
+            if (!fileInput.files[0]) {
+                alert('CSV 파일을 선택해주세요.');
+                return;
+            }
+            
+            const file = fileInput.files[0];
+            const collectionType = collectionSelect.value;
+            
+            try {
+                // 파일 읽기
+                const csvData = await readFileAsText(file);
+                
+                // 현재 사용자 토큰 가져오기
+                const user = window.auth.currentUser;
+                if (!user) {
+                    alert('로그인이 필요합니다.');
+                    return;
+                }
+                
+                const idToken = await user.getIdToken();
+                
+                // 업로드 시작 표시
+                resultDiv.innerHTML = '<div class="p-4 bg-blue-100 text-blue-800 rounded-lg">📤 CSV 업로드 중...</div>';
+                resultDiv.classList.remove('hidden');
+                
+                // Netlify Function 호출
+                const response = await fetch('/.netlify/functions/upload-csv', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${idToken}`
+                    },
+                    body: JSON.stringify({
+                        csvData: csvData,
+                        collectionType: collectionType
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
+                    // 성공 표시
+                    resultDiv.innerHTML = `
+                        <div class="p-4 bg-green-100 text-green-800 rounded-lg">
+                            <h4 class="font-bold">✅ 업로드 완료</h4>
+                            <p>총 ${result.summary.totalRows}개 행 중 ${result.summary.savedCount}개 저장됨</p>
+                            ${result.summary.errorCount > 0 ? `<p class="text-red-600">오류: ${result.summary.errorCount}개</p>` : ''}
+                        </div>
+                    `;
+                } else {
+                    // 오류 표시
+                    resultDiv.innerHTML = `
+                        <div class="p-4 bg-red-100 text-red-800 rounded-lg">
+                            <h4 class="font-bold">❌ 업로드 실패</h4>
+                            <p>${result.error || '알 수 없는 오류가 발생했습니다.'}</p>
+                        </div>
+                    `;
+                }
+                
+            } catch (error) {
+                console.error('CSV 업로드 오류:', error);
+                resultDiv.innerHTML = `
+                    <div class="p-4 bg-red-100 text-red-800 rounded-lg">
+                        <h4 class="font-bold">❌ 업로드 실패</h4>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        };
+
+        // 파일을 텍스트로 읽기
+        function readFileAsText(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target.result);
+                reader.onerror = (e) => reject(e);
+                reader.readAsText(file);
+            });
+        }
+
+        // 데이터 내보내기 함수
+        window.exportData = async function() {
+            const collectionSelect = document.getElementById('export-collection');
+            const collectionType = collectionSelect.value;
+            
+            try {
+                // 현재 사용자 토큰 가져오기
+                const user = window.auth.currentUser;
+                if (!user) {
+                    alert('로그인이 필요합니다.');
+                    return;
+                }
+                
+                // Firestore에서 데이터 가져오기
+                const snapshot = await window.firestore.collection(collectionType).get();
+                const data = [];
+                
+                snapshot.forEach(doc => {
+                    data.push({
+                        id: doc.id,
+                        ...doc.data()
+                    });
+                });
+                
+                // CSV 변환
+                const csv = convertToCSV(data);
+                
+                // 파일 다운로드
+                downloadCSV(csv, `${collectionType}_export_${new Date().toISOString().split('T')[0]}.csv`);
+                
+            } catch (error) {
+                console.error('데이터 내보내기 오류:', error);
+                alert('데이터 내보내기에 실패했습니다: ' + error.message);
+            }
+        };
+
+        // 데이터를 CSV로 변환
+        function convertToCSV(data) {
+            if (data.length === 0) return '';
+            
+            const headers = Object.keys(data[0]);
+            const csvRows = [];
+            
+            // 헤더 추가
+            csvRows.push(headers.join(','));
+            
+            // 데이터 추가
+            data.forEach(row => {
+                const values = headers.map(header => {
+                    const value = row[header];
+                    // 날짜 객체 처리
+                    if (value && typeof value.toDate === 'function') {
+                        return value.toDate().toISOString();
+                    }
+                    // 문자열에 쉼표가 있으면 따옴표로 감싸기
+                    if (typeof value === 'string' && value.includes(',')) {
+                        return `"${value.replace(/"/g, '""')}"`;
+                    }
+                    return value || '';
+                });
+                csvRows.push(values.join(','));
+            });
+            
+            return csvRows.join('\n');
+        }
+
+        // CSV 파일 다운로드
+        function downloadCSV(csv, filename) {
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            
+            if (link.download !== undefined) {
+                const url = URL.createObjectURL(blob);
+                link.setAttribute('href', url);
+                link.setAttribute('download', filename);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+        }
+
+        // 새 의뢰 추가 함수
+        window.addNewRequest = async function() {
+            const title = document.getElementById('new-request-title').value;
+            const url = document.getElementById('new-request-url').value;
+            const status = document.getElementById('new-request-status').value;
+            const priority = document.getElementById('new-request-priority').value;
+            const email = document.getElementById('new-request-email').value;
+            const note = document.getElementById('new-request-note').value;
+            
+            if (!title || !url || !email) {
+                alert('필수 필드를 모두 입력해주세요.');
+                return;
+            }
+            
+            try {
+                // 현재 사용자 확인
+                const user = window.auth.currentUser;
+                if (!user) {
+                    alert('로그인이 필요합니다.');
+                    return;
+                }
+                
+                // Firestore에 의뢰 추가
+                const requestData = {
+                    title: title,
+                    url: url,
+                    status: status,
+                    priority: priority,
+                    email: email,
+                    note: note,
+                    createdAt: new Date(),
+                    updatedAt: new Date(),
+                    createdBy: user.email
+                };
+                
+                await window.firestore.collection('requests').add(requestData);
+                
+                // 폼 초기화
+                document.getElementById('new-request-title').value = '';
+                document.getElementById('new-request-url').value = '';
+                document.getElementById('new-request-status').value = 'pending';
+                document.getElementById('new-request-priority').value = 'normal';
+                document.getElementById('new-request-email').value = '';
+                document.getElementById('new-request-note').value = '';
+                
+                // 성공 메시지
+                showToast('✅ 의뢰가 성공적으로 추가되었습니다.', 'success');
+                
+            } catch (error) {
+                console.error('의뢰 추가 오류:', error);
+                showToast('❌ 의뢰 추가에 실패했습니다: ' + error.message, 'error');
+            }
+        };
+
+        // 토스트 메시지 표시
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 max-w-md ${
+                type === 'success' ? 'bg-green-500 text-white' :
+                type === 'error' ? 'bg-red-500 text-white' :
+                'bg-blue-500 text-white'
+            }`;
+            toast.textContent = message;
+            
+            document.body.appendChild(toast);
+            
+            // 3초 후 자동 제거
+            setTimeout(() => {
+                if (toast.parentElement) {
+                    toast.remove();
+                }
+            }, 3000);
+        }
+
+        // 동기화 설정 모달 표시
+        window.showAddSyncConfigModal = function() {
+            // TODO: 동기화 설정 모달 구현
+            alert('동기화 설정 모달을 구현해야 합니다.');
+        };
+        
+        // Firebase 연결 테스트 함수
+        window.testFirebaseConnection = function() {
+            console.log('🔥 Firebase 연결 테스트 시작...');
+            
+            if (typeof firebase === 'undefined') {
+                alert('❌ Firebase SDK가 로드되지 않았습니다.\n\n서버 CSP 헤더에 www.gstatic.com이 포함되어 있는지 확인하세요.');
+                return false;
+            }
+            
+            if (!firebase.auth) { 
+                alert("Firebase Auth 초기화 실패"); 
+                return false;
+            }
+            
+            if (!firebase.firestore) { 
+                alert("Firebase Firestore 초기화 실패"); 
+                return false;
+            }
+            
+            if (window.firebaseApp && window.firestore && window.auth) {
+                alert('✅ Firebase 연결 성공!\n\n모든 서비스가 정상적으로 작동합니다.');
+                return true;
+            } else {
+                alert('❌ Firebase 연결 실패!\n\n초기화를 다시 시도해주세요.');
+                return false;
+            }
+        };
+        
+        // CSP 헤더 확인 함수
+        window.checkCSPHeaders = function() {
+            console.log('🔍 CSP 헤더 확인 시작...');
+            
+            // 현재 페이지의 Response Headers 확인
+            fetch(window.location.href, { method: 'HEAD' })
+                .then(response => {
+                    const cspHeader = response.headers.get('content-security-policy');
+                    const serverHeader = response.headers.get('server');
+                    const cfRay = response.headers.get('cf-ray');
+                    const xVercelId = response.headers.get('x-vercel-id');
+                    const xCloudTrace = response.headers.get('x-cloud-trace-context');
+                    
+                    console.log('📋 Response Headers 분석:');
+                    console.log('Server:', serverHeader);
+                    console.log('CF-Ray:', cfRay);
+                    console.log('X-Vercel-ID:', xVercelId);
+                    console.log('X-Cloud-Trace:', xCloudTrace);
+                    console.log('CSP Header:', cspHeader);
+                    
+                    // CSP 주입 주체 판별
+                    let cspSource = 'Unknown';
+                    if (cfRay || response.headers.get('cf-cache-status')) {
+                        cspSource = 'Cloudflare';
+                    } else if (serverHeader && serverHeader.includes('nginx')) {
+                        cspSource = 'Nginx';
+                    } else if (serverHeader && serverHeader.includes('apache')) {
+                        cspSource = 'Apache';
+                    } else if (xVercelId) {
+                        cspSource = 'Vercel';
+                    } else if (serverHeader && serverHeader.includes('Firebase')) {
+                        cspSource = 'Firebase Hosting';
+                    }
+                    
+                    // Firebase 도메인 포함 여부 확인
+                    const hasFirebaseDomains = cspHeader && (
+                        cspHeader.includes('www.gstatic.com') || 
+                        cspHeader.includes('www.gstatic.com/firebasejs')
+                    );
+                    
+                    const result = `
+🔍 CSP 헤더 분석 결과:
+
+📡 CSP 주입 주체: ${cspSource}
+🔒 CSP 헤더 존재: ${cspHeader ? 'Yes' : 'No'}
+🔥 Firebase 도메인 포함: ${hasFirebaseDomains ? 'Yes' : 'No'}
+
+${cspHeader ? `📋 현재 CSP 정책:
+${cspHeader.substring(0, 200)}...` : '❌ CSP 헤더가 없습니다.'}
+
+${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았습니다!' : '✅ Firebase 도메인이 CSP에 포함되어 있습니다.'}
+                    `;
+                    
+                    alert(result);
+                    console.log('CSP 분석 완료:', result);
+                })
+                .catch(error => {
+                    console.error('❌ CSP 헤더 확인 실패:', error);
+                    alert('❌ CSP 헤더 확인에 실패했습니다.\n\n브라우저 DevTools → Network → Response Headers를 직접 확인하세요.');
+                });
+        };
+        
+        // 캐시 및 서비스워커 정리 함수 (CSP 완전 정리)
+        window.clearCacheAndReload = function() {
+            console.log('🧹 캐시 및 서비스워커 완전 정리 시작...');
+            
+            let cleanupPromises = [];
+            
+            // 서비스워커 등록 해제
+            if ('serviceWorker' in navigator) {
+                const swPromise = navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                    const unregisterPromises = registrations.map(registration => {
+                        console.log('🗑️ 서비스워커 등록 해제:', registration.scope);
+                        return registration.unregister();
+                    });
+                    return Promise.all(unregisterPromises);
+                });
+                cleanupPromises.push(swPromise);
+            }
+            
+            // 캐시 스토리지 정리
+            if ('caches' in window) {
+                const cachePromise = caches.keys().then(function(cacheNames) {
+                    return Promise.all(
+                        cacheNames.map(function(cacheName) {
+                            console.log('🗑️ 캐시 삭제:', cacheName);
+                            return caches.delete(cacheName);
+                        })
+                    );
+                });
+                cleanupPromises.push(cachePromise);
+            }
+            
+            // 로컬 스토리지 정리
+            try {
+                localStorage.clear();
+                sessionStorage.clear();
+                console.log('✅ 로컬/세션 스토리지가 정리되었습니다.');
+            } catch (e) {
+                console.log('⚠️ 스토리지 정리 중 오류:', e);
+            }
+            
+            // IndexedDB 정리
+            if ('indexedDB' in window) {
+                try {
+                    indexedDB.databases().then(databases => {
+                        databases.forEach(db => {
+                            indexedDB.deleteDatabase(db.name);
+                            console.log('🗑️ IndexedDB 삭제:', db.name);
+                        });
+                    });
+                } catch (e) {
+                    console.log('⚠️ IndexedDB 정리 중 오류:', e);
+                }
+            }
+            
+            // 모든 정리 작업 완료 후 새로고침
+            Promise.all(cleanupPromises).then(() => {
+                console.log('✅ 모든 캐시 정리 완료');
+                // 강제 새로고침 (캐시 무시 + 타임스탬프)
+                const timestamp = Date.now();
+                const url = new URL(window.location);
+                url.searchParams.set('v', timestamp);
+                url.searchParams.set('cache', 'clear');
+                window.location.href = url.toString();
+            }).catch(error => {
+                console.error('❌ 캐시 정리 중 오류:', error);
+                // 오류가 있어도 새로고침
+                const timestamp = Date.now();
+                const url = new URL(window.location);
+                url.searchParams.set('v', timestamp);
+                url.searchParams.set('cache', 'clear');
+                window.location.href = url.toString();
+            });
+        };
+        
+        // 페이지 이동 함수
+        window.goToPage = function(page) {
+            window.location.href = page;
+        };
+        
+        // 사이드바 섹션 전환 함수
+        function switchSection(sectionName) {
+            console.log('🔄 섹션 전환:', sectionName);
+            
+            // 모든 섹션 숨기기
+            document.querySelectorAll('.section-content').forEach(section => {
+                section.classList.add('hidden');
+            });
+            
+            // 모든 사이드바 아이템 비활성화
+            document.querySelectorAll('.sidebar-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            // 선택된 섹션 표시
+            const targetSection = document.getElementById(sectionName + '-section');
+            if (targetSection) {
+                targetSection.classList.remove('hidden');
+            }
+            
+            // 선택된 사이드바 아이템 활성화
+            const activeItem = document.querySelector(`[data-section="${sectionName}"]`);
+            if (activeItem) {
+                activeItem.classList.add('active');
+            }
+        }
+        
+        // 전역 함수로 노출
+        window.switchSection = switchSection;
+        
+        console.log('🚀 관리자 대시보드 스크립트 로드 완료');
+    </script>
+    
+    <style>
+        body { font-family: 'Inter', 'Noto Sans KR', sans-serif; }
+        .sidebar-item.active { background-color: #ec4899; color: white; }
+        .tab-btn.active { background-color: #ec4899; color: white; }
+        .filter-btn.active { background-color: #6b7280; color: white; }
+    </style>
 </head>
-<body class="bg-gradient-to-br from-gray-50 via-blue-50 to-green-50 min-h-screen">
-    <div class="container mx-auto px-4 py-8">
-        <!-- 로그인 폼 -->
-        <div id="loginForm" class="max-w-md mx-auto bg-white rounded-xl shadow-2xl p-8">
+<body class="bg-gradient-to-br from-gray-50 via-blue-50 to-emerald-50 min-h-screen">
+    <!-- 로그인 섹션 -->
+    <div id="login-section" class="min-h-screen flex items-center justify-center">
+        <div class="bg-white rounded-xl shadow-2xl p-8 w-full max-w-md">
             <div class="text-center mb-8">
-                <h1 class="text-3xl font-bold text-primary-600 mb-2">관리자 대시보드</h1>
-                <p class="text-gray-600">PriceHunter 관리자 로그인</p>
+                <h1 class="text-3xl font-bold text-pink-600">PriceHunter</h1>
+                <p class="text-gray-600">관리자 로그인</p>
             </div>
             
-            <div id="loginError" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4" style="display: none;"></div>
-            
-            <form class="space-y-6">
+            <form onsubmit="event.preventDefault(); adminLogin();" class="space-y-6">
                 <div>
-                    <label for="email" class="block text-sm font-medium text-gray-700 mb-2">이메일</label>
-                    <input type="email" id="email" class="input-field" placeholder="admin@pricehunter.com" required>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">이메일</label>
+                    <input type="email" id="admin-email" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-400 focus:outline-none" placeholder="admin@pricehunter.com">
                 </div>
                 
                 <div>
-                    <label for="password" class="block text-sm font-medium text-gray-700 mb-2">비밀번호</label>
-                    <input type="password" id="password" class="input-field" placeholder="비밀번호를 입력하세요" required>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">비밀번호</label>
+                    <input type="password" id="admin-password" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-400 focus:outline-none" placeholder="비밀번호">
                 </div>
                 
-                <button type="submit" class="btn-primary w-full">
-                    로그인
+                <button type="submit" class="w-full bg-gradient-to-r from-pink-500 to-purple-500 text-white font-bold py-3 px-4 rounded-lg hover:from-pink-600 hover:to-purple-600 transition shadow-lg">
+                    🔐 로그인
                 </button>
             </form>
             
-            <div class="mt-6 text-center">
-                <a href="/" class="text-primary-600 hover:text-primary-700 text-sm">← 메인 페이지로 돌아가기</a>
+            <div class="mt-6 text-center space-y-3">
+                <button onclick="goToPage('index.html')" class="text-pink-600 hover:text-pink-700 text-sm block w-full">
+                    🏠 메인페이지로 돌아가기
+                </button>
+                <button onclick="createAdminAccount()" class="text-blue-600 hover:text-blue-700 text-sm block w-full">
+                    🔧 테스트 관리자 계정 생성
+                </button>
+                <div class="text-xs text-gray-500 mt-2">
+                    테스트용 계정: admin@pricehunter.com / admin1234
+                </div>
             </div>
         </div>
-        
-        <!-- 관리자 대시보드 -->
-        <div id="dashboard" class="max-w-7xl mx-auto" style="display: none;">
-            <!-- 헤더 -->
-            <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
-                <div class="flex justify-between items-center">
-                    <div>
-                        <h1 class="text-2xl font-bold text-gray-800">관리자 대시보드</h1>
-                        <p class="text-gray-600">PriceHunter 관리 시스템</p>
+    </div>
+
+    <!-- 대시보드 섹션 -->
+    <div id="dashboard-section" class="hidden">
+        <div class="flex h-screen">
+            <!-- 사이드바 -->
+            <div class="w-64 bg-white shadow-lg">
+                <div class="p-6 border-b">
+                    <h1 class="text-xl font-bold text-pink-600">PriceHunter</h1>
+                    <p class="text-sm text-gray-500">관리자 대시보드</p>
+                    <div class="flex items-center justify-between mt-2">
+                        <p id="admin-info" class="text-xs text-gray-400"></p>
+                        <div id="user-role-display"></div>
                     </div>
-                    <button id="logoutBtn" class="btn-secondary">
-                        로그아웃
+                </div>
+                
+                <nav class="p-4">
+                    <div class="space-y-2">
+                        <button class="sidebar-item w-full text-left px-4 py-3 rounded-lg font-semibold hover:bg-pink-50 transition active" data-section="dashboard">
+                            📊 대시보드
+                        </button>
+                        <button class="sidebar-item w-full text-left px-4 py-3 rounded-lg font-semibold hover:bg-pink-50 transition" data-section="requests">
+                            📋 의뢰 관리
+                        </button>
+                        <button class="sidebar-item w-full text-left px-4 py-3 rounded-lg font-semibold hover:bg-pink-50 transition" data-section="inquiries">
+                            💬 1:1 문의
+                        </button>
+                        <button class="sidebar-item w-full text-left px-4 py-3 rounded-lg font-semibold hover:bg-pink-50 transition" data-section="members">
+                            👥 회원 관리
+                        </button>
+                        <button class="sidebar-item w-full text-left px-4 py-3 rounded-lg font-semibold hover:bg-pink-50 transition" data-section="data-management">
+                            📁 데이터 관리
+                        </button>
+                        <button class="sidebar-item w-full text-left px-4 py-3 rounded-lg font-semibold hover:bg-pink-50 transition" data-section="sync-settings">
+                            🔄 동기화 설정
+                        </button>
+                    </div>
+                </nav>
+                
+                <div class="absolute bottom-4 left-4 right-4">
+                    <button onclick="adminLogout()" class="w-full px-4 py-2 bg-red-500 text-white rounded-lg font-semibold hover:bg-red-600 transition">
+                        🔓 로그아웃
                     </button>
                 </div>
             </div>
-            
-            <!-- 통계 카드 -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <div class="card">
-                    <h3 class="text-lg font-semibold text-gray-800 mb-2">총 회원 수</h3>
-                    <p id="totalMembers" class="text-3xl font-bold text-primary-600">-</p>
-                </div>
-                <div class="card">
-                    <h3 class="text-lg font-semibold text-gray-800 mb-2">총 의뢰 수</h3>
-                    <p id="totalRequests" class="text-3xl font-bold text-blue-600">-</p>
-                </div>
-                <div class="card">
-                    <h3 class="text-lg font-semibold text-gray-800 mb-2">총 문의 수</h3>
-                    <p id="totalInquiries" class="text-3xl font-bold text-green-600">-</p>
-                </div>
-            </div>
-            
-            <!-- 데이터 테이블 -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <!-- 회원 목록 -->
-                <div class="card">
-                    <h3 class="text-lg font-semibold text-gray-800 mb-4">회원 목록</h3>
-                    <div class="overflow-x-auto">
-                        <table id="membersTable" class="w-full">
-                            <thead>
-                                <tr class="border-b border-gray-200">
-                                    <th class="text-left py-2 px-4 font-medium text-gray-700">이메일</th>
-                                    <th class="text-left py-2 px-4 font-medium text-gray-700">이름</th>
-                                    <th class="text-left py-2 px-4 font-medium text-gray-700">제공자</th>
-                                    <th class="text-left py-2 px-4 font-medium text-gray-700">역할</th>
-                                    <th class="text-left py-2 px-4 font-medium text-gray-700">가입일</th>
-                                </tr>
-                            </thead>
-                            <tbody>
+
+            <!-- 메인 콘텐츠 -->
+            <div class="flex-1 overflow-auto">
+                <!-- 대시보드 섹션 -->
+                <div id="dashboard-section" class="section-content p-8">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-bold text-gray-800">📊 대시보드</h2>
+                        <div class="flex gap-2 flex-wrap">
+                            <button onclick="goToPage('index.html')" class="px-4 py-2 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition">
+                                🏠 메인페이지로
+                            </button>
+                            <button onclick="goToPage('member-dashboard.html')" class="px-4 py-2 bg-green-500 text-white rounded-lg font-semibold hover:bg-green-600 transition">
+                                👤 회원대시보드로
+                            </button>
+                            <button onclick="testFirebaseConnection()" class="px-4 py-2 bg-purple-500 text-white rounded-lg font-semibold hover:bg-purple-600 transition">
+                                🔥 Firebase 연결 테스트
+                            </button>
+                            <button onclick="checkCSPHeaders()" class="px-4 py-2 bg-indigo-500 text-white rounded-lg font-semibold hover:bg-indigo-600 transition">
+                                🔍 CSP 헤더 확인
+                            </button>
+                            <button onclick="clearCacheAndReload()" class="px-4 py-2 bg-orange-500 text-white rounded-lg font-semibold hover:bg-orange-600 transition">
+                                🧹 캐시 정리 & 새로고침
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- 통계 카드 -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                        <div class="bg-white rounded-xl shadow-lg p-6">
+                            <div class="flex items-center">
+                                <div class="p-3 bg-blue-100 rounded-lg">
+                                    <span class="text-2xl">📋</span>
+                                </div>
+                                <div class="ml-4">
+                                    <p class="text-sm text-gray-500">총 의뢰</p>
+                                    <p class="text-2xl font-bold text-gray-800" id="total-requests">0</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-white rounded-xl shadow-lg p-6">
+                            <div class="flex items-center">
+                                <div class="p-3 bg-green-100 rounded-lg">
+                                    <span class="text-2xl">✅</span>
+                                </div>
+                                <div class="ml-4">
+                                    <p class="text-sm text-gray-500">완료된 의뢰</p>
+                                    <p class="text-2xl font-bold text-gray-800" id="completed-requests">0</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-white rounded-xl shadow-lg p-6">
+                            <div class="flex items-center">
+                                <div class="p-3 bg-orange-100 rounded-lg">
+                                    <span class="text-2xl">👥</span>
+                                </div>
+                                <div class="ml-4">
+                                    <p class="text-sm text-gray-500">총 회원</p>
+                                    <p class="text-2xl font-bold text-gray-800" id="total-members">0</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-white rounded-xl shadow-lg p-6">
+                            <div class="flex items-center">
+                                <div class="p-3 bg-purple-100 rounded-lg">
+                                    <span class="text-2xl">💬</span>
+                                </div>
+                                <div class="ml-4">
+                                    <p class="text-sm text-gray-500">미답변 문의</p>
+                                    <p class="text-2xl font-bold text-gray-800" id="pending-inquiries">0</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 최근 활동 -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="bg-white rounded-xl shadow-lg p-6">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4">최근 의뢰</h3>
+                            <div id="recent-requests" class="space-y-3">
                                 <!-- 동적으로 생성됨 -->
-                            </tbody>
-                        </table>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-white rounded-xl shadow-lg p-6">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4">최근 문의</h3>
+                            <div id="recent-inquiries" class="space-y-3">
+                                <!-- 동적으로 생성됨 -->
+                            </div>
+                        </div>
                     </div>
                 </div>
-                
-                <!-- 의뢰 목록 -->
-                <div class="card">
-                    <h3 class="text-lg font-semibold text-gray-800 mb-4">의뢰 목록</h3>
-                    <div class="overflow-x-auto">
-                        <table id="requestsTable" class="w-full">
-                            <thead>
-                                <tr class="border-b border-gray-200">
-                                    <th class="text-left py-2 px-4 font-medium text-gray-700">상품명</th>
-                                    <th class="text-left py-2 px-4 font-medium text-gray-700">의뢰자</th>
-                                    <th class="text-left py-2 px-4 font-medium text-gray-700">등록일</th>
-                                    <th class="text-left py-2 px-4 font-medium text-gray-700">상태</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <!-- 동적으로 생성됨 -->
-                            </tbody>
-                        </table>
+
+                <!-- 의뢰 관리 섹션 -->
+                <div id="requests-section" class="section-content p-8 hidden">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-bold text-gray-800">📋 의뢰 관리</h2>
+                        <div class="flex gap-2">
+                            <button onclick="goToPage('index.html')" class="px-4 py-2 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition">
+                                🏠 메인페이지로
+                            </button>
+                            <button onclick="goToPage('request.html')" class="px-4 py-2 bg-green-500 text-white rounded-lg font-semibold hover:bg-green-600 transition">
+                                📝 의뢰페이지로
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- 의뢰 목록 -->
+                    <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                        <div class="font-bold text-gray-700 p-4 border-b">접수된 의뢰 목록</div>
+                        <div class="grid grid-cols-8 gap-2 px-4 py-2 bg-pink-100 text-sm font-bold text-pink-700">
+                            <div class="col-span-1">선택</div>
+                            <div class="col-span-2">의뢰번호/회원명</div>
+                            <div class="col-span-1 text-center">의뢰일시</div>
+                            <div class="col-span-1 text-center">진행상황</div>
+                            <div class="col-span-1 text-center">구매방식</div>
+                            <div class="col-span-1 text-center">구매상태</div>
+                            <div class="col-span-1 text-center">알림상태</div>
+                        </div>
+                        <ul id="request-list" class="bg-pink-50 divide-y divide-pink-100">
+                            <!-- 동적으로 생성됨 -->
+                        </ul>
+                    </div>
+                    
+                    <!-- 의뢰 추가 폼 -->
+                    <div id="new-request-form" class="bg-white rounded-xl shadow-lg p-6 mb-6">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">📝 새 의뢰 추가</h3>
+                        <form onsubmit="event.preventDefault(); addNewRequest();" class="space-y-4">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">제목</label>
+                                    <input type="text" id="new-request-title" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-400 focus:outline-none" placeholder="의뢰 제목">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">URL</label>
+                                    <input type="url" id="new-request-url" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-400 focus:outline-none" placeholder="https://example.com">
+                                </div>
+                            </div>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">상태</label>
+                                    <select id="new-request-status" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-400 focus:outline-none">
+                                        <option value="pending">대기중</option>
+                                        <option value="in_progress">진행중</option>
+                                        <option value="done">완료</option>
+                                        <option value="rejected">거절</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">우선순위</label>
+                                    <select id="new-request-priority" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-400 focus:outline-none">
+                                        <option value="low">낮음</option>
+                                        <option value="normal" selected>보통</option>
+                                        <option value="high">높음</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">이메일</label>
+                                    <input type="email" id="new-request-email" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-400 focus:outline-none" placeholder="user@example.com">
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">메모</label>
+                                <textarea id="new-request-note" rows="3" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-400 focus:outline-none" placeholder="추가 메모"></textarea>
+                            </div>
+                            
+                            <button type="submit" class="w-full bg-gradient-to-r from-pink-500 to-purple-500 text-white font-bold py-3 px-4 rounded-lg hover:from-pink-600 hover:to-purple-600 transition shadow-lg">
+                                📝 의뢰 추가
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- 의뢰 상세 및 결과 입력 -->
+                    <div id="detail-section" class="w-full hidden mt-6">
+                        <div class="bg-white rounded-xl shadow-lg p-6 mb-4">
+                            <div class="mb-2 text-gray-700 font-bold">의뢰 상세</div>
+                            <div class="grid grid-cols-2 gap-4 text-sm">
+                                <div><span class="font-semibold">의뢰번호:</span> <span id="detail-num"></span></div>
+                                <div><span class="font-semibold">제품명:</span> <span id="detail-name"></span></div>
+                                <div><span class="font-semibold">제품설명:</span> <span id="detail-desc"></span></div>
+                                <div><span class="font-semibold">참고사이트:</span> <span id="detail-url"></span></div>
+                                <div><span class="font-semibold">가격:</span> <span id="detail-price"></span></div>
+                                <div><span class="font-semibold">이름:</span> <span id="detail-username"></span></div>
+                                <div><span class="font-semibold">이메일:</span> <span id="detail-email"></span></div>
+                                <div><span class="font-semibold">휴대폰:</span> <span id="detail-phone"></span></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                
-                <!-- 문의 목록 -->
-                <div class="card">
-                    <h3 class="text-lg font-semibold text-gray-800 mb-4">문의 목록</h3>
-                    <div class="overflow-x-auto">
-                        <table id="inquiriesTable" class="w-full">
-                            <thead>
-                                <tr class="border-b border-gray-200">
-                                    <th class="text-left py-2 px-4 font-medium text-gray-700">제목</th>
-                                    <th class="text-left py-2 px-4 font-medium text-gray-700">문의자</th>
-                                    <th class="text-left py-2 px-4 font-medium text-gray-700">등록일</th>
-                                    <th class="text-left py-2 px-4 font-medium text-gray-700">상태</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <!-- 동적으로 생성됨 -->
-                            </tbody>
-                        </table>
+
+                <!-- 1:1 문의 섹션 -->
+                <div id="inquiries-section" class="section-content p-8 hidden">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-bold text-gray-800">💬 1:1 문의 관리</h2>
+                        <div class="flex gap-2">
+                            <button onclick="goToPage('index.html')" class="px-4 py-2 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition">
+                                🏠 메인페이지로
+                            </button>
+                            <button onclick="goToPage('support.html')" class="px-4 py-2 bg-green-500 text-white rounded-lg font-semibold hover:bg-green-600 transition">
+                                💬 문의페이지로
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- 문의 목록 -->
+                    <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full">
+                                <thead class="bg-blue-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-blue-700 uppercase tracking-wider">문의번호</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-blue-700 uppercase tracking-wider">회원명</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-blue-700 uppercase tracking-wider">제목</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-blue-700 uppercase tracking-wider">상태</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-blue-700 uppercase tracking-wider">등록일시</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-blue-700 uppercase tracking-wider">작업</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="inquiries-table-body" class="bg-white divide-y divide-gray-200">
+                                    <!-- 동적으로 생성됨 -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- 문의 상세 및 답변 -->
+                    <div id="inquiry-detail-section" class="w-full hidden mt-6">
+                        <div class="bg-white rounded-xl shadow-lg p-6 mb-4">
+                            <div class="mb-4">
+                                <h3 class="text-lg font-bold text-gray-800 mb-2">문의 상세</h3>
+                                <div class="grid grid-cols-2 gap-4 text-sm">
+                                    <div><span class="font-semibold">문의번호:</span> <span id="inquiry-id"></span></div>
+                                    <div><span class="font-semibold">제목:</span> <span id="inquiry-title"></span></div>
+                                    <div><span class="font-semibold">회원명:</span> <span id="inquiry-username"></span></div>
+                                    <div><span class="font-semibold">이메일:</span> <span id="inquiry-email"></span></div>
+                                    <div><span class="font-semibold">전화번호:</span> <span id="inquiry-phone"></span></div>
+                                    <div><span class="font-semibold">문의일시:</span> <span id="inquiry-date"></span></div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <h4 class="font-semibold text-gray-700 mb-2">문의 내용</h4>
+                                <div id="inquiry-content" class="bg-gray-50 p-4 rounded-lg text-gray-700"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 회원 관리 섹션 -->
+                <div id="members-section" class="section-content p-8 hidden">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-bold text-gray-800">👥 회원 관리</h2>
+                        <div class="flex gap-2">
+                            <button onclick="goToPage('index.html')" class="px-4 py-2 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition">
+                                🏠 메인페이지로
+                            </button>
+                            <button onclick="goToPage('member-dashboard.html')" class="px-4 py-2 bg-green-500 text-white rounded-lg font-semibold hover:bg-green-600 transition">
+                                👤 회원대시보드로
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- 회원 목록 -->
+                    <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full">
+                                <thead class="bg-green-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">프로필</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">회원명</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">로그인 방식</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">이메일</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">휴대폰</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">가입일</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">의뢰수</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">작업</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="members-table-body" class="bg-white divide-y divide-gray-200">
+                                    <!-- 동적으로 생성됨 -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 데이터 관리 섹션 -->
+                <div id="data-management-section" class="section-content p-8 hidden">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-bold text-gray-800">📁 데이터 관리</h2>
+                        <div class="flex gap-2">
+                            <button onclick="goToPage('index.html')" class="px-4 py-2 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition">
+                                🏠 메인페이지로
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- CSV 업로드 -->
+                    <div id="csv-upload-section" class="bg-white rounded-xl shadow-lg p-6 mb-6">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">📤 CSV 대량 업로드</h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">컬렉션 선택</label>
+                                <select id="upload-collection" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-400 focus:outline-none">
+                                    <option value="requests">의뢰 (requests)</option>
+                                    <option value="inquiries">문의 (inquiries)</option>
+                                    <option value="members">회원 (members)</option>
+                                </select>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">CSV 파일</label>
+                                <input type="file" id="csv-file" accept=".csv" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-400 focus:outline-none">
+                                <p class="text-xs text-gray-500 mt-1">CSV 파일을 선택하세요. 첫 번째 행은 헤더로 사용됩니다.</p>
+                            </div>
+                            
+                            <button onclick="uploadCSV()" class="w-full bg-gradient-to-r from-pink-500 to-purple-500 text-white font-bold py-3 px-4 rounded-lg hover:from-pink-600 hover:to-purple-600 transition shadow-lg">
+                                📤 CSV 업로드
+                            </button>
+                        </div>
+                        
+                        <!-- 업로드 결과 -->
+                        <div id="upload-result" class="mt-4 hidden">
+                            <!-- 동적으로 생성됨 -->
+                        </div>
+                    </div>
+                    
+                    <!-- 데이터 내보내기 -->
+                    <div class="bg-white rounded-xl shadow-lg p-6">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">📥 데이터 내보내기</h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">컬렉션 선택</label>
+                                <select id="export-collection" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-400 focus:outline-none">
+                                    <option value="requests">의뢰 (requests)</option>
+                                    <option value="inquiries">문의 (inquiries)</option>
+                                    <option value="members">회원 (members)</option>
+                                </select>
+                            </div>
+                            
+                            <button onclick="exportData()" class="w-full bg-gradient-to-r from-green-500 to-blue-500 text-white font-bold py-3 px-4 rounded-lg hover:from-green-600 hover:to-blue-600 transition shadow-lg">
+                                📥 데이터 내보내기
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 동기화 설정 섹션 -->
+                <div id="sync-settings-section" class="section-content p-8 hidden">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-bold text-gray-800">🔄 동기화 설정</h2>
+                        <div class="flex gap-2">
+                            <button onclick="goToPage('index.html')" class="px-4 py-2 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition">
+                                🏠 메인페이지로
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- 동기화 설정 목록 -->
+                    <div id="sync-configs-section" class="bg-white rounded-xl shadow-lg p-6 mb-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg font-semibold text-gray-800">동기화 설정 목록</h3>
+                            <button onclick="showAddSyncConfigModal()" class="px-4 py-2 bg-pink-500 text-white rounded-lg font-semibold hover:bg-pink-600 transition">
+                                ➕ 새 설정 추가
+                            </button>
+                        </div>
+                        
+                        <div id="sync-configs-list" class="space-y-4">
+                            <!-- 동적으로 생성됨 -->
+                        </div>
+                    </div>
+                    
+                    <!-- 동기화 로그 -->
+                    <div class="bg-white rounded-xl shadow-lg p-6">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">동기화 로그</h3>
+                        <div id="sync-logs" class="space-y-2 max-h-64 overflow-y-auto">
+                            <!-- 동적으로 생성됨 -->
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-    
-    <!-- 빌드된 JavaScript 모듈들 -->
-    <script type="module" src="dist/admin.P9VrUjrw.js"></script>
+
+    <script>
+        // 사이드바 클릭 이벤트
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.sidebar-item').forEach(item => {
+                item.addEventListener('click', function() {
+                    const section = this.getAttribute('data-section');
+                    switchSection(section);
+                });
+            });
+        });
+    </script>
+
+    <!-- 중복 스크립트 제거됨 -->
 </body>
 </html>
