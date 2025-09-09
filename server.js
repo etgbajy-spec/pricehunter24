@@ -38,12 +38,12 @@ app.use(express.static(__dirname));
 
 // CSP 헤더 설정 - Firebase 완전 지원 정책
 app.use((req, res, next) => {
-  // Firebase 8.x SDK + Kakao 완전 지원 CSP 정책 (eval 제거)
+  // Firebase v9 SDK + Kakao 완전 지원 CSP 정책 (eval 허용)
   const cspPolicy = [
     "default-src 'self'",
-    // Firebase + Kakao 스크립트 허용 (Kakao SDK 호환성을 위해 eval 허용)
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com https://www.gstatic.com/firebasejs https://cdn.tailwindcss.com https://developers.kakao.com https://t1.kakaocdn.net https://apis.google.com https://apis.google.com/js https://*.googleapis.com",
-    "script-src-elem 'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com https://www.gstatic.com/firebasejs https://cdn.tailwindcss.com https://developers.kakao.com https://t1.kakaocdn.net https://apis.google.com https://apis.google.com/js https://*.googleapis.com",
+    // Firebase + Kakao 스크립트 허용 (Firebase SDK 호환성을 위해 eval 허용)
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com https://www.gstatic.com/firebasejs https://cdn.tailwindcss.com https://developers.kakao.com https://t1.kakaocdn.net https://apis.google.com https://apis.google.com/js https://*.googleapis.com https://*.google.com",
+    "script-src-elem 'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com https://www.gstatic.com/firebasejs https://cdn.tailwindcss.com https://developers.kakao.com https://t1.kakaocdn.net https://apis.google.com https://apis.google.com/js https://*.googleapis.com https://*.google.com",
     // 스타일 허용
     "style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://fonts.googleapis.com",
     // 이미지 허용
@@ -62,6 +62,11 @@ app.use((req, res, next) => {
   
   // CSP 헤더 설정 (단일 헤더로 중복 방지)
   res.setHeader('Content-Security-Policy', cspPolicy);
+  
+  // 브라우저 캐시 무효화 (CSP 변경사항 즉시 적용)
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
   
   // 디버깅용 로그 (개발 환경에서만)
   if (process.env.NODE_ENV !== 'production') {
