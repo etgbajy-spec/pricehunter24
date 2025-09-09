@@ -420,11 +420,13 @@
             }
         }
 
-        // 실시간 사용자 목록 구독 (Firebase v8)
+        // 실시간 사용자 목록 구독 (Firebase v8 + localStorage 백업)
         function subscribeToUsers() {
+            // localStorage에서 사용자 데이터도 가져오기
+            loadLocalStorageUsers();
+            
             if (!window.firestore) {
-                console.warn('⚠️ Firebase가 아직 초기화되지 않았습니다. 2초 후 재시도합니다.');
-                setTimeout(subscribeToUsers, 2000);
+                console.warn('⚠️ Firebase가 아직 초기화되지 않았습니다. localStorage 데이터만 표시합니다.');
                 return;
             }
             
@@ -434,18 +436,25 @@
                     .orderBy('createdAt', 'desc');
 
                 usersUnsubscribe = usersQuery.onSnapshot((snapshot) => {
-                    const users = [];
+                    const firebaseUsers = [];
                     snapshot.forEach((doc) => {
-                        users.push({ id: doc.id, ...doc.data() });
+                        firebaseUsers.push({ id: doc.id, ...doc.data() });
                     });
                     
-                    console.log('📊 실시간 사용자 데이터 업데이트:', users.length);
-                    updateUsersTable(users);
+                    console.log('📊 Firebase 사용자 데이터 업데이트:', firebaseUsers.length);
+                    
+                    // localStorage 사용자와 Firebase 사용자 합치기
+                    const allUsers = mergeUsersData(firebaseUsers);
+                    updateUsersTable(allUsers);
                     
                     // 회원수 업데이트
-                    document.getElementById('total-members').textContent = users.length;
+                    document.getElementById('total-members').textContent = allUsers.length;
                 }, (error) => {
                     console.error('❌ 사용자 목록 실시간 구독 실패:', error);
+                    // Firebase 연결 실패시 localStorage 데이터만 표시
+                    console.log('🔄 localStorage 데이터만 표시합니다.');
+                    loadLocalStorageUsers();
+                    
                     // 연결 실패시 5초 후 재시도
                     setTimeout(() => {
                         console.log('🔄 Firestore 연결 재시도...');
@@ -454,12 +463,104 @@
                 });
             } catch (error) {
                 console.error('❌ Firestore 쿼리 생성 실패:', error);
+                // 쿼리 생성 실패시 localStorage 데이터만 표시
+                loadLocalStorageUsers();
+                
                 // 쿼리 생성 실패시 3초 후 재시도
                 setTimeout(() => {
                     console.log('🔄 Firestore 쿼리 재시도...');
                     subscribeToUsers();
                 }, 3000);
             }
+        }
+
+        // localStorage에서 사용자 데이터 로드
+        function loadLocalStorageUsers() {
+            try {
+                const users = [];
+                
+                // 일반 사용자 데이터
+                const userData = localStorage.getItem('user');
+                if (userData) {
+                    const user = JSON.parse(userData);
+                    users.push({
+                        id: user.firebaseId || 'local_' + Date.now(),
+                        ...user,
+                        source: 'localStorage'
+                    });
+                }
+                
+                // 카카오 사용자 데이터들
+                const keys = Object.keys(localStorage);
+                keys.forEach(key => {
+                    if (key.startsWith('kakao_') && !key.includes('auth_')) {
+                        try {
+                            const storedData = localStorage.getItem(key);
+                            if (storedData && storedData.startsWith('{')) {
+                                const kakaoUser = JSON.parse(storedData);
+                                users.push({
+                                    id: kakaoUser.firebaseId || key,
+                                    ...kakaoUser,
+                                    source: 'localStorage'
+                                });
+                            }
+                        } catch (e) {
+                            console.warn('카카오 사용자 데이터 파싱 실패:', e);
+                        }
+                    }
+                });
+                
+                console.log('📊 localStorage 사용자 데이터:', users.length);
+                updateUsersTable(users);
+                document.getElementById('total-members').textContent = users.length;
+                
+            } catch (error) {
+                console.error('❌ localStorage 사용자 데이터 로드 실패:', error);
+            }
+        }
+
+        // Firebase와 localStorage 사용자 데이터 합치기
+        function mergeUsersData(firebaseUsers) {
+            const allUsers = [...firebaseUsers];
+            
+            // localStorage에서 추가 사용자 찾기
+            const userData = localStorage.getItem('user');
+            if (userData) {
+                const user = JSON.parse(userData);
+                const exists = allUsers.find(u => u.email === user.email);
+                if (!exists) {
+                    allUsers.push({
+                        id: user.firebaseId || 'local_' + Date.now(),
+                        ...user,
+                        source: 'localStorage'
+                    });
+                }
+            }
+            
+            // 카카오 사용자들도 확인
+            const keys = Object.keys(localStorage);
+            keys.forEach(key => {
+                if (key.startsWith('kakao_') && !key.includes('auth_')) {
+                    try {
+                        const storedData = localStorage.getItem(key);
+                        if (storedData && storedData.startsWith('{')) {
+                            const kakaoUser = JSON.parse(storedData);
+                            const exists = allUsers.find(u => u.email === kakaoUser.email);
+                            if (!exists) {
+                                allUsers.push({
+                                    id: kakaoUser.firebaseId || key,
+                                    ...kakaoUser,
+                                    source: 'localStorage'
+                                });
+                            }
+                        }
+                    } catch (e) {
+                        console.warn('카카오 사용자 데이터 파싱 실패:', e);
+                    }
+                }
+            });
+            
+            return allUsers;
         }
 
         // 사용자 테이블 업데이트
@@ -472,7 +573,7 @@
             if (users.length === 0) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="8" class="px-6 py-4 text-center text-gray-500">
+                        <td colspan="9" class="px-6 py-4 text-center text-gray-500">
                             등록된 회원이 없습니다.
                         </td>
                     </tr>
@@ -484,21 +585,27 @@
                 const row = document.createElement('tr');
                 row.className = 'hover:bg-gray-50';
                 
-                const profileImage = user.photoURL || '/default-avatar.png';
-                const loginMethod = user.loginMethod || 'email';
-                const joinDate = user.createdAt ? new Date(user.createdAt.seconds * 1000).toLocaleDateString() : '알 수 없음';
-                const lastUpdate = user.updatedAt ? new Date(user.updatedAt.seconds * 1000).toLocaleDateString() : '알 수 없음';
+                const profileImage = user.photoURL || user.profileImage || '/default-avatar.png';
+                const loginMethod = user.loginMethod || user.loginType || 'email';
+                const joinDate = user.createdAt ? 
+                    (user.createdAt.seconds ? new Date(user.createdAt.seconds * 1000).toLocaleDateString() : new Date(user.createdAt).toLocaleDateString()) : 
+                    (user.joinDate ? new Date(user.joinDate).toLocaleDateString() : '알 수 없음');
+                const lastUpdate = user.updatedAt ? 
+                    (user.updatedAt.seconds ? new Date(user.updatedAt.seconds * 1000).toLocaleDateString() : new Date(user.updatedAt).toLocaleDateString()) : 
+                    '알 수 없음';
+                const dataSource = user.source || 'Firebase';
+                const dataSourceColor = dataSource === 'localStorage' ? 'bg-orange-100 text-orange-800' : 'bg-green-100 text-green-800';
                 
                 row.innerHTML = `
                     <td class="px-6 py-4 whitespace-nowrap">
                         <div class="flex items-center">
                             <div class="h-10 w-10 flex-shrink-0">
-                                <img class="h-10 w-10 rounded-full" src="${profileImage}" alt="${user.displayName || '사용자'}">
+                                <img class="h-10 w-10 rounded-full" src="${profileImage}" alt="${user.displayName || user.name || '사용자'}">
                             </div>
                         </div>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="text-sm font-medium text-gray-900">${user.displayName || '이름 없음'}</div>
+                        <div class="text-sm font-medium text-gray-900">${user.displayName || user.name || '이름 없음'}</div>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
                         <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${loginMethod === 'kakao' ? 'bg-yellow-100 text-yellow-800' : 'bg-blue-100 text-blue-800'}">
@@ -509,6 +616,11 @@
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${user.phone || '-'}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${joinDate}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${lastUpdate}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${dataSourceColor}">
+                            ${dataSource}
+                        </span>
+                    </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <button onclick="viewUserDetails('${user.id}')" class="text-indigo-600 hover:text-indigo-900 mr-3">상세보기</button>
                         <button onclick="deleteUser('${user.id}')" class="text-red-600 hover:text-red-900">삭제</button>
@@ -1073,6 +1185,9 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                     <div class="flex justify-between items-center mb-6">
                         <h2 class="text-2xl font-bold text-gray-800">👥 회원 관리</h2>
                         <div class="flex gap-2">
+                            <button onclick="loadLocalStorageUsers()" class="px-4 py-2 bg-orange-500 text-white rounded-lg font-semibold hover:bg-orange-600 transition">
+                                🔄 localStorage 새로고침
+                            </button>
                             <button onclick="goToPage('index.html')" class="px-4 py-2 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition">
                                 🏠 메인페이지로
                             </button>
@@ -1094,7 +1209,8 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                                         <th class="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">이메일</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">휴대폰</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">가입일</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">의뢰수</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">업데이트</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">데이터 소스</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">작업</th>
                                     </tr>
                                 </thead>
