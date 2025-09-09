@@ -2391,8 +2391,24 @@
           setupAutoBackup();
         });
 
-        // 카카오 로그인 함수 (실제 카카오 OAuth 로그인) - 회원가입 페이지 방식으로 단순화
+        // 카카오 로그인 함수 (간단한 버전)
         function executeKakaoLogin() {
+          console.log('🔥 카카오 로그인 함수 호출됨!');
+          
+          // 간단한 카카오 인증 URL 생성
+          const clientId = '6917a034b74fafd0ac80ab855af5ed6d';
+          const redirectUri = window.location.origin + '/index.html';
+          const authUrl = `https://kauth.kakao.com/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code`;
+          
+          console.log('카카오 인증 URL:', authUrl);
+          console.log('카카오 인증 페이지로 이동합니다...');
+          
+          // 카카오 인증 페이지로 이동
+          window.location.href = authUrl;
+        }
+        
+        // 기존 복잡한 함수 (백업용)
+        function executeKakaoLoginOld() {
           try {
             console.log('카카오 로그인 시작...');
             console.log('JavaScript 키:', '6917a034b74fafd0ac80ab855af5ed6d');
