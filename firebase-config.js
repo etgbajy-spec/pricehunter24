@@ -1,4 +1,4 @@
-// Firebase 설정 및 초기화 (Firebase 8.x 버전) - 단일 진실 소스
+// Firebase 설정 및 초기화 (Firebase v9 버전) - 단일 진실 소스
 console.log('🔥 Firebase 설정 파일 로딩 시작...');
 
 // Firebase 설정 - 단일 진실 소스
@@ -16,8 +16,8 @@ const firebaseConfig = {
 let isInitializing = false;
 let isInitialized = false;
 
-// Firebase 초기화 함수 (개선된 버전)
-function initializeFirebase() {
+// Firebase v9 초기화 함수 (개선된 버전)
+async function initializeFirebase() {
   // 이미 초기화 중이거나 완료된 경우
   if (isInitializing || isInitialized) {
     console.log('🔄 Firebase 이미 초기화 중이거나 완료됨');
@@ -26,51 +26,36 @@ function initializeFirebase() {
   
   try {
     isInitializing = true;
-    console.log('🔄 Firebase 초기화 시작...');
+    console.log('🔄 Firebase v9 초기화 시작...');
     
-    // Firebase SDK 로드 확인 (강화된 가드)
-    if (typeof firebase === 'undefined') {
-      console.error('❌ Firebase SDK가 로드되지 않았습니다.');
+    // Firebase v9 모듈 로드 확인
+    if (typeof window.firebaseApp === 'undefined' || typeof window.firebaseAuth === 'undefined' || typeof window.firebaseDb === 'undefined') {
+      console.error('❌ Firebase v9 모듈이 로드되지 않았습니다.');
       console.error('🔒 서버 CSP 헤더에서 다음 도메인들이 허용되어야 합니다:');
       console.error('- https://www.gstatic.com');
       console.error('- https://www.gstatic.com/firebasejs');
       console.error('📋 현재 CSP 정책을 확인하려면 브라우저 DevTools → Network → Response Headers를 확인하세요.');
-      throw new Error('Firebase SDK not loaded - check server CSP headers');
+      throw new Error('Firebase v9 modules not loaded - check server CSP headers');
     }
 
-    console.log('✅ Firebase SDK 확인됨:', typeof firebase);
-    console.log('Firebase 버전:', firebase.SDK_VERSION);
-
-    // Firebase 앱 초기화 (중복 방지)
-    if (!firebase.apps.length) {
-      window.firebaseApp = firebase.initializeApp(firebaseConfig);
-      console.log('✅ Firebase 앱 초기화 완료');
-    } else {
-      window.firebaseApp = firebase.app();
-      console.log('✅ 기존 Firebase 앱 사용');
-    }
-
-    // Firestore 초기화
-    window.firestore = firebase.firestore();
-    console.log('✅ Firestore 초기화 완료');
-    
-    // Auth 초기화
-    window.auth = firebase.auth();
-    console.log('✅ Auth 초기화 완료');
+    console.log('✅ Firebase v9 모듈 확인됨');
+    console.log('firebaseApp:', typeof window.firebaseApp);
+    console.log('firebaseAuth:', typeof window.firebaseAuth);
+    console.log('firebaseDb:', typeof window.firebaseDb);
 
     // 초기화 완료 표시
     isInitialized = true;
     isInitializing = false;
     
-    console.log('🎉 Firebase 모든 서비스 초기화 완료!');
+    console.log('🎉 Firebase v9 모든 서비스 초기화 완료!');
     console.log('app:', window.firebaseApp);
-    console.log('db:', window.firestore);
-    console.log('auth:', window.auth);
+    console.log('db:', window.firebaseDb);
+    console.log('auth:', window.firebaseAuth);
     
     return true;
   } catch (error) {
     isInitializing = false;
-    console.error('❌ Firebase 초기화 실패:', error);
+    console.error('❌ Firebase v9 초기화 실패:', error);
     console.error('에러 상세:', error.message);
     console.error('에러 스택:', error.stack);
     
@@ -87,38 +72,38 @@ function initializeFirebase() {
   }
 }
 
-// Firebase 상태 확인 함수
+// Firebase v9 상태 확인 함수
 function checkFirebaseStatus() {
-  console.log('🔍 Firebase 상태 확인...');
+  console.log('🔍 Firebase v9 상태 확인...');
   console.log('초기화 상태:', isInitialized);
   console.log('초기화 중:', isInitializing);
   console.log('window.firebaseApp:', window.firebaseApp);
-  console.log('window.firestore:', window.firestore);
-  console.log('window.auth:', window.auth);
+  console.log('window.firebaseDb:', window.firebaseDb);
+  console.log('window.firebaseAuth:', window.firebaseAuth);
   
-  if (window.firebaseApp && window.firestore && window.auth && isInitialized) {
-    console.log('✅ Firebase 모든 서비스가 정상적으로 초기화되었습니다.');
+  if (window.firebaseApp && window.firebaseDb && window.firebaseAuth && isInitialized) {
+    console.log('✅ Firebase v9 모든 서비스가 정상적으로 초기화되었습니다.');
     return true;
   } else {
-    console.log('❌ Firebase 서비스가 일부 초기화되지 않았습니다.');
+    console.log('❌ Firebase v9 서비스가 일부 초기화되지 않았습니다.');
     return false;
   }
 }
 
-// Firebase 연결 테스트 함수
+// Firebase v9 연결 테스트 함수
 function testFirebaseConnection() {
-  console.log('🧪 Firebase 연결 테스트 시작...');
+  console.log('🧪 Firebase v9 연결 테스트 시작...');
   
-  if (typeof firebase === 'undefined') {
-    alert('❌ Firebase SDK가 로드되지 않았습니다.\n\n서버 CSP 헤더에 www.gstatic.com이 포함되어 있는지 확인하세요.');
+  if (typeof window.firebaseApp === 'undefined' || typeof window.firebaseAuth === 'undefined' || typeof window.firebaseDb === 'undefined') {
+    alert('❌ Firebase v9 모듈이 로드되지 않았습니다.\n\n서버 CSP 헤더에 www.gstatic.com이 포함되어 있는지 확인하세요.');
     return false;
   }
   
-  if (window.firebaseApp && window.firestore && window.auth && isInitialized) {
-    alert('✅ Firebase 연결 성공!\n\n모든 서비스가 정상적으로 작동합니다.');
+  if (window.firebaseApp && window.firebaseDb && window.firebaseAuth && isInitialized) {
+    alert('✅ Firebase v9 연결 성공!\n\n모든 서비스가 정상적으로 작동합니다.');
     return true;
   } else {
-    alert('❌ Firebase 연결 실패!\n\n초기화를 다시 시도해주세요.');
+    alert('❌ Firebase v9 연결 실패!\n\n초기화를 다시 시도해주세요.');
     return false;
   }
 }
