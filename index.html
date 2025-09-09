@@ -53,7 +53,7 @@
             <div class="text-blue-300">전문 검증 서비스</div>
           </h1>
                       <p class="text-sm sm:text-lg md:text-xl lg:text-3xl text-gray-200 mb-8 md:mb-12 lg:mb-16 font-medium leading-relaxed text-center w-full px-4">
-            <span class="text-yellow-200 font-bold">💎 <span id="admin-hero-trigger" title="관리자 진입: 3번 클릭">·</span> 100% 독립적 검증</span><br class="hidden sm:block" />
+            <span class="text-yellow-200 font-bold">💎 100% 독립적 검증</span><br class="hidden sm:block" />
             <br class="hidden sm:block" />
             ⚡ 24시간 내 최저가 보장<br class="hidden sm:block" />
             <br class="hidden sm:block" />
@@ -130,14 +130,6 @@
           user-select: text;
         }
         
-        /* 관리자 진입 트리거는 예외 */
-        #admin-hero-trigger {
-          -webkit-user-select: none;
-          -moz-user-select: none;
-          -ms-user-select: none;
-          user-select: none;
-          cursor: default;
-        }
       </style>
     </section>
       <!-- 고객의 진짜 고민, 우리가 해결합니다 섹션 -->
@@ -1687,25 +1679,7 @@
         });
         setAdminMode(isAdminLoggedIn);
         
-        // 'PriceHunter' 로고 3번 연속 클릭 시 관리자 모드 진입
-        let adminClickCount = 0;
-        let adminClickTimer = null;
-        const adminTrigger = document.getElementById('admin-hero-trigger');
-        if (adminTrigger) {
-          adminTrigger.addEventListener('click', function() {
-            adminClickCount++;
-            
-            if (adminClickTimer) clearTimeout(adminClickTimer);
-            adminClickTimer = setTimeout(function() { 
-              adminClickCount = 0; 
-            }, 2000);
-            
-            if (adminClickCount === 3) {
-              adminClickCount = 0;
-              tryAdminLogin();
-            }
-          });
-        } else {
+ else {
           console.warn('관리자 진입용 점 span이 없습니다.');
         }
         // 회원가입/마이페이지/의뢰결과조회 기능
@@ -2718,22 +2692,6 @@
           };
         }
 
-        (function() {
-          var adminClickCount = 0;
-          var adminClickTimer = null;
-          var adminDot = document.getElementById('admin-hero-trigger');
-          if (adminDot) {
-            adminDot.onclick = function() {
-              adminClickCount++;
-              if (adminClickTimer) clearTimeout(adminClickTimer);
-              adminClickTimer = setTimeout(function() { adminClickCount = 0; }, 2000);
-              if (adminClickCount === 3) {
-                adminClickCount = 0;
-                tryAdminLogin();
-              }
-            };
-          }
-        })();
 
         // 최저가 요청하기(버전2) 버튼 클릭 시 로그인 체크
         var reqBtn = document.getElementById('request-v2-btn');
