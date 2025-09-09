@@ -13,11 +13,11 @@
   <!-- 로컬 CSS 파일 사용 -->
   <link rel="stylesheet" href="styles.css">
   
-  <!-- Firebase SDK -->
+  <!-- Firebase SDK v8 -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-  <script src="firebase-config.js"></script>
+  <script src="firebase-app.js"></script>
   
   <style>
     /* 텍스트 선택 허용 */
@@ -564,10 +564,11 @@
     function setKakaoRedirectUri() {
       // 카카오 개발자 콘솔에 등록된 URI 사용
       if (window.location.hostname === 'pricehunt24.com') {
+        // 프로덕션 환경에서는 정확한 경로 사용
         KAKAO_CONFIG.redirectUri = 'https://pricehunt24.com/register.html';
       } else {
         // 로컬 개발 환경
-        KAKAO_CONFIG.redirectUri = window.location.origin + window.location.pathname;
+        KAKAO_CONFIG.redirectUri = window.location.origin + '/register.html';
       }
       
       console.log('카카오 redirect_uri 설정:', KAKAO_CONFIG.redirectUri);
@@ -699,7 +700,7 @@
         
         console.log('사용할 redirect_uri:', KAKAO_CONFIG.redirectUri);
         
-        // 환경별 처리
+        // 환경별 처리 - 프로덕션 환경에서도 실제 카카오 로그인 실행
         const isLocal = window.location.protocol === 'file:' || 
                        window.location.hostname === 'localhost' || 
                        window.location.hostname === '127.0.0.1';
@@ -984,10 +985,14 @@
       // Firebase 초기화
       setTimeout(() => {
         if (typeof firebase !== 'undefined') {
-          initializeFirebase();
-          console.log('✅ Firebase 초기화 완료');
+          const initResult = initializeFirebase();
+          if (initResult) {
+            console.log('✅ Firebase 초기화 완료');
+          } else {
+            console.warn('⚠️ Firebase 초기화 실패 - localStorage만 사용');
+          }
         } else {
-          console.warn('⚠️ Firebase SDK가 로드되지 않음');
+          console.warn('⚠️ Firebase SDK가 로드되지 않음 - localStorage만 사용');
         }
       }, 1000);
       

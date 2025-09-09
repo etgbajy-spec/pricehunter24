@@ -1,16 +1,21 @@
 // Firebase 설정 및 초기화 (Firebase v9 버전) - 단일 진실 소스
-console.log('🔥 Firebase 설정 파일 로딩 시작...');
+// 중복 로드 방지
+if (window.firebaseConfigLoaded) {
+  console.log('⚠️ Firebase 설정 파일이 이미 로드되었습니다. 중복 로드를 방지합니다.');
+} else {
+  console.log('🔥 Firebase 설정 파일 로딩 시작...');
+  window.firebaseConfigLoaded = true;
 
-// Firebase 설정 - 단일 진실 소스
-const firebaseConfig = {
-  apiKey: "AIzaSyDBZxKyMS7eeBTbPnbZkj0WWOZQHNldoL4",
-  authDomain: "pricehunter-99a1b.firebaseapp.com",
-  projectId: "pricehunter-99a1b",
-  storageBucket: "pricehunter-99a1b.firebasestorage.app",
-  messagingSenderId: "242265693919",
-  appId: "1:242265693919:web:74234d942b82a51541136a",
-  measurementId: "G-4BKLV4EVB9"
-};
+  // Firebase 설정 - 단일 진실 소스
+  const firebaseConfig = {
+    apiKey: "AIzaSyDBZxKyMS7eeBTbPnbZkj0WWOZQHNldoL4",
+    authDomain: "pricehunter-99a1b.firebaseapp.com",
+    projectId: "pricehunter-99a1b",
+    storageBucket: "pricehunter-99a1b.firebasestorage.app",
+    messagingSenderId: "242265693919",
+    appId: "1:242265693919:web:74234d942b82a51541136a",
+    measurementId: "G-4BKLV4EVB9"
+  };
 
 // Firebase 초기화 상태 추적
 let isInitializing = false;
@@ -108,10 +113,11 @@ function testFirebaseConnection() {
   }
 }
 
-// 전역 함수로 노출
-window.initializeFirebase = initializeFirebase;
-window.checkFirebaseStatus = checkFirebaseStatus;
-window.testFirebaseConnection = testFirebaseConnection;
-window.firebaseConfig = firebaseConfig; // 설정값도 전역으로 노출 (디버깅용)
+  // 전역 함수로 노출
+  window.initializeFirebase = initializeFirebase;
+  window.checkFirebaseStatus = checkFirebaseStatus;
+  window.testFirebaseConnection = testFirebaseConnection;
+  window.firebaseConfig = firebaseConfig; // 설정값도 전역으로 노출 (디버깅용)
 
-console.log('✅ Firebase 설정 파일 로딩 완료');
+  console.log('✅ Firebase 설정 파일 로딩 완료');
+}

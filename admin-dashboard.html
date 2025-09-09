@@ -53,7 +53,7 @@
     </script>
     
     <!-- Firebase 설정 파일 로드 -->
-    <script src="firebase-config.js"></script>
+    <script src="firebase-app.js"></script>
     
     <!-- Tailwind CSS (개선된 로딩 방식) -->
     <script>
@@ -404,12 +404,14 @@
                 
                 // Firebase v8 초기화 시도
                 if (typeof firebase !== 'undefined') {
-                    const app = firebase.initializeApp(window.firebaseConfig);
-                    window.auth = firebase.auth();
-                    window.firestore = firebase.firestore();
-                    isFirebaseReady = true;
-                    console.log('✅ Firebase v8 새로 초기화 성공');
-                    return;
+                    const initResult = initializeFirebase();
+                    if (initResult) {
+                        window.auth = firebase.auth();
+                        window.firestore = firebase.firestore();
+                        isFirebaseReady = true;
+                        console.log('✅ Firebase v8 새로 초기화 성공');
+                        return;
+                    }
                 }
                 
                 // 재시도
@@ -634,11 +636,6 @@
         // 대시보드 데이터 로드 함수
         function loadDashboardData() {
             console.log('📊 대시보드 데이터 로드 시작...');
-            
-            if (!isFirebaseInitialized) { 
-                alert("Firebase 초기화 실패"); 
-                throw new Error("Firebase not initialized"); 
-            }
             
             if (!window.firestore) {
                 console.error('❌ Firestore가 초기화되지 않았습니다.');
