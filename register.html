@@ -474,6 +474,28 @@
       scope: 'profile_nickname,account_email,profile_image'
     };
 
+    // 환경별 redirect_uri 설정 (개선된 버전)
+    function setKakaoRedirectUri() {
+      // 카카오 개발자 콘솔에 등록된 URI 사용
+      if (window.location.hostname === 'pricehunt24.com') {
+        // 프로덕션 환경에서는 정확한 경로 사용 (강제로 https)
+        KAKAO_CONFIG.redirectUri = 'https://pricehunt24.com/register.html';
+      } else if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        // 로컬 개발 환경
+        KAKAO_CONFIG.redirectUri = 'http://localhost:3000/register.html';
+      } else {
+        // 기타 환경 (강제로 https 사용)
+        KAKAO_CONFIG.redirectUri = 'https://' + window.location.hostname + '/register.html';
+      }
+      
+      console.log('🔗 카카오 redirect_uri 설정:', KAKAO_CONFIG.redirectUri);
+      console.log('📍 현재 페이지 URL:', window.location.href);
+      console.log('🌐 현재 도메인:', window.location.hostname);
+    }
+
+    // 페이지 로드 시 redirect_uri 설정
+    setKakaoRedirectUri();
+
     // 전역 변수
     let smsTimer = null;
     let smsTimeLeft = 180;
@@ -598,25 +620,6 @@
       }
     }
 
-    // 환경별 redirect_uri 설정 (개선된 버전)
-    function setKakaoRedirectUri() {
-      // 카카오 개발자 콘솔에 등록된 URI 사용
-      if (window.location.hostname === 'pricehunt24.com') {
-        // 프로덕션 환경에서는 정확한 경로 사용 (강제로 https)
-        KAKAO_CONFIG.redirectUri = 'https://pricehunt24.com/register.html';
-      } else if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-        // 로컬 개발 환경
-        KAKAO_CONFIG.redirectUri = 'http://localhost:3000/register.html';
-      } else {
-        // 기타 환경 (강제로 https 사용)
-        KAKAO_CONFIG.redirectUri = 'https://' + window.location.hostname + '/register.html';
-      }
-      
-      console.log('🔗 카카오 redirect_uri 설정:', KAKAO_CONFIG.redirectUri);
-      console.log('📍 현재 페이지 URL:', window.location.href);
-      console.log('🌐 현재 도메인:', window.location.hostname);
-    }
-
     // 환경 상태 업데이트
     function updateEnvironmentStatus(message, type) {
       const envStatus = document.getElementById('env-status');
@@ -734,9 +737,10 @@
         console.log('📍 현재 URL:', window.location.href);
         console.log('🌐 현재 도메인:', window.location.hostname);
         
-        // redirect_uri 재확인
+        // redirect_uri 확인
         if (!KAKAO_CONFIG.redirectUri) {
-          setKakaoRedirectUri();
+          console.error('❌ redirect_uri가 설정되지 않았습니다!');
+          throw new Error('redirect_uri가 설정되지 않았습니다.');
         }
         
         console.log('🔗 사용할 redirect_uri:', KAKAO_CONFIG.redirectUri);
@@ -771,6 +775,14 @@
           redirect_uri: KAKAO_CONFIG.redirectUri,
           response_type: 'code',
           scope: 'profile_nickname,account_email,profile_image'
+        });
+        
+        // URL 생성 과정 상세 로깅
+        console.log('🔗 생성된 인증 URL:', authUrl);
+        console.log('🔍 URL 파라미터 분석:');
+        const urlParams = new URLSearchParams(authUrl.split('?')[1]);
+        urlParams.forEach((value, key) => {
+          console.log(`  ${key}: ${value}`);
         });
         
         // 설정 검증
