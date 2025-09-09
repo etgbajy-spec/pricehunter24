@@ -52,6 +52,9 @@
       }
     </script>
     
+    <!-- Firebase 설정 파일 로드 -->
+    <script src="firebase-config.js"></script>
+    
     <!-- Tailwind CSS (개선된 로딩 방식) -->
     <script>
         // Tailwind CSS 동적 로딩
@@ -134,7 +137,12 @@
         });
     </script>
     
-    <!-- Firebase 설정 파일 로드 -->
+    <!-- Firebase 8.x SDK (최적화된 로딩 방식) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    
+    <!-- Firebase 설정 (단일 진실 소스) -->
     <script src="firebase-config.js"></script>
     
     <script>
@@ -159,45 +167,44 @@
             }, 1000);
         });
         
-        // Firebase v9 초기화 대기 함수
+        // Firebase SDK 로딩 대기 함수 (단순화된 버전)
         function waitForFirebaseAndInitialize() {
             const maxAttempts = 8; // 8초 대기
             let attempts = 0;
             
             const checkFirebase = () => {
                 attempts++;
-                console.log(`🔍 Firebase v9 확인 시도 ${attempts}/${maxAttempts}`);
+                console.log(`🔍 Firebase SDK 확인 시도 ${attempts}/${maxAttempts}`);
                 
-                // Firebase v9 모듈 완전 로드 확인
-                if (window.firebaseApp && window.firebaseAuth && window.firebaseDb) {
-                    console.log('✅ Firebase v9 완전 로드됨');
+                // Firebase SDK 완전 로드 확인
+                if (typeof firebase !== 'undefined' && 
+                    firebase.apps !== undefined && 
+                    firebase.auth !== undefined && 
+                    firebase.firestore !== undefined) {
+                    
+                    console.log('✅ Firebase SDK 완전 로드됨');
+                    console.log('Firebase 버전:', firebase.SDK_VERSION);
                     
                     // Firebase 초기화 시도
                     try {
-                        if (window.initializeFirebase) {
-                            window.initializeFirebase().then(success => {
-                                if (success) {
-                                    console.log('✅ Firebase 초기화 완료');
-                                    setupAdminDashboard();
-                                } else {
-                                    console.error('❌ Firebase 초기화 실패');
-                                    showFirebaseError('Firebase 초기화에 실패했습니다. Netlify CSP 헤더를 확인해주세요.');
-                                }
-                            });
-                        } else {
-                            console.log('✅ Firebase v9 이미 초기화됨');
+                        const initResult = initializeFirebase();
+                        if (initResult) {
+                            console.log('✅ Firebase 초기화 완료');
                             setupAdminDashboard();
+                        } else {
+                            console.error('❌ Firebase 초기화 실패');
+                            showFirebaseError('Firebase 초기화에 실패했습니다. Netlify CSP 헤더를 확인해주세요.');
                         }
                     } catch (error) {
                         console.error('❌ Firebase 초기화 중 오류:', error);
                         showFirebaseError('Firebase 초기화 중 오류가 발생했습니다: ' + error.message);
                     }
                 } else if (attempts < maxAttempts) {
-                    console.log('⏳ Firebase v9 로딩 대기 중...');
+                    console.log('⏳ Firebase SDK 로딩 대기 중...');
                     setTimeout(checkFirebase, 1000);
                 } else {
-                    console.error('❌ Firebase v9 로딩 시간 초과');
-                    showFirebaseError('Firebase v9 로딩 시간이 초과되었습니다.\n\nNetlify CSP 정책에서 다음 도메인들이 허용되어야 합니다:\n- https://www.gstatic.com\n- https://www.gstatic.com/firebasejs\n\nnetlify.toml 파일의 CSP 설정을 확인하세요.');
+                    console.error('❌ Firebase SDK 로딩 시간 초과');
+                    showFirebaseError('Firebase SDK 로딩 시간이 초과되었습니다.\n\nNetlify CSP 정책에서 다음 도메인들이 허용되어야 합니다:\n- https://www.gstatic.com\n- https://www.gstatic.com/firebasejs\n\nnetlify.toml 파일의 CSP 설정을 확인하세요.');
                 }
             };
             
@@ -244,21 +251,21 @@
             }, 20000);
         }
         
-        // 관리자 대시보드 설정 (Firebase v9)
+        // 관리자 대시보드 설정
         function setupAdminDashboard() {
             console.log('🔧 관리자 대시보드 설정 시작...');
             
-            // Firebase v9 상태 재확인
-            if (!window.firebaseAuth || !window.firebaseDb) {
-                console.error('❌ Firebase v9 서비스가 초기화되지 않았습니다.');
-                showFirebaseError('Firebase v9 서비스 초기화에 실패했습니다.');
+            // Firebase 상태 재확인
+            if (!window.auth || !window.firestore) {
+                console.error('❌ Firebase 서비스가 초기화되지 않았습니다.');
+                showFirebaseError('Firebase 서비스 초기화에 실패했습니다.');
                 return;
             }
             
             console.log('✅ 관리자 대시보드 설정 완료');
         }
         
-        // 관리자 로그인 함수 (Firebase v9)
+        // 관리자 로그인 함수
         window.adminLogin = async function() {
             console.log('🔐 관리자 로그인 시도...');
             
@@ -270,8 +277,13 @@
                 return;
             }
             
-            // Firebase v9 가드 확인
-            if (!window.firebaseAuth) {
+            // Firebase 가드 확인
+            if (typeof firebase === 'undefined') {
+                alert('Firebase SDK가 로드되지 않았습니다. 서버 CSP 헤더를 확인해주세요.');
+                return;
+            }
+            
+            if (!window.auth) {
                 console.error('❌ Firebase Auth가 초기화되지 않았습니다.');
                 alert('Firebase Auth 초기화에 실패했습니다. 페이지를 새로고침해주세요.');
                 return;
@@ -279,10 +291,7 @@
             
             try {
                 console.log('🔥 로그인 시도:', email);
-                
-                // Firebase v9 signInWithEmailAndPassword 사용
-                const { signInWithEmailAndPassword } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js');
-                const userCredential = await signInWithEmailAndPassword(window.firebaseAuth, email, password);
+                const userCredential = await window.auth.signInWithEmailAndPassword(email, password);
                 console.log('✅ 관리자 로그인 성공:', userCredential.user.email);
                 
                 // 로그인 성공 시 대시보드 표시
@@ -322,25 +331,27 @@
             }
         };
         
-        // 테스트 관리자 계정 생성 함수 (Firebase v9)
+        // 테스트 관리자 계정 생성 함수
         window.createAdminAccount = async function() {
             try {
                 console.log('🔧 테스트 관리자 계정 생성 시작...');
                 
-                if (!window.firebaseAuth) {
+                if (!firebase.auth) { 
+                    alert("Firebase Auth 초기화 실패"); 
+                    throw new Error("Auth not initialized"); 
+                }
+                
+                if (!window.auth) {
                     alert('Firebase가 초기화되지 않았습니다. 페이지를 새로고침해주세요.');
                     return;
                 }
                 
-                // Firebase v9 createUserWithEmailAndPassword 사용
-                const { createUserWithEmailAndPassword } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js');
-                const userCredential = await createUserWithEmailAndPassword(window.firebaseAuth, 'admin@pricehunter.com', 'admin1234');
+                const userCredential = await window.auth.createUserWithEmailAndPassword('admin@pricehunter.com', 'admin1234');
                 console.log('✅ 테스트 관리자 계정 생성 완료:', userCredential.user.email);
                 
                 // Firestore에 관리자 정보 저장
-                if (window.firebaseDb) {
-                    const { doc, setDoc } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js');
-                    await setDoc(doc(window.firebaseDb, 'admins', userCredential.user.uid), {
+                if (window.firestore) {
+                    await window.firestore.collection('admins').doc(userCredential.user.uid).set({
                         email: 'admin@pricehunter.com',
                         role: 'admin',
                         createdAt: new Date(),
@@ -374,23 +385,30 @@
         let isFirebaseReady = false;
         let usersUnsubscribe = null;
 
-        // Firebase 준비 상태 확인
+        // Firebase 준비 상태 확인 (Firebase v8)
         async function waitForFirebase() {
             try {
-                // firebase-config.js의 initializeFirebase 함수 사용
-                if (window.initializeFirebase) {
-                    const success = await window.initializeFirebase();
-                    if (success) {
-                        isFirebaseReady = true;
-                        console.log('✅ Firebase 초기화 성공');
-                        return;
+                // Firebase v8 초기화 확인
+                if (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length > 0) {
+                    // Firebase v8 앱이 이미 초기화된 경우
+                    if (!window.auth) {
+                        window.auth = firebase.auth();
                     }
+                    if (!window.firestore) {
+                        window.firestore = firebase.firestore();
+                    }
+                    isFirebaseReady = true;
+                    console.log('✅ Firebase v8 초기화 성공');
+                    return;
                 }
                 
-                // fallback: 기존 방식
-                if (window.firebaseAuth && window.firebaseDb) {
+                // Firebase v8 초기화 시도
+                if (typeof firebase !== 'undefined') {
+                    const app = firebase.initializeApp(window.firebaseConfig);
+                    window.auth = firebase.auth();
+                    window.firestore = firebase.firestore();
                     isFirebaseReady = true;
-                    console.log('✅ Firebase 기존 방식으로 초기화 성공');
+                    console.log('✅ Firebase v8 새로 초기화 성공');
                     return;
                 }
                 
@@ -402,23 +420,20 @@
             }
         }
 
-        // 실시간 사용자 목록 구독
+        // 실시간 사용자 목록 구독 (Firebase v8)
         function subscribeToUsers() {
-            if (!window.firebaseFirestoreFunctions || !window.firebaseDb) {
+            if (!window.firestore) {
                 console.warn('⚠️ Firebase가 아직 초기화되지 않았습니다. 2초 후 재시도합니다.');
                 setTimeout(subscribeToUsers, 2000);
                 return;
             }
             
-            const { collection, query, orderBy, onSnapshot } = window.firebaseFirestoreFunctions;
-            
             try {
-                const usersQuery = query(
-                    collection(window.firebaseDb, 'users'),
-                    orderBy('createdAt', 'desc')
-                );
+                const usersQuery = window.firestore
+                    .collection('users')
+                    .orderBy('createdAt', 'desc');
 
-                usersUnsubscribe = onSnapshot(usersQuery, (snapshot) => {
+                usersUnsubscribe = usersQuery.onSnapshot((snapshot) => {
                     const users = [];
                     snapshot.forEach((doc) => {
                         users.push({ id: doc.id, ...doc.data() });
@@ -426,6 +441,9 @@
                     
                     console.log('📊 실시간 사용자 데이터 업데이트:', users.length);
                     updateUsersTable(users);
+                    
+                    // 회원수 업데이트
+                    document.getElementById('total-members').textContent = users.length;
                 }, (error) => {
                     console.error('❌ 사용자 목록 실시간 구독 실패:', error);
                     // 연결 실패시 5초 후 재시도
@@ -501,11 +519,16 @@
             });
         }
 
-        // 대시보드 데이터 로드 함수 (Firebase v9)
+        // 대시보드 데이터 로드 함수
         function loadDashboardData() {
             console.log('📊 대시보드 데이터 로드 시작...');
             
-            if (!window.firebaseDb) {
+            if (!isFirebaseInitialized) { 
+                alert("Firebase 초기화 실패"); 
+                throw new Error("Firebase not initialized"); 
+            }
+            
+            if (!window.firestore) {
                 console.error('❌ Firestore가 초기화되지 않았습니다.');
                 return;
             }
@@ -514,20 +537,30 @@
             console.log('✅ 대시보드 데이터 로드 완료');
         }
         
-        // Firebase v9 연결 테스트 함수
+        // Firebase 연결 테스트 함수
         window.testFirebaseConnection = function() {
-            console.log('🔥 Firebase v9 연결 테스트 시작...');
+            console.log('🔥 Firebase 연결 테스트 시작...');
             
-            if (!window.firebaseApp || !window.firebaseAuth || !window.firebaseDb) {
-                alert('❌ Firebase v9 모듈이 로드되지 않았습니다.\n\n서버 CSP 헤더에 www.gstatic.com이 포함되어 있는지 확인하세요.');
+            if (typeof firebase === 'undefined') {
+                alert('❌ Firebase SDK가 로드되지 않았습니다.\n\n서버 CSP 헤더에 www.gstatic.com이 포함되어 있는지 확인하세요.');
                 return false;
             }
             
-            if (window.firebaseApp && window.firebaseAuth && window.firebaseDb) {
-                alert('✅ Firebase v9 연결 성공!\n\n모든 서비스가 정상적으로 작동합니다.');
+            if (!firebase.auth) { 
+                alert("Firebase Auth 초기화 실패"); 
+                return false;
+            }
+            
+            if (!firebase.firestore) { 
+                alert("Firebase Firestore 초기화 실패"); 
+                return false;
+            }
+            
+            if (window.firebaseApp && window.firestore && window.auth) {
+                alert('✅ Firebase 연결 성공!\n\n모든 서비스가 정상적으로 작동합니다.');
                 return true;
             } else {
-                alert('❌ Firebase v9 연결 실패!\n\n초기화를 다시 시도해주세요.');
+                alert('❌ Firebase 연결 실패!\n\n초기화를 다시 시도해주세요.');
                 return false;
             }
         };

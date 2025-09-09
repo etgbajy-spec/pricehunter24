@@ -37,18 +37,28 @@
       };
 
       // Firebase 초기화
-      const app = initializeApp(firebaseConfig);
-      const auth = getAuth(app);
-      const db = getFirestore(app);
+      try {
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
 
-      // 전역으로 노출
-      window.firebaseApp = app;
-      window.firebaseAuth = auth;
-      window.firebaseDb = db;
-      window.firebaseAuthFunctions = { signInWithCustomToken, onAuthStateChanged, signOut };
-      window.firebaseFirestoreFunctions = { doc, setDoc, getDoc, collection, query, orderBy, onSnapshot };
-      
-      console.log('✅ Firebase v9 초기화 완료');
+        // 전역으로 노출
+        window.firebaseApp = app;
+        window.firebaseAuth = auth;
+        window.firebaseDb = db;
+        window.firebaseAuthFunctions = { signInWithCustomToken, onAuthStateChanged, signOut };
+        window.firebaseFirestoreFunctions = { doc, setDoc, getDoc, collection, query, orderBy, onSnapshot };
+        
+        console.log('✅ Firebase v9 초기화 완료');
+      } catch (error) {
+        console.error('❌ Firebase 초기화 실패:', error);
+        // 초기화 실패시에도 기본 객체들을 생성하여 오류 방지
+        window.firebaseApp = null;
+        window.firebaseAuth = null;
+        window.firebaseDb = null;
+        window.firebaseAuthFunctions = { signInWithCustomToken: () => {}, onAuthStateChanged: () => {}, signOut: () => {} };
+        window.firebaseFirestoreFunctions = { doc: () => {}, setDoc: () => {}, getDoc: () => {}, collection: () => {}, query: () => {}, orderBy: () => {}, onSnapshot: () => {} };
+      }
     </script>
 
   </head>
@@ -1141,6 +1151,14 @@
         onAuthStateChanged(window.firebaseAuth, (user) => {
           if (user) {
             console.log('✅ 사용자 로그인됨:', user.email);
+            
+            // 관리자 계정인 경우 자동 로그아웃
+            if (user.email === 'admin@pricehunter.com') {
+              console.log('🚫 관리자 계정 감지 - 자동 로그아웃');
+              signOutUser();
+              return;
+            }
+            
             // 로그인 상태 UI 업데이트
             updateAuthUI();
           } else {
@@ -2391,14 +2409,12 @@
             console.log('사용할 redirect_uri:', KAKAO_CONFIG.redirectUri);
             console.log('redirect_uri 유효성 검증 통과 ✅');
             
-            // OAuth 파라미터 단순화 (KOE006, 400 Bad Request 오류 방지)
-            // through_account, additional_auth_login 등 불필요한 파라미터 제거
+            // OAuth 파라미터 최대한 단순화 (KOE006 오류 방지)
             const authParams = new URLSearchParams();
             authParams.append('client_id', KAKAO_CONFIG.clientId);
             authParams.append('redirect_uri', KAKAO_CONFIG.redirectUri);
             authParams.append('response_type', 'code');
-            authParams.append('scope', KAKAO_CONFIG.scope);
-            // state 파라미터 제거 (KOE006 오류 방지)
+            // scope 파라미터도 제거 (KOE006 오류 방지)
             
             const authUrl = 'https://kauth.kakao.com/oauth/authorize?' + authParams.toString();
             console.log('카카오 인증 URL:', authUrl);
