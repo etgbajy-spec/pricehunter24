@@ -27,8 +27,6 @@ function initializeFirebase() {
   try {
     isInitializing = true;
     console.log('🔄 Firebase 초기화 시작...');
-    console.log('🌐 현재 도메인:', window.location.hostname);
-    console.log('🌐 현재 URL:', window.location.href);
     
     // Firebase SDK 로드 확인 (강화된 가드)
     if (typeof firebase === 'undefined') {

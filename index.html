@@ -12,23 +12,6 @@
     <meta name="robots" content="noindex, nofollow" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <title>PriceHunter</title>
-    
-    <!-- 디버깅 링크 (실제 웹사이트에서만 표시) -->
-    <script>
-        if (window.location.hostname === 'pricehunt24.com') {
-            document.addEventListener('DOMContentLoaded', function() {
-                const debugLink = document.createElement('div');
-                debugLink.innerHTML = `
-                    <a href="/production-debug.html" 
-                       style="position: fixed; top: 10px; right: 10px; background: #ff6b6b; color: white; padding: 10px; border-radius: 5px; text-decoration: none; font-size: 12px; z-index: 9999; box-shadow: 0 2px 10px rgba(0,0,0,0.3);">
-                        🔍 디버깅
-                    </a>
-                `;
-                document.body.appendChild(debugLink);
-            });
-        }
-    </script>
-    
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
 
