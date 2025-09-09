@@ -12,15 +12,25 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
-    <meta name="cache-buster" content="v2.6-20241220" />
+    <meta name="cache-buster" content="v2.7-20241220" />
     <script>
       // 강제 캐시 무효화 및 디버깅
-      console.log('🚀 register.html v2.6 로드됨 (scope 수정 + 향상된 디버깅)');
+      console.log('🚀 register.html v2.7 로드됨 (강력한 캐시 버스터)');
       console.log('📍 현재 URL:', window.location.href);
+      console.log('🕐 로드 시간:', new Date().toISOString());
+      
+      // 더 강력한 캐시 버스터
       if (window.location.search.indexOf('v=') === -1) {
-        console.log('🔄 캐시 버스터 추가 중...');
-        window.location.href = window.location.href + (window.location.search ? '&' : '?') + 'v=' + Date.now();
+        console.log('🔄 강력한 캐시 버스터 추가 중...');
+        const timestamp = Date.now();
+        const random = Math.random().toString(36).substring(7);
+        window.location.href = window.location.href + (window.location.search ? '&' : '?') + 'v=' + timestamp + '&r=' + random;
       }
+      
+      // 페이지 로드 완료 확인
+      window.addEventListener('load', function() {
+        console.log('✅ 페이지 로드 완료 - v2.7');
+      });
     </script>
   
     <!-- Tailwind CSS -->
@@ -371,6 +381,14 @@
           console.log('  - response_type: code');
           console.log('  - scope:', KAKAO_CONFIG.scope);
           console.log('📋 Network 탭에서 이 URL과 실제 요청 URL을 비교해주세요!');
+          console.log('⚠️  만약 콘솔 로그가 안 보인다면 브라우저 캐시 문제입니다!');
+          console.log('🔄 해결방법: Ctrl+Shift+R (강력 새로고침) 또는 시크릿 모드 사용');
+          console.log('🔧 카카오 개발자 콘솔 설정 확인:');
+          console.log('  1. https://developers.kakao.com 접속');
+          console.log('  2. 앱 설정 → 플랫폼 → Web 플랫폼');
+          console.log('  3. 사이트 도메인: https://pricehunt24.com');
+          console.log('  4. 제품 설정 → 카카오 로그인 → Redirect URI');
+          console.log('  5. https://pricehunt24.com/register.html 정확히 등록');
         
         // OAuth 파라미터 로깅
         console.log('🔍 OAuth 파라미터:', {
