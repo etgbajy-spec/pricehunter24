@@ -12,10 +12,10 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
-    <meta name="cache-buster" content="v3.1-20241220" />
+    <meta name="cache-buster" content="v3.2-20241220" />
     <script>
       // 강제 캐시 무효화 및 디버깅
-      console.log('🚀 register.html v3.1 로드됨 (휴대폰 번호 추가)');
+      console.log('🚀 register.html v3.2 로드됨 (실제 이메일 인증 시스템)');
       console.log('📍 현재 URL:', window.location.href);
       console.log('🕐 로드 시간:', new Date().toISOString());
       
@@ -29,12 +29,15 @@
       
       // 페이지 로드 완료 확인
       window.addEventListener('load', function() {
-        console.log('✅ 페이지 로드 완료 - v3.1 (휴대폰 번호 추가)');
+        console.log('✅ 페이지 로드 완료 - v3.2 (실제 이메일 인증 시스템)');
       });
     </script>
   
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- EmailJS -->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
   
   <!-- Firebase SDK v8 -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -315,8 +318,16 @@
         }
       }
 
-      // 이메일 인증번호 발송
-      function sendEmailVerification() {
+      // EmailJS 초기화
+      function initEmailJS() {
+        // EmailJS 공개 키 (실제 사용 시 https://dashboard.emailjs.com/admin/integration 에서 발급받아야 함)
+        emailjs.init("YOUR_PUBLIC_KEY"); // 실제 키로 교체 필요 (예: "user_abc123def456")
+        
+        console.log('📧 EmailJS 초기화 완료');
+      }
+
+      // 실제 이메일 인증번호 발송
+      async function sendEmailVerification() {
         const email = document.getElementById('email-verification').value;
         
         if (!email) {
@@ -331,18 +342,59 @@
           return;
         }
         
-        // 인증번호 생성 (실제로는 서버에서 이메일 발송)
+        // 인증번호 생성
         const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
         localStorage.setItem('emailVerificationCode', verificationCode);
         localStorage.setItem('emailVerificationTime', Date.now().toString());
         
         // UI 업데이트
         document.getElementById('email-verification-code').classList.remove('hidden');
-        document.getElementById('send-email').textContent = '재발송';
+        document.getElementById('send-email').textContent = '발송 중...';
         document.getElementById('send-email').disabled = true;
         
-        // 타이머 시작 (5분)
-        let timeLeft = 300;
+        try {
+          // EmailJS를 사용한 실제 이메일 발송
+          const templateParams = {
+            to_email: email,
+            verification_code: verificationCode,
+            user_name: document.getElementById('name').value || '사용자',
+            from_name: 'PriceHunter'
+          };
+          
+          // EmailJS 서비스 ID와 템플릿 ID (실제 사용 시 교체 필요)
+          const result = await emailjs.send(
+            'YOUR_SERVICE_ID', // 실제 서비스 ID로 교체 (예: "service_gmail")
+            'YOUR_TEMPLATE_ID', // 실제 템플릿 ID로 교체 (예: "template_verification")
+            templateParams
+          );
+          
+          console.log('✅ 이메일 발송 성공:', result);
+          
+          // UI 업데이트
+          document.getElementById('send-email').textContent = '재발송';
+          document.getElementById('send-email').disabled = false;
+          
+          // 타이머 시작 (5분)
+          startEmailTimer();
+          
+          alert('인증번호가 이메일로 발송되었습니다. 이메일을 확인해주세요.');
+          
+        } catch (error) {
+          console.error('❌ 이메일 발송 실패:', error);
+          
+          // 실패 시 Mock 시스템으로 폴백
+          console.log('🔄 Mock 시스템으로 폴백');
+          document.getElementById('send-email').textContent = '재발송';
+          document.getElementById('send-email').disabled = false;
+          startEmailTimer();
+          
+          alert(`인증번호가 발송되었습니다.\n인증번호: ${verificationCode}\n(개발 모드: 실제 이메일 발송 실패)`);
+        }
+      }
+
+      // 이메일 타이머 시작
+      function startEmailTimer() {
+        let timeLeft = 300; // 5분
         const timer = setInterval(() => {
           const minutes = Math.floor(timeLeft / 60);
           const seconds = timeLeft % 60;
@@ -357,12 +409,9 @@
         }, 1000);
         
         // 5분 후 버튼 활성화
-      setTimeout(() => {
+        setTimeout(() => {
           document.getElementById('send-email').disabled = false;
         }, 300000);
-        
-        alert(`인증번호가 발송되었습니다.\n인증번호: ${verificationCode}\n(실제 서비스에서는 이메일로 발송됩니다)`);
-        console.log('📧 이메일 인증번호 발송:', email, '인증번호:', verificationCode);
       }
       // 이메일 인증번호 확인
       function verifyEmailCode() {
@@ -433,7 +482,10 @@
       }
       // 이벤트 리스너 등록
       document.addEventListener('DOMContentLoaded', function() {
-        console.log('🚀 register.html v3.1 로드됨 (이메일 인증 + 휴대폰 번호)');
+        console.log('🚀 register.html v3.2 로드됨 (실제 이메일 인증 시스템)');
+        
+        // EmailJS 초기화
+        initEmailJS();
         
         // 이메일 인증 발송 버튼
         document.getElementById('send-email').addEventListener('click', sendEmailVerification);
