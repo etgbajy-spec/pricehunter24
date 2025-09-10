@@ -12,10 +12,10 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
-    <meta name="cache-buster" content="v2.7-20241220" />
+    <meta name="cache-buster" content="v2.8-20241220" />
     <script>
       // 강제 캐시 무효화 및 디버깅
-      console.log('🚀 register.html v2.7 로드됨 (강력한 캐시 버스터)');
+      console.log('🚀 register.html v2.8 로드됨 (redirect_uri 수정)');
       console.log('📍 현재 URL:', window.location.href);
       console.log('🕐 로드 시간:', new Date().toISOString());
       
@@ -112,19 +112,6 @@
       <div class="grid md:grid-cols-2 gap-8 mb-12">
       <!-- 카카오톡 간편가입 -->
         <div class="bg-white rounded-2xl shadow-lg p-8 text-center fade-in-up">
-      <div class="mb-6">
-            <div class="w-16 h-16 bg-yellow-400 rounded-full flex items-center justify-center mx-auto mb-4">
-              <span class="text-2xl">💬</span>
-          </div>
-            <h3 class="text-xl font-semibold text-gray-900 mb-2">카카오톡 간편가입</h3>
-            <p class="text-gray-600">간단하게 카카오톡으로 가입하세요</p>
-      </div>
-          <button id="kakao-login" class="w-full bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-semibold py-3 px-6 rounded-lg transition duration-200 flex items-center justify-center">
-            <span class="mr-2">💬</span>
-            카카오톡으로 가입하기
-          </button>
-          <p class="text-sm text-green-600 mt-3">🎉 가입 시 50포인트 지급!</p>
-      </div>
 
       <!-- 일반 회원가입 -->
         <div class="bg-white rounded-2xl shadow-lg p-8 text-center fade-in-up">
@@ -169,25 +156,25 @@
                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">
         </div>
 
-        <!-- 휴대폰 번호 -->
+        <!-- 이메일 인증 -->
         <div>
-            <label for="phone" class="block text-sm font-medium text-gray-700 mb-2">휴대폰 번호</label>
+            <label for="email-verification" class="block text-sm font-medium text-gray-700 mb-2">이메일 인증</label>
             <div class="flex space-x-2">
-              <input type="tel" id="phone" name="phone" required placeholder="010-1234-5678"
+              <input type="email" id="email-verification" name="email-verification" required placeholder="example@email.com"
                      class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">
-              <button type="button" id="send-sms" class="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition">
+              <button type="button" id="send-email" class="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition">
                 인증번호 발송
               </button>
           </div>
-            <div id="sms-verification" class="mt-2 hidden">
+            <div id="email-verification-code" class="mt-2 hidden">
               <div class="flex space-x-2">
-                <input type="text" id="sms-code" placeholder="인증번호 입력"
+                <input type="text" id="email-code" placeholder="인증번호 입력"
                        class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">
-                <button type="button" id="verify-sms" class="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition">
+                <button type="button" id="verify-email" class="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition">
                   인증
                 </button>
         </div>
-              <p id="sms-timer" class="text-sm text-gray-500 mt-1"></p>
+              <p id="email-timer" class="text-sm text-gray-500 mt-1"></p>
           </div>
         </div>
 
@@ -254,17 +241,10 @@
   </main>
 
   <script>
-      // 카카오 로그인 설정 - 하드코딩으로 고정
-     const KAKAO_CONFIG = {
-       clientId: '6917a034b74fafd0ac80ab855af5ed6d',
-        redirectUri: 'https://pricehunt24.com/register.html', // 무조건 https로 고정
-       scope: 'profile_nickname,profile_image'  // account_email 일시 제거 (원인 분리 테스트)
-     };
+      // 이메일 인증만 사용하는 단순화된 회원가입
 
       // 전역 변수
-      let smsTimer = null;
-      let smsTimeLeft = 180;
-      let isSmsVerified = false;
+      let isEmailVerified = false;
 
       // Firebase 초기화 대기
       function waitForFirebase() {
@@ -278,8 +258,8 @@
       }
 
       // 사용자 데이터를 Firebase에 저장
-      async function saveUserToFirebase(userData) {
-        try {
+    async function saveUserToFirebase(userData) {
+      try {
           await waitForFirebase();
           
         const db = firebase.firestore();
@@ -338,356 +318,206 @@
         }
       }
 
-      // 카카오 로그인 실행
-    function executeKakaoLogin() {
-      try {
-          console.log('🚀 카카오 로그인 시작...');
-          console.log('🔑 JavaScript 키:', KAKAO_CONFIG.clientId);
-          console.log('📍 현재 URL:', window.location.href);
-          console.log('🌐 현재 도메인:', window.location.hostname);
-          
-          // redirect_uri 확인
-          console.log('🔗 사용할 redirect_uri:', KAKAO_CONFIG.redirectUri);
-          
-          // 환경별 처리
-        const isLocal = window.location.protocol === 'file:' || 
-                       window.location.hostname === 'localhost' || 
-                       window.location.hostname === '127.0.0.1';
+      // 이메일 인증번호 발송
+      function sendEmailVerification() {
+        const email = document.getElementById('email-verification').value;
         
-        if (isLocal) {
-            console.log('🏠 로컬 환경 감지 - 카카오 로그인 시뮬레이션 실행');
-          simulateKakaoLogin();
+        if (!email) {
+          alert('이메일을 입력해주세요.');
           return;
         }
         
-          console.log('🌐 실제 웹사이트 환경 - 카카오 로그인 실행');
-        
-        // 프로덕션 환경에서 실제 카카오 로그인 - URLSearchParams 사용
-        const authParams = new URLSearchParams({
-          client_id: KAKAO_CONFIG.clientId,
-          redirect_uri: KAKAO_CONFIG.redirectUri,   // URLSearchParams가 자동으로 인코딩
-          response_type: 'code',
-          scope: KAKAO_CONFIG.scope
-        });
-        
-        const authUrl = `https://kauth.kakao.com/oauth/authorize?${authParams.toString()}`;
-          console.log('🔗 [AUTH URL] 내가 만든 최초 URL:', authUrl);
-          console.log('🔍 URLSearchParams 결과:', authParams.toString());
-          console.log('🔍 redirect_uri 확인:', KAKAO_CONFIG.redirectUri);
-          console.log('🔍 encodeURIComponent 결과:', encodeURIComponent(KAKAO_CONFIG.redirectUri));
-          console.log('🔍 전체 URL 파라미터 확인:');
-          console.log('  - client_id:', KAKAO_CONFIG.clientId);
-          console.log('  - redirect_uri:', KAKAO_CONFIG.redirectUri);
-          console.log('  - response_type: code');
-          console.log('  - scope:', KAKAO_CONFIG.scope);
-          console.log('📋 Network 탭에서 이 URL과 실제 요청 URL을 비교해주세요!');
-          console.log('⚠️  만약 콘솔 로그가 안 보인다면 브라우저 캐시 문제입니다!');
-          console.log('🔄 해결방법: Ctrl+Shift+R (강력 새로고침) 또는 시크릿 모드 사용');
-          console.log('🔧 카카오 개발자 콘솔 설정 확인:');
-          console.log('  1. https://developers.kakao.com 접속');
-          console.log('  2. 앱 설정 → 플랫폼 → Web 플랫폼');
-          console.log('  3. 사이트 도메인: https://pricehunt24.com');
-          console.log('  4. 제품 설정 → 카카오 로그인 → Redirect URI');
-          console.log('  5. https://pricehunt24.com/register.html 정확히 등록');
-        
-        // OAuth 파라미터 로깅
-        console.log('🔍 OAuth 파라미터:', {
-          client_id: KAKAO_CONFIG.clientId,
-          redirect_uri: KAKAO_CONFIG.redirectUri,
-          response_type: 'code',
-            scope: 'profile_nickname,account_email,profile_image'
-          });
-          
-          // URL 생성 과정 상세 로깅
-          console.log('🔗 생성된 인증 URL:', authUrl);
-          console.log('🔍 URL 파라미터 분석:');
-          const urlParams = new URLSearchParams(authUrl.split('?')[1]);
-          urlParams.forEach((value, key) => {
-            console.log(`  ${key}: ${value}`);
-          });
-          
-          // 설정 검증
-        if (!KAKAO_CONFIG.clientId || !KAKAO_CONFIG.redirectUri) {
-          throw new Error('카카오 설정이 올바르지 않습니다.');
+        // 이메일 형식 검증
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+          alert('올바른 이메일 형식을 입력해주세요.');
+          return;
         }
         
-          // 로딩 상태 표시
-          const button = document.getElementById('kakao-login');
-          const originalText = button.innerHTML;
-          button.innerHTML = '<span class="loading mr-2">⏳</span>카카오 로그인 중...';
-          button.disabled = true;
+        // 인증번호 생성 (실제로는 서버에서 이메일 발송)
+        const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+        localStorage.setItem('emailVerificationCode', verificationCode);
+        localStorage.setItem('emailVerificationTime', Date.now().toString());
+        
+        // UI 업데이트
+        document.getElementById('email-verification-code').classList.remove('hidden');
+        document.getElementById('send-email').textContent = '재발송';
+        document.getElementById('send-email').disabled = true;
+        
+        // 타이머 시작 (5분)
+        let timeLeft = 300;
+        const timer = setInterval(() => {
+          const minutes = Math.floor(timeLeft / 60);
+          const seconds = timeLeft % 60;
+          document.getElementById('email-timer').textContent = `남은 시간: ${minutes}:${seconds.toString().padStart(2, '0')}`;
           
-          // 카카오 인증 페이지로 리다이렉트
-        window.location.href = authUrl;
-        
-      } catch (error) {
-          console.error('❌ 카카오 로그인 실행 실패:', error);
-          alert('카카오 로그인 중 오류가 발생했습니다: ' + error.message);
-          
-          // 버튼 상태 복원
-          const button = document.getElementById('kakao-login');
-          button.innerHTML = '<span class="mr-2">💬</span>카카오톡으로 가입하기';
-          button.disabled = false;
-        }
-      }
-
-      // 로컬 환경에서 카카오 로그인 시뮬레이션
-      function simulateKakaoLogin() {
-        const mockUserData = {
-          id: 'mock_' + Date.now(),
-          nickname: '테스트사용자',
-          email: 'test@example.com',
-          profile_image: 'https://via.placeholder.com/100'
-        };
-        
-        showKakaoTermsAgreement(mockUserData);
-      }
-
-      // 카카오 인증 코드 처리
-      function handleKakaoAuthCode() {
-        const urlParams = new URLSearchParams(window.location.search);
-        const authCode = urlParams.get('code');
-        
-        if (authCode) {
-          console.log('🔑 카카오 인증 코드 받음:', authCode);
-      processKakaoAuthCode(authCode);
-        }
-    }
-
-      // 카카오 인증 코드 처리
-    async function processKakaoAuthCode(authCode) {
-      try {
-          console.log('🔄 카카오 인증 코드 처리 시작...');
-
-        // 액세스 토큰 요청
-        const tokenResponse = await fetch('https://kauth.kakao.com/oauth/token', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded'
-          },
-          body: new URLSearchParams({
-            grant_type: 'authorization_code',
-            client_id: KAKAO_CONFIG.clientId,
-            redirect_uri: KAKAO_CONFIG.redirectUri,   // URLSearchParams가 자동으로 인코딩
-            code: authCode
-          })
-        });
-
-        if (!tokenResponse.ok) {
-            const errorText = await tokenResponse.text();
-            console.error('❌ 토큰 요청 실패:', tokenResponse.status, errorText);
-          throw new Error('토큰 요청 실패: ' + tokenResponse.status);
-        }
-
-        const tokenData = await tokenResponse.json();
-          console.log('✅ 액세스 토큰 받음:', tokenData.access_token);
-
-        // 사용자 정보 요청
-        const userResponse = await fetch('https://kapi.kakao.com/v2/user/me', {
-          headers: {
-              'Authorization': `Bearer ${tokenData.access_token}`
+          if (timeLeft <= 0) {
+            clearInterval(timer);
+            document.getElementById('email-timer').textContent = '인증 시간이 만료되었습니다.';
+            document.getElementById('send-email').disabled = false;
           }
-        });
-
-        if (!userResponse.ok) {
-          throw new Error('사용자 정보 요청 실패: ' + userResponse.status);
+          timeLeft--;
+        }, 1000);
+        
+        // 5분 후 버튼 활성화
+      setTimeout(() => {
+          document.getElementById('send-email').disabled = false;
+        }, 300000);
+        
+        alert(`인증번호가 발송되었습니다.\n인증번호: ${verificationCode}\n(실제 서비스에서는 이메일로 발송됩니다)`);
+        console.log('📧 이메일 인증번호 발송:', email, '인증번호:', verificationCode);
+      }
+      // 이메일 인증번호 확인
+      function verifyEmailCode() {
+        const inputCode = document.getElementById('email-code').value;
+        const storedCode = localStorage.getItem('emailVerificationCode');
+        const storedTime = localStorage.getItem('emailVerificationTime');
+        
+        if (!inputCode) {
+          alert('인증번호를 입력해주세요.');
+          return;
         }
-
-        const userData = await userResponse.json();
-          console.log('✅ 사용자 정보 받음:', userData);
-
-          // 사용자 정보 정리
-          const kakaoUserData = {
-            id: userData.id.toString(),
-            nickname: userData.kakao_account.profile.nickname,
-            email: userData.kakao_account.email,
-            profile_image: userData.kakao_account.profile.profile_image_url,
-            loginMethod: 'kakao'
-          };
-
-          // 중복 가입 확인
-          const users = JSON.parse(localStorage.getItem('users') || '[]');
-          const existingUser = users.find(user => user.email === kakaoUserData.email);
+        
+        if (!storedCode) {
+          alert('인증번호를 먼저 발송해주세요.');
+          return;
+        }
+        
+        // 시간 만료 확인 (5분)
+        const currentTime = Date.now();
+        const timeDiff = currentTime - parseInt(storedTime);
+        if (timeDiff > 300000) { // 5분 = 300000ms
+          alert('인증 시간이 만료되었습니다. 다시 발송해주세요.');
+          localStorage.removeItem('emailVerificationCode');
+          localStorage.removeItem('emailVerificationTime');
+          return;
+        }
+        
+        if (inputCode === storedCode) {
+          isEmailVerified = true;
+          document.getElementById('email-verification-code').classList.add('hidden');
+          document.getElementById('email-timer').textContent = '✅ 이메일 인증이 완료되었습니다.';
+          document.getElementById('email-timer').classList.add('text-green-600');
+          document.getElementById('send-email').disabled = true;
+          document.getElementById('email-verification').disabled = true;
           
-          if (existingUser) {
-            alert('이미 가입된 이메일입니다.');
-           return;
-         }
-
-         // 약관 동의 모달 표시
-          showKakaoTermsAgreement(kakaoUserData);
-
-      } catch (error) {
-          console.error('❌ 카카오 인증 처리 실패:', error);
-        alert('카카오 로그인 처리 중 오류가 발생했습니다: ' + error.message);
+          // 가입 버튼 활성화 체크
+          checkSignupButton();
+          
+          alert('이메일 인증이 완료되었습니다.');
+          console.log('✅ 이메일 인증 완료');
+        } else {
+          alert('인증번호가 일치하지 않습니다.');
         }
       }
-
-      // 카카오 사용자 약관 동의 모달
-      function showKakaoTermsAgreement(userData) {
-      const modal = document.createElement('div');
-        modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
-      modal.innerHTML = `
-          <div class="bg-white rounded-2xl p-8 max-w-md w-full mx-4">
-            <div class="text-center mb-6">
-              <img src="${userData.profile_image || 'https://via.placeholder.com/100'}" 
-                   alt="프로필" class="w-20 h-20 rounded-full mx-auto mb-4">
-              <h3 class="text-xl font-semibold text-gray-900">${userData.nickname}님</h3>
-              <p class="text-gray-600">${userData.email}</p>
-          </div>
-            
-          <div class="space-y-4 mb-6">
-              <div class="flex items-center">
-                <input type="checkbox" id="kakao-agree-terms" class="w-4 h-4 text-pink-600 border-gray-300 rounded focus:ring-pink-500">
-                <label for="kakao-agree-terms" class="ml-2 text-sm text-gray-600">
-                  <a href="#" class="text-pink-600 hover:underline">이용약관</a> 동의 (필수)
-                </label>
-            </div>
-              
-              <div class="flex items-center">
-                <input type="checkbox" id="kakao-agree-privacy" class="w-4 h-4 text-pink-600 border-gray-300 rounded focus:ring-pink-500">
-                <label for="kakao-agree-privacy" class="ml-2 text-sm text-gray-600">
-                  <a href="#" class="text-pink-600 hover:underline">개인정보처리방침</a> 동의 (필수)
-                </label>
-            </div>
-              
-              <div class="flex items-center">
-                <input type="checkbox" id="kakao-agree-marketing" class="w-4 h-4 text-pink-600 border-gray-300 rounded focus:ring-pink-500">
-                <label for="kakao-agree-marketing" class="ml-2 text-sm text-gray-600">
-                  마케팅 정보 수신 동의 (선택)
-                </label>
-            </div>
-          </div>
-            
-            <div class="flex space-x-3">
-              <button id="kakao-cancel" class="flex-1 bg-gray-300 text-gray-700 py-3 px-4 rounded-lg hover:bg-gray-400 transition">
-                취소
-              </button>
-              <button id="kakao-complete" disabled class="flex-1 bg-pink-500 text-white py-3 px-4 rounded-lg hover:bg-pink-600 transition disabled:bg-gray-400">
-                가입 완료
-              </button>
-          </div>
-        </div>
-      `;
       
-      document.body.appendChild(modal);
-      
-        // 약관 동의 체크박스 이벤트
-        const agreeTerms = modal.querySelector('#kakao-agree-terms');
-        const agreePrivacy = modal.querySelector('#kakao-agree-privacy');
-        const agreeMarketing = modal.querySelector('#kakao-agree-marketing');
-        const completeButton = modal.querySelector('#kakao-complete');
+      // 가입 버튼 활성화 체크
+      function checkSignupButton() {
+        const name = document.getElementById('name').value;
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        const confirmPassword = document.getElementById('confirm-password').value;
+        const agreeTerms = document.getElementById('agree-terms').checked;
+        const agreePrivacy = document.getElementById('agree-privacy').checked;
         
-        function updateCompleteButton() {
-          const requiredChecked = agreeTerms.checked && agreePrivacy.checked;
-          completeButton.disabled = !requiredChecked;
+        const isFormValid = name && email && password && confirmPassword && 
+                           password === confirmPassword && agreeTerms && agreePrivacy && isEmailVerified;
+        
+        const signupButton = document.getElementById('signup-button');
+        if (isFormValid) {
+          signupButton.disabled = false;
+          signupButton.classList.remove('bg-gray-400');
+          signupButton.classList.add('bg-pink-600', 'hover:bg-pink-700');
+        } else {
+          signupButton.disabled = true;
+          signupButton.classList.add('bg-gray-400');
+          signupButton.classList.remove('bg-pink-600', 'hover:bg-pink-700');
         }
+      }
+      // 이벤트 리스너 등록
+      document.addEventListener('DOMContentLoaded', function() {
+        console.log('🚀 register.html v3.0 로드됨 (이메일 인증 전용)');
         
-        agreeTerms.addEventListener('change', updateCompleteButton);
-        agreePrivacy.addEventListener('change', updateCompleteButton);
+        // 이메일 인증 발송 버튼
+        document.getElementById('send-email').addEventListener('click', sendEmailVerification);
         
-        // 취소 버튼
-        modal.querySelector('#kakao-cancel').addEventListener('click', () => {
-          document.body.removeChild(modal);
+        // 이메일 인증 확인 버튼
+        document.getElementById('verify-email').addEventListener('click', verifyEmailCode);
+        
+        // 폼 입력 이벤트
+        document.getElementById('name').addEventListener('input', checkSignupButton);
+        document.getElementById('email').addEventListener('input', checkSignupButton);
+        document.getElementById('password').addEventListener('input', checkSignupButton);
+        document.getElementById('confirm-password').addEventListener('input', checkSignupButton);
+        document.getElementById('agree-terms').addEventListener('change', checkSignupButton);
+        document.getElementById('agree-privacy').addEventListener('change', checkSignupButton);
+        
+        // 전체 동의 체크박스
+        document.getElementById('agree-all').addEventListener('change', function() {
+          const isChecked = this.checked;
+          document.getElementById('agree-terms').checked = isChecked;
+          document.getElementById('agree-privacy').checked = isChecked;
+          document.getElementById('agree-marketing').checked = isChecked;
+          checkSignupButton();
         });
         
-        // 가입 완료 버튼
-        completeButton.addEventListener('click', async () => {
+        // 개별 체크박스 변경 시 전체 동의 상태 업데이트
+        ['agree-terms', 'agree-privacy', 'agree-marketing'].forEach(id => {
+          document.getElementById(id).addEventListener('change', function() {
+            const allChecked = document.getElementById('agree-terms').checked &&
+                              document.getElementById('agree-privacy').checked &&
+                              document.getElementById('agree-marketing').checked;
+            document.getElementById('agree-all').checked = allChecked;
+            checkSignupButton();
+          });
+        });
+        
+        // 회원가입 폼 제출
+        document.getElementById('signup-form').addEventListener('submit', async function(e) {
+          e.preventDefault();
+          
+          if (!isEmailVerified) {
+            alert('이메일 인증을 완료해주세요.');
+            return;
+          }
+          
+          const formData = {
+            name: document.getElementById('name').value,
+            email: document.getElementById('email').value,
+            emailVerification: document.getElementById('email-verification').value,
+            password: document.getElementById('password').value,
+            agreeTerms: document.getElementById('agree-terms').checked,
+            agreePrivacy: document.getElementById('agree-privacy').checked,
+            agreeMarketing: document.getElementById('agree-marketing').checked,
+            createdAt: new Date().toISOString()
+          };
+          
           try {
-            const userDataWithTerms = {
-              ...userData,
-              name: userData.nickname,
-              phone: '',
-              password: '',
-              agreeTerms: agreeTerms.checked,
-              agreePrivacy: agreePrivacy.checked,
-              agreeMarketing: agreeMarketing.checked,
-              loginMethod: 'kakao',
-              createdAt: new Date().toISOString()
-            };
-            
             // Firebase에 저장
-            try {
-              await saveUserToFirebase(userDataWithTerms);
-            } catch (error) {
-              console.warn('Firebase 저장 실패, localStorage에만 저장:', error);
-            }
+            await saveUserToFirebase(formData);
             
             // localStorage에 저장
-            saveUserToLocalStorage(userDataWithTerms);
+            saveUserToLocalStorage(formData);
             
             // 포인트 추가
-            addPoints(userData.email, 50);
+            addPoints(formData.email, 50);
             
-            alert('🎉 회원가입이 완료되었습니다!\n50포인트가 지급되었습니다.');
-            
-            // 모달 제거
-            document.body.removeChild(modal);
-            
-            // 메인 페이지로 이동
+            alert('회원가입이 완료되었습니다! 50포인트가 지급되었습니다.');
             window.location.href = 'index.html';
             
           } catch (error) {
-            console.error('❌ 카카오 가입 완료 실패:', error);
-            alert('가입 처리 중 오류가 발생했습니다: ' + error.message);
+            console.error('회원가입 실패:', error);
+            alert('회원가입 중 오류가 발생했습니다: ' + error.message);
           }
         });
-      }
-
-      // SMS 인증번호 발송
-      function sendSMS() {
-        const phone = document.getElementById('phone').value;
-        const phoneRegex = /^010-\d{4}-\d{4}$/;
-        
-        if (!phoneRegex.test(phone)) {
-          alert('올바른 휴대폰 번호를 입력해주세요. (예: 010-1234-5678)');
-          return;
-        }
-        
-        // SMS 발송 시뮬레이션
-        console.log('📱 SMS 발송:', phone);
-        alert('인증번호가 발송되었습니다. (시뮬레이션)');
-        
-        // 인증번호 입력 필드 표시
-        document.getElementById('sms-verification').classList.remove('hidden');
-        
-        // 타이머 시작
-        startTimer();
-      }
-
-      // SMS 인증번호 확인
-      function verifySMS() {
-        const code = document.getElementById('sms-code').value;
-        
-        if (code === '1234') { // 시뮬레이션용 고정 코드
-          isSmsVerified = true;
-          alert('인증이 완료되었습니다.');
-          document.getElementById('sms-verification').classList.add('hidden');
-          clearInterval(smsTimer);
-        } else {
-          alert('인증번호가 올바르지 않습니다.');
+      });
         }
       }
 
-      // SMS 타이머
-      function startTimer() {
-        smsTimeLeft = 180;
-        const timerElement = document.getElementById('sms-timer');
-        
-        smsTimer = setInterval(() => {
-          const minutes = Math.floor(smsTimeLeft / 60);
-          const seconds = smsTimeLeft % 60;
-          timerElement.textContent = `남은 시간: ${minutes}:${seconds.toString().padStart(2, '0')}`;
-          
-          if (smsTimeLeft <= 0) {
-            clearInterval(smsTimer);
-            timerElement.textContent = '인증 시간이 만료되었습니다.';
-            isSmsVerified = false;
-          }
-          
-          smsTimeLeft--;
-        }, 1000);
+
+
       }
+
 
       // 비밀번호 강도 확인
       function checkPasswordStrength(password) {
@@ -765,38 +595,8 @@
 
       // 페이지 로드 시 실행
       document.addEventListener('DOMContentLoaded', function() {
-        console.log('🔗 카카오 redirect_uri 강제 설정:', KAKAO_CONFIG.redirectUri);
-        console.log('📍 현재 페이지 URL:', window.location.href);
-        console.log('🌐 현재 도메인:', window.location.hostname);
-        console.log('🔒 프로토콜:', window.location.protocol);
         
-        // 카카오 인증 코드 처리
-        handleKakaoAuthCode();
       
-      // 카카오 로그인 버튼 이벤트
-      document.getElementById('kakao-login').addEventListener('click', function() {
-        console.log('카카오 로그인 버튼 클릭됨!');
-        console.log('현재 URL:', window.location.href);
-        console.log('현재 도메인:', window.location.hostname);
-        
-        // URL에 code 파라미터가 있으면 제거하고 새로 시작
-        if (window.location.href.includes('?code=')) {
-          console.log('기존 인증 코드가 있음. URL을 정리하고 새로 시작');
-          // URL에서 code 파라미터 제거
-          const cleanUrl = window.location.origin + window.location.pathname;
-          window.history.replaceState({}, document.title, cleanUrl);
-          
-          // 잠시 후 카카오 로그인 실행 (URL 정리 후)
-          setTimeout(function() {
-            console.log('정리된 URL에서 카카오 로그인 실행');
-            executeKakaoLogin();
-          }, 100);
-        } else {
-          // code 파라미터가 없으면 바로 실행
-          console.log('새로운 카카오 로그인 실행');
-          executeKakaoLogin();
-        }
-      });
 
       // 일반 회원가입 폼 표시
       document.getElementById('normal-register').addEventListener('click', function() {
@@ -828,9 +628,6 @@
         agreeTerms.addEventListener('change', updateSignupButton);
         agreePrivacy.addEventListener('change', updateSignupButton);
 
-        // SMS 관련 이벤트
-        document.getElementById('send-sms').addEventListener('click', sendSMS);
-        document.getElementById('verify-sms').addEventListener('click', verifySMS);
 
         // 비밀번호 관련 이벤트
         document.getElementById('password').addEventListener('input', function() {
