@@ -12,10 +12,10 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
-    <meta name="cache-buster" content="v2.8-20241220" />
+    <meta name="cache-buster" content="v3.0-20241220" />
     <script>
       // 강제 캐시 무효화 및 디버깅
-      console.log('🚀 register.html v2.8 로드됨 (redirect_uri 수정)');
+      console.log('🚀 register.html v3.0 로드됨 (레이아웃 수정)');
       console.log('📍 현재 URL:', window.location.href);
       console.log('🕐 로드 시간:', new Date().toISOString());
       
@@ -29,7 +29,7 @@
       
       // 페이지 로드 완료 확인
       window.addEventListener('load', function() {
-        console.log('✅ 페이지 로드 완료 - v2.7');
+        console.log('✅ 페이지 로드 완료 - v3.0 (레이아웃 수정)');
       });
     </script>
   
@@ -109,13 +109,10 @@
     </div>
 
       <!-- 회원가입 옵션 -->
-      <div class="grid md:grid-cols-2 gap-8 mb-12">
-      <!-- 카카오톡 간편가입 -->
+      <div class="max-w-md mx-auto mb-12">
+        <!-- 일반 회원가입 -->
         <div class="bg-white rounded-2xl shadow-lg p-8 text-center fade-in-up">
-
-      <!-- 일반 회원가입 -->
-        <div class="bg-white rounded-2xl shadow-lg p-8 text-center fade-in-up">
-          <div class="mb-6">
+      <div class="mb-6">
             <div class="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
               <span class="text-2xl">📧</span>
           </div>
@@ -131,7 +128,7 @@
     </div>
 
     <!-- 일반 회원가입 폼 (숨김) -->
-      <div id="register-form" class="bg-white rounded-2xl shadow-lg p-8 hidden">
+    <div id="register-form" class="max-w-md mx-auto bg-white rounded-2xl shadow-lg p-8 hidden">
         <div class="flex justify-between items-center mb-6">
           <h2 class="text-2xl font-bold text-gray-900">회원가입</h2>
           <button id="close-form" class="text-gray-400 hover:text-gray-600">
@@ -234,9 +231,9 @@
     </div>
 
     <!-- 로그인 링크 -->
-      <div class="text-center mt-8">
-        <p class="text-gray-600">이미 계정이 있으신가요?</p>
-        <a href="index.html#login" class="inline-block bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 transition">로그인하기</a>
+    <div class="max-w-md mx-auto text-center mt-8">
+      <p class="text-gray-600 mb-4">이미 계정이 있으신가요?</p>
+      <a href="index.html#login" class="inline-block bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 transition">로그인하기</a>
     </div>
   </main>
 
