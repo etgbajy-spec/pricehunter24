@@ -118,10 +118,10 @@
           <div class="mb-6">
             <div class="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
               <span class="text-2xl">📧</span>
-            </div>
+          </div>
             <h3 class="text-xl font-semibold text-gray-900 mb-2">일반 회원가입</h3>
             <p class="text-gray-600">이메일로 직접 가입하세요</p>
-          </div>
+      </div>
           <button id="normal-register" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg transition duration-200 flex items-center justify-center">
             <span class="mr-2">📧</span>
             이메일로 가입하기
@@ -478,9 +478,9 @@
           
           if (!isEmailVerified) {
             alert('이메일 인증을 완료해주세요.');
-            return;
-          }
-          
+           return;
+         }
+
           const formData = {
             name: document.getElementById('name').value,
             email: document.getElementById('email').value,
@@ -504,19 +504,24 @@
             
             alert('회원가입이 완료되었습니다! 50포인트가 지급되었습니다.');
             window.location.href = 'index.html';
-            
-          } catch (error) {
+
+      } catch (error) {
             console.error('회원가입 실패:', error);
             alert('회원가입 중 오류가 발생했습니다: ' + error.message);
-          }
-        });
-      });
         }
-      }
+      });
 
+      // 일반 회원가입 폼 표시
+      document.getElementById('normal-register').addEventListener('click', function() {
+        document.getElementById('register-form').classList.remove('hidden');
+        this.scrollIntoView({ behavior: 'smooth' });
+      });
 
-
-      }
+      // 폼 닫기
+      document.getElementById('close-form').addEventListener('click', function() {
+        document.getElementById('register-form').classList.add('hidden');
+      });
+      });
 
 
       // 비밀번호 강도 확인
@@ -572,134 +577,12 @@
         if (password === confirmPassword) {
           matchElement.textContent = '✅ 비밀번호가 일치합니다.';
           matchElement.className = 'mt-2 text-sm text-green-600';
-        } else {
+          } else {
           matchElement.textContent = '❌ 비밀번호가 일치하지 않습니다.';
           matchElement.className = 'mt-2 text-sm text-red-600';
         }
       }
 
-      // 가입 버튼 상태 업데이트
-      function updateSignupButton() {
-        const agreeTerms = document.getElementById('agree-terms').checked;
-        const agreePrivacy = document.getElementById('agree-privacy').checked;
-        const signupButton = document.getElementById('signup-button');
-        
-        if (agreeTerms && agreePrivacy) {
-          signupButton.disabled = false;
-          signupButton.className = 'w-full bg-pink-500 text-white font-semibold py-3 px-6 rounded-lg hover:bg-pink-600 transition duration-200';
-        } else {
-          signupButton.disabled = true;
-          signupButton.className = 'w-full bg-gray-400 text-white font-semibold py-3 px-6 rounded-lg transition duration-200';
-        }
-      }
-
-      // 페이지 로드 시 실행
-      document.addEventListener('DOMContentLoaded', function() {
-        
-      
-
-      // 일반 회원가입 폼 표시
-      document.getElementById('normal-register').addEventListener('click', function() {
-        document.getElementById('register-form').classList.remove('hidden');
-        this.scrollIntoView({ behavior: 'smooth' });
-      });
-
-      // 폼 닫기
-      document.getElementById('close-form').addEventListener('click', function() {
-        document.getElementById('register-form').classList.add('hidden');
-      });
-
-      // 약관 체크박스 연동
-      const agreeAll = document.getElementById('agree-all');
-      const agreeTerms = document.getElementById('agree-terms');
-      const agreePrivacy = document.getElementById('agree-privacy');
-      const agreeMarketing = document.getElementById('agree-marketing');
-      const signupButton = document.getElementById('signup-button');
-
-      // 전체 동의 체크박스
-      agreeAll.addEventListener('change', function() {
-        agreeTerms.checked = this.checked;
-        agreePrivacy.checked = this.checked;
-        agreeMarketing.checked = this.checked;
-        updateSignupButton();
-      });
-
-      // 개별 체크박스
-        agreeTerms.addEventListener('change', updateSignupButton);
-        agreePrivacy.addEventListener('change', updateSignupButton);
-
-
-        // 비밀번호 관련 이벤트
-        document.getElementById('password').addEventListener('input', function() {
-          checkPasswordStrength(this.value);
-          checkPasswordMatch();
-        });
-
-        document.getElementById('confirm-password').addEventListener('input', checkPasswordMatch);
-
-      // 회원가입 폼 제출
-      document.getElementById('signup-form').addEventListener('submit', async function(e) {
-        e.preventDefault();
-        
-          const formData = new FormData(this);
-          const userData = {
-            name: formData.get('name'),
-            email: formData.get('email'),
-            phone: formData.get('phone'),
-            password: formData.get('password'),
-            agreeTerms: document.getElementById('agree-terms').checked,
-            agreePrivacy: document.getElementById('agree-privacy').checked,
-            agreeMarketing: document.getElementById('agree-marketing').checked,
-            loginMethod: 'email',
-            createdAt: new Date().toISOString()
-          };
-
-          // 유효성 검사
-          if (!userData.name || !userData.email || !userData.phone || !userData.password) {
-            alert('모든 필드를 입력해주세요.');
-          return;
-        }
-        
-          if (!isSmsVerified) {
-            alert('휴대폰 인증을 완료해주세요.');
-            return;
-          }
-
-          if (userData.password !== formData.get('confirm-password')) {
-          alert('비밀번호가 일치하지 않습니다.');
-          return;
-        }
-        
-          if (!userData.agreeTerms || !userData.agreePrivacy) {
-            alert('필수 약관에 동의해주세요.');
-          return;
-        }
-        
-          try {
-            // Firebase에 저장
-            try {
-              await saveUserToFirebase(userData);
-            } catch (error) {
-              console.warn('Firebase 저장 실패, localStorage에만 저장:', error);
-            }
-            
-            // localStorage에 저장
-            saveUserToLocalStorage(userData);
-            
-            // 포인트 추가
-            addPoints(userData.email, 50);
-            
-            alert('🎉 회원가입이 완료되었습니다!\n50포인트가 지급되었습니다.');
-            
-            // 메인 페이지로 이동
-            window.location.href = 'index.html';
-            
-          } catch (error) {
-            console.error('❌ 회원가입 실패:', error);
-            alert('회원가입 중 오류가 발생했습니다: ' + error.message);
-          }
-        });
-    });
   </script>
 </body>
 </html>
