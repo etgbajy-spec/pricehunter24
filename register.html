@@ -249,9 +249,16 @@
       // Firebase 초기화 대기
       function waitForFirebase() {
         return new Promise((resolve) => {
+          console.log('🔍 Firebase 상태 확인:', {
+            firebaseDefined: typeof firebase !== 'undefined',
+            firebaseApps: firebase ? firebase.apps.length : 0
+          });
+          
           if (typeof firebase !== 'undefined' && firebase.apps.length > 0) {
+            console.log('✅ Firebase 준비됨');
             resolve();
           } else {
+            console.log('⏳ Firebase 대기 중... 100ms 후 재시도');
             setTimeout(() => waitForFirebase().then(resolve), 100);
           }
         });
