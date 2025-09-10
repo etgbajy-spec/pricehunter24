@@ -536,12 +536,16 @@
         
         // 회원가입 폼 제출
         document.getElementById('signup-form').addEventListener('submit', async function(e) {
+          console.log('🚀 회원가입 폼 제출 시작');
           e.preventDefault();
           
           if (!isEmailVerified) {
+            console.log('❌ 이메일 인증 미완료');
             alert('이메일 인증을 완료해주세요.');
            return;
          }
+         
+         console.log('✅ 이메일 인증 완료 확인됨');
 
           const formData = {
             name: document.getElementById('name').value,
@@ -554,7 +558,10 @@
             createdAt: new Date().toISOString()
           };
           
+          console.log('📋 폼 데이터 수집 완료:', formData);
+          
           try {
+            console.log('🔥 Firebase 저장 시작');
             // Firebase에 저장
             await saveUserToFirebase(formData);
             
