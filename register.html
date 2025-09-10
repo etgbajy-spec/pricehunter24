@@ -260,18 +260,24 @@
       // 사용자 데이터를 Firebase에 저장
     async function saveUserToFirebase(userData) {
       try {
+          console.log('⏳ Firebase 대기 중...');
           await waitForFirebase();
+          console.log('✅ Firebase 준비 완료');
           
         const db = firebase.firestore();
           const usersRef = db.collection('users');
+          console.log('📊 Firebase Firestore 연결 완료');
           
           // 휴대폰 번호 중복 확인
+          console.log('🔍 휴대폰 번호 중복 확인 중...', userData.phone);
           const phoneQuery = await usersRef.where('phone', '==', userData.phone).get();
+          console.log('📋 중복 확인 결과:', phoneQuery.empty ? '중복 없음' : '중복 발견');
           if (!phoneQuery.empty) {
             throw new Error('이미 가입된 휴대폰 번호입니다.');
           }
           
           // 사용자 데이터 저장
+          console.log('💾 사용자 데이터 저장 중...');
           const docRef = await usersRef.add({
           ...userData,
           createdAt: firebase.firestore.FieldValue.serverTimestamp(),
