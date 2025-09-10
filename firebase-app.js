@@ -66,4 +66,8 @@ function checkFirebaseStatus() {
 window.initializeFirebase = initializeFirebase;
 window.checkFirebaseStatus = checkFirebaseStatus;
 
+// Firebase 초기화 실행
+console.log('🚀 Firebase 초기화 시작...');
+initializeFirebase();
+
 console.log('✅ Firebase 앱 파일 로딩 완료');
