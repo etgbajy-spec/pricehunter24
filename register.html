@@ -436,9 +436,9 @@
           alert('인증 시간이 만료되었습니다. 다시 발송해주세요.');
           localStorage.removeItem('emailVerificationCode');
           localStorage.removeItem('emailVerificationTime');
-          return;
-        }
-        
+           return;
+         }
+
         if (inputCode === storedCode) {
           isEmailVerified = true;
           document.getElementById('email-verification-code').classList.add('hidden');
@@ -466,6 +466,17 @@
         const agreeTerms = document.getElementById('agree-terms').checked;
         const agreePrivacy = document.getElementById('agree-privacy').checked;
         
+        console.log('🔍 회원가입 버튼 체크:', {
+          name: name ? '✅' : '❌',
+          phone: phone ? '✅' : '❌',
+          password: password ? '✅' : '❌',
+          confirmPassword: confirmPassword ? '✅' : '❌',
+          passwordMatch: password === confirmPassword ? '✅' : '❌',
+          agreeTerms: agreeTerms ? '✅' : '❌',
+          agreePrivacy: agreePrivacy ? '✅' : '❌',
+          isEmailVerified: isEmailVerified ? '✅' : '❌'
+        });
+        
         const isFormValid = name && phone && password && confirmPassword && 
                            password === confirmPassword && agreeTerms && agreePrivacy && isEmailVerified;
         
@@ -474,10 +485,12 @@
           signupButton.disabled = false;
           signupButton.classList.remove('bg-gray-400');
           signupButton.classList.add('bg-pink-600', 'hover:bg-pink-700');
-        } else {
+          console.log('✅ 회원가입 버튼 활성화됨');
+            } else {
           signupButton.disabled = true;
           signupButton.classList.add('bg-gray-400');
           signupButton.classList.remove('bg-pink-600', 'hover:bg-pink-700');
+          console.log('❌ 회원가입 버튼 비활성화됨');
         }
       }
       // 이벤트 리스너 등록
