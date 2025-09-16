@@ -15,6 +15,38 @@
   </script>
   
   <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Firebase v9 SDK (모듈식) -->
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
+    import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
+    import { getFirestore, collection, addDoc, serverTimestamp, query, orderBy, onSnapshot } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
+    
+    // Firebase 설정
+    const firebaseConfig = {
+      apiKey: "AIzaSyDBZxKyMS7eeBTbPnbZkj0WWOZQHNldoL4",
+      authDomain: "pricehunter-99a1b.firebaseapp.com",
+      projectId: "pricehunter-99a1b",
+      storageBucket: "pricehunter-99a1b.firebasestorage.app",
+      messagingSenderId: "242265693919",
+      appId: "1:242265693919:web:74234d942b82a51541136a",
+      measurementId: "G-4BKLV4EVB9"
+    };
+
+    // Firebase 초기화
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    // 전역 변수로 노출
+    window.firebaseApp = app;
+    window.firebaseAuth = auth;
+    window.firebaseDb = db;
+    window.firebaseFirestoreFunctions = { collection, addDoc, serverTimestamp, query, orderBy, onSnapshot };
+
+    console.log('✅ Firebase v9 초기화 완료 (contact.html)');
+  </script>
+  
   <style>
     /* 텍스트 선택 허용 (드래그 가능) */
     body {
@@ -147,32 +179,106 @@
         }
       });
     }
+    // Firebase 초기화 대기 함수
+    async function waitForFirebase() {
+      return new Promise((resolve, reject) => {
+        if (window.firebaseApp && window.firebaseDb) {
+          resolve();
+        } else {
+          setTimeout(() => waitForFirebase().then(resolve).catch(reject), 100);
+        }
+      });
+    }
+
+    // Firebase에 문의 데이터 저장
+    async function saveInquiryToFirebase(inquiryData) {
+      try {
+        await waitForFirebase();
+        
+        const { collection, addDoc, serverTimestamp } = window.firebaseFirestoreFunctions;
+        const inquiriesRef = collection(window.firebaseDb, 'inquiries');
+        
+        const docRef = await addDoc(inquiriesRef, {
+          ...inquiryData,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+          status: 'new',
+          source: 'contact_form'
+        });
+        
+        console.log('✅ Firebase에 문의 저장 완료:', docRef.id);
+        return docRef.id;
+      } catch (error) {
+        console.error('❌ Firebase 문의 저장 실패:', error);
+        
+        // 권한 오류인 경우 localStorage로 폴백
+        if (error.message.includes('Missing or insufficient permissions') || 
+            error.message.includes('permission-denied')) {
+          console.log('🔄 Firebase 권한 오류 - localStorage로 폴백');
+          return 'localStorage_fallback';
+        }
+        
+        throw error;
+      }
+    }
+
     // 문의 제출
-    document.getElementById('contact-form').addEventListener('submit', function(e) {
+    document.getElementById('contact-form').addEventListener('submit', async function(e) {
       e.preventDefault();
       const subject = document.getElementById('contact-subject').value.trim();
       const message = document.getElementById('contact-message').value.trim();
       const name = document.getElementById('contact-name').value;
       const email = document.getElementById('contact-email').value;
       const file = fileData;
+      
       if (!subject || !message) {
         alert('제목과 내용을 모두 입력해 주세요.');
         return;
       }
-      // 문의 내역 저장 (localStorage, 최신순)
-      const inquiry = { subject, message, name, email, file, date: new Date().toLocaleString() };
-      let history = JSON.parse(localStorage.getItem('contact-history') || '[]');
-      history.unshift(inquiry);
-      if (history.length > 20) history = history.slice(0, 20);
-      localStorage.setItem('contact-history', JSON.stringify(history));
-      // inquiry-로도 저장 (관리자페이지용)
-      const inquiryKey = 'inquiry-' + Date.now();
-      localStorage.setItem(inquiryKey, JSON.stringify(inquiry));
-      document.getElementById('contact-success').classList.remove('hidden');
-      this.reset();
-      filePreview.innerHTML = '';
-      fileData = '';
-      renderHistory();
+      
+      // 문의 데이터 준비
+      const inquiry = { 
+        subject, 
+        message, 
+        name, 
+        email, 
+        file, 
+        date: new Date().toLocaleString(),
+        timestamp: Date.now()
+      };
+      
+      try {
+        // Firebase에 저장 시도
+        console.log('🔥 Firebase에 문의 저장 시작...');
+        const firebaseResult = await saveInquiryToFirebase(inquiry);
+        
+        // localStorage에도 백업 저장
+        let history = JSON.parse(localStorage.getItem('contact-history') || '[]');
+        history.unshift(inquiry);
+        if (history.length > 20) history = history.slice(0, 20);
+        localStorage.setItem('contact-history', JSON.stringify(history));
+        
+        // inquiry-로도 저장 (관리자페이지용)
+        const inquiryKey = 'inquiry-' + Date.now();
+        localStorage.setItem(inquiryKey, JSON.stringify(inquiry));
+        
+        // 성공 메시지 표시
+        if (firebaseResult === 'localStorage_fallback') {
+          alert('문의가 접수되었습니다!\n(데이터는 로컬에 저장되었습니다)');
+        } else {
+          alert('문의가 접수되었습니다!\n데이터가 Firebase 서버에 안전하게 저장되었습니다.');
+        }
+        
+        document.getElementById('contact-success').classList.remove('hidden');
+        this.reset();
+        filePreview.innerHTML = '';
+        fileData = '';
+        renderHistory();
+        
+      } catch (error) {
+        console.error('문의 제출 실패:', error);
+        alert('문의 제출 중 오류가 발생했습니다: ' + error.message);
+      }
     });
     // 문의/답변 내용 안전하게 렌더링
     function escapeHtml(str) {

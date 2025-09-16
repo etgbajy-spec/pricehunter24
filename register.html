@@ -39,11 +39,46 @@
     <!-- EmailJS -->
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
   
-  <!-- Firebase SDK v8 -->
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-  <script src="firebase-app.js"></script>
+  <!-- Firebase v9 SDK (모듈식) -->
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
+    import { getAuth, signInWithCustomToken, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
+    import { getFirestore, doc, setDoc, getDoc, collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, getDocs, where, deleteDoc } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
+    
+    // Firebase 설정
+    const firebaseConfig = {
+      apiKey: "AIzaSyDBZxKyMS7eeBTbPnbZkj0WWOZQHNldoL4",
+      authDomain: "pricehunter-99a1b.firebaseapp.com",
+      projectId: "pricehunter-99a1b",
+      storageBucket: "pricehunter-99a1b.firebasestorage.app",
+      messagingSenderId: "242265693919",
+      appId: "1:242265693919:web:74234d942b82a51541136a",
+      measurementId: "G-4BKLV4EVB9"
+    };
+
+    // Firebase 초기화
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    // 전역 변수로 노출
+    window.firebaseApp = app;
+    window.firebaseAuth = auth;
+    window.firebaseDb = db;
+    window.firebase = {
+      firestore: () => db,
+      auth: () => auth,
+      apps: [app],
+      app: () => app,
+      firestore: {
+        FieldValue: {
+          serverTimestamp: serverTimestamp
+        }
+      }
+    };
+
+    console.log('✅ Firebase v9 초기화 완료 (register.html)');
+  </script>
   
   <style>
     body {
@@ -233,10 +268,18 @@
       </form>
     </div>
 
-    <!-- 로그인 링크 -->
+    <!-- 로그인 링크 및 Firebase 테스트 -->
     <div class="max-w-md mx-auto text-center mt-8">
       <p class="text-gray-600 mb-4">이미 계정이 있으신가요?</p>
       <a href="index.html#login" class="inline-block bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 transition">로그인하기</a>
+      
+      <!-- Firebase 연결 테스트 버튼 (개발용) -->
+      <div class="mt-6 p-4 bg-gray-100 rounded-lg">
+        <p class="text-sm text-gray-600 mb-2">Firebase 연결 테스트</p>
+        <button onclick="testFirebaseConnection()" class="text-sm bg-gray-600 text-white py-2 px-4 rounded hover:bg-gray-700 transition">
+          Firebase 연결 테스트
+        </button>
+      </div>
     </div>
   </main>
 
@@ -252,56 +295,71 @@
           console.log('🔍 Firebase 상태 확인:', {
             firebaseDefined: typeof firebase !== 'undefined',
             firebaseApps: firebase ? firebase.apps.length : 0,
-            windowFirebaseApp: !!window.firebaseApp
+            windowFirebaseApp: !!window.firebaseApp,
+            windowFirebaseDb: !!window.firebaseDb,
+            windowFirebaseAuth: !!window.firebaseAuth
           });
           
-          if (typeof firebase !== 'undefined' && firebase.apps.length > 0) {
-            console.log('✅ Firebase 준비됨');
-            resolve();
-          } else if (window.firebaseApp) {
-            console.log('✅ Firebase 앱 준비됨 (window.firebaseApp)');
+          if (window.firebaseApp && window.firebaseDb && window.firebaseAuth) {
+            console.log('✅ Firebase v9 준비됨');
             resolve();
           } else {
-            console.log('⏳ Firebase 대기 중... 100ms 후 재시도');
+            console.log('⏳ Firebase v9 대기 중... 100ms 후 재시도');
             setTimeout(() => waitForFirebase().then(resolve).catch(reject), 100);
           }
         });
       }
 
-      // 사용자 데이터를 Firebase에 저장 (권한 오류 시 localStorage로 폴백)
+      // 사용자 데이터를 Firebase에 저장
     async function saveUserToFirebase(userData) {
       try {
           console.log('⏳ Firebase 대기 중...');
           await waitForFirebase();
           console.log('✅ Firebase 준비 완료');
           
-        const db = firebase.firestore();
-          const usersRef = db.collection('users');
+          const db = window.firebaseDb;
+          const usersRef = collection(db, 'users');
           console.log('📊 Firebase Firestore 연결 완료');
+          
+          // 이메일 중복 확인 (Firebase)
+          console.log('🔍 Firebase에서 이메일 중복 확인 중...', userData.email);
+          const emailQuery = query(usersRef, where('email', '==', userData.email));
+          const emailSnapshot = await getDocs(emailQuery);
+          console.log('📋 Firebase 이메일 중복 확인 결과:', emailSnapshot.empty ? '중복 없음' : '중복 발견');
+          if (!emailSnapshot.empty) {
+            throw new Error('이미 가입된 이메일입니다.');
+          }
           
           // 휴대폰 번호 중복 확인 (Firebase)
           console.log('🔍 Firebase에서 휴대폰 번호 중복 확인 중...', userData.phone);
-          const phoneQuery = await usersRef.where('phone', '==', userData.phone).get();
-          console.log('📋 Firebase 중복 확인 결과:', phoneQuery.empty ? '중복 없음' : '중복 발견');
-          if (!phoneQuery.empty) {
+          const phoneQuery = query(usersRef, where('phone', '==', userData.phone));
+          const phoneSnapshot = await getDocs(phoneQuery);
+          console.log('📋 Firebase 휴대폰 중복 확인 결과:', phoneSnapshot.empty ? '중복 없음' : '중복 발견');
+          if (!phoneSnapshot.empty) {
             throw new Error('이미 가입된 휴대폰 번호입니다.');
           }
           
           // localStorage에서도 중복 확인
-          console.log('🔍 localStorage에서 휴대폰 번호 중복 확인 중...', userData.phone);
+          console.log('🔍 localStorage에서 이메일 중복 확인 중...', userData.email);
           const existingUsers = JSON.parse(localStorage.getItem('users') || '[]');
-          const duplicateUser = existingUsers.find(user => user.phone === userData.phone);
-          if (duplicateUser) {
+          const duplicateEmail = existingUsers.find(user => user.email === userData.email);
+          if (duplicateEmail) {
+            throw new Error('이미 가입된 이메일입니다.');
+          }
+          
+          console.log('🔍 localStorage에서 휴대폰 번호 중복 확인 중...', userData.phone);
+          const duplicatePhone = existingUsers.find(user => user.phone === userData.phone);
+          if (duplicatePhone) {
             throw new Error('이미 가입된 휴대폰 번호입니다.');
           }
           console.log('📋 localStorage 중복 확인 결과: 중복 없음');
           
           // 사용자 데이터 저장
-          console.log('💾 사용자 데이터 저장 중...');
-          const docRef = await usersRef.add({
+          console.log('💾 Firebase에 사용자 데이터 저장 중...');
+          const docRef = await addDoc(usersRef, {
           ...userData,
-          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+          createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp()
           });
           
           console.log('✅ Firebase에 사용자 저장 완료:', docRef.id);
@@ -315,10 +373,16 @@
             console.log('🔄 Firebase 권한 오류 감지 - localStorage로 폴백');
             
             // localStorage에서 중복 확인
-            console.log('🔍 localStorage에서 휴대폰 번호 중복 확인 중...', userData.phone);
+            console.log('🔍 localStorage에서 이메일 중복 확인 중...', userData.email);
             const existingUsers = JSON.parse(localStorage.getItem('users') || '[]');
-            const duplicateUser = existingUsers.find(user => user.phone === userData.phone);
-            if (duplicateUser) {
+            const duplicateEmail = existingUsers.find(user => user.email === userData.email);
+            if (duplicateEmail) {
+              throw new Error('이미 가입된 이메일입니다.');
+            }
+            
+            console.log('🔍 localStorage에서 휴대폰 번호 중복 확인 중...', userData.phone);
+            const duplicatePhone = existingUsers.find(user => user.phone === userData.phone);
+            if (duplicatePhone) {
               throw new Error('이미 가입된 휴대폰 번호입니다.');
             }
             console.log('📋 localStorage 중복 확인 결과: 중복 없음');
@@ -370,6 +434,88 @@
         emailjs.init("zrRVWnL0cA9eyxpDp"); // 실제 Public Key (복사 완료)
         
         console.log('📧 EmailJS 초기화 완료');
+      }
+
+      // 기존 사용자 데이터 정리 함수
+      function cleanupUserData() {
+        try {
+          console.log('🧹 기존 사용자 데이터 정리 시작...');
+          
+          // 기존 users 배열 확인
+          const existingUsers = JSON.parse(localStorage.getItem('users') || '[]');
+          console.log('📋 기존 사용자 수:', existingUsers.length);
+          
+          // 잘못된 형식의 데이터 정리
+          const cleanedUsers = existingUsers.filter(user => {
+            // email 필드가 없고 emailVerification만 있는 경우 수정
+            if (!user.email && user.emailVerification) {
+              user.email = user.emailVerification;
+              console.log('✅ 이메일 필드 수정:', user.email);
+            }
+            
+            // 필수 필드가 있는지 확인
+            return user.email && user.password && user.name && user.phone;
+          });
+          
+          if (cleanedUsers.length !== existingUsers.length) {
+            localStorage.setItem('users', JSON.stringify(cleanedUsers));
+            console.log('✅ 사용자 데이터 정리 완료:', cleanedUsers.length, '명');
+          } else {
+            console.log('✅ 사용자 데이터가 이미 정리되어 있습니다.');
+          }
+          
+          return cleanedUsers;
+        } catch (error) {
+          console.error('❌ 사용자 데이터 정리 실패:', error);
+          return [];
+        }
+      }
+
+      // Firebase 연결 테스트 함수
+      async function testFirebaseConnection() {
+        try {
+          console.log('🧪 Firebase 연결 테스트 시작...');
+          await waitForFirebase();
+          
+          const db = window.firebaseDb;
+          const testRef = collection(db, 'test');
+          
+          // 테스트 데이터 쓰기
+          console.log('📝 테스트 데이터 쓰기 중...');
+          const testDoc = await addDoc(testRef, {
+            test: true,
+            timestamp: serverTimestamp(),
+            message: 'Firebase 연결 테스트'
+          });
+          
+          console.log('✅ Firebase 쓰기 테스트 성공:', testDoc.id);
+          
+          // 테스트 데이터 읽기
+          console.log('📖 테스트 데이터 읽기 중...');
+          const testData = await getDoc(testDoc);
+          console.log('✅ Firebase 읽기 테스트 성공:', testData.data());
+          
+          // 테스트 데이터 삭제
+          console.log('🗑️ 테스트 데이터 삭제 중...');
+          await deleteDoc(testDoc);
+          console.log('✅ Firebase 삭제 테스트 성공');
+          
+          alert('✅ Firebase 연결 테스트 성공!\n\n모든 작업(읽기/쓰기/삭제)이 정상적으로 작동합니다.');
+          return true;
+          
+        } catch (error) {
+          console.error('❌ Firebase 연결 테스트 실패:', error);
+          
+          if (error.message.includes('Missing or insufficient permissions')) {
+            alert('❌ Firebase 연결 테스트 실패!\n\n' +
+                  'Firebase 보안 규칙 오류가 발생했습니다.\n' +
+                  'FIREBASE_SECURITY_RULES.md 파일을 참고하여 보안 규칙을 수정하세요.');
+          } else {
+            alert('❌ Firebase 연결 테스트 실패!\n\n오류: ' + error.message);
+          }
+          
+          return false;
+        }
       }
 
       // 실제 이메일 인증번호 발송
@@ -543,6 +689,9 @@
       document.addEventListener('DOMContentLoaded', function() {
         console.log('🚀 register.html v3.2 로드됨 (실제 이메일 인증 시스템)');
         
+        // 기존 사용자 데이터 정리
+        cleanupUserData();
+        
         // EmailJS 초기화
         initEmailJS();
         
@@ -596,7 +745,8 @@
           const formData = {
             name: document.getElementById('name').value,
             phone: document.getElementById('phone').value,
-            emailVerification: document.getElementById('email-verification').value,
+            email: document.getElementById('email-verification').value, // 로그인 시 사용할 필드명으로 변경
+            emailVerification: document.getElementById('email-verification').value, // 기존 필드도 유지
             password: document.getElementById('password').value,
             agreeTerms: document.getElementById('agree-terms').checked,
             agreePrivacy: document.getElementById('agree-privacy').checked,
@@ -611,17 +761,17 @@
             // Firebase에 저장 (권한 오류 시 localStorage로 폴백)
             const firebaseResult = await saveUserToFirebase(formData);
             
-            // localStorage에 저장
+            // localStorage에도 백업 저장
             saveUserToLocalStorage(formData);
             
             // 포인트 추가
-            addPoints(formData.phone, 50);
+            addPoints(formData.email, 50);
             
             // 성공 메시지 표시
             if (firebaseResult === 'localStorage_fallback') {
               alert('회원가입이 완료되었습니다! 50포인트가 지급되었습니다.\n(데이터는 로컬에 저장되었습니다)');
             } else {
-              alert('회원가입이 완료되었습니다! 50포인트가 지급되었습니다.');
+              alert('회원가입이 완료되었습니다! 50포인트가 지급되었습니다.\n데이터가 Firebase 서버에 안전하게 저장되었습니다.');
             }
             
             window.location.href = 'index.html';
