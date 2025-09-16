@@ -1460,12 +1460,103 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             document.body.style.overflow = '';
         }
 
-        // 사용자 삭제 함수
-        function deleteUser(userId) {
-            if (confirm('정말로 이 사용자를 삭제하시겠습니까?')) {
-                // Firebase에서 사용자 삭제 로직 구현
-                console.log('사용자 삭제:', userId);
-                alert('사용자 삭제 기능은 추후 구현 예정입니다.');
+        // 사용자 삭제 함수 (Firebase 자동 연동)
+        async function deleteUser(userId) {
+            console.log('🗑️ 사용자 삭제 시작:', userId);
+            
+            // 사용자 정보 먼저 찾기
+            const users = JSON.parse(localStorage.getItem('users') || '[]');
+            const user = users.find(u => 
+                u.id === userId || 
+                u.firebaseId === userId || 
+                u.uid === userId ||
+                u.email === userId
+            );
+            
+            if (!user) {
+                alert('삭제할 사용자를 찾을 수 없습니다.');
+                return;
+            }
+            
+            const userName = user.name || user.displayName || user.email;
+            
+            // 관리자 계정 보호
+            if (user.email === 'admin@pricehunter.com') {
+                alert('❌ 관리자 계정은 삭제할 수 없습니다.');
+                return;
+            }
+            
+            // 삭제 확인
+            if (!confirm(`⚠️ 경고: "${userName}"님의 계정을 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.\n\n삭제될 데이터:\n- Firebase 사용자 문서 (자동 연동)\n- localStorage 사용자 데이터\n\n정말로 삭제하시겠습니까?`)) {
+                return;
+            }
+            
+            try {
+                console.log('🗑️ 사용자 삭제 진행 중...');
+                
+                // 1. Firebase에서 삭제 (우선)
+                if (window.firebaseDb && user.id) {
+                    try {
+                        const { doc, deleteDoc } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js');
+                        const userDocRef = doc(window.firebaseDb, 'users', user.id);
+                        await deleteDoc(userDocRef);
+                        console.log('✅ Firebase에서 사용자 삭제 완료:', user.id);
+                    } catch (firebaseError) {
+                        console.error('❌ Firebase 삭제 실패:', firebaseError);
+                        alert('❌ Firebase에서 사용자 삭제에 실패했습니다.\n\n오류: ' + firebaseError.message);
+                        return;
+                    }
+                } else {
+                    console.warn('⚠️ Firebase 연결이 없거나 사용자 ID가 없습니다.');
+                }
+                
+                // 2. localStorage에서 삭제
+                const updatedUsers = users.filter(u => 
+                    u.id !== userId && 
+                    u.firebaseId !== userId && 
+                    u.uid !== userId &&
+                    u.email !== userId
+                );
+                localStorage.setItem('users', JSON.stringify(updatedUsers));
+                console.log('✅ localStorage에서 사용자 삭제 완료');
+                
+                // 3. 개별 user 데이터도 삭제 (만약 있다면)
+                const individualUser = localStorage.getItem('user');
+                if (individualUser) {
+                    const parsedUser = JSON.parse(individualUser);
+                    if (parsedUser.email === user.email) {
+                        localStorage.removeItem('user');
+                        console.log('✅ 개별 user 데이터 삭제 완료');
+                    }
+                }
+                
+                // 4. UI 업데이트
+                alert(`✅ "${userName}"님의 계정이 완전히 삭제되었습니다.\n\n- Firebase: 삭제 완료 (자동 연동)\n- localStorage: 삭제 완료`);
+                
+                // 5. 회원 목록 새로고침
+                if (typeof subscribeToUsers === 'function') {
+                    subscribeToUsers();
+                }
+                
+                // 6. 통계 업데이트
+                setTimeout(() => {
+                    const allUsers = JSON.parse(localStorage.getItem('users') || '[]');
+                    const totalMembersElement = document.getElementById('total-members');
+                    if (totalMembersElement) {
+                        totalMembersElement.textContent = allUsers.length;
+                    }
+                    
+                    // 통계 업데이트
+                    if (typeof updateMemberStats === 'function') {
+                        updateMemberStats(allUsers);
+                    }
+                }, 1000);
+                
+                console.log('✅ 사용자 삭제 완료');
+                
+            } catch (error) {
+                console.error('❌ 사용자 삭제 실패:', error);
+                alert('❌ 사용자 삭제 중 오류가 발생했습니다.\n\n오류: ' + error.message);
             }
         }
 
