@@ -898,9 +898,14 @@
                 
                 // 이메일별 중복 확인
                 const emailCount = {};
+                const emailUsers = {};
                 users.forEach(user => {
                     if (user.email) {
                         emailCount[user.email] = (emailCount[user.email] || 0) + 1;
+                        if (!emailUsers[user.email]) {
+                            emailUsers[user.email] = [];
+                        }
+                        emailUsers[user.email].push(user);
                     }
                 });
                 
@@ -908,7 +913,16 @@
                 
                 if (duplicates.length > 0) {
                     console.warn('⚠️ Firebase에서 중복 이메일 발견:', duplicates);
-                    alert(`⚠️ Firebase에서 중복 이메일 발견!\n\n중복된 이메일:\n${duplicates.map(([email, count]) => `${email}: ${count}개`).join('\n')}\n\n콘솔에서 자세한 정보를 확인하세요.`);
+                    
+                    let message = `⚠️ Firebase에서 중복 이메일 발견!\n\n중복된 이메일:\n`;
+                    duplicates.forEach(([email, count]) => {
+                        message += `${email}: ${count}개\n`;
+                    });
+                    message += `\n중복 문서를 정리하시겠습니까?`;
+                    
+                    if (confirm(message)) {
+                        await cleanupDuplicateUsers(emailUsers, duplicates);
+                    }
                 } else {
                     console.log('✅ Firebase에서 중복 이메일 없음');
                     alert(`✅ Firebase 사용자 데이터 확인 완료!\n\n총 사용자 수: ${users.length}명\n중복 이메일: 없음\n\n콘솔에서 자세한 정보를 확인하세요.`);
@@ -920,6 +934,79 @@
                 console.error('❌ Firebase 사용자 데이터 확인 실패:', error);
                 alert('❌ Firebase 사용자 데이터 확인 실패!\n\n오류: ' + error.message);
                 return [];
+            }
+        };
+
+        // 중복 사용자 정리 함수 (독립 호출용)
+        window.cleanupDuplicateUsers = async function(emailUsers, duplicates) {
+            // 매개변수가 없으면 먼저 중복 확인
+            if (!emailUsers || !duplicates) {
+                const users = await checkFirebaseUsers();
+                if (!users || users.length === 0) return;
+                
+                // 이메일별 중복 확인
+                const emailCount = {};
+                const emailUsersMap = {};
+                users.forEach(user => {
+                    if (user.email) {
+                        emailCount[user.email] = (emailCount[user.email] || 0) + 1;
+                        if (!emailUsersMap[user.email]) {
+                            emailUsersMap[user.email] = [];
+                        }
+                        emailUsersMap[user.email].push(user);
+                    }
+                });
+                
+                const duplicatesList = Object.entries(emailCount).filter(([email, count]) => count > 1);
+                
+                if (duplicatesList.length === 0) {
+                    alert('✅ 중복 사용자가 없습니다!');
+                    return;
+                }
+                
+                return await cleanupDuplicateUsers(emailUsersMap, duplicatesList);
+            }
+            try {
+                console.log('🧹 중복 사용자 정리 시작...');
+                
+                const { doc, deleteDoc } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js');
+                let deletedCount = 0;
+                
+                for (const [email, count] of duplicates) {
+                    const users = emailUsers[email];
+                    console.log(`📧 ${email}의 중복 문서들:`, users);
+                    
+                    // 가장 최신 문서를 제외하고 나머지 삭제
+                    const sortedUsers = users.sort((a, b) => {
+                        const dateA = a.createdAt ? (a.createdAt.seconds ? a.createdAt.seconds : new Date(a.createdAt).getTime() / 1000) : 0;
+                        const dateB = b.createdAt ? (b.createdAt.seconds ? b.createdAt.seconds : new Date(b.createdAt).getTime() / 1000) : 0;
+                        return dateB - dateA; // 최신순 정렬
+                    });
+                    
+                    // 가장 최신 문서는 유지하고 나머지 삭제
+                    for (let i = 1; i < sortedUsers.length; i++) {
+                        const userToDelete = sortedUsers[i];
+                        console.log(`🗑️ 삭제할 문서: ${userToDelete.id} (${userToDelete.name || userToDelete.displayName})`);
+                        
+                        const userDocRef = doc(window.firebaseDb, 'users', userToDelete.id);
+                        await deleteDoc(userDocRef);
+                        deletedCount++;
+                        
+                        console.log(`✅ 문서 삭제 완료: ${userToDelete.id}`);
+                    }
+                }
+                
+                console.log(`✅ 중복 사용자 정리 완료: ${deletedCount}개 문서 삭제`);
+                alert(`✅ 중복 사용자 정리 완료!\n\n삭제된 문서 수: ${deletedCount}개\n\n페이지를 새로고침하여 결과를 확인하세요.`);
+                
+                // 페이지 새로고침
+                setTimeout(() => {
+                    window.location.reload();
+                }, 2000);
+                
+            } catch (error) {
+                console.error('❌ 중복 사용자 정리 실패:', error);
+                alert('❌ 중복 사용자 정리 실패!\n\n오류: ' + error.message);
             }
         };
         
@@ -1243,6 +1330,9 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                             </button>
                             <button onclick="checkFirebaseUsers()" class="px-4 py-2 bg-red-500 text-white rounded-lg font-semibold hover:bg-red-600 transition">
                                 🔍 Firebase 사용자 확인
+                            </button>
+                            <button onclick="cleanupDuplicateUsers()" class="px-4 py-2 bg-pink-500 text-white rounded-lg font-semibold hover:bg-pink-600 transition">
+                                🧹 중복 사용자 정리
                             </button>
                             <button onclick="checkCSPHeaders()" class="px-4 py-2 bg-indigo-500 text-white rounded-lg font-semibold hover:bg-indigo-600 transition">
                                 🔍 CSP 헤더 확인
