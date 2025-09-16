@@ -1251,8 +1251,8 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             window.location.href = page;
         };
         
-        // 사이드바 섹션 전환 함수
-        function switchSection(sectionName) {
+        // 사이드바 섹션 전환 함수 (전역 함수)
+        window.switchSection = function(sectionName) {
             console.log('🔄 섹션 전환:', sectionName);
             
             // 모든 섹션 숨기기
@@ -1691,16 +1691,16 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 
                 <nav class="p-4">
                     <div class="space-y-2">
-                        <button class="sidebar-item w-full text-left px-4 py-3 rounded-lg font-semibold hover:bg-pink-50 transition active" data-section="dashboard">
+                        <button class="sidebar-item w-full text-left px-4 py-3 rounded-lg font-semibold hover:bg-pink-50 transition active" data-section="dashboard" onclick="switchSection('dashboard')">
                             📊 대시보드
                         </button>
-                        <button class="sidebar-item w-full text-left px-4 py-3 rounded-lg font-semibold hover:bg-pink-50 transition" data-section="requests">
+                        <button class="sidebar-item w-full text-left px-4 py-3 rounded-lg font-semibold hover:bg-pink-50 transition" data-section="requests" onclick="switchSection('requests')">
                             📋 의뢰 관리
                         </button>
-                        <button class="sidebar-item w-full text-left px-4 py-3 rounded-lg font-semibold hover:bg-pink-50 transition" data-section="inquiries">
+                        <button class="sidebar-item w-full text-left px-4 py-3 rounded-lg font-semibold hover:bg-pink-50 transition" data-section="inquiries" onclick="switchSection('inquiries')">
                             💬 1:1 문의
                         </button>
-                        <button class="sidebar-item w-full text-left px-4 py-3 rounded-lg font-semibold hover:bg-pink-50 transition" data-section="members">
+                        <button class="sidebar-item w-full text-left px-4 py-3 rounded-lg font-semibold hover:bg-pink-50 transition" data-section="members" onclick="switchSection('members')">
                             👥 회원 관리
                         </button>
                     </div>
