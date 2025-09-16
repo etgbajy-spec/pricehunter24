@@ -20,9 +20,14 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       // Tailwind CSS 설정 - CSP 오류 방지
-      tailwind.config = {
-        theme: {
-          extend: {}
+      if (typeof tailwind !== 'undefined') {
+        tailwind.config = {
+          theme: {
+            extend: {}
+          },
+          corePlugins: {
+            preflight: false
+          }
         }
       }
     </script>
