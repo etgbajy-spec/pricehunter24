@@ -99,7 +99,7 @@
             <div class="text-blue-300">전문 검증 서비스</div>
           </h1>
                       <p class="text-sm sm:text-lg md:text-xl lg:text-3xl text-gray-200 mb-8 md:mb-12 lg:mb-16 font-medium leading-relaxed text-center w-full px-4">
-            <span class="text-yellow-200 font-bold">💎 <span id="admin-hero-trigger" title="관리자 진입: 3번 클릭" class="cursor-pointer hover:text-yellow-100 transition-colors" style="cursor: pointer !important;">·</span> 100% 독립적 검증</span><br class="hidden sm:block" />
+            <span class="text-yellow-200 font-bold">💎 <span id="admin-hero-trigger" title="관리자 진입: 3번 클릭" class="hover:text-yellow-100 transition-colors">·</span> 100% 독립적 검증</span><br class="hidden sm:block" />
             <br class="hidden sm:block" />
             ⚡ 24시간 내 최저가 보장<br class="hidden sm:block" />
             <br class="hidden sm:block" />
@@ -182,22 +182,11 @@
           -moz-user-select: none;
           -ms-user-select: none;
           user-select: none;
-          cursor: pointer !important;
           transition: all 0.2s ease;
-          display: inline-block;
         }
         
         #admin-hero-trigger:hover {
           transform: scale(1.2);
-          cursor: pointer !important;
-        }
-        
-        #admin-hero-trigger:active {
-          cursor: pointer !important;
-        }
-        
-        #admin-hero-trigger * {
-          cursor: pointer !important;
         }
         
       </style>
@@ -2525,15 +2514,15 @@
         };
 
         // 아이디 찾기 폼 제출
-        document.getElementById('find-id-form').onsubmit = function(e) {
+        document.getElementById('find-id-form').onsubmit = async function(e) {
           e.preventDefault();
           
           const name = sanitizeInput(document.getElementById('find-id-name').value.trim());
           const phone = sanitizeInput(document.getElementById('find-id-phone').value.trim());
           
-          // localStorage에서 사용자 검색
-          const users = JSON.parse(localStorage.getItem('users') || '[]');
-          const foundUser = users.find(user => 
+          // 동기화된 사용자 데이터에서 검색
+          const allUsers = await syncUserData();
+          const foundUser = allUsers.find(user => 
             user.name === name && user.phone === phone
           );
           
@@ -2552,15 +2541,15 @@
         };
 
         // 비밀번호 찾기 폼 제출
-        document.getElementById('find-password-form').onsubmit = function(e) {
+        document.getElementById('find-password-form').onsubmit = async function(e) {
           e.preventDefault();
           
           const email = sanitizeInput(document.getElementById('find-password-email').value.trim());
           const name = sanitizeInput(document.getElementById('find-password-name').value.trim());
           
-          // localStorage에서 사용자 검색
-          const users = JSON.parse(localStorage.getItem('users') || '[]');
-          const foundUser = users.find(user => 
+          // 동기화된 사용자 데이터에서 검색
+          const allUsers = await syncUserData();
+          const foundUser = allUsers.find(user => 
             user.email === email && user.name === name
           );
           
@@ -2593,6 +2582,41 @@
           resultDiv.classList.remove('hidden');
         };
 
+        // 사용자 데이터 동기화 함수
+        async function syncUserData() {
+          try {
+            if (!window.firebaseDb) return [];
+            
+            const { collection, getDocs } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js');
+            const usersRef = collection(window.firebaseDb, 'users');
+            const snapshot = await getDocs(usersRef);
+            
+            const firebaseUsers = [];
+            snapshot.forEach(doc => {
+              firebaseUsers.push({
+                id: doc.id,
+                ...doc.data()
+              });
+            });
+            
+            // localStorage와 Firebase 데이터 병합
+            const localUsers = JSON.parse(localStorage.getItem('users') || '[]');
+            const allUsers = [...localUsers];
+            
+            firebaseUsers.forEach(firebaseUser => {
+              const exists = allUsers.find(u => u.email === firebaseUser.email);
+              if (!exists) {
+                allUsers.push(firebaseUser);
+              }
+            });
+            
+            return allUsers;
+          } catch (error) {
+            console.error('❌ 사용자 데이터 동기화 실패:', error);
+            return JSON.parse(localStorage.getItem('users') || '[]');
+          }
+        }
+
         // 로그인 폼 제출
         document.getElementById('login-form').onsubmit = async function(e) {
           e.preventDefault();
@@ -2611,9 +2635,9 @@
             return;
           }
           
-          // 기존 사용자 데이터 확인 (임시 - 실제로는 Firebase Auth 사용)
-          const existingUsers = JSON.parse(localStorage.getItem('users') || '[]');
-          const user = existingUsers.find(u => u.email === email && u.password === password);
+          // 동기화된 사용자 데이터에서 검색
+          const allUsers = await syncUserData();
+          const user = allUsers.find(u => u.email === email && u.password === password);
           
           if (user) {
             // Firebase Auth로 로그인 (이메일/비밀번호)

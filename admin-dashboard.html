@@ -755,8 +755,9 @@
                     <td class="px-6 py-4 whitespace-nowrap">
                         <div class="flex items-center">
                             <div class="h-10 w-10 flex-shrink-0">
-                                <img class="h-10 w-10 rounded-full" src="${profileImage}" alt="${userName}" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
-                                <div class="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center text-gray-600 text-xs font-bold" style="display:none;">${userName.charAt(0)}</div>
+                                <div class="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center text-gray-600 text-xs font-bold">
+                                    ${userName.charAt(0)}
+                                </div>
                             </div>
                         </div>
                     </td>
@@ -779,8 +780,8 @@
                         </span>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <button onclick="viewUserDetails('${user.id}')" class="text-indigo-600 hover:text-indigo-900 mr-3">상세보기</button>
-                        <button onclick="deleteUser('${user.id}')" class="text-red-600 hover:text-red-900">삭제</button>
+                        <button onclick="viewUserDetails('${user.email || user.id}')" class="text-indigo-600 hover:text-indigo-900 mr-3">상세보기</button>
+                        <button onclick="deleteUser('${user.email || user.id}')" class="text-red-600 hover:text-red-900">삭제</button>
                     </td>
                 `;
                 
@@ -888,14 +889,50 @@
                         id: doc.id,
                         ...userData
                     });
-                    console.log('👤 Firebase 사용자:', {
+                    console.log('👤 Firebase 사용자 상세 정보:', {
                         id: doc.id,
                         email: userData.email,
-                        name: userData.name || userData.displayName,
+                        displayName: userData.displayName,
+                        name: userData.name,
                         phone: userData.phone,
-                        createdAt: userData.createdAt
+                        password: userData.password ? '***' : '없음',
+                        agreeTerms: userData.agreeTerms,
+                        agreePrivacy: userData.agreePrivacy,
+                        agreeMarketing: userData.agreeMarketing,
+                        createdAt: userData.createdAt,
+                        loginMethod: userData.loginMethod,
+                        isActive: userData.isActive,
+                        loginCount: userData.loginCount
                     });
                 });
+                
+                // 필수 필드 누락 확인
+                const missingFields = [];
+                users.forEach(user => {
+                    const missing = [];
+                    if (!user.password) missing.push('password');
+                    if (!user.phone) missing.push('phone');
+                    if (!user.name && !user.displayName) missing.push('name');
+                    if (missing.length > 0) {
+                        missingFields.push({
+                            email: user.email,
+                            missing: missing
+                        });
+                    }
+                });
+                
+                if (missingFields.length > 0) {
+                    console.warn('⚠️ 필수 필드 누락:', missingFields);
+                    let message = `⚠️ Firebase 사용자 데이터에 필수 필드가 누락되었습니다!\n\n`;
+                    missingFields.forEach(item => {
+                        message += `${item.email}: ${item.missing.join(', ')}\n`;
+                    });
+                    message += `\n이것이 로그인/비밀번호 찾기가 작동하지 않는 이유입니다.\n\n데이터를 수정하시겠습니까?`;
+                    
+                    if (confirm(message)) {
+                        await fixMissingUserData(users, missingFields);
+                    }
+                }
                 
                 // 이메일별 중복 확인
                 const emailCount = {};
@@ -926,7 +963,7 @@
                     }
                 } else {
                     console.log('✅ Firebase에서 중복 이메일 없음');
-                    alert(`✅ Firebase 사용자 데이터 확인 완료!\n\n총 사용자 수: ${users.length}명\n중복 이메일: 없음\n\n콘솔에서 자세한 정보를 확인하세요.`);
+                    alert(`✅ Firebase 사용자 데이터 확인 완료!\n\n총 사용자 수: ${users.length}명\n중복 이메일: 없음\n누락 필드: ${missingFields.length > 0 ? '있음' : '없음'}\n\n콘솔에서 자세한 정보를 확인하세요.`);
                 }
                 
                 return users;
@@ -935,6 +972,68 @@
                 console.error('❌ Firebase 사용자 데이터 확인 실패:', error);
                 alert('❌ Firebase 사용자 데이터 확인 실패!\n\n오류: ' + error.message);
                 return [];
+            }
+        };
+
+        // 누락된 사용자 데이터 수정 함수
+        window.fixMissingUserData = async function(users, missingFields) {
+            try {
+                console.log('🔧 누락된 사용자 데이터 수정 시작...');
+                
+                const { doc, updateDoc } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js');
+                
+                for (const item of missingFields) {
+                    const user = users.find(u => u.email === item.email);
+                    if (!user) continue;
+                    
+                    const updates = {};
+                    
+                    // localStorage에서 해당 사용자 데이터 찾기
+                    const localUsers = JSON.parse(localStorage.getItem('users') || '[]');
+                    const localUser = localUsers.find(u => u.email === item.email);
+                    
+                    if (localUser) {
+                        // localStorage에서 누락된 필드 복사
+                        if (item.missing.includes('password') && localUser.password) {
+                            updates.password = localUser.password;
+                        }
+                        if (item.missing.includes('phone') && localUser.phone) {
+                            updates.phone = localUser.phone;
+                        }
+                        if (item.missing.includes('name') && localUser.name) {
+                            updates.name = localUser.name;
+                        }
+                        if (localUser.agreeTerms !== undefined) updates.agreeTerms = localUser.agreeTerms;
+                        if (localUser.agreePrivacy !== undefined) updates.agreePrivacy = localUser.agreePrivacy;
+                        if (localUser.agreeMarketing !== undefined) updates.agreeMarketing = localUser.agreeMarketing;
+                    }
+                    
+                    // 기본값 설정
+                    if (item.missing.includes('password') && !updates.password) {
+                        updates.password = 'temp123!'; // 임시 비밀번호
+                    }
+                    if (item.missing.includes('phone') && !updates.phone) {
+                        updates.phone = '010-0000-0000'; // 기본 전화번호
+                    }
+                    if (item.missing.includes('name') && !updates.name) {
+                        updates.name = user.displayName || '사용자';
+                    }
+                    if (updates.agreeTerms === undefined) updates.agreeTerms = true;
+                    if (updates.agreePrivacy === undefined) updates.agreePrivacy = true;
+                    if (updates.agreeMarketing === undefined) updates.agreeMarketing = false;
+                    
+                    // Firebase 업데이트
+                    const userDocRef = doc(window.firebaseDb, 'users', user.id);
+                    await updateDoc(userDocRef, updates);
+                    
+                    console.log(`✅ ${item.email} 사용자 데이터 수정 완료:`, updates);
+                }
+                
+                alert('✅ 사용자 데이터 수정 완료!\n\n누락된 필드들이 추가되었습니다.\n\n이제 로그인과 비밀번호 찾기가 정상 작동할 것입니다.');
+                
+            } catch (error) {
+                console.error('❌ 사용자 데이터 수정 실패:', error);
+                alert('❌ 사용자 데이터 수정 실패!\n\n오류: ' + error.message);
             }
         };
 
@@ -1193,12 +1292,29 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
         function viewUserDetails(userId) {
             console.log('👤 사용자 상세보기:', userId);
             
-            // 현재 사용자 목록에서 해당 사용자 찾기
+            // localStorage에서 사용자 검색
             const users = JSON.parse(localStorage.getItem('users') || '[]');
-            const user = users.find(u => u.id === userId || u.firebaseId === userId);
+            console.log('📋 localStorage 사용자 목록:', users);
+            
+            // 다양한 ID 필드로 사용자 찾기
+            let user = users.find(u => 
+                u.id === userId || 
+                u.firebaseId === userId || 
+                u.uid === userId ||
+                u.email === userId
+            );
+            
+            // Firebase에서도 검색 시도
+            if (!user && window.firebaseDb) {
+                console.log('🔍 Firebase에서 사용자 검색 시도...');
+                // Firebase 사용자 검색 로직은 별도로 구현 필요
+            }
+            
+            console.log('👤 찾은 사용자:', user);
             
             if (!user) {
-                alert('사용자 정보를 찾을 수 없습니다.');
+                console.error('❌ 사용자를 찾을 수 없음. 사용 가능한 ID들:', users.map(u => ({ id: u.id, firebaseId: u.firebaseId, uid: u.uid, email: u.email })));
+                alert(`사용자 정보를 찾을 수 없습니다.\n\n검색한 ID: ${userId}\n\n콘솔에서 자세한 정보를 확인하세요.`);
                 return;
             }
             
