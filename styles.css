@@ -229,6 +229,26 @@ svg {
     max-width: 85vw;
   }
   
+  /* 메뉴 패널 추가 최적화 */
+  #menu-panel {
+    width: 288px !important; /* w-72 = 18rem = 288px */
+    max-width: 85vw;
+  }
+  
+  /* 메뉴 항목 텍스트 줄바꿈 방지 */
+  #menu-panel nav a,
+  #menu-panel nav button {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  /* 회원가입 버튼 특별 처리 */
+  #signup-btn {
+    min-width: 0;
+    flex-shrink: 1;
+  }
+  
   /* 입력창 모바일 최적화 */
   input[type="text"], input[type="email"], input[type="tel"], input[type="password"] {
     font-size: 16px; /* iOS 줌 방지 */
@@ -238,6 +258,30 @@ svg {
   /* 버튼 모바일 최적화 */
   button {
     min-height: 44px; /* 터치 타겟 최소 크기 */
+  }
+}
+
+/* 매우 작은 화면 (320px 이하) */
+@media (max-width: 320px) {
+  #menu-panel {
+    width: 280px !important;
+    max-width: 90vw;
+  }
+  
+  #menu-panel .p-3 {
+    padding: 0.5rem;
+  }
+  
+  #menu-panel nav a,
+  #menu-panel nav button {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+  }
+  
+  #menu-panel nav a svg,
+  #menu-panel nav button svg {
+    width: 1rem;
+    height: 1rem;
   }
 }
 
