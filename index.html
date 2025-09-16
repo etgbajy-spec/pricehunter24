@@ -182,12 +182,22 @@
           -moz-user-select: none;
           -ms-user-select: none;
           user-select: none;
-          cursor: pointer;
+          cursor: pointer !important;
           transition: all 0.2s ease;
+          display: inline-block;
         }
         
         #admin-hero-trigger:hover {
           transform: scale(1.2);
+          cursor: pointer !important;
+        }
+        
+        #admin-hero-trigger:active {
+          cursor: pointer !important;
+        }
+        
+        #admin-hero-trigger * {
+          cursor: pointer !important;
         }
         
       </style>
@@ -1241,6 +1251,27 @@
           console.log('✅ Firebase 로그아웃 완료');
         } catch (error) {
           console.error('❌ Firebase 로그아웃 실패:', error);
+        }
+      }
+
+      // 사용자 로그아웃 함수
+      async function signOutUser() {
+        try {
+          console.log('🚪 사용자 로그아웃 시작...');
+          
+          // Firebase 로그아웃
+          await signOutFromFirebase();
+          
+          // localStorage 정리
+          localStorage.removeItem('loggedIn');
+          localStorage.removeItem('user');
+          
+          // UI 업데이트
+          updateAuthUI();
+          
+          console.log('✅ 사용자 로그아웃 완료');
+        } catch (error) {
+          console.error('❌ 사용자 로그아웃 실패:', error);
         }
       }
 
