@@ -528,9 +528,25 @@
             console.log('🔄 사용자 데이터 병합 시작...');
             console.log('📊 Firebase 사용자:', firebaseUsers.length, '명');
             
+            // Firebase 사용자에서도 중복 제거 (이메일 기준)
+            const firebaseUserMap = new Map();
+            firebaseUsers.forEach(user => {
+                if (user.email) {
+                    // 같은 이메일이 있으면 더 최신 데이터를 유지
+                    if (!firebaseUserMap.has(user.email) || 
+                        (user.createdAt && firebaseUserMap.get(user.email).createdAt && 
+                         user.createdAt > firebaseUserMap.get(user.email).createdAt)) {
+                        firebaseUserMap.set(user.email, user);
+                    }
+                }
+            });
+            
+            const uniqueFirebaseUsers = Array.from(firebaseUserMap.values());
+            console.log('📊 중복 제거 후 Firebase 사용자:', uniqueFirebaseUsers.length, '명');
+            
             // Firebase 사용자를 기본으로 사용 (우선순위)
-            const allUsers = [...firebaseUsers];
-            const emailSet = new Set(firebaseUsers.map(user => user.email));
+            const allUsers = [...uniqueFirebaseUsers];
+            const emailSet = new Set(uniqueFirebaseUsers.map(user => user.email));
             
             // localStorage에서 users 배열 확인
             try {
@@ -592,10 +608,20 @@
                 }
             });
             
-            console.log('✅ 사용자 데이터 병합 완료:', allUsers.length, '명');
-            console.log('📋 최종 사용자 목록:', allUsers.map(u => ({ email: u.email, source: u.source })));
+            // 최종 중복 검사
+            const finalEmailSet = new Set();
+            const finalUsers = [];
+            allUsers.forEach(user => {
+                if (user.email && !finalEmailSet.has(user.email)) {
+                    finalUsers.push(user);
+                    finalEmailSet.add(user.email);
+                }
+            });
             
-            return allUsers;
+            console.log('✅ 사용자 데이터 병합 완료:', finalUsers.length, '명');
+            console.log('📋 최종 사용자 목록:', finalUsers.map(u => ({ email: u.email, source: u.source, name: u.name || u.displayName })));
+            
+            return finalUsers;
         }
 
         // 회원 통계 업데이트 함수
@@ -835,6 +861,65 @@
                 }
                 
                 return false;
+            }
+        };
+
+        // Firebase 사용자 데이터 직접 확인 함수
+        window.checkFirebaseUsers = async function() {
+            try {
+                console.log('🔍 Firebase 사용자 데이터 직접 확인 시작...');
+                
+                if (!window.firebaseDb) {
+                    alert('❌ Firebase가 초기화되지 않았습니다.');
+                    return;
+                }
+                
+                const { collection, getDocs } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js');
+                const usersRef = collection(window.firebaseDb, 'users');
+                const snapshot = await getDocs(usersRef);
+                
+                console.log('📊 Firebase users 컬렉션 총 문서 수:', snapshot.size);
+                
+                const users = [];
+                snapshot.forEach(doc => {
+                    const userData = doc.data();
+                    users.push({
+                        id: doc.id,
+                        ...userData
+                    });
+                    console.log('👤 Firebase 사용자:', {
+                        id: doc.id,
+                        email: userData.email,
+                        name: userData.name || userData.displayName,
+                        phone: userData.phone,
+                        createdAt: userData.createdAt
+                    });
+                });
+                
+                // 이메일별 중복 확인
+                const emailCount = {};
+                users.forEach(user => {
+                    if (user.email) {
+                        emailCount[user.email] = (emailCount[user.email] || 0) + 1;
+                    }
+                });
+                
+                const duplicates = Object.entries(emailCount).filter(([email, count]) => count > 1);
+                
+                if (duplicates.length > 0) {
+                    console.warn('⚠️ Firebase에서 중복 이메일 발견:', duplicates);
+                    alert(`⚠️ Firebase에서 중복 이메일 발견!\n\n중복된 이메일:\n${duplicates.map(([email, count]) => `${email}: ${count}개`).join('\n')}\n\n콘솔에서 자세한 정보를 확인하세요.`);
+                } else {
+                    console.log('✅ Firebase에서 중복 이메일 없음');
+                    alert(`✅ Firebase 사용자 데이터 확인 완료!\n\n총 사용자 수: ${users.length}명\n중복 이메일: 없음\n\n콘솔에서 자세한 정보를 확인하세요.`);
+                }
+                
+                return users;
+                
+            } catch (error) {
+                console.error('❌ Firebase 사용자 데이터 확인 실패:', error);
+                alert('❌ Firebase 사용자 데이터 확인 실패!\n\n오류: ' + error.message);
+                return [];
             }
         };
         
@@ -1155,6 +1240,9 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                             </button>
                             <button onclick="testFirebaseConnection()" class="px-4 py-2 bg-purple-500 text-white rounded-lg font-semibold hover:bg-purple-600 transition">
                                 🔥 Firebase 연결 테스트
+                            </button>
+                            <button onclick="checkFirebaseUsers()" class="px-4 py-2 bg-red-500 text-white rounded-lg font-semibold hover:bg-red-600 transition">
+                                🔍 Firebase 사용자 확인
                             </button>
                             <button onclick="checkCSPHeaders()" class="px-4 py-2 bg-indigo-500 text-white rounded-lg font-semibold hover:bg-indigo-600 transition">
                                 🔍 CSP 헤더 확인
