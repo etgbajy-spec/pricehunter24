@@ -52,8 +52,6 @@
       }
     </script>
     
-    <!-- Firebase 설정 파일 로드 -->
-    <script src="firebase-app.js"></script>
     
     <!-- Tailwind CSS (개선된 로딩 방식) -->
     <script>
@@ -137,13 +135,6 @@
         });
     </script>
     
-    <!-- Firebase 8.x SDK (최적화된 로딩 방식) -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    
-    <!-- Firebase 설정 (단일 진실 소스) -->
-    <script src="firebase-config.js"></script>
     
     <script>
         // 관리자 대시보드 초기화
@@ -256,7 +247,7 @@
             console.log('🔧 관리자 대시보드 설정 시작...');
             
             // Firebase 상태 재확인
-            if (!window.auth || !window.firestore) {
+            if (!window.firebaseAuth || !window.firebaseDb) {
                 console.error('❌ Firebase 서비스가 초기화되지 않았습니다.');
                 showFirebaseError('Firebase 서비스 초기화에 실패했습니다.');
                 return;
@@ -278,12 +269,12 @@
             }
             
             // Firebase 가드 확인
-            if (typeof firebase === 'undefined') {
+            if (!window.firebaseApp) {
                 alert('Firebase SDK가 로드되지 않았습니다. 서버 CSP 헤더를 확인해주세요.');
                 return;
             }
             
-            if (!window.auth) {
+            if (!window.firebaseAuth) {
                 console.error('❌ Firebase Auth가 초기화되지 않았습니다.');
                 alert('Firebase Auth 초기화에 실패했습니다. 페이지를 새로고침해주세요.');
                 return;
@@ -291,7 +282,9 @@
             
             try {
                 console.log('🔥 로그인 시도:', email);
-                const userCredential = await window.auth.signInWithEmailAndPassword(email, password);
+                // Firebase v9에서는 signInWithEmailAndPassword를 직접 import해야 함
+                const { signInWithEmailAndPassword } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js');
+                const userCredential = await signInWithEmailAndPassword(window.firebaseAuth, email, password);
                 console.log('✅ 관리자 로그인 성공:', userCredential.user.email);
                 
                 // 로그인 성공 시 대시보드 표시
@@ -341,20 +334,23 @@
                     throw new Error("Auth not initialized"); 
                 }
                 
-                if (!window.auth) {
+                if (!window.firebaseAuth) {
                     alert('Firebase가 초기화되지 않았습니다. 페이지를 새로고침해주세요.');
                     return;
                 }
                 
-                const userCredential = await window.auth.createUserWithEmailAndPassword('admin@pricehunter.com', 'admin1234');
+                // Firebase v9에서는 createUserWithEmailAndPassword를 직접 import해야 함
+                const { createUserWithEmailAndPassword } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js');
+                const userCredential = await createUserWithEmailAndPassword(window.firebaseAuth, 'admin@pricehunter.com', 'admin1234');
                 console.log('✅ 테스트 관리자 계정 생성 완료:', userCredential.user.email);
                 
                 // Firestore에 관리자 정보 저장
-                if (window.firestore) {
-                    await window.firestore.collection('admins').doc(userCredential.user.uid).set({
+                if (window.firebaseDb) {
+                    const { collection, doc, setDoc, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js');
+                    await setDoc(doc(collection(window.firebaseDb, 'admins'), userCredential.user.uid), {
                         email: 'admin@pricehunter.com',
                         role: 'admin',
-                        createdAt: new Date(),
+                        createdAt: serverTimestamp(),
                         permissions: ['read', 'write', 'delete', 'admin']
                     });
                     console.log('✅ 관리자 정보 Firestore 저장 완료');
@@ -390,30 +386,11 @@
             try {
                 console.log('🔄 Firebase 준비 상태 확인 중...');
                 
-                // Firebase v8 초기화 확인
-                if (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length > 0) {
-                    // Firebase v8 앱이 이미 초기화된 경우
-                    if (!window.auth) {
-                        window.auth = firebase.auth();
-                    }
-                    if (!window.firestore) {
-                        window.firestore = firebase.firestore();
-                    }
+                // Firebase v9 초기화 확인
+                if (window.firebaseApp && window.firebaseAuth && window.firebaseDb) {
                     isFirebaseReady = true;
-                    console.log('✅ Firebase v8 초기화 성공');
+                    console.log('✅ Firebase v9 초기화 성공');
                     return;
-                }
-                
-                // Firebase v8 초기화 시도
-                if (typeof firebase !== 'undefined') {
-                    const initResult = initializeFirebase();
-                    if (initResult) {
-                        window.auth = firebase.auth();
-                        window.firestore = firebase.firestore();
-                        isFirebaseReady = true;
-                        console.log('✅ Firebase v8 새로 초기화 성공');
-                        return;
-                    }
                 }
                 
                 // 재시도
@@ -431,17 +408,17 @@
             // localStorage에서 사용자 데이터도 가져오기
             loadLocalStorageUsers();
             
-            if (!window.firestore) {
+            if (!window.firebaseDb) {
                 console.warn('⚠️ Firebase가 아직 초기화되지 않았습니다. localStorage 데이터만 표시합니다.');
                 return;
             }
             
             try {
-                const usersQuery = window.firestore
-                    .collection('users')
-                    .orderBy('createdAt', 'desc');
+                const { collection, query, orderBy, onSnapshot } = window.firebaseFirestoreFunctions;
+                const usersRef = collection(window.firebaseDb, 'users');
+                const usersQuery = query(usersRef, orderBy('createdAt', 'desc'));
 
-                usersUnsubscribe = usersQuery.onSnapshot((snapshot) => {
+                usersUnsubscribe = onSnapshot(usersQuery, (snapshot) => {
                     const firebaseUsers = [];
                     snapshot.forEach((doc) => {
                         const userData = doc.data();
@@ -700,7 +677,7 @@
         function loadDashboardData() {
             console.log('📊 대시보드 데이터 로드 시작...');
             
-            if (!window.firestore) {
+            if (!window.firebaseDb) {
                 console.error('❌ Firestore가 초기화되지 않았습니다.');
                 return;
             }
@@ -728,7 +705,7 @@
                 return false;
             }
             
-            if (window.firebaseApp && window.firestore && window.auth) {
+            if (window.firebaseApp && window.firebaseDb && window.firebaseAuth) {
                 alert('✅ Firebase 연결 성공!\n\n모든 서비스가 정상적으로 작동합니다.');
                 return true;
             } else {

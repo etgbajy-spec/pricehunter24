@@ -65,6 +65,16 @@
     window.firebaseApp = app;
     window.firebaseAuth = auth;
     window.firebaseDb = db;
+    window.firebaseFirestoreFunctions = { 
+      collection, 
+      addDoc, 
+      serverTimestamp, 
+      getDocs, 
+      where, 
+      query, 
+      deleteDoc,
+      getDoc
+    };
     window.firebase = {
       firestore: () => db,
       auth: () => auth,
@@ -318,6 +328,7 @@
           console.log('✅ Firebase 준비 완료');
           
           const db = window.firebaseDb;
+          const { collection, query, where, getDocs, addDoc, serverTimestamp } = window.firebaseFirestoreFunctions;
           const usersRef = collection(db, 'users');
           console.log('📊 Firebase Firestore 연결 완료');
           
@@ -478,6 +489,7 @@
           await waitForFirebase();
           
           const db = window.firebaseDb;
+          const { collection, addDoc, serverTimestamp, getDoc, deleteDoc } = window.firebaseFirestoreFunctions;
           const testRef = collection(db, 'test');
           
           // 테스트 데이터 쓰기
