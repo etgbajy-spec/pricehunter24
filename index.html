@@ -892,7 +892,7 @@
     <div id="menu-overlay" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 hidden" aria-hidden="true"></div>
 
     <!-- 햄버거 메뉴 패널 -->
-    <div id="menu-panel" class="fixed top-0 left-0 h-full w-96 bg-white shadow-2xl transform -translate-x-full transition-transform duration-300 ease-in-out z-50">
+    <div id="menu-panel" class="fixed top-0 left-0 h-full w-80 sm:w-96 bg-white shadow-2xl transform -translate-x-full transition-transform duration-300 ease-in-out z-50">
       <div class="p-4">
         <!-- 메뉴 헤더 -->
         <div class="flex items-center justify-between mb-8">
@@ -958,7 +958,7 @@
 
     <!-- 로그인 모달 -->
     <div id="login-modal" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 hidden p-4" role="dialog" aria-modal="true" aria-labelledby="login-modal-title">
-      <div class="bg-white rounded-2xl shadow-2xl p-4 sm:p-6 md:p-8 w-full max-w-sm sm:max-w-md md:max-w-lg relative mx-auto">
+      <div class="bg-white rounded-2xl shadow-2xl p-4 sm:p-6 md:p-8 w-full max-w-xs sm:max-w-sm md:max-w-md relative mx-auto">
         <button id="close-login" class="absolute top-3 right-3 text-gray-400 hover:text-gray-700 text-2xl" aria-label="로그인 창 닫기" title="로그인 창 닫기">&times;</button>
         <h2 id="login-modal-title" class="text-2xl font-bold text-center mb-6 text-gray-700">로그인</h2>
         
@@ -973,13 +973,13 @@
         <form id="login-form" class="space-y-4">
           <div>
             <label class="block text-gray-700 font-semibold mb-2" for="login-email">이메일</label>
-            <input type="email" id="login-email" required class="w-full px-4 py-3 text-base rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-colors" aria-label="이메일" placeholder="이메일을 입력하세요" />
+            <input type="email" id="login-email" required class="w-full px-3 py-2 sm:px-4 sm:py-3 text-sm sm:text-base rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-colors" aria-label="이메일" placeholder="이메일을 입력하세요" />
           </div>
           <div>
             <label class="block text-gray-700 font-semibold mb-2" for="login-password">비밀번호</label>
-            <input type="password" id="login-password" required class="w-full px-4 py-3 text-base rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-colors" aria-label="비밀번호" placeholder="비밀번호를 입력하세요" />
+            <input type="password" id="login-password" required class="w-full px-3 py-2 sm:px-4 sm:py-3 text-sm sm:text-base rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-colors" aria-label="비밀번호" placeholder="비밀번호를 입력하세요" />
           </div>
-          <button type="submit" class="w-full py-3 bg-blue-600 text-white font-bold rounded-lg shadow hover:bg-blue-700 transition-colors text-base" aria-label="로그인" title="로그인">로그인</button>
+          <button type="submit" class="w-full py-2 sm:py-3 bg-blue-600 text-white font-bold rounded-lg shadow hover:bg-blue-700 transition-colors text-sm sm:text-base" aria-label="로그인" title="로그인">로그인</button>
         </form>
         
         <!-- 아이디/비밀번호 찾기 -->
@@ -1004,7 +1004,7 @@
 
     <!-- 아이디 찾기 모달 -->
     <div id="find-id-modal" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 hidden p-4" role="dialog" aria-modal="true" aria-labelledby="find-id-modal-title">
-      <div class="bg-white rounded-2xl shadow-2xl p-4 sm:p-6 w-full max-w-sm sm:max-w-md relative mx-auto">
+      <div class="bg-white rounded-2xl shadow-2xl p-4 sm:p-6 w-full max-w-xs sm:max-w-sm relative mx-auto">
         <button id="close-find-id" class="absolute top-3 right-3 text-gray-400 hover:text-gray-700 text-2xl" aria-label="아이디 찾기 창 닫기">&times;</button>
         <h2 id="find-id-modal-title" class="text-2xl font-bold text-center mb-6 text-gray-700">아이디 찾기</h2>
         
@@ -1028,7 +1028,7 @@
 
     <!-- 비밀번호 찾기 모달 -->
     <div id="find-password-modal" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 hidden p-4" role="dialog" aria-modal="true" aria-labelledby="find-password-modal-title">
-      <div class="bg-white rounded-2xl shadow-2xl p-4 sm:p-6 w-full max-w-sm sm:max-w-md relative mx-auto">
+      <div class="bg-white rounded-2xl shadow-2xl p-4 sm:p-6 w-full max-w-xs sm:max-w-sm relative mx-auto">
         <button id="close-find-password" class="absolute top-3 right-3 text-gray-400 hover:text-gray-700 text-2xl" aria-label="비밀번호 찾기 창 닫기">&times;</button>
         <h2 id="find-password-modal-title" class="text-2xl font-bold text-center mb-6 text-gray-700">비밀번호 찾기</h2>
         
@@ -1086,7 +1086,7 @@
     </div>
     <!-- 회원 탈퇴 확인 모달 -->
     <div id="withdraw-modal" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 hidden p-4" role="dialog" aria-modal="true" aria-labelledby="withdraw-modal-title">
-      <div class="bg-white rounded-2xl shadow-2xl p-4 sm:p-6 md:p-8 w-full max-w-sm sm:max-w-md relative mx-auto">
+      <div class="bg-white rounded-2xl shadow-2xl p-4 sm:p-6 md:p-8 w-full max-w-xs sm:max-w-sm relative mx-auto">
         <button id="close-withdraw" class="absolute top-3 right-3 text-gray-400 hover:text-gray-700 text-2xl" aria-label="탈퇴 창 닫기" title="탈퇴 창 닫기">&times;</button>
         <h2 id="withdraw-modal-title" class="text-2xl font-bold text-center mb-6 text-red-600">회원 탈퇴</h2>
         

@@ -216,6 +216,29 @@ svg {
   .text-4xl { font-size: 2rem; line-height: 2.5rem; }
   .p-6 { padding: 1rem; }
   .px-4 { padding-left: 0.75rem; padding-right: 0.75rem; }
+  
+  /* 모바일에서 모달과 메뉴 최적화 */
+  .modal-content {
+    margin: 1rem;
+    max-width: calc(100vw - 2rem);
+  }
+  
+  /* 모바일 메뉴 최적화 */
+  .mobile-menu {
+    width: 280px;
+    max-width: 85vw;
+  }
+  
+  /* 입력창 모바일 최적화 */
+  input[type="text"], input[type="email"], input[type="tel"], input[type="password"] {
+    font-size: 16px; /* iOS 줌 방지 */
+    padding: 0.75rem 0.875rem;
+  }
+  
+  /* 버튼 모바일 최적화 */
+  button {
+    min-height: 44px; /* 터치 타겟 최소 크기 */
+  }
 }
 
 body {

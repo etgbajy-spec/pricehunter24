@@ -157,7 +157,7 @@
     </div>
 
       <!-- 회원가입 옵션 -->
-      <div class="max-w-md mx-auto mb-12">
+      <div class="max-w-xs sm:max-w-sm md:max-w-md mx-auto mb-12">
         <!-- 일반 회원가입 -->
         <div class="bg-white rounded-2xl shadow-lg p-8 text-center fade-in-up">
       <div class="mb-6">
@@ -176,7 +176,7 @@
     </div>
 
     <!-- 일반 회원가입 폼 (숨김) -->
-    <div id="register-form" class="max-w-md mx-auto bg-white rounded-2xl shadow-lg p-8 hidden">
+    <div id="register-form" class="max-w-xs sm:max-w-sm md:max-w-md mx-auto bg-white rounded-2xl shadow-lg p-4 sm:p-6 md:p-8 hidden">
         <div class="flex justify-between items-center mb-6">
           <h2 class="text-2xl font-bold text-gray-900">회원가입</h2>
           <button id="close-form" class="text-gray-400 hover:text-gray-600">
@@ -191,31 +191,31 @@
         <div>
             <label for="name" class="block text-sm font-medium text-gray-700 mb-2">이름</label>
             <input type="text" id="name" name="name" required
-                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">
+                   class="w-full px-3 py-2 sm:px-4 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent text-sm sm:text-base">
         </div>
 
         <!-- 휴대폰 번호 -->
         <div>
             <label for="phone" class="block text-sm font-medium text-gray-700 mb-2">휴대폰 번호</label>
             <input type="tel" id="phone" name="phone" required placeholder="010-1234-5678"
-                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">
+                   class="w-full px-3 py-2 sm:px-4 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent text-sm sm:text-base">
         </div>
 
         <!-- 이메일 인증 -->
         <div>
             <label for="email-verification" class="block text-sm font-medium text-gray-700 mb-2">이메일 인증</label>
-            <div class="flex space-x-2">
+            <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
               <input type="email" id="email-verification" name="email-verification" required placeholder="example@email.com"
-                     class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">
-              <button type="button" id="send-email" class="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition">
+                     class="flex-1 px-3 py-2 sm:px-4 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent text-sm sm:text-base">
+              <button type="button" id="send-email" class="px-4 py-2 sm:px-6 sm:py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition text-sm sm:text-base whitespace-nowrap">
                 인증번호 발송
               </button>
           </div>
             <div id="email-verification-code" class="mt-2 hidden">
-              <div class="flex space-x-2">
+              <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
                 <input type="text" id="email-code" placeholder="인증번호 입력"
-                       class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">
-                <button type="button" id="verify-email" class="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition">
+                       class="flex-1 px-3 py-2 sm:px-4 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent text-sm sm:text-base">
+                <button type="button" id="verify-email" class="px-4 py-2 sm:px-6 sm:py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition text-sm sm:text-base whitespace-nowrap">
                   인증
                 </button>
         </div>
@@ -227,7 +227,7 @@
         <div>
             <label for="password" class="block text-sm font-medium text-gray-700 mb-2">비밀번호</label>
             <input type="password" id="password" name="password" required
-                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">
+                   class="w-full px-3 py-2 sm:px-4 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent text-sm sm:text-base">
             <div id="password-strength" class="mt-2 text-sm"></div>
         </div>
 
@@ -235,7 +235,7 @@
         <div>
             <label for="confirm-password" class="block text-sm font-medium text-gray-700 mb-2">비밀번호 확인</label>
             <input type="password" id="confirm-password" name="confirm-password" required
-                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">
+                   class="w-full px-3 py-2 sm:px-4 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent text-sm sm:text-base">
             <div id="password-match" class="mt-2 text-sm"></div>
         </div>
 
@@ -272,14 +272,14 @@
 
         <!-- 가입 버튼 -->
           <button type="submit" id="signup-button" disabled
-                  class="w-full bg-gray-400 text-white font-semibold py-3 px-6 rounded-lg transition duration-200">
+                  class="w-full bg-gray-400 text-white font-semibold py-2 sm:py-3 px-4 sm:px-6 rounded-lg transition duration-200 text-sm sm:text-base">
             회원가입
         </button>
       </form>
     </div>
 
     <!-- 로그인 링크 및 Firebase 테스트 -->
-    <div class="max-w-md mx-auto text-center mt-8">
+    <div class="max-w-xs sm:max-w-sm md:max-w-md mx-auto text-center mt-8">
       <p class="text-gray-600 mb-4">이미 계정이 있으신가요?</p>
       <a href="index.html#login" class="inline-block bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 transition">로그인하기</a>
       
