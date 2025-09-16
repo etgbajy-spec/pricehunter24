@@ -1194,6 +1194,7 @@
     // 페이지 로드 시 초기화
     document.addEventListener('DOMContentLoaded', function() {
       console.log('페이지 로드 완료 - 초기화 시작');
+      alert('JavaScript가 실행되고 있습니다!'); // 테스트용
       
       // 초기 탭 상태 확인
       console.log('초기 탭 상태:');
@@ -1221,14 +1222,17 @@
       // 탭 전환 이벤트 - 더 간단하고 확실한 방식
       document.getElementById('tab-info').onclick = function() {
         console.log('내 정보 탭 클릭됨');
+        alert('내 정보 탭 클릭됨!'); // 테스트용
         switchTab('panel-info');
       };
       document.getElementById('tab-requests').onclick = function() {
         console.log('의뢰 내역 탭 클릭됨');
+        alert('의뢰 내역 탭 클릭됨!'); // 테스트용
         switchTab('panel-requests');
       };
       document.getElementById('tab-inquiry').onclick = function() {
         console.log('1:1 문의 탭 클릭됨');
+        alert('1:1 문의 탭 클릭됨!'); // 테스트용
         switchTab('panel-inquiry');
       };
       
