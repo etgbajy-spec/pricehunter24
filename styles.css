@@ -233,6 +233,13 @@ svg {
   #menu-panel {
     width: 288px !important; /* w-72 = 18rem = 288px */
     max-width: 85vw;
+    overflow-x: hidden;
+  }
+  
+  /* 메뉴 패널 내부 컨테이너 */
+  #menu-panel > div {
+    width: 100%;
+    overflow-x: hidden;
   }
   
   /* 메뉴 항목 텍스트 줄바꿈 방지 */
@@ -245,6 +252,21 @@ svg {
   
   /* 회원가입 버튼 특별 처리 */
   #signup-btn {
+    min-width: 0;
+    flex-shrink: 1;
+  }
+  
+  /* 모든 w-full 버튼 최적화 */
+  button.w-full,
+  a.w-full {
+    box-sizing: border-box;
+    max-width: 100%;
+    overflow: hidden;
+  }
+  
+  /* 메뉴 내 버튼들 특별 처리 */
+  #menu-panel button,
+  #menu-panel a {
     min-width: 0;
     flex-shrink: 1;
   }
