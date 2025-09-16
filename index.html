@@ -99,7 +99,7 @@
             <div class="text-blue-300">전문 검증 서비스</div>
           </h1>
                       <p class="text-sm sm:text-lg md:text-xl lg:text-3xl text-gray-200 mb-8 md:mb-12 lg:mb-16 font-medium leading-relaxed text-center w-full px-4">
-            <span class="text-yellow-200 font-bold">💎 <span id="admin-hero-trigger" title="관리자 진입: 3번 클릭" class="cursor-pointer hover:text-yellow-100 transition-colors">·</span> 100% 독립적 검증</span><br class="hidden sm:block" />
+            <span class="text-yellow-200 font-bold">💎 <span id="admin-hero-trigger" title="관리자 진입: 3번 클릭" class="cursor-pointer hover:text-yellow-100 transition-colors" style="cursor: pointer !important;">·</span> 100% 독립적 검증</span><br class="hidden sm:block" />
             <br class="hidden sm:block" />
             ⚡ 24시간 내 최저가 보장<br class="hidden sm:block" />
             <br class="hidden sm:block" />
@@ -969,12 +969,75 @@
           </div>
           <button type="submit" class="w-full py-3 bg-gray-700 text-white font-bold rounded-lg shadow hover:bg-gray-800 transition text-lg" aria-label="로그인" title="로그인">로그인</button>
         </form>
+        
+        <!-- 아이디/비밀번호 찾기 -->
+        <div class="mt-4 text-center">
+          <div class="flex justify-center gap-4 text-sm">
+            <button type="button" onclick="showFindIdModal()" class="text-gray-600 hover:text-gray-800 underline transition-colors">
+              아이디 찾기
+            </button>
+            <span class="text-gray-400">|</span>
+            <button type="button" onclick="showFindPasswordModal()" class="text-gray-600 hover:text-gray-800 underline transition-colors">
+              비밀번호 찾기
+            </button>
+          </div>
+        </div>
+        
         <div id="login-error" class="text-red-500 text-center mt-3 hidden flex items-center justify-center gap-2 animate-fadein">
           <svg class="w-5 h-5 text-red-500 animate-bounce" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="8" y1="8" x2="16" y2="16"/><line x1="16" y1="8" x2="8" y2="16"/></svg>
           <span>이메일 또는 비밀번호가 올바르지 않습니다.</span>
         </div>
       </div>
     </div>
+
+    <!-- 아이디 찾기 모달 -->
+    <div id="find-id-modal" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 hidden" role="dialog" aria-modal="true" aria-labelledby="find-id-modal-title">
+      <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md relative">
+        <button id="close-find-id" class="absolute top-3 right-3 text-gray-400 hover:text-gray-700 text-2xl" aria-label="아이디 찾기 창 닫기">&times;</button>
+        <h2 id="find-id-modal-title" class="text-2xl font-bold text-center mb-6 text-gray-700">아이디 찾기</h2>
+        
+        <form id="find-id-form" class="space-y-4">
+          <div>
+            <label class="block text-gray-700 font-semibold mb-1" for="find-id-name">이름</label>
+            <input type="text" id="find-id-name" required class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-gray-400 focus:outline-none" placeholder="가입시 입력한 이름" />
+          </div>
+          <div>
+            <label class="block text-gray-700 font-semibold mb-1" for="find-id-phone">휴대폰 번호</label>
+            <input type="tel" id="find-id-phone" required class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-gray-400 focus:outline-none" placeholder="010-1234-5678" />
+          </div>
+          <button type="submit" class="w-full py-3 bg-blue-600 text-white font-bold rounded-lg shadow hover:bg-blue-700 transition">아이디 찾기</button>
+        </form>
+        
+        <div id="find-id-result" class="mt-4 p-4 bg-gray-50 rounded-lg hidden">
+          <p class="text-center text-gray-700"></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 비밀번호 찾기 모달 -->
+    <div id="find-password-modal" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 hidden" role="dialog" aria-modal="true" aria-labelledby="find-password-modal-title">
+      <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md relative">
+        <button id="close-find-password" class="absolute top-3 right-3 text-gray-400 hover:text-gray-700 text-2xl" aria-label="비밀번호 찾기 창 닫기">&times;</button>
+        <h2 id="find-password-modal-title" class="text-2xl font-bold text-center mb-6 text-gray-700">비밀번호 찾기</h2>
+        
+        <form id="find-password-form" class="space-y-4">
+          <div>
+            <label class="block text-gray-700 font-semibold mb-1" for="find-password-email">이메일</label>
+            <input type="email" id="find-password-email" required class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-gray-400 focus:outline-none" placeholder="가입시 사용한 이메일" />
+          </div>
+          <div>
+            <label class="block text-gray-700 font-semibold mb-1" for="find-password-name">이름</label>
+            <input type="text" id="find-password-name" required class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-gray-400 focus:outline-none" placeholder="가입시 입력한 이름" />
+          </div>
+          <button type="submit" class="w-full py-3 bg-green-600 text-white font-bold rounded-lg shadow hover:bg-green-700 transition">비밀번호 재설정</button>
+        </form>
+        
+        <div id="find-password-result" class="mt-4 p-4 bg-gray-50 rounded-lg hidden">
+          <p class="text-center text-gray-700"></p>
+        </div>
+      </div>
+    </div>
+
     <!-- 구매사례 팝업 -->
     <div id="case-modal-overlay" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden transition-opacity duration-300" role="dialog" aria-modal="true" aria-labelledby="case-modal-title">
       <div id="case-modal" class="bg-white rounded-3xl shadow-2xl p-10 max-w-2xl h-auto min-h-[500px] w-full relative scale-95 opacity-0 transition-all duration-300 flex flex-col gap-4 overflow-y-auto max-h-[90vh]">
@@ -2405,6 +2468,98 @@
           document.getElementById('login-modal').classList.add('hidden');
           document.getElementById('login-error').classList.add('hidden');
           document.body.style.overflow = '';
+        };
+
+        // 아이디/비밀번호 찾기 모달 열기/닫기
+        window.showFindIdModal = function() {
+          document.getElementById('find-id-modal').classList.remove('hidden');
+          document.body.style.overflow = 'hidden';
+        };
+
+        window.showFindPasswordModal = function() {
+          document.getElementById('find-password-modal').classList.remove('hidden');
+          document.body.style.overflow = 'hidden';
+        };
+
+        document.getElementById('close-find-id').onclick = function() {
+          document.getElementById('find-id-modal').classList.add('hidden');
+          document.getElementById('find-id-result').classList.add('hidden');
+          document.body.style.overflow = '';
+        };
+
+        document.getElementById('close-find-password').onclick = function() {
+          document.getElementById('find-password-modal').classList.add('hidden');
+          document.getElementById('find-password-result').classList.add('hidden');
+          document.body.style.overflow = '';
+        };
+
+        // 아이디 찾기 폼 제출
+        document.getElementById('find-id-form').onsubmit = function(e) {
+          e.preventDefault();
+          
+          const name = sanitizeInput(document.getElementById('find-id-name').value.trim());
+          const phone = sanitizeInput(document.getElementById('find-id-phone').value.trim());
+          
+          // localStorage에서 사용자 검색
+          const users = JSON.parse(localStorage.getItem('users') || '[]');
+          const foundUser = users.find(user => 
+            user.name === name && user.phone === phone
+          );
+          
+          const resultDiv = document.getElementById('find-id-result');
+          const resultP = resultDiv.querySelector('p');
+          
+          if (foundUser) {
+            resultP.textContent = `찾으시는 아이디는 ${foundUser.email} 입니다.`;
+            resultP.className = 'text-center text-green-600';
+          } else {
+            resultP.textContent = '입력하신 정보와 일치하는 계정을 찾을 수 없습니다.';
+            resultP.className = 'text-center text-red-600';
+          }
+          
+          resultDiv.classList.remove('hidden');
+        };
+
+        // 비밀번호 찾기 폼 제출
+        document.getElementById('find-password-form').onsubmit = function(e) {
+          e.preventDefault();
+          
+          const email = sanitizeInput(document.getElementById('find-password-email').value.trim());
+          const name = sanitizeInput(document.getElementById('find-password-name').value.trim());
+          
+          // localStorage에서 사용자 검색
+          const users = JSON.parse(localStorage.getItem('users') || '[]');
+          const foundUser = users.find(user => 
+            user.email === email && user.name === name
+          );
+          
+          const resultDiv = document.getElementById('find-password-result');
+          const resultP = resultDiv.querySelector('p');
+          
+          if (foundUser) {
+            // 임시 비밀번호 생성
+            const tempPassword = Math.random().toString(36).slice(-8);
+            
+            // 사용자 비밀번호 업데이트
+            const userIndex = users.findIndex(user => user.email === email);
+            if (userIndex >= 0) {
+              users[userIndex].password = tempPassword;
+              localStorage.setItem('users', JSON.stringify(users));
+            }
+            
+            resultP.innerHTML = `
+              <div class="text-green-600">
+                <p class="font-bold">임시 비밀번호가 발급되었습니다.</p>
+                <p class="mt-2">임시 비밀번호: <span class="font-mono bg-gray-200 px-2 py-1 rounded">${tempPassword}</span></p>
+                <p class="text-sm mt-2 text-gray-600">로그인 후 비밀번호를 변경해주세요.</p>
+              </div>
+            `;
+          } else {
+            resultP.textContent = '입력하신 정보와 일치하는 계정을 찾을 수 없습니다.';
+            resultP.className = 'text-center text-red-600';
+          }
+          
+          resultDiv.classList.remove('hidden');
         };
 
         // 로그인 폼 제출
