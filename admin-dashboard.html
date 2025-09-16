@@ -401,7 +401,7 @@
             }
         }
 
-        // 실시간 사용자 목록 구독 (Firebase v8 + localStorage 백업) - 개선된 버전
+        // 실시간 사용자 목록 구독 (Firebase v9 + localStorage 백업) - 개선된 버전
         function subscribeToUsers() {
             console.log('👥 사용자 목록 구독 시작...');
             
@@ -416,7 +416,15 @@
             try {
                 const { collection, query, orderBy, onSnapshot } = window.firebaseFirestoreFunctions;
                 const usersRef = collection(window.firebaseDb, 'users');
-                const usersQuery = query(usersRef, orderBy('createdAt', 'desc'));
+                
+                // createdAt 필드가 없을 수 있으므로 기본 쿼리 사용
+                let usersQuery;
+                try {
+                    usersQuery = query(usersRef, orderBy('createdAt', 'desc'));
+                } catch (error) {
+                    console.warn('⚠️ createdAt 필드로 정렬 실패, 기본 쿼리 사용:', error);
+                    usersQuery = query(usersRef);
+                }
 
                 usersUnsubscribe = onSnapshot(usersQuery, (snapshot) => {
                     const firebaseUsers = [];
@@ -429,7 +437,8 @@
                         });
                     });
                     
-                    console.log('📊 Firebase 사용자 데이터 업데이트:', firebaseUsers.length);
+                    console.log('📊 Firebase 사용자 데이터 업데이트:', firebaseUsers.length, '명');
+                    console.log('📋 Firebase 사용자 데이터:', firebaseUsers);
                     
                     // localStorage 사용자와 Firebase 사용자 합치기
                     const allUsers = mergeUsersData(firebaseUsers);
@@ -687,29 +696,63 @@
         }
         
         // Firebase 연결 테스트 함수
-        window.testFirebaseConnection = function() {
-            console.log('🔥 Firebase 연결 테스트 시작...');
-            
-            if (typeof firebase === 'undefined') {
-                alert('❌ Firebase SDK가 로드되지 않았습니다.\n\n서버 CSP 헤더에 www.gstatic.com이 포함되어 있는지 확인하세요.');
-                return false;
-            }
-            
-            if (!firebase.auth) { 
-                alert("Firebase Auth 초기화 실패"); 
-                return false;
-            }
-            
-            if (!firebase.firestore) { 
-                alert("Firebase Firestore 초기화 실패"); 
-                return false;
-            }
-            
-            if (window.firebaseApp && window.firebaseDb && window.firebaseAuth) {
-                alert('✅ Firebase 연결 성공!\n\n모든 서비스가 정상적으로 작동합니다.');
+        window.testFirebaseConnection = async function() {
+            try {
+                console.log('🔥 Firebase 연결 테스트 시작...');
+                
+                if (!window.firebaseApp || !window.firebaseDb || !window.firebaseAuth) {
+                    alert('❌ Firebase 초기화 실패!\n\nFirebase 서비스가 초기화되지 않았습니다.');
+                    return false;
+                }
+                
+                const { collection, addDoc, serverTimestamp, getDoc, deleteDoc } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js');
+                const testRef = collection(window.firebaseDb, 'test');
+                
+                // 테스트 데이터 쓰기
+                console.log('📝 테스트 데이터 쓰기 중...');
+                const testDoc = await addDoc(testRef, {
+                    test: true,
+                    timestamp: serverTimestamp(),
+                    message: '관리자 대시보드 Firebase 연결 테스트',
+                    testTime: new Date().toISOString()
+                });
+                
+                console.log('✅ Firebase 쓰기 테스트 성공:', testDoc.id);
+                
+                // 테스트 데이터 읽기
+                console.log('📖 테스트 데이터 읽기 중...');
+                const testData = await getDoc(testDoc);
+                console.log('✅ Firebase 읽기 테스트 성공:', testData.data());
+                
+                // 테스트 데이터 삭제
+                console.log('🗑️ 테스트 데이터 삭제 중...');
+                await deleteDoc(testDoc);
+                console.log('✅ Firebase 삭제 테스트 성공');
+                
+                alert('✅ Firebase 연결 테스트 성공!\n\n모든 작업(읽기/쓰기/삭제)이 정상적으로 작동합니다.\n\n문서 ID: ' + testDoc.id);
                 return true;
-            } else {
-                alert('❌ Firebase 연결 실패!\n\n초기화를 다시 시도해주세요.');
+                
+            } catch (error) {
+                console.error('❌ Firebase 연결 테스트 실패:', error);
+                console.error('오류 상세:', {
+                    message: error.message,
+                    code: error.code,
+                    stack: error.stack
+                });
+                
+                if (error.message.includes('Missing or insufficient permissions') || error.code === 'permission-denied') {
+                    alert('❌ Firebase 연결 테스트 실패!\n\n' +
+                          'Firebase 보안 규칙 오류가 발생했습니다.\n\n' +
+                          '해결 방법:\n' +
+                          '1. Firebase 콘솔 접속: https://console.firebase.google.com/\n' +
+                          '2. pricehunter-99a1b 프로젝트 선택\n' +
+                          '3. Firestore Database → 규칙\n' +
+                          '4. FIREBASE_SECURITY_RULES.md 파일 참고하여 규칙 수정\n' +
+                          '5. 게시 버튼 클릭');
+                } else {
+                    alert('❌ Firebase 연결 테스트 실패!\n\n오류: ' + error.message + '\n\n코드: ' + (error.code || 'N/A'));
+                }
+                
                 return false;
             }
         };

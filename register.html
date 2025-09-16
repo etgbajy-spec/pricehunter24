@@ -497,7 +497,8 @@
           const testDoc = await addDoc(testRef, {
             test: true,
             timestamp: serverTimestamp(),
-            message: 'Firebase 연결 테스트'
+            message: 'Firebase 연결 테스트',
+            testTime: new Date().toISOString()
           });
           
           console.log('✅ Firebase 쓰기 테스트 성공:', testDoc.id);
@@ -512,18 +513,28 @@
           await deleteDoc(testDoc);
           console.log('✅ Firebase 삭제 테스트 성공');
           
-          alert('✅ Firebase 연결 테스트 성공!\n\n모든 작업(읽기/쓰기/삭제)이 정상적으로 작동합니다.');
+          alert('✅ Firebase 연결 테스트 성공!\n\n모든 작업(읽기/쓰기/삭제)이 정상적으로 작동합니다.\n\n문서 ID: ' + testDoc.id);
           return true;
           
         } catch (error) {
           console.error('❌ Firebase 연결 테스트 실패:', error);
+          console.error('오류 상세:', {
+            message: error.message,
+            code: error.code,
+            stack: error.stack
+          });
           
-          if (error.message.includes('Missing or insufficient permissions')) {
+          if (error.message.includes('Missing or insufficient permissions') || error.code === 'permission-denied') {
             alert('❌ Firebase 연결 테스트 실패!\n\n' +
-                  'Firebase 보안 규칙 오류가 발생했습니다.\n' +
-                  'FIREBASE_SECURITY_RULES.md 파일을 참고하여 보안 규칙을 수정하세요.');
+                  'Firebase 보안 규칙 오류가 발생했습니다.\n\n' +
+                  '해결 방법:\n' +
+                  '1. Firebase 콘솔 접속: https://console.firebase.google.com/\n' +
+                  '2. pricehunter-99a1b 프로젝트 선택\n' +
+                  '3. Firestore Database → 규칙\n' +
+                  '4. FIREBASE_SECURITY_RULES.md 파일 참고하여 규칙 수정\n' +
+                  '5. 게시 버튼 클릭');
           } else {
-            alert('❌ Firebase 연결 테스트 실패!\n\n오류: ' + error.message);
+            alert('❌ Firebase 연결 테스트 실패!\n\n오류: ' + error.message + '\n\n코드: ' + (error.code || 'N/A'));
           }
           
           return false;
