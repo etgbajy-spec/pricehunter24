@@ -440,9 +440,22 @@
         panel.classList.remove('active');
       });
       
-      // 선택된 탭 활성화
+      // 선택된 탭 패널 활성화
       document.getElementById(tabId).classList.add('active');
-      document.getElementById('tab-' + tabId.split('-')[1]).classList.add('active');
+      
+      // 선택된 탭 버튼 활성화 (올바른 ID 매핑)
+      let buttonId;
+      if (tabId === 'panel-info') {
+        buttonId = 'tab-info';
+      } else if (tabId === 'panel-requests') {
+        buttonId = 'tab-requests';
+      } else if (tabId === 'panel-inquiry') {
+        buttonId = 'tab-inquiry';
+      }
+      
+      if (buttonId) {
+        document.getElementById(buttonId).classList.add('active');
+      }
     }
 
     // 내 정보 표시
