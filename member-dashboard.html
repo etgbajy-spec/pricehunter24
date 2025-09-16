@@ -428,23 +428,38 @@
     let currentDisplayedReq = null;
     let fileData = '';
 
-    // 탭 전환 기능
+    // 탭 전환 기능 - 간단하고 확실한 방식
     function switchTab(tabId) {
-      // 모든 탭 버튼 비활성화
-      document.querySelectorAll('.tab-button').forEach(btn => {
+      console.log('=== switchTab 시작 ===', tabId);
+      
+      // 1. 모든 탭 버튼 비활성화
+      const allButtons = document.querySelectorAll('.tab-button');
+      console.log('찾은 탭 버튼 수:', allButtons.length);
+      allButtons.forEach(btn => {
         btn.classList.remove('active');
+        console.log('버튼 비활성화:', btn.id);
       });
       
-      // 모든 탭 패널 숨김
-      document.querySelectorAll('.tab-panel').forEach(panel => {
+      // 2. 모든 탭 패널 숨김
+      const allPanels = document.querySelectorAll('.tab-panel');
+      console.log('찾은 탭 패널 수:', allPanels.length);
+      allPanels.forEach(panel => {
         panel.classList.remove('active');
+        console.log('패널 숨김:', panel.id);
       });
       
-      // 선택된 탭 패널 활성화
-      document.getElementById(tabId).classList.add('active');
+      // 3. 선택된 탭 패널 표시
+      const targetPanel = document.getElementById(tabId);
+      if (targetPanel) {
+        targetPanel.classList.add('active');
+        console.log('✅ 패널 활성화 성공:', tabId);
+      } else {
+        console.error('❌ 패널을 찾을 수 없음:', tabId);
+        return;
+      }
       
-      // 선택된 탭 버튼 활성화 (올바른 ID 매핑)
-      let buttonId;
+      // 4. 선택된 탭 버튼 활성화
+      let buttonId = '';
       if (tabId === 'panel-info') {
         buttonId = 'tab-info';
       } else if (tabId === 'panel-requests') {
@@ -454,8 +469,16 @@
       }
       
       if (buttonId) {
-        document.getElementById(buttonId).classList.add('active');
+        const targetButton = document.getElementById(buttonId);
+        if (targetButton) {
+          targetButton.classList.add('active');
+          console.log('✅ 버튼 활성화 성공:', buttonId);
+        } else {
+          console.error('❌ 버튼을 찾을 수 없음:', buttonId);
+        }
       }
+      
+      console.log('=== switchTab 완료 ===');
     }
 
     // 내 정보 표시
@@ -1170,6 +1193,13 @@
 
     // 페이지 로드 시 초기화
     document.addEventListener('DOMContentLoaded', function() {
+      console.log('페이지 로드 완료 - 초기화 시작');
+      
+      // 초기 탭 상태 확인
+      console.log('초기 탭 상태:');
+      console.log('- tab-info active:', document.getElementById('tab-info').classList.contains('active'));
+      console.log('- panel-info active:', document.getElementById('panel-info').classList.contains('active'));
+      
       // 내 정보 표시
       renderMyInfo();
       
@@ -1188,10 +1218,19 @@
         localStorage.setItem('imageDataCleaned', 'true');
       }
       
-      // 탭 전환 이벤트
-      document.getElementById('tab-info').addEventListener('click', () => switchTab('panel-info'));
-      document.getElementById('tab-requests').addEventListener('click', () => switchTab('panel-requests'));
-      document.getElementById('tab-inquiry').addEventListener('click', () => switchTab('panel-inquiry'));
+      // 탭 전환 이벤트 - 더 간단하고 확실한 방식
+      document.getElementById('tab-info').onclick = function() {
+        console.log('내 정보 탭 클릭됨');
+        switchTab('panel-info');
+      };
+      document.getElementById('tab-requests').onclick = function() {
+        console.log('의뢰 내역 탭 클릭됨');
+        switchTab('panel-requests');
+      };
+      document.getElementById('tab-inquiry').onclick = function() {
+        console.log('1:1 문의 탭 클릭됨');
+        switchTab('panel-inquiry');
+      };
       
       // 정보수정 폼 토글
       document.getElementById('edit-info-btn').addEventListener('click', function() {
