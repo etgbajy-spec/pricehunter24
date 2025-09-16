@@ -525,19 +525,47 @@
 
         // Firebase와 localStorage 사용자 데이터 합치기
         function mergeUsersData(firebaseUsers) {
-            const allUsers = [...firebaseUsers];
+            console.log('🔄 사용자 데이터 병합 시작...');
+            console.log('📊 Firebase 사용자:', firebaseUsers.length, '명');
             
-            // localStorage에서 추가 사용자 찾기
+            // Firebase 사용자를 기본으로 사용 (우선순위)
+            const allUsers = [...firebaseUsers];
+            const emailSet = new Set(firebaseUsers.map(user => user.email));
+            
+            // localStorage에서 users 배열 확인
+            try {
+                const usersArray = JSON.parse(localStorage.getItem('users') || '[]');
+                console.log('📋 localStorage users 배열:', usersArray.length, '명');
+                
+                usersArray.forEach(user => {
+                    if (user.email && !emailSet.has(user.email)) {
+                        allUsers.push({
+                            id: user.firebaseId || 'local_' + Date.now(),
+                            ...user,
+                            source: 'localStorage'
+                        });
+                        emailSet.add(user.email);
+                    }
+                });
+            } catch (error) {
+                console.warn('⚠️ localStorage users 배열 파싱 실패:', error);
+            }
+            
+            // 개별 user 데이터 확인
             const userData = localStorage.getItem('user');
             if (userData) {
-                const user = JSON.parse(userData);
-                const exists = allUsers.find(u => u.email === user.email);
-                if (!exists) {
-                    allUsers.push({
-                        id: user.firebaseId || 'local_' + Date.now(),
-                        ...user,
-                        source: 'localStorage'
-                    });
+                try {
+                    const user = JSON.parse(userData);
+                    if (user.email && !emailSet.has(user.email)) {
+                        allUsers.push({
+                            id: user.firebaseId || 'local_' + Date.now(),
+                            ...user,
+                            source: 'localStorage'
+                        });
+                        emailSet.add(user.email);
+                    }
+                } catch (error) {
+                    console.warn('⚠️ localStorage user 데이터 파싱 실패:', error);
                 }
             }
             
@@ -549,20 +577,23 @@
                         const storedData = localStorage.getItem(key);
                         if (storedData && storedData.startsWith('{')) {
                             const kakaoUser = JSON.parse(storedData);
-                            const exists = allUsers.find(u => u.email === kakaoUser.email);
-                            if (!exists) {
+                            if (kakaoUser.email && !emailSet.has(kakaoUser.email)) {
                                 allUsers.push({
                                     id: kakaoUser.firebaseId || key,
                                     ...kakaoUser,
                                     source: 'localStorage'
                                 });
+                                emailSet.add(kakaoUser.email);
                             }
                         }
                     } catch (e) {
-                        console.warn('카카오 사용자 데이터 파싱 실패:', e);
+                        console.warn('⚠️ 카카오 사용자 데이터 파싱 실패:', key, e);
                     }
                 }
             });
+            
+            console.log('✅ 사용자 데이터 병합 완료:', allUsers.length, '명');
+            console.log('📋 최종 사용자 목록:', allUsers.map(u => ({ email: u.email, source: u.source })));
             
             return allUsers;
         }
@@ -614,8 +645,14 @@
 
         // 사용자 테이블 업데이트 (개선된 버전)
         function updateUsersTable(users) {
+            console.log('📋 회원 테이블 업데이트 시작...');
+            console.log('👥 표시할 사용자 수:', users.length);
+            
             const tbody = document.getElementById('members-table-body');
-            if (!tbody) return;
+            if (!tbody) {
+                console.error('❌ members-table-body 요소를 찾을 수 없습니다.');
+                return;
+            }
 
             tbody.innerHTML = '';
 
@@ -630,32 +667,74 @@
                 return;
             }
 
-            users.forEach(user => {
+            // 사용자 데이터 정렬 (Firebase 우선, 최신순)
+            const sortedUsers = users.sort((a, b) => {
+                // Firebase 사용자를 우선으로
+                if (a.source === 'Firebase' && b.source !== 'Firebase') return -1;
+                if (a.source !== 'Firebase' && b.source === 'Firebase') return 1;
+                
+                // 같은 소스 내에서는 최신순
+                const dateA = a.createdAt ? (a.createdAt.seconds ? a.createdAt.seconds * 1000 : new Date(a.createdAt).getTime()) : 0;
+                const dateB = b.createdAt ? (b.createdAt.seconds ? b.createdAt.seconds * 1000 : new Date(b.createdAt).getTime()) : 0;
+                return dateB - dateA;
+            });
+
+            sortedUsers.forEach((user, index) => {
+                console.log(`👤 사용자 ${index + 1}:`, {
+                    email: user.email,
+                    name: user.displayName || user.name,
+                    source: user.source,
+                    phone: user.phone
+                });
+                
                 const row = document.createElement('tr');
                 row.className = 'hover:bg-gray-50';
                 
                 const profileImage = user.photoURL || user.profileImage || 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%236b7280"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>';
                 const loginMethod = user.loginMethod || user.loginType || 'email';
-                const joinDate = user.createdAt ? 
-                    (user.createdAt.seconds ? new Date(user.createdAt.seconds * 1000).toLocaleDateString() : new Date(user.createdAt).toLocaleDateString()) : 
-                    (user.joinDate ? new Date(user.joinDate).toLocaleDateString() : '알 수 없음');
-                const lastUpdate = user.updatedAt ? 
-                    (user.updatedAt.seconds ? new Date(user.updatedAt.seconds * 1000).toLocaleDateString() : new Date(user.updatedAt).toLocaleDateString()) : 
-                    '알 수 없음';
+                
+                // 날짜 처리 개선
+                let joinDate = '알 수 없음';
+                if (user.createdAt) {
+                    if (user.createdAt.seconds) {
+                        joinDate = new Date(user.createdAt.seconds * 1000).toLocaleDateString('ko-KR');
+                    } else if (user.createdAt.toDate) {
+                        joinDate = user.createdAt.toDate().toLocaleDateString('ko-KR');
+                    } else {
+                        joinDate = new Date(user.createdAt).toLocaleDateString('ko-KR');
+                    }
+                } else if (user.joinDate) {
+                    joinDate = new Date(user.joinDate).toLocaleDateString('ko-KR');
+                }
+                
+                let lastUpdate = '알 수 없음';
+                if (user.updatedAt) {
+                    if (user.updatedAt.seconds) {
+                        lastUpdate = new Date(user.updatedAt.seconds * 1000).toLocaleDateString('ko-KR');
+                    } else if (user.updatedAt.toDate) {
+                        lastUpdate = user.updatedAt.toDate().toLocaleDateString('ko-KR');
+                    } else {
+                        lastUpdate = new Date(user.updatedAt).toLocaleDateString('ko-KR');
+                    }
+                }
+                
                 const dataSource = user.source || 'Firebase';
                 const dataSourceColor = dataSource === 'localStorage' ? 'bg-orange-100 text-orange-800' : 'bg-green-100 text-green-800';
                 const points = user.points || 0;
+                const userName = user.displayName || user.name || '이름 없음';
+                const userEmail = user.email || '이메일 없음';
+                const userPhone = user.phone || '-';
                 
                 row.innerHTML = `
                     <td class="px-6 py-4 whitespace-nowrap">
                         <div class="flex items-center">
                             <div class="h-10 w-10 flex-shrink-0">
-                                <img class="h-10 w-10 rounded-full" src="${profileImage}" alt="${user.displayName || user.name || '사용자'}" onerror="this.src='data:image/svg+xml,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'%236b7280\'><path d=\'M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z\'/></svg>'">
+                                <img class="h-10 w-10 rounded-full" src="${profileImage}" alt="${userName}" onerror="this.src='data:image/svg+xml,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'%236b7280\'><path d=\'M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z\'/></svg>'">
                             </div>
                         </div>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="text-sm font-medium text-gray-900">${user.displayName || user.name || '이름 없음'}</div>
+                        <div class="text-sm font-medium text-gray-900">${userName}</div>
                         <div class="text-xs text-gray-500">${points}P</div>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
@@ -663,8 +742,8 @@
                             ${loginMethod === 'kakao' ? '카카오톡' : '이메일'}
                         </span>
                     </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${user.email || '이메일 없음'}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${user.phone || '-'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${userEmail}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${userPhone}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${joinDate}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${lastUpdate}</td>
                     <td class="px-6 py-4 whitespace-nowrap">
@@ -680,6 +759,8 @@
                 
                 tbody.appendChild(row);
             });
+            
+            console.log('✅ 회원 테이블 업데이트 완료');
         }
 
         // 대시보드 데이터 로드 함수
