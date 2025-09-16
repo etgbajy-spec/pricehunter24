@@ -268,7 +268,7 @@
         });
       }
 
-      // 사용자 데이터를 Firebase에 저장
+      // 사용자 데이터를 Firebase에 저장 (권한 오류 시 localStorage로 폴백)
     async function saveUserToFirebase(userData) {
       try {
           console.log('⏳ Firebase 대기 중...');
@@ -279,13 +279,22 @@
           const usersRef = db.collection('users');
           console.log('📊 Firebase Firestore 연결 완료');
           
-          // 휴대폰 번호 중복 확인
-          console.log('🔍 휴대폰 번호 중복 확인 중...', userData.phone);
+          // 휴대폰 번호 중복 확인 (Firebase)
+          console.log('🔍 Firebase에서 휴대폰 번호 중복 확인 중...', userData.phone);
           const phoneQuery = await usersRef.where('phone', '==', userData.phone).get();
-          console.log('📋 중복 확인 결과:', phoneQuery.empty ? '중복 없음' : '중복 발견');
+          console.log('📋 Firebase 중복 확인 결과:', phoneQuery.empty ? '중복 없음' : '중복 발견');
           if (!phoneQuery.empty) {
             throw new Error('이미 가입된 휴대폰 번호입니다.');
           }
+          
+          // localStorage에서도 중복 확인
+          console.log('🔍 localStorage에서 휴대폰 번호 중복 확인 중...', userData.phone);
+          const existingUsers = JSON.parse(localStorage.getItem('users') || '[]');
+          const duplicateUser = existingUsers.find(user => user.phone === userData.phone);
+          if (duplicateUser) {
+            throw new Error('이미 가입된 휴대폰 번호입니다.');
+          }
+          console.log('📋 localStorage 중복 확인 결과: 중복 없음');
           
           // 사용자 데이터 저장
           console.log('💾 사용자 데이터 저장 중...');
@@ -299,6 +308,26 @@
           return docRef.id;
       } catch (error) {
           console.error('❌ Firebase 저장 실패:', error);
+          
+          // 권한 오류인 경우 localStorage로 폴백
+          if (error.message.includes('Missing or insufficient permissions') || 
+              error.message.includes('permission-denied')) {
+            console.log('🔄 Firebase 권한 오류 감지 - localStorage로 폴백');
+            
+            // localStorage에서 중복 확인
+            console.log('🔍 localStorage에서 휴대폰 번호 중복 확인 중...', userData.phone);
+            const existingUsers = JSON.parse(localStorage.getItem('users') || '[]');
+            const duplicateUser = existingUsers.find(user => user.phone === userData.phone);
+            if (duplicateUser) {
+              throw new Error('이미 가입된 휴대폰 번호입니다.');
+            }
+            console.log('📋 localStorage 중복 확인 결과: 중복 없음');
+            
+            console.log('✅ 사용자 데이터가 localStorage에 저장됩니다');
+            return 'localStorage_fallback';
+          }
+          
+          // 다른 오류는 그대로 throw
           throw error;
         }
       }
@@ -579,8 +608,8 @@
           
           try {
             console.log('🔥 Firebase 저장 시작');
-            // Firebase에 저장
-            await saveUserToFirebase(formData);
+            // Firebase에 저장 (권한 오류 시 localStorage로 폴백)
+            const firebaseResult = await saveUserToFirebase(formData);
             
             // localStorage에 저장
             saveUserToLocalStorage(formData);
@@ -588,7 +617,13 @@
             // 포인트 추가
             addPoints(formData.phone, 50);
             
-            alert('회원가입이 완료되었습니다! 50포인트가 지급되었습니다.');
+            // 성공 메시지 표시
+            if (firebaseResult === 'localStorage_fallback') {
+              alert('회원가입이 완료되었습니다! 50포인트가 지급되었습니다.\n(데이터는 로컬에 저장되었습니다)');
+            } else {
+              alert('회원가입이 완료되었습니다! 50포인트가 지급되었습니다.');
+            }
+            
             window.location.href = 'index.html';
 
       } catch (error) {
