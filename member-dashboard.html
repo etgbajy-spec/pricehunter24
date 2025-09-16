@@ -152,13 +152,13 @@
     <!-- 탭 네비게이션 -->
     <div class="flex justify-center mb-8">
       <div class="bg-white rounded-2xl shadow-lg p-2 flex gap-2">
-        <button id="tab-info" class="tab-button px-6 py-3 rounded-xl font-semibold text-gray-700 hover:bg-blue-50 active">
+        <button id="tab-info" class="tab-button px-6 py-3 rounded-xl font-semibold text-gray-700 hover:bg-blue-50 active" onclick="switchTab('panel-info')">
           👤 내 정보
         </button>
-        <button id="tab-requests" class="tab-button px-6 py-3 rounded-xl font-semibold text-gray-700 hover:bg-blue-50">
+        <button id="tab-requests" class="tab-button px-6 py-3 rounded-xl font-semibold text-gray-700 hover:bg-blue-50" onclick="switchTab('panel-requests')">
           📋 의뢰 내역
         </button>
-        <button id="tab-inquiry" class="tab-button px-6 py-3 rounded-xl font-semibold text-gray-700 hover:bg-blue-50">
+        <button id="tab-inquiry" class="tab-button px-6 py-3 rounded-xl font-semibold text-gray-700 hover:bg-blue-50" onclick="switchTab('panel-inquiry')">
           💬 1:1 문의
         </button>
       </div>
@@ -428,8 +428,8 @@
     let currentDisplayedReq = null;
     let fileData = '';
 
-    // 탭 전환 기능 - 간단하고 확실한 방식
-    function switchTab(tabId) {
+    // 탭 전환 기능 - 전역 함수로 만들어서 HTML에서 직접 호출 가능
+    window.switchTab = function(tabId) {
       console.log('=== switchTab 시작 ===', tabId);
       
       // 1. 모든 탭 버튼 비활성화
@@ -1194,7 +1194,6 @@
     // 페이지 로드 시 초기화
     document.addEventListener('DOMContentLoaded', function() {
       console.log('페이지 로드 완료 - 초기화 시작');
-      alert('JavaScript가 실행되고 있습니다!'); // 테스트용
       
       // 초기 탭 상태 확인
       console.log('초기 탭 상태:');
@@ -1219,22 +1218,7 @@
         localStorage.setItem('imageDataCleaned', 'true');
       }
       
-      // 탭 전환 이벤트 - 더 간단하고 확실한 방식
-      document.getElementById('tab-info').onclick = function() {
-        console.log('내 정보 탭 클릭됨');
-        alert('내 정보 탭 클릭됨!'); // 테스트용
-        switchTab('panel-info');
-      };
-      document.getElementById('tab-requests').onclick = function() {
-        console.log('의뢰 내역 탭 클릭됨');
-        alert('의뢰 내역 탭 클릭됨!'); // 테스트용
-        switchTab('panel-requests');
-      };
-      document.getElementById('tab-inquiry').onclick = function() {
-        console.log('1:1 문의 탭 클릭됨');
-        alert('1:1 문의 탭 클릭됨!'); // 테스트용
-        switchTab('panel-inquiry');
-      };
+      // 탭 전환 이벤트는 HTML onclick으로 처리됨
       
       // 정보수정 폼 토글
       document.getElementById('edit-info-btn').addEventListener('click', function() {
