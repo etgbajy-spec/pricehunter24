@@ -12,6 +12,10 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
+    
+    <!-- Content Security Policy - Firebase iframe 허용 -->
+    <meta http-equiv="Content-Security-Policy" content="frame-src 'self' https://www.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com;" />
+    
     <meta name="cache-buster" content="v3.2-20241220" />
     <script>
       // 강제 캐시 무효화 및 디버깅
@@ -278,18 +282,11 @@
       </form>
     </div>
 
-    <!-- 로그인 링크 및 Firebase 테스트 -->
+    <!-- 로그인 링크 -->
     <div class="max-w-xs sm:max-w-sm md:max-w-md mx-auto text-center mt-8 mx-4">
       <p class="text-gray-600 mb-4">이미 계정이 있으신가요?</p>
       <a href="index.html#login" class="inline-block bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 transition">로그인하기</a>
       
-      <!-- Firebase 연결 테스트 버튼 (개발용) -->
-      <div class="mt-6 p-4 bg-gray-100 rounded-lg">
-        <p class="text-sm text-gray-600 mb-2">Firebase 연결 테스트</p>
-        <button onclick="testFirebaseConnection()" class="text-sm bg-gray-600 text-white py-2 px-4 rounded hover:bg-gray-700 transition">
-          Firebase 연결 테스트
-        </button>
-      </div>
     </div>
   </main>
 
@@ -482,64 +479,6 @@
         }
       }
 
-      // Firebase 연결 테스트 함수
-      async function testFirebaseConnection() {
-        try {
-          console.log('🧪 Firebase 연결 테스트 시작...');
-          await waitForFirebase();
-          
-          const db = window.firebaseDb;
-          const { collection, addDoc, serverTimestamp, getDoc, deleteDoc } = window.firebaseFirestoreFunctions;
-          const testRef = collection(db, 'test');
-          
-          // 테스트 데이터 쓰기
-          console.log('📝 테스트 데이터 쓰기 중...');
-          const testDoc = await addDoc(testRef, {
-            test: true,
-            timestamp: serverTimestamp(),
-            message: 'Firebase 연결 테스트',
-            testTime: new Date().toISOString()
-          });
-          
-          console.log('✅ Firebase 쓰기 테스트 성공:', testDoc.id);
-          
-          // 테스트 데이터 읽기
-          console.log('📖 테스트 데이터 읽기 중...');
-          const testData = await getDoc(testDoc);
-          console.log('✅ Firebase 읽기 테스트 성공:', testData.data());
-          
-          // 테스트 데이터 삭제
-          console.log('🗑️ 테스트 데이터 삭제 중...');
-          await deleteDoc(testDoc);
-          console.log('✅ Firebase 삭제 테스트 성공');
-          
-          alert('✅ Firebase 연결 테스트 성공!\n\n모든 작업(읽기/쓰기/삭제)이 정상적으로 작동합니다.\n\n문서 ID: ' + testDoc.id);
-          return true;
-          
-        } catch (error) {
-          console.error('❌ Firebase 연결 테스트 실패:', error);
-          console.error('오류 상세:', {
-            message: error.message,
-            code: error.code,
-            stack: error.stack
-          });
-          
-          if (error.message.includes('Missing or insufficient permissions') || error.code === 'permission-denied') {
-            alert('❌ Firebase 연결 테스트 실패!\n\n' +
-                  'Firebase 보안 규칙 오류가 발생했습니다.\n\n' +
-                  '해결 방법:\n' +
-                  '1. Firebase 콘솔 접속: https://console.firebase.google.com/\n' +
-                  '2. pricehunter-99a1b 프로젝트 선택\n' +
-                  '3. Firestore Database → 규칙\n' +
-                  '4. FIREBASE_SECURITY_RULES.md 파일 참고하여 규칙 수정\n' +
-                  '5. 게시 버튼 클릭');
-          } else {
-            alert('❌ Firebase 연결 테스트 실패!\n\n오류: ' + error.message + '\n\n코드: ' + (error.code || 'N/A'));
-          }
-          
-          return false;
-        }
-      }
 
       // 실제 이메일 인증번호 발송
       async function sendEmailVerification() {
