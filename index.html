@@ -11,6 +11,10 @@
     <meta name="referrer" content="no-referrer-when-downgrade" />
     <meta name="robots" content="noindex, nofollow" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    
+    <!-- Content Security Policy - Firebase iframe 허용 -->
+    <meta http-equiv="Content-Security-Policy" content="frame-src 'self' https://www.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com;" />
+    
     <title>PriceHunter</title>
     
     <!-- Favicon -->
@@ -921,14 +925,14 @@
             <span class="font-medium text-sm sm:text-base">로그인</span>
           </button>
 
-          <button id="signup-btn" class="w-full flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2 sm:py-3 bg-blue-500 text-white hover:bg-blue-600 rounded-lg transition-colors duration-200 text-left" onclick="window.location.href='register.html'; closeMenu();">
+          <button id="signup-btn" class="w-full flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2 sm:py-3 bg-blue-500 text-white hover:bg-blue-600 rounded-lg transition-colors duration-200 text-left">
             <svg class="w-4 h-4 sm:w-5 sm:h-5 text-white flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <path d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path>
             </svg>
             <span class="font-medium text-sm sm:text-base">회원가입</span>
           </button>
 
-          <a href="member-dashboard.html" id="mypage-btn" class="hidden flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2 sm:py-3 text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 rounded-lg transition-colors duration-200" onclick="closeMenu()">
+          <a href="member-dashboard.html" id="mypage-btn" class="hidden flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2 sm:py-3 text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 rounded-lg transition-colors duration-200">
             <svg class="w-4 h-4 sm:w-5 sm:h-5 text-emerald-500 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
             </svg>
@@ -3429,6 +3433,23 @@ if (mypageBtn) {
             if (e.key === 'Escape') {
               closeMenu();
             }
+          });
+        }
+
+        // 회원가입 버튼 이벤트 리스너
+        const signupBtn = document.getElementById('signup-btn');
+        if (signupBtn) {
+          signupBtn.addEventListener('click', function() {
+            closeMenu();
+            window.location.href = 'register.html';
+          });
+        }
+
+        // 마이페이지 버튼 이벤트 리스너
+        const mypageBtn = document.getElementById('mypage-btn');
+        if (mypageBtn) {
+          mypageBtn.addEventListener('click', function() {
+            closeMenu();
           });
         }
       }
