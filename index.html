@@ -18,6 +18,9 @@
     
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- 모바일 여백 제거 CSS -->
+    <link rel="stylesheet" href="mobile-fix.css">
     <script>
       // Tailwind CSS 설정 - CSP 오류 방지
       if (typeof tailwind !== 'undefined') {
@@ -107,17 +110,6 @@
           </svg>
         </div>
         <div class="flex flex-col items-center w-full max-w-5xl mx-auto">
-          <h1 class="text-2xl sm:text-3xl md:text-4xl lg:text-6xl font-extrabold text-white mb-10 md:mb-16 lg:mb-20 drop-shadow-lg tracking-tight leading-relaxed md:leading-relaxed text-center w-full px-2">
-            <div class="text-yellow-300 mb-2">진짜 최저가를 찾아드리는</div>
-            <div class="text-blue-300">전문 검증 서비스</div>
-          </h1>
-                      <p class="text-sm sm:text-lg md:text-xl lg:text-3xl text-gray-200 mb-8 md:mb-12 lg:mb-16 font-medium leading-relaxed text-center w-full px-4">
-            <span class="text-yellow-200 font-bold">💎 <span id="admin-hero-trigger" title="관리자 진입: 3번 클릭" class="hover:text-yellow-100 transition-colors">·</span> 100% 독립적 검증</span><br class="hidden sm:block" />
-            <br class="hidden sm:block" />
-            ⚡ 24시간 내 최저가 보장<br class="hidden sm:block" />
-            <br class="hidden sm:block" />
-            <span class="text-yellow-200 font-bold">🎯 정확한 가격, 확실한 절약</span>
-          </p>
           <div class="flex flex-col items-center w-full gap-4">
             <button id="request-v2-btn"
               class="inline-block px-6 sm:px-8 md:px-12 lg:px-20 py-4 sm:py-5 md:py-6 lg:py-8 bg-pink-500 text-white text-lg sm:text-xl md:text-2xl lg:text-4xl font-extrabold rounded-full shadow-2xl hover:bg-pink-600 hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-pink-300 animate-fadein-up text-center mb-2 w-full sm:w-auto"
@@ -210,31 +202,31 @@
           <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-extrabold text-blue-800 text-center mb-6 md:mb-8 lg:mb-10 drop-shadow-lg animate-fadein-up px-4">고객의 진짜 고민, <span class="text-pink-500">우리가 해결합니다</span></h2>
                       <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 lg:gap-8 w-full">
             <!-- 스토리 카드 1 -->
-                          <div class="bg-white rounded-2xl shadow-xl p-4 sm:p-6 md:p-8 flex flex-col items-center text-center animate-fadein-up" style="animation-delay:0.1s;">
-                <div class="mb-3 md:mb-4">
-                  <svg class="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 text-blue-400 mx-auto" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 32 32"><path d="M16 4a12 12 0 1 0 0 24A12 12 0 0 0 16 4Zm0 0v8m0 8h.01" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                          <div class="bg-white rounded-2xl shadow-xl p-6 sm:p-8 flex flex-col items-center text-center animate-fadein-up" style="animation-delay:0.1s;">
+                <div class="mb-4">
+                  <svg class="w-12 h-12 sm:w-14 sm:h-14 text-blue-400 mx-auto" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 32 32"><path d="M16 4a12 12 0 1 0 0 24A12 12 0 0 0 16 4Zm0 0v8m0 8h.01" stroke-linecap="round" stroke-linejoin="round"/></svg>
                 </div>
-                <div class="font-bold text-sm sm:text-base md:text-lg text-gray-800 mb-2 px-2">"인터넷 최저가라 샀는데, 며칠 뒤 더 싸게 파는 곳을 발견..."</div>
-                <div class="text-gray-500 text-xs sm:text-sm md:text-base mb-2 md:mb-3">- 김OO, 30대 직장인</div>
-                <div class="text-gray-700 text-xs sm:text-sm px-2">직접 가격 비교에 지쳐 결국 샀지만, 나중에 더 저렴한 곳을 알게 되어 속상했어요. PriceHunter 덕분에 진짜 최저가를 놓치지 않게 됐습니다!</div>
+                <div class="font-bold text-base sm:text-lg text-gray-800 mb-3 px-2 leading-relaxed">"인터넷 최저가라 샀는데, 며칠 뒤 더 싸게 파는 곳을 발견해서 속상했어요..."</div>
+                <div class="text-gray-500 text-sm sm:text-base mb-3">- 김OO, 30대 직장인</div>
+                <div class="text-gray-700 text-sm sm:text-base px-2 leading-relaxed">직접 가격 비교에 지쳐 결국 샀지만, 나중에 더 저렴한 곳을 알게 되어 속상했어요. PriceHunter 덕분에 진짜 최저가를 놓치지 않게 됐습니다!</div>
               </div>
             <!-- 스토리 카드 2 -->
-            <div class="bg-white rounded-2xl shadow-xl p-8 flex flex-col items-center text-center animate-fadein-up" style="animation-delay:0.3s;">
+            <div class="bg-white rounded-2xl shadow-xl p-6 sm:p-8 flex flex-col items-center text-center animate-fadein-up" style="animation-delay:0.3s;">
               <div class="mb-4">
-                <svg class="w-14 h-14 text-emerald-400 mx-auto" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 32 32"><path d="M8 16h16M8 16l6-6m-6 6l6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <svg class="w-12 h-12 sm:w-14 sm:h-14 text-emerald-400 mx-auto" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 32 32"><path d="M8 16h16M8 16l6-6m-6 6l6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
               </div>
-              <div class="font-bold text-lg text-gray-800 mb-2">"해외직구가 더 싸다길래 시도했다가, 복잡한 통관·배송에 포기..."</div>
-              <div class="text-gray-500 text-base mb-3">- 이OO, 20대 대학생</div>
-              <div class="text-gray-700 text-sm">직구 정보 찾고, 배송대행 신청까지 너무 복잡했어요. PriceHunter가 대신 알아봐주니 쉽고 빠르게 최저가로 살 수 있었어요!</div>
+              <div class="font-bold text-base sm:text-lg text-gray-800 mb-3 px-2 leading-relaxed">"해외직구가 더 싸다길래 시도했다가, 복잡한 통관과 배송에 포기했어요..."</div>
+              <div class="text-gray-500 text-sm sm:text-base mb-3">- 이OO, 20대 대학생</div>
+              <div class="text-gray-700 text-sm sm:text-base px-2 leading-relaxed">직구 정보 찾고, 배송대행 신청까지 너무 복잡했어요. PriceHunter가 대신 알아봐주니 쉽고 빠르게 최저가로 살 수 있었어요!</div>
             </div>
             <!-- 스토리 카드 3 -->
-            <div class="bg-white rounded-2xl shadow-xl p-8 flex flex-col items-center text-center animate-fadein-up" style="animation-delay:0.5s;">
+            <div class="bg-white rounded-2xl shadow-xl p-6 sm:p-8 flex flex-col items-center text-center animate-fadein-up" style="animation-delay:0.5s;">
               <div class="mb-4">
-                <svg class="w-14 h-14 text-pink-400 mx-auto" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 32 32"><circle cx="16" cy="16" r="12" stroke="currentColor"/><path d="M12 20c1.5-2 6.5-2 8 0" stroke-linecap="round"/><circle cx="12" cy="14" r="1.5" fill="currentColor"/><circle cx="20" cy="14" r="1.5" fill="currentColor"/></svg>
+                <svg class="w-12 h-12 sm:w-14 sm:h-14 text-pink-400 mx-auto" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 32 32"><circle cx="16" cy="16" r="12" stroke="currentColor"/><path d="M12 20c1.5-2 6.5-2 8 0" stroke-linecap="round"/><circle cx="12" cy="14" r="1.5" fill="currentColor"/><circle cx="20" cy="14" r="1.5" fill="currentColor"/></svg>
               </div>
-              <div class="font-bold text-lg text-gray-800 mb-2 text-center sm:text-left">"비브랜드 제품, 정보도 없고<br class="sm:hidden"> 후기 찾기도 힘들었는데..."</div>
-              <div class="text-gray-500 text-base mb-3 text-center sm:text-left">- 박OO, 40대 주부</div>
-              <div class="text-gray-700 text-sm text-center sm:text-left leading-relaxed">검색해도 정보가 부족해 망설였는데,<br class="sm:hidden"> PriceHunter가 상세 비교와 후기까지<br class="sm:hidden"> 안내해줘서 안심하고 구매했어요.</div>
+              <div class="font-bold text-base sm:text-lg text-gray-800 mb-3 px-2 leading-relaxed">"비브랜드 제품, 정보도 없고 후기 찾기도 힘들었는데..."</div>
+              <div class="text-gray-500 text-sm sm:text-base mb-3">- 박OO, 40대 주부</div>
+              <div class="text-gray-700 text-sm sm:text-base px-2 leading-relaxed">검색해도 정보가 부족해 망설였는데, PriceHunter가 상세 비교와 후기까지 안내해줘서 안심하고 구매했어요.</div>
             </div>
           </div>
           <div class="mt-8 sm:mt-12 text-center animate-fadein-up" style="animation-delay:0.7s;">
@@ -338,26 +330,26 @@
                     전문 검증팀이 <span class="font-semibold text-green-600">도매처 연동, 공장 직거래, 특별 경로</span> 등 다양한 경로를 통해 최저가를 찾아갑니다.
                   </p>
                   <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
-                    <div class="bg-green-50 rounded-lg p-4">
-                      <div class="font-semibold text-green-700 mb-2 flex items-center">
+                    <div class="bg-green-50 rounded-lg p-3 sm:p-4">
+                      <div class="font-semibold text-green-700 mb-1 sm:mb-2 flex items-center justify-center sm:justify-start">
                         <span class="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></span>
-                        도매처 연동
+                        <span class="text-xs sm:text-sm">도매처 연동</span>
                       </div>
-                      <p class="text-sm text-green-600">국내외 도매업체 직접 문의</p>
+                      <p class="text-xs sm:text-sm text-green-600 text-center sm:text-left">국내외 도매업체 직접 문의</p>
                     </div>
-                    <div class="bg-green-50 rounded-lg p-4">
-                      <div class="font-semibold text-green-700 mb-2 flex items-center">
+                    <div class="bg-green-50 rounded-lg p-3 sm:p-4">
+                      <div class="font-semibold text-green-700 mb-1 sm:mb-2 flex items-center justify-center sm:justify-start">
                         <span class="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse" style="animation-delay: 0.2s;"></span>
-                        공장 직거래
+                        <span class="text-xs sm:text-sm">공장 직거래</span>
                       </div>
-                      <p class="text-sm text-green-600">국내/해외 공장 직접 구매</p>
+                      <p class="text-xs sm:text-sm text-green-600 text-center sm:text-left">국내/해외 공장 직접 구매</p>
                     </div>
-                    <div class="bg-green-50 rounded-lg p-4">
-                      <div class="font-semibold text-green-700 mb-2 flex items-center">
+                    <div class="bg-green-50 rounded-lg p-3 sm:p-4">
+                      <div class="font-semibold text-green-700 mb-1 sm:mb-2 flex items-center justify-center sm:justify-start">
                         <span class="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse" style="animation-delay: 0.4s;"></span>
-                        특별 경로 발굴
+                        <span class="text-xs sm:text-sm">특별 경로 발굴</span>
                       </div>
-                      <p class="text-sm text-green-600">독점 계약 및 특가 경로</p>
+                      <p class="text-xs sm:text-sm text-green-600 text-center sm:text-left">독점 계약 및 특가 경로</p>
                     </div>
                   </div>
                 </div>
@@ -457,27 +449,27 @@
                   <p class="text-sm sm:text-base text-gray-600 mb-3 sm:mb-4 leading-relaxed break-words">
                     검증 완료 후 <span class="font-semibold text-red-600">최저가, 구매링크, 절약금액, 상세 분석</span>을 포함한 종합적인 결과를 제공합니다.
                   </p>
-                  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div class="bg-red-50 rounded-lg p-4">
-                      <div class="font-semibold text-red-700 mb-2 flex items-center">
+                  <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
+                    <div class="bg-red-50 rounded-lg p-3 sm:p-4">
+                      <div class="font-semibold text-red-700 mb-1 sm:mb-2 flex items-center justify-center sm:justify-start">
                         <span class="w-2 h-2 bg-red-500 rounded-full mr-2 animate-pulse"></span>
-                        최저가 정보
+                        <span class="text-xs sm:text-sm">최저가 정보</span>
                       </div>
-                      <p class="text-sm text-red-600">요청가 대비 절약 금액</p>
+                      <p class="text-xs sm:text-sm text-red-600 text-center sm:text-left">요청가 대비 절약 금액</p>
                     </div>
-                    <div class="bg-red-50 rounded-lg p-4">
-                      <div class="font-semibold text-red-700 mb-2 flex items-center">
+                    <div class="bg-red-50 rounded-lg p-3 sm:p-4">
+                      <div class="font-semibold text-red-700 mb-1 sm:mb-2 flex items-center justify-center sm:justify-start">
                         <span class="w-2 h-2 bg-red-500 rounded-full mr-2 animate-pulse" style="animation-delay: 0.2s;"></span>
-                        구매 방법 안내
+                        <span class="text-xs sm:text-sm">구매 방법 안내</span>
                       </div>
-                      <p class="text-sm text-red-600">단계별 구매 가이드</p>
+                      <p class="text-xs sm:text-sm text-red-600 text-center sm:text-left">단계별 구매 가이드</p>
                     </div>
-                    <div class="bg-red-50 rounded-lg p-4">
-                      <div class="font-semibold text-red-700 mb-2 flex items-center">
+                    <div class="bg-red-50 rounded-lg p-3 sm:p-4">
+                      <div class="font-semibold text-red-700 mb-1 sm:mb-2 flex items-center justify-center sm:justify-start">
                         <span class="w-2 h-2 bg-red-500 rounded-full mr-2 animate-pulse" style="animation-delay: 0.4s;"></span>
-                        추가 상담 지원
+                        <span class="text-xs sm:text-sm">추가 상담 지원</span>
                       </div>
-                      <p class="text-sm text-red-600">구매 과정 중 문의 응답</p>
+                      <p class="text-xs sm:text-sm text-red-600 text-center sm:text-left">구매 과정 중 문의 응답</p>
                     </div>
                   </div>
                 </div>
