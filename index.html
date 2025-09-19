@@ -104,7 +104,7 @@
         <div class="absolute bottom-0 right-0 w-80 h-80 bg-pink-400 opacity-20 rounded-full blur-2xl"></div>
       </div>
       <!-- Hero 콘텐츠 -->
-      <div class="relative z-10 max-w-7xl mx-auto flex flex-col items-center animate-fadein-up w-full">
+      <div class="relative z-10 max-w-7xl mx-auto flex flex-col items-center justify-center animate-fadein-up w-full text-center">
         <!-- 아이콘/일러스트 -->
         <div class="mb-10 animate-bounce-slow w-full flex justify-center items-center gap-4 mt-16 sm:mt-20 md:mt-24">
           <span class="text-3xl md:text-5xl font-extrabold text-blue-400 drop-shadow-lg">PriceHunter</span>
@@ -204,7 +204,7 @@
       <section class="w-full py-20 px-4 bg-gradient-to-b from-white/80 to-blue-50 relative">
         <div class="max-w-4xl mx-auto flex flex-col items-center">
           <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-extrabold text-blue-800 text-center mb-6 md:mb-8 lg:mb-10 drop-shadow-lg animate-fadein-up px-4">고객의 진짜 고민, <span class="text-pink-500">우리가 해결합니다</span></h2>
-                      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 lg:gap-8 w-full">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 lg:gap-8 w-full">
             <!-- 스토리 카드 1 -->
                           <div class="bg-white rounded-2xl shadow-xl p-6 sm:p-8 flex flex-col items-center text-center animate-fadein-up" style="animation-delay:0.1s;">
                 <div class="mb-4">
@@ -601,7 +601,7 @@
     </button>
     <button id="admin-cleanup-btn" class="fixed top-16 right-48 z-50 px-4 py-2 bg-red-600 text-white rounded-lg shadow hover:bg-red-700 transition hidden cursor-default" aria-label="테스트 데이터 정리" title="테스트 데이터 정리" onclick="cleanupTestData()">🧹 정리</button>
     <!-- 저렴하게 구입한 사례 섹션: main 바깥, 전체 폭 -->
-    <section class="mt-24 mb-10 max-w-7xl mx-auto px-2">
+    <section class="mt-24 mb-10 max-w-7xl mx-auto px-4 text-center">
       <div class="flex flex-col items-center mb-12">
         <h2 class="relative text-3xl md:text-4xl font-extrabold text-blue-800 text-center tracking-tight drop-shadow-lg mb-3">
           <span class="px-6 py-2 bg-gradient-to-r from-blue-100 via-white to-emerald-100 rounded-2xl shadow-md inline-block">
@@ -626,7 +626,7 @@
           </div>
         </div>
       </div>
-      <div id="case-slider-wrapper" class="relative w-full max-w-7xl mx-auto">
+      <div id="case-slider-wrapper" class="relative w-full max-w-7xl mx-auto text-center">
         <!-- 로그인 필요 오버레이 -->
         <div id="login-required-overlay" class="absolute inset-0 bg-white/90 backdrop-blur-md rounded-2xl z-10 flex items-center justify-center">
           <div class="text-center">
@@ -763,16 +763,18 @@
         // 5. 포인트 시스템 초기화 및 블러 제어
         function initializeReviewSystem() {
           // 로그인 상태 확인하여 후기 오버레이 제어
-          const isLoggedIn = localStorage.getItem('loggedIn') === 'true';
+          const isLoggedIn = localStorage.getItem('loggedIn') === 'true' || localStorage.getItem('currentUser');
           const loginOverlay = document.getElementById('login-required-overlay');
           
           if (loginOverlay) {
             if (isLoggedIn) {
               // 로그인된 경우 오버레이 숨김
               loginOverlay.style.display = 'none';
+              console.log('✅ 로그인 상태: 후기 오버레이 숨김');
             } else {
               // 로그인되지 않은 경우 오버레이 표시
               loginOverlay.style.display = 'flex';
+              console.log('🔒 비로그인 상태: 후기 오버레이 표시');
             }
           }
         }
