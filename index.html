@@ -627,6 +627,18 @@
         </div>
       </div>
       <div id="case-slider-wrapper" class="relative w-full max-w-7xl mx-auto">
+        <!-- 로그인 필요 오버레이 -->
+        <div id="login-required-overlay" class="absolute inset-0 bg-white/90 backdrop-blur-md rounded-2xl z-10 flex items-center justify-center">
+          <div class="text-center">
+            <div class="text-6xl mb-4">🔒</div>
+            <h3 class="text-2xl font-bold text-gray-800 mb-2">회원가입 후 확인하세요</h3>
+            <p class="text-gray-600 mb-4">실제 고객들의 절약 사례를 보려면 회원가입이 필요합니다.</p>
+            <a href="register.html" class="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-3 rounded-full font-bold hover:from-blue-700 hover:to-purple-700 transition-all duration-300 shadow-lg">
+              회원가입하고 후기 보기
+            </a>
+          </div>
+        </div>
+        
         <div id="case-slider" class="flex overflow-x-auto no-scrollbar snap-x snap-mandatory gap-2 sm:gap-8 py-2 sm:py-4 transition-all duration-500">
           <!-- 슬라이드 아이템이 JS로 렌더링됨 -->
         </div>
@@ -705,7 +717,7 @@
               if (Array.isArray(arr) && arr.length > 0) return arr;
             } catch (e) {}
           }
-        })();
+        }
         
         // 2. getCaseProducts 함수 (Firebase 데이터 우선 사용)
         async function getCaseProducts() {
@@ -750,12 +762,31 @@
         
         // 5. 포인트 시스템 초기화 및 블러 제어
         function initializeReviewSystem() {
-          // 포인트 시스템 제거 - 블러 오버레이 항상 숨김
-          const blurOverlay = document.getElementById('blur-overlay');
-          if (blurOverlay) {
-            blurOverlay.style.display = 'none';
+          // 로그인 상태 확인하여 후기 오버레이 제어
+          const isLoggedIn = localStorage.getItem('loggedIn') === 'true';
+          const loginOverlay = document.getElementById('login-required-overlay');
+          
+          if (loginOverlay) {
+            if (isLoggedIn) {
+              // 로그인된 경우 오버레이 숨김
+              loginOverlay.style.display = 'none';
+            } else {
+              // 로그인되지 않은 경우 오버레이 표시
+              loginOverlay.style.display = 'flex';
+            }
           }
         }
+        
+        // 전역 함수로 노출
+        window.initializeReviewSystem = initializeReviewSystem;
+        
+        // 로그인 상태 변경 시 후기 오버레이 업데이트
+        function updateReviewAccess() {
+          initializeReviewSystem();
+        }
+        
+        // 전역 함수로 노출
+        window.updateReviewAccess = updateReviewAccess;
         
         // 6. renderCaseSlider 함수 정의
         const adminComments = [
@@ -848,7 +879,6 @@
         // 기존 caseProducts 데이터 삭제 후 새로 생성
         localStorage.removeItem('caseProducts');
         renderCaseSlider();
-        initializeReviewSystem();
         
         // 이미지 Lazy Loading 구현
         function initLazyLoading() {
@@ -1263,6 +1293,7 @@
           
           // UI 업데이트
           updateAuthUI();
+          updateReviewAccess(); // 후기 접근 권한 업데이트
           
           console.log('✅ 사용자 로그아웃 완료');
         } catch (error) {
@@ -1378,6 +1409,7 @@
         
         // updateAuthUI 호출
         updateAuthUI();
+        updateReviewAccess(); // 후기 접근 권한 업데이트
         
         // 성공 메시지
         showToast('관리자 로그아웃되었습니다.', 'success');
@@ -2545,6 +2577,7 @@
               document.getElementById('login-modal').classList.add('hidden');
               document.getElementById('login-error').classList.add('hidden');
               updateAuthUI();
+              updateReviewAccess(); // 후기 접근 권한 업데이트
               showToast('로그인 성공!', 'success');
               
             } catch (error) {
@@ -2565,6 +2598,7 @@
             document.getElementById('login-error').classList.add('hidden');
             document.body.style.overflow = '';
             updateAuthUI();
+            updateReviewAccess(); // 후기 접근 권한 업데이트
             showToast('로그인 성공!', 'success');
           } else {
             document.getElementById('login-error').classList.remove('hidden');
