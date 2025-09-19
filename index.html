@@ -1310,6 +1310,13 @@
         const isLoggedIn = localStorage.getItem('loggedIn') === 'true' || localStorage.getItem('currentUser');
         const isAdmin = validateAdminSession(); // 세션 검증 추가
         
+        console.log('🔍 로그인 상태 확인:', {
+          loggedIn: localStorage.getItem('loggedIn'),
+          currentUser: localStorage.getItem('currentUser'),
+          isLoggedIn: isLoggedIn,
+          isAdmin: isAdmin
+        });
+        
         // null 체크를 위한 안전한 함수
         function safeSetDisplay(elementId, display) {
           const element = document.getElementById(elementId);
@@ -2576,6 +2583,8 @@
               });
 
               // 로그인 성공 처리
+              localStorage.setItem('loggedIn', 'true');
+              localStorage.setItem('currentUser', JSON.stringify(userData));
               document.getElementById('login-modal').classList.add('hidden');
               document.getElementById('login-error').classList.add('hidden');
               updateAuthUI();
@@ -2596,6 +2605,8 @@
               localStorage.setItem('users', JSON.stringify(users));
             }
             
+            localStorage.setItem('loggedIn', 'true');
+            localStorage.setItem('currentUser', JSON.stringify(user));
             document.getElementById('login-modal').classList.add('hidden');
             document.getElementById('login-error').classList.add('hidden');
             document.body.style.overflow = '';

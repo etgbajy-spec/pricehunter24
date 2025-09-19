@@ -52,8 +52,25 @@
         </div>
     </header>
 
+    <!-- 로그인 필요 오버레이 -->
+    <div id="login-required-overlay" class="fixed inset-0 bg-white z-50 flex items-center justify-center">
+        <div class="text-center p-8">
+            <div class="text-6xl mb-6">🔒</div>
+            <h2 class="text-3xl font-bold text-gray-800 mb-4">회원가입 후 이용하세요</h2>
+            <p class="text-lg text-gray-600 mb-8">실제 고객 후기를 보려면 회원가입이 필요합니다.</p>
+            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                <a href="register.html" class="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-3 rounded-full font-bold hover:from-blue-700 hover:to-purple-700 transition">
+                    회원가입하기
+                </a>
+                <a href="index.html" class="border-2 border-gray-300 text-gray-700 px-8 py-3 rounded-full font-bold hover:bg-gray-50 transition">
+                    홈으로 돌아가기
+                </a>
+            </div>
+        </div>
+    </div>
+
     <!-- 메인 콘텐츠 -->
-    <main class="max-w-7xl mx-auto px-4 py-8">
+    <main class="max-w-7xl mx-auto px-4 py-8 hidden" id="main-content">
         <!-- 페이지 제목 -->
         <div class="text-center mb-12 animate-fade-in-up">
             <h1 class="text-4xl md:text-5xl font-bold text-gray-800 mb-4">
@@ -148,6 +165,9 @@
                 <a href="request-v2.html" class="bg-white text-blue-600 px-8 py-3 rounded-full font-bold hover:bg-gray-100 transition">
                     최저가 검증 의뢰하기
                 </a>
+                <a href="write-review.html" class="bg-yellow-400 text-gray-800 px-8 py-3 rounded-full font-bold hover:bg-yellow-300 transition">
+                    ✍️ 후기 작성하기
+                </a>
                 <a href="index.html" class="border-2 border-white text-white px-8 py-3 rounded-full font-bold hover:bg-white hover:text-blue-600 transition">
                     홈으로 돌아가기
                 </a>
@@ -173,6 +193,16 @@
             </div>
         </div>
     </footer>
+
+    <!-- 사진 모달 -->
+    <div id="photo-modal" class="fixed inset-0 bg-black bg-opacity-75 z-50 hidden flex items-center justify-center">
+        <div class="relative max-w-4xl max-h-full p-4">
+            <button onclick="closePhotoModal()" class="absolute top-4 right-4 text-white text-2xl hover:text-gray-300 z-10">
+                ✕
+            </button>
+            <img id="modal-photo" src="" alt="후기 사진" class="max-w-full max-h-full object-contain rounded-lg">
+        </div>
+    </div>
 
     <!-- Firebase SDK -->
     <script type="module">
@@ -260,7 +290,12 @@
                     method: '공장 직접구매',
                     badge: '실제 구매자',
                     purchaseDate: '2024-01-15',
-                    profileImage: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face'
+                    profileImage: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
+                    photos: [
+                        'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=400&h=300&fit=crop',
+                        'https://images.unsplash.com/photo-1541807084-5c52b6b3adef?w=400&h=300&fit=crop',
+                        'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=400&h=300&fit=crop'
+                    ]
                 },
                 {
                     id: '2',
@@ -279,7 +314,11 @@
                     method: '도매처 연동',
                     badge: '실제 구매자',
                     purchaseDate: '2024-01-10',
-                    profileImage: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face'
+                    profileImage: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face',
+                    photos: [
+                        'https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?w=400&h=300&fit=crop',
+                        'https://images.unsplash.com/photo-1593640408182-31c70c8268f5?w=400&h=300&fit=crop'
+                    ]
                 }
             ];
             
@@ -360,6 +399,22 @@
                         <div class="mb-4">
                             <p class="text-gray-700 leading-relaxed">${review.review}</p>
                         </div>
+
+                        <!-- 후기 사진들 -->
+                        ${review.photos && review.photos.length > 0 ? `
+                            <div class="mb-4">
+                                <div class="grid grid-cols-2 gap-2">
+                                    ${review.photos.slice(0, 4).map(photo => `
+                                        <img src="${photo}" alt="후기 사진" 
+                                             class="w-full h-24 object-cover rounded-lg cursor-pointer hover:opacity-80 transition"
+                                             onclick="openPhotoModal('${photo}')">
+                                    `).join('')}
+                                </div>
+                                ${review.photos.length > 4 ? `
+                                    <p class="text-sm text-gray-500 mt-2">+${review.photos.length - 4}장 더 보기</p>
+                                ` : ''}
+                            </div>
+                        ` : ''}
 
                         <!-- 배지 및 정보 -->
                         <div class="flex items-center justify-between">
@@ -529,11 +584,41 @@
         document.getElementById('sort-filter').addEventListener('change', applyFiltersAndSort);
         document.getElementById('search-input').addEventListener('input', applyFiltersAndSort);
 
+        // 사진 모달 함수들
+        function openPhotoModal(photoUrl) {
+            document.getElementById('modal-photo').src = photoUrl;
+            document.getElementById('photo-modal').classList.remove('hidden');
+        }
+
+        function closePhotoModal() {
+            document.getElementById('photo-modal').classList.add('hidden');
+        }
+
         // 전역 함수로 노출
         window.goToPage = goToPage;
+        window.openPhotoModal = openPhotoModal;
+        window.closePhotoModal = closePhotoModal;
 
-        // 페이지 로드 시 후기 데이터 로드
-        document.addEventListener('DOMContentLoaded', loadReviews);
+        // 로그인 상태 확인 및 접근 제어
+        function checkLoginStatus() {
+            const isLoggedIn = localStorage.getItem('loggedIn') === 'true' || localStorage.getItem('currentUser');
+            const loginOverlay = document.getElementById('login-required-overlay');
+            const mainContent = document.getElementById('main-content');
+            
+            if (isLoggedIn) {
+                // 로그인된 경우
+                loginOverlay.style.display = 'none';
+                mainContent.classList.remove('hidden');
+                loadReviews();
+            } else {
+                // 로그인되지 않은 경우
+                loginOverlay.style.display = 'flex';
+                mainContent.classList.add('hidden');
+            }
+        }
+
+        // 페이지 로드 시 로그인 상태 확인
+        document.addEventListener('DOMContentLoaded', checkLoginStatus);
     </script>
 </body>
 </html>

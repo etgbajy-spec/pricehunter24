@@ -1667,14 +1667,31 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                     return;
                 }
 
-                const { collection, getDocs } = window.firebaseFirestoreFunctions;
+                const { collection, getDocs, doc, getDoc } = window.firebaseFirestoreFunctions;
                 const reviewsRef = collection(window.firebaseDb, 'reviews');
                 const snapshot = await getDocs(reviewsRef);
                 
                 allReviews = [];
-                snapshot.forEach(doc => {
-                    allReviews.push({ id: doc.id, ...doc.data() });
-                });
+                
+                // 각 후기에 대해 의뢰 건 정보도 함께 로드
+                for (const docSnapshot of snapshot.docs) {
+                    const reviewData = { id: docSnapshot.id, ...docSnapshot.data() };
+                    
+                    // 의뢰 건 정보가 있으면 함께 로드
+                    if (reviewData.requestId) {
+                        try {
+                            const requestRef = doc(window.firebaseDb, 'requests', reviewData.requestId);
+                            const requestSnap = await getDoc(requestRef);
+                            if (requestSnap.exists()) {
+                                reviewData.requestData = { id: requestSnap.id, ...requestSnap.data() };
+                            }
+                        } catch (error) {
+                            console.warn('의뢰 건 정보 로드 실패:', reviewData.requestId, error);
+                        }
+                    }
+                    
+                    allReviews.push(reviewData);
+                }
                 
                 // 클라이언트 사이드에서 정렬 (최신순)
                 allReviews.sort((a, b) => {
@@ -1754,6 +1771,7 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="text-sm font-medium text-gray-900">${review.name}</div>
                             <div class="text-sm text-gray-500">${review.ageGroup} • ${review.occupation}</div>
+                            ${review.requestData ? `<div class="text-xs text-blue-600">의뢰건: ${review.requestData.productName}</div>` : ''}
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="text-sm font-medium text-gray-900">${review.productName}</div>
@@ -2097,6 +2115,105 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
         window.rejectReview = rejectReview;
         window.deleteReview = deleteReview;
         window.addNewReview = addNewReview;
+        window.editReview = editReview;
+
+        // 후기 수정
+        function editReview() {
+            if (allReviews.length === 0) {
+                alert('수정할 후기가 없습니다. 먼저 후기 데이터를 로드해주세요.');
+                return;
+            }
+            
+            // 후기 목록 표시
+            let reviewList = '수정할 후기를 선택하세요:\n\n';
+            allReviews.forEach((review, index) => {
+                reviewList += `${index + 1}. ${review.name} - ${review.productName} (${review.rating}점)\n`;
+            });
+            
+            const choice = prompt(reviewList + '\n번호를 입력하세요:');
+            if (!choice) return;
+            
+            const reviewIndex = parseInt(choice) - 1;
+            if (reviewIndex < 0 || reviewIndex >= allReviews.length) {
+                alert('올바른 번호를 입력해주세요.');
+                return;
+            }
+            
+            const review = allReviews[reviewIndex];
+            
+            // 수정할 필드 선택
+            const field = prompt(`수정할 필드를 선택하세요:\n1. 이름\n2. 제품명\n3. 원래 가격\n4. 최종 가격\n5. 절약 금액\n6. 평점\n7. 후기 내용\n8. 승인 상태\n\n번호를 입력하세요:`);
+            if (!field) return;
+            
+            let newValue;
+            switch (field) {
+                case '1':
+                    newValue = prompt('새 이름:', review.name);
+                    if (newValue) review.name = newValue;
+                    break;
+                case '2':
+                    newValue = prompt('새 제품명:', review.productName);
+                    if (newValue) review.productName = newValue;
+                    break;
+                case '3':
+                    newValue = prompt('새 원래 가격:', review.originalPrice);
+                    if (newValue) review.originalPrice = newValue;
+                    break;
+                case '4':
+                    newValue = prompt('새 최종 가격:', review.finalPrice);
+                    if (newValue) review.finalPrice = newValue;
+                    break;
+                case '5':
+                    newValue = prompt('새 절약 금액:', review.savings);
+                    if (newValue) review.savings = newValue;
+                    break;
+                case '6':
+                    newValue = prompt('새 평점 (1-5):', review.rating);
+                    if (newValue && newValue >= 1 && newValue <= 5) review.rating = parseInt(newValue);
+                    break;
+                case '7':
+                    newValue = prompt('새 후기 내용:', review.review);
+                    if (newValue) review.review = newValue;
+                    break;
+                case '8':
+                    newValue = confirm('승인 상태를 변경하시겠습니까?');
+                    if (newValue !== null) review.approved = newValue;
+                    break;
+                default:
+                    alert('올바른 번호를 입력해주세요.');
+                    return;
+            }
+            
+            // Firebase에 업데이트
+            updateReviewInFirebase(review);
+        }
+
+        // Firebase에서 후기 업데이트
+        async function updateReviewInFirebase(review) {
+            try {
+                const { doc, updateDoc } = window.firebaseFirestoreFunctions;
+                const reviewRef = doc(window.firebaseDb, 'reviews', review.id);
+                
+                await updateDoc(reviewRef, {
+                    name: review.name,
+                    productName: review.productName,
+                    originalPrice: review.originalPrice,
+                    finalPrice: review.finalPrice,
+                    savings: review.savings,
+                    rating: review.rating,
+                    review: review.review,
+                    approved: review.approved,
+                    updatedAt: new Date()
+                });
+                
+                alert('후기가 성공적으로 수정되었습니다!');
+                loadReviewsData(); // 데이터 새로고침
+                
+            } catch (error) {
+                console.error('후기 수정 실패:', error);
+                alert('후기 수정에 실패했습니다: ' + error.message);
+            }
+        }
         
         // 초기 후기 데이터 생성 함수 (init-reviews-data.js에서 가져옴)
         window.initializeReviewsData = async function() {
@@ -2627,12 +2744,15 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 <div id="reviews-section" class="section-content p-8 hidden">
                     <div class="flex justify-between items-center mb-6">
                         <h2 class="text-2xl font-bold text-gray-800">⭐ 후기 관리</h2>
-                        <div class="flex gap-2">
+                        <div class="flex gap-2 flex-wrap">
                             <button onclick="initializeReviewsData()" class="px-4 py-2 bg-purple-500 text-white rounded-lg font-semibold hover:bg-purple-600 transition">
                                 🚀 초기 후기 데이터 생성
                             </button>
                             <button onclick="addNewReview()" class="px-4 py-2 bg-green-500 text-white rounded-lg font-semibold hover:bg-green-600 transition">
                                 ➕ 새 후기 추가
+                            </button>
+                            <button onclick="editReview()" class="px-4 py-2 bg-yellow-500 text-white rounded-lg font-semibold hover:bg-yellow-600 transition">
+                                ✏️ 후기 수정
                             </button>
                             <button onclick="goToPage('reviews.html')" class="px-4 py-2 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition">
                                 👁️ 후기 페이지 보기
