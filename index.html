@@ -123,7 +123,7 @@
             </span>
           </h1>
           <p class="text-lg sm:text-xl md:text-2xl text-gray-600 mb-6 max-w-3xl mx-auto leading-relaxed">
-            더 이상 가격 비교로 고민하지 마세요.<br class="sm:hidden">
+            <span id="admin-secret-trigger" class="cursor-default select-none" style="cursor: default !important;">더 이상 가격 비교로 고민하지 마세요.</span><br class="sm:hidden">
             <span class="font-semibold text-blue-600">PriceHunter</span>가 진짜 최저가를 찾아드립니다.
           </p>
         </div>
@@ -1812,7 +1812,47 @@
       })();
     });
       
+      // 관리자 모드 숨겨진 트리거 (연타 클릭)
+      let adminClickCount = 0;
+      let adminClickTimer = null;
+      const ADMIN_CLICK_THRESHOLD = 7; // 7번 연타
+      const ADMIN_CLICK_TIMEOUT = 2000; // 2초 내에 연타
+
+      function setupAdminSecretTrigger() {
+        const trigger = document.getElementById('admin-secret-trigger');
+        if (!trigger) return;
+
+        trigger.addEventListener('click', function(e) {
+          e.preventDefault();
+          adminClickCount++;
+          
+          // 타이머 리셋
+          if (adminClickTimer) {
+            clearTimeout(adminClickTimer);
+          }
+          
+          // 연타 카운트 확인
+          if (adminClickCount >= ADMIN_CLICK_THRESHOLD) {
+            console.log('🔓 관리자 모드 숨겨진 트리거 활성화!');
+            showAdminLoginModal();
+            adminClickCount = 0;
+            return;
+          }
+          
+          // 2초 후 카운트 리셋
+          adminClickTimer = setTimeout(() => {
+            adminClickCount = 0;
+            console.log('관리자 연타 카운트 리셋');
+          }, ADMIN_CLICK_TIMEOUT);
+          
+          console.log(`관리자 연타: ${adminClickCount}/${ADMIN_CLICK_THRESHOLD}`);
+        });
+      }
+
       window.addEventListener('DOMContentLoaded', function() {
+        // 관리자 모드 숨겨진 트리거 설정
+        setupAdminSecretTrigger();
+        
         // Firebase Auth 상태 감지 설정
         setTimeout(() => {
           setupAuthStateListener();
