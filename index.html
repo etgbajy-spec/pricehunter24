@@ -129,27 +129,12 @@
         </div>
         <div class="flex flex-col items-center w-full max-w-5xl mx-auto">
           <div class="flex flex-col items-center w-full gap-4">
-            <!-- 최저가 검증하기 버튼 컨테이너 -->
-            <div class="relative w-full">
-              <button id="request-v2-btn"
-                class="inline-block px-6 sm:px-8 md:px-12 lg:px-20 py-4 sm:py-5 md:py-6 lg:py-8 bg-pink-500 text-white text-lg sm:text-xl md:text-2xl lg:text-4xl font-extrabold rounded-full shadow-2xl hover:bg-pink-600 hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-pink-300 animate-fadein-up text-center mb-2 w-full sm:w-auto"
-                style="box-shadow:0 8px 32px 0 rgba(0,0,0,0.18);"
-                        aria-label="최저가 검증 시작하기">
-                🚀 최저가 요청하기
-              </button>
-              
-              <!-- 로그인 필요 오버레이 -->
-              <div id="request-login-required-overlay" class="absolute inset-0 bg-white/90 backdrop-blur-md rounded-full z-10 flex items-center justify-center">
-                <div class="text-center p-4">
-                  <div class="text-4xl mb-2">🔒</div>
-                  <h3 class="text-lg font-bold text-gray-800 mb-1">회원가입 후 이용하세요</h3>
-                  <p class="text-sm text-gray-600 mb-3">최저가 검증 서비스를 이용하려면 회원가입이 필요합니다.</p>
-                  <a href="register.html" class="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-2 rounded-full font-bold hover:from-blue-700 hover:to-purple-700 transition-all duration-300 shadow-lg text-sm">
-                    회원가입하고 시작하기
-                  </a>
-                </div>
-              </div>
-            </div>
+            <button id="request-v2-btn"
+              class="inline-block px-6 sm:px-8 md:px-12 lg:px-20 py-4 sm:py-5 md:py-6 lg:py-8 bg-pink-500 text-white text-lg sm:text-xl md:text-2xl lg:text-4xl font-extrabold rounded-full shadow-2xl hover:bg-pink-600 hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-pink-300 animate-fadein-up text-center mb-2 w-full sm:w-auto"
+              style="box-shadow:0 8px 32px 0 rgba(0,0,0,0.18);"
+                      aria-label="최저가 검증 시작하기">
+              🚀 최저가 요청하기
+            </button>
             <a href="support.html"
               class="inline-block px-4 sm:px-6 md:px-8 lg:px-12 py-3 sm:py-4 md:py-4 lg:py-6 bg-yellow-200 text-pink-700 text-sm sm:text-base md:text-lg lg:text-2xl font-bold rounded-full shadow-xl hover:bg-yellow-300 hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-yellow-300 animate-fadein-up text-center border-2 border-pink-300 w-full sm:w-auto"
               aria-label="구매 전 필독사항 읽기">
@@ -808,31 +793,13 @@
           }
         }
 
-        // 최저가 검증 버튼 접근 제어 초기화
-        function initializeRequestButtonAccess() {
-          const isLoggedIn = localStorage.getItem('loggedIn') === 'true' || localStorage.getItem('currentUser');
-          const requestOverlay = document.getElementById('request-login-required-overlay');
-
-          if (requestOverlay) {
-            if (isLoggedIn) {
-              requestOverlay.style.display = 'none';
-              console.log('✅ 로그인 상태: 최저가 검증 버튼 활성화');
-            } else {
-              // 로그인되지 않은 경우 오버레이 표시
-              requestOverlay.style.display = 'flex';
-              console.log('🔒 비로그인 상태: 최저가 검증 버튼 비활성화');
-            }
-          }
-        }
         
         // 전역 함수로 노출
         window.initializeReviewSystem = initializeReviewSystem;
-        window.initializeRequestButtonAccess = initializeRequestButtonAccess;
         
         // 로그인 상태 변경 시 후기 오버레이 업데이트
         function updateReviewAccess() {
           initializeReviewSystem();
-          initializeRequestButtonAccess();
         }
         
         // 전역 함수로 노출
@@ -2740,7 +2707,7 @@
         }
 
 
-        // 최저가 요청하기(버전2) 버튼 클릭 이벤트 (로그인된 경우에만 작동)
+        // 최저가 요청하기(버전2) 버튼 클릭 이벤트
         var reqBtn = document.getElementById('request-v2-btn');
         if (reqBtn) {
           reqBtn.onclick = function() {
@@ -2748,8 +2715,11 @@
             var loggedIn = localStorage.getItem('loggedIn') === 'true' || localStorage.getItem('currentUser');
             if (loggedIn) {
               window.location.href = 'request-v2.html';
+            } else {
+              // 비회원 경고창
+              alert('🔒 회원가입 후 이용하세요!\n\n최저가 검증 서비스를 이용하려면 회원가입이 필요합니다.');
+              window.location.href = 'register.html';
             }
-            // 로그인되지 않은 경우 오버레이가 클릭을 차단하므로 아무것도 하지 않음
           };
         }
         
@@ -3406,7 +3376,15 @@ if (mypageBtn) {
       }
       
       function goToRequest() {
-        window.location.href = 'request-v2.html';
+        // 로그인 상태 확인
+        var loggedIn = localStorage.getItem('loggedIn') === 'true' || localStorage.getItem('currentUser');
+        if (loggedIn) {
+          window.location.href = 'request-v2.html';
+        } else {
+          // 비회원 경고창
+          alert('🔒 회원가입 후 이용하세요!\n\n최저가 검증 서비스를 이용하려면 회원가입이 필요합니다.');
+          window.location.href = 'register.html';
+        }
       }
     </script>
     
@@ -3489,7 +3467,6 @@ if (mypageBtn) {
         
         // 후기 시스템 초기화 및 렌더링
         initializeReviewSystem();
-        initializeRequestButtonAccess();
         renderCaseSlider();
         
         // 햄버거 메뉴 초기화
