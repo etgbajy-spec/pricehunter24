@@ -12,8 +12,8 @@
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🔍%3C/text%3E%3C/svg%3E">
     
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tailwind CSS (Production Ready) -->
+    <link rel="stylesheet" href="tailwind.css">
     
     <!-- 모바일 여백 제거 CSS -->
     <link rel="stylesheet" href="mobile-fix.css">
@@ -293,12 +293,23 @@
                 loadingSpinner.classList.remove('hidden');
                 
                 const reviewsRef = collection(db, 'reviews');
-                const q = query(reviewsRef, where('approved', '==', true), orderBy('createdAt', 'desc'));
-                const snapshot = await getDocs(q);
+                // 인덱스 문제를 피하기 위해 쿼리 없이 모든 데이터 가져오기
+                const snapshot = await getDocs(reviewsRef);
                 
                 allReviews = [];
                 snapshot.forEach(doc => {
-                    allReviews.push({ id: doc.id, ...doc.data() });
+                    const data = doc.data();
+                    // 승인된 후기만 포함
+                    if (data.approved === true) {
+                        allReviews.push({ id: doc.id, ...data });
+                    }
+                });
+                
+                // 클라이언트 사이드에서 정렬 (최신순)
+                allReviews.sort((a, b) => {
+                    const dateA = a.createdAt ? new Date(a.createdAt.seconds * 1000) : new Date(a.purchaseDate || 0);
+                    const dateB = b.createdAt ? new Date(b.createdAt.seconds * 1000) : new Date(b.purchaseDate || 0);
+                    return dateB - dateA;
                 });
                 
                 filteredReviews = [...allReviews];
