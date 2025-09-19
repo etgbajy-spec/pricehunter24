@@ -651,6 +651,18 @@
         <button id="case-prev" class="absolute left-0 top-1/2 -translate-y-1/2 bg-white/80 rounded-full shadow p-2 z-10 hidden md:block" aria-label="이전 사례 보기" title="이전 사례 보기"><svg class="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
         <button id="case-next" class="absolute right-0 top-1/2 -translate-y-1/2 bg-white/80 rounded-full shadow p-2 z-10 hidden md:block" aria-label="다음 사례 보기" title="다음 사례 보기"><svg class="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
       </div>
+      
+      <!-- 더 많은 후기 보기 버튼 -->
+      <div class="text-center mt-8">
+        <button onclick="goToReviewsPage()" class="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-3 rounded-full font-bold hover:from-blue-700 hover:to-purple-700 transition-all duration-300 shadow-lg flex items-center gap-2 mx-auto">
+          <span>⭐</span>
+          <span>더 많은 후기 보기</span>
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+          </svg>
+        </button>
+        <p class="text-sm text-gray-500 mt-2">실제 고객들의 생생한 후기를 더 자세히 확인해보세요</p>
+      </div>
     </section>
     <script>
         // 1. 복구 IIFE
@@ -3452,6 +3464,14 @@ if (mypageBtn) {
             closeMenu();
           });
         }
+        
+        // 후기 페이지로 이동하는 함수
+        function goToReviewsPage() {
+          window.location.href = 'reviews.html';
+        }
+        
+        // 전역 함수로 노출
+        window.goToReviewsPage = goToReviewsPage;
       }
     </script>
 
