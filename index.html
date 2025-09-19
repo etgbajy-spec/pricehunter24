@@ -1834,7 +1834,7 @@
           // 연타 카운트 확인
           if (adminClickCount >= ADMIN_CLICK_THRESHOLD) {
             console.log('🔓 관리자 모드 숨겨진 트리거 활성화!');
-            showAdminLoginModal();
+            tryAdminLogin();
             adminClickCount = 0;
             return;
           }
@@ -1942,6 +1942,9 @@
             showToast('비밀번호가 올바르지 않습니다.', 'error');
           }
         }
+        
+        // 전역 함수로 노출
+        window.tryAdminLogin = tryAdminLogin;
         
         // 관리자 세션 검증
         function validateAdminSession() {
