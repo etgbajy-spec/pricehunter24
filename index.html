@@ -13,7 +13,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     
     <!-- Content Security Policy - Firebase iframe 허용 -->
-    <meta http-equiv="Content-Security-Policy" content="frame-src 'self' https://www.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com;" />
+    <meta http-equiv="Content-Security-Policy" content="frame-src 'self' https://www.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com;" />
     
     <title>PriceHunter</title>
     
@@ -560,10 +560,10 @@
                 
                         <div class="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full">
           <button onclick="showEvidence()" class="w-full sm:flex-1 bg-emerald-600 text-white py-3 px-4 sm:px-6 rounded-lg font-semibold hover:bg-emerald-700 transition text-sm sm:text-base text-center" style="white-space: nowrap; box-sizing: border-box;">
-            절약 사례 보기
+            실제 후기 보기
           </button>
-          <a href="savings-king.html" class="w-full sm:flex-1 bg-blue-600 text-white py-3 px-4 sm:px-6 rounded-lg font-semibold hover:bg-blue-700 transition text-center text-sm sm:text-base" style="white-space: nowrap; box-sizing: border-box;">
-            절감왕 아카이브
+          <a href="reviews.html" class="w-full sm:flex-1 bg-blue-600 text-white py-3 px-4 sm:px-6 rounded-lg font-semibold hover:bg-blue-700 transition text-center text-sm sm:text-base" style="white-space: nowrap; box-sizing: border-box;">
+            실제 고객 후기
           </a>
           <button onclick="goToRequest()" class="w-full sm:flex-1 bg-pink-600 text-white py-3 px-4 sm:px-6 rounded-lg font-semibold hover:bg-pink-700 transition text-sm sm:text-base text-center" style="white-space: nowrap; box-sizing: border-box;">
             나도 의뢰해서 절약하기
@@ -611,39 +611,22 @@
         </h2>
         <p class="text-lg md:text-xl text-gray-500 font-medium mt-2 text-center">요청가 대비 실제 절약한 금액을 확인해보세요</p>
         
-        <!-- 포인트 시스템 안내 -->
-        <div id="points-info" class="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-2xl p-6 mb-8 text-center max-w-2xl">
+        <!-- 회원가입 안내 -->
+        <div id="signup-info" class="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-2xl p-6 mb-8 text-center max-w-2xl">
           <div class="flex items-center justify-center gap-4 mb-4">
-            <span class="text-2xl">💎</span>
-            <span class="text-xl font-bold text-blue-800">포인트로 열어보는 실제 사례</span>
-            <span class="text-2xl">💎</span>
+            <span class="text-2xl">⭐</span>
+            <span class="text-xl font-bold text-blue-800">실제 고객 후기</span>
+            <span class="text-2xl">⭐</span>
           </div>
-          <p class="text-gray-700 mb-4">실제 고객들의 절약 사례를 보려면 포인트가 필요합니다.</p>
-          <div class="flex justify-center items-center gap-8 text-sm">
-            <div class="bg-white rounded-lg p-3 shadow-sm">
-              <div class="font-bold text-blue-600">필요 포인트</div>
-              <div class="text-2xl font-bold text-blue-800">50</div>
-            </div>
-            <div class="bg-white rounded-lg p-3 shadow-sm">
-              <div class="font-bold text-green-600">현재 포인트</div>
-              <div id="current-points" class="text-2xl font-bold text-green-800">0</div>
-            </div>
+          <p class="text-gray-700 mb-4">실제 고객들의 절약 사례를 확인해보세요!</p>
+          <div class="flex justify-center items-center gap-4">
+            <a href="register.html" class="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-full font-bold hover:from-blue-700 hover:to-purple-700 transition-all duration-300 shadow-lg">
+              회원가입하고 후기 보기
+            </a>
           </div>
         </div>
       </div>
       <div id="case-slider-wrapper" class="relative w-full max-w-7xl mx-auto">
-        <!-- 블러 오버레이 -->
-        <div id="blur-overlay" class="absolute inset-0 bg-white/80 backdrop-blur-md rounded-2xl z-10 flex items-center justify-center">
-          <div class="text-center">
-            <div class="text-6xl mb-4">🔒</div>
-            <h3 class="text-2xl font-bold text-gray-800 mb-2">포인트로 열어보세요</h3>
-            <p class="text-gray-600 mb-4">실제 고객들의 절약 사례를 보려면 50포인트가 필요합니다.</p>
-            <button onclick="showEvidence()" class="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-3 rounded-full font-bold hover:from-blue-700 hover:to-purple-700 transition-all duration-300 shadow-lg">
-              💎 포인트로 열기
-            </button>
-          </div>
-        </div>
-        
         <div id="case-slider" class="flex overflow-x-auto no-scrollbar snap-x snap-mandatory gap-2 sm:gap-8 py-2 sm:py-4 transition-all duration-500">
           <!-- 슬라이드 아이템이 JS로 렌더링됨 -->
         </div>
@@ -665,21 +648,74 @@
       </div>
     </section>
     <script>
-        // 1. 복구 IIFE
-        (function() {
+        // 1. Firebase에서 실제 후기 데이터 로드
+        async function loadReviewsFromFirebase() {
+          try {
+            // Firebase 초기화 확인
+            if (typeof window.firebaseDb === 'undefined' || !window.firebaseDb) {
+              console.log('Firebase가 초기화되지 않음, 기본 데이터 사용');
+              return getDefaultReviews();
+            }
+
+            const { collection, getDocs } = window.firebaseFirestoreFunctions;
+            const reviewsRef = collection(window.firebaseDb, 'reviews');
+            const snapshot = await getDocs(reviewsRef);
+            
+            const reviews = [];
+            snapshot.forEach(doc => {
+              const data = doc.data();
+              if (data.approved === true) {
+                reviews.push({
+                  name: `${data.name}, ${data.ageGroup} ${data.occupation}`,
+                  img: data.profileImage || "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80",
+                  originalPrice: data.originalPrice,
+                  finalPrice: data.finalPrice,
+                  savings: data.savings,
+                  savingsPercent: data.savingsPercent + "%",
+                  desc: data.review.substring(0, 50) + "...",
+                  review: data.review,
+                  country: data.country,
+                  shipping: data.shipping,
+                  method: data.method,
+                  badge: data.badge,
+                  stars: data.rating || 5,
+                  date: data.purchaseDate
+                });
+              }
+            });
+
+            // 최신순 정렬
+            reviews.sort((a, b) => new Date(b.date) - new Date(a.date));
+            
+            console.log(`✅ Firebase에서 ${reviews.length}개 후기 로드됨`);
+            return reviews.length > 0 ? reviews : getDefaultReviews();
+            
+          } catch (error) {
+            console.error('Firebase 후기 로드 실패:', error);
+            return getDefaultReviews();
+          }
+        }
+
+        // 기본 후기 데이터 (Firebase 연결 실패 시 사용)
+        function getDefaultReviews() {
           const saved = localStorage.getItem('caseProducts');
           if (saved) {
             try {
               const arr = JSON.parse(saved);
-              if (Array.isArray(arr) && arr.length === 0) {
-                localStorage.removeItem('caseProducts');
-              }
+              if (Array.isArray(arr) && arr.length > 0) return arr;
             } catch (e) {}
           }
         })();
         
-        // 2. getCaseProducts 함수 (16개 예시 카드만)
-        function getCaseProducts() {
+        // 2. getCaseProducts 함수 (Firebase 데이터 우선 사용)
+        async function getCaseProducts() {
+          // Firebase에서 데이터 로드 시도
+          const firebaseReviews = await loadReviewsFromFirebase();
+          if (firebaseReviews && firebaseReviews.length > 0) {
+            return firebaseReviews;
+          }
+          
+          // Firebase 실패 시 localStorage 확인
           const saved = localStorage.getItem('caseProducts');
           if (saved) {
             try {
@@ -710,65 +746,14 @@
         }
         
         // 4. 포인트 시스템 함수들 (먼저 정의)
-        function getUserPoints() {
-          const user = JSON.parse(localStorage.getItem('user') || 'null');
-          if (!user) return 0;
-          
-          const points = localStorage.getItem(`points_${user.email}`) || '0';
-          return parseInt(points);
-        }
-        
-        function addUserPoints(points) {
-          const user = JSON.parse(localStorage.getItem('user') || 'null');
-          if (!user) return;
-          
-          const currentPoints = getUserPoints();
-          const newPoints = currentPoints + points;
-          localStorage.setItem(`points_${user.email}`, newPoints.toString());
-          
-          console.log(`${user.email}에게 ${points}포인트 추가. 총 ${newPoints}포인트`);
-        }
-        
-        function useUserPoints(points) {
-          const user = JSON.parse(localStorage.getItem('user') || 'null');
-          if (!user) return false;
-          
-          const currentPoints = getUserPoints();
-          if (currentPoints >= points) {
-            const newPoints = currentPoints - points;
-            localStorage.setItem(`points_${user.email}`, newPoints.toString());
-            console.log(`${user.email}가 ${points}포인트 사용. 남은 포인트: ${newPoints}`);
-            return true;
-          }
-          return false;
-        }
+        // 포인트 시스템 제거됨 - 후기 시스템으로 대체
         
         // 5. 포인트 시스템 초기화 및 블러 제어
-        function initializePointsSystem() {
-          const user = JSON.parse(localStorage.getItem('user') || 'null');
-          const isLoggedIn = localStorage.getItem('loggedIn') === 'true';
+        function initializeReviewSystem() {
+          // 포인트 시스템 제거 - 블러 오버레이 항상 숨김
           const blurOverlay = document.getElementById('blur-overlay');
-          const currentPointsElement = document.getElementById('current-points');
-          
-          if (currentPointsElement) {
-            const userPoints = getUserPoints();
-            currentPointsElement.textContent = userPoints;
-          }
-          
           if (blurOverlay) {
-            if (isLoggedIn && user) {
-              const userPoints = getUserPoints();
-              if (userPoints >= 50) {
-                // 포인트가 충분하면 블러 제거
-                blurOverlay.style.display = 'none';
-              } else {
-                // 포인트가 부족하면 블러 유지
-                blurOverlay.style.display = 'flex';
-              }
-            } else {
-              // 로그인하지 않았으면 블러 유지
-              blurOverlay.style.display = 'flex';
-            }
+            blurOverlay.style.display = 'none';
           }
         }
         
@@ -781,8 +766,8 @@
           "실제 배송/구매 내역 확인 완료!"
         ];
         
-        function renderCaseSlider() {
-          const caseSamples = getCaseProducts();
+        async function renderCaseSlider() {
+          const caseSamples = await getCaseProducts();
           const slider = document.getElementById('case-slider');
           if (!slider) return;
           
@@ -863,7 +848,7 @@
         // 기존 caseProducts 데이터 삭제 후 새로 생성
         localStorage.removeItem('caseProducts');
         renderCaseSlider();
-        initializePointsSystem();
+        initializeReviewSystem();
         
         // 이미지 Lazy Loading 구현
         function initLazyLoading() {
@@ -1954,123 +1939,9 @@
             window.location.href = 'admin-dashboard.html';
           };
         }
-        // 포인트 관리 시스템
-        function addPoints(userEmail, points, reason) {
-          try {
-            // 기존 포인트 데이터 가져오기
-            let pointsData = JSON.parse(localStorage.getItem('userPoints') || '{}');
-            
-            if (!pointsData[userEmail]) {
-              pointsData[userEmail] = {
-                total: 0,
-                history: []
-              };
-            }
-            
-            // 포인트 추가
-            pointsData[userEmail].total += points;
-            
-            // 포인트 히스토리에 기록
-            pointsData[userEmail].history.push({
-              points: points,
-              reason: reason,
-              date: new Date().toISOString(),
-              type: 'earn'
-            });
-            
-            // localStorage에 저장
-            localStorage.setItem('userPoints', JSON.stringify(pointsData));
-            
-            console.log(`포인트 적립 완료: ${userEmail}에게 ${points}포인트 추가 (${reason})`);
-            return true;
-          } catch (error) {
-            console.error('포인트 적립 실패:', error);
-            return false;
-          }
-        }
+        // 포인트 시스템 제거됨 - 후기 시스템으로 대체
 
-        function getPoints(userEmail) {
-          try {
-            const pointsData = JSON.parse(localStorage.getItem('userPoints') || '{}');
-            return pointsData[userEmail] ? pointsData[userEmail].total : 0;
-          } catch (error) {
-            console.error('포인트 조회 실패:', error);
-            return 0;
-          }
-        }
-
-        function usePoints(userEmail, points, reason) {
-          try {
-            const pointsData = JSON.parse(localStorage.getItem('userPoints') || '{}');
-            
-            if (!pointsData[userEmail] || pointsData[userEmail].total < points) {
-              return false; // 포인트 부족
-            }
-            
-            // 포인트 차감
-            pointsData[userEmail].total -= points;
-            
-            // 포인트 히스토리에 기록
-            pointsData[userEmail].history.push({
-              points: -points,
-              reason: reason,
-              date: new Date().toISOString(),
-              type: 'use'
-            });
-            
-            // localStorage에 저장
-            localStorage.setItem('userPoints', JSON.stringify(pointsData));
-            
-            console.log(`포인트 사용 완료: ${userEmail}에서 ${points}포인트 차감 (${reason})`);
-            return true;
-          } catch (error) {
-            console.error('포인트 사용 실패:', error);
-            return false;
-          }
-        }
-
-        // 포인트 열람 시스템 (24시간)
-        function checkPurchaseCaseAccess() {
-          const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-          if (!currentUser.email) {
-            showToast('🔒 로그인이 필요합니다!', 'error');
-            return false;
-          }
-
-          const userEmail = currentUser.email;
-          const accessKey = `case_access_${userEmail}`;
-          const lastAccess = localStorage.getItem(accessKey);
-          
-          if (lastAccess) {
-            const lastAccessTime = new Date(lastAccess);
-            const now = new Date();
-            const timeDiff = now - lastAccessTime;
-            const hoursDiff = timeDiff / (1000 * 60 * 60);
-            
-            if (hoursDiff < 24) {
-              // 24시간 내 재열람 가능
-              return true;
-            }
-          }
-          
-          // 포인트로 열람
-          const requiredPoints = 10;
-          const currentPoints = getPoints(userEmail);
-          
-          if (currentPoints < requiredPoints) {
-            showToast(`포인트가 부족합니다. 필요: ${requiredPoints}P, 보유: ${currentPoints}P`, 'error');
-            return false;
-          }
-          
-          // 포인트 차감 및 열람 권한 부여
-          if (usePoints(userEmail, requiredPoints, '구매사례 열람')) {
-            localStorage.setItem(accessKey, new Date().toISOString());
-            showToast(`구매사례를 열람했습니다. 24시간 동안 재열람 가능합니다. (-${requiredPoints}P)`, 'success');
-            return true;
-          }
-          
-          return false;
-        }
+        // 포인트 시스템 제거됨 - 후기 시스템으로 대체
 
 
 
@@ -2323,17 +2194,7 @@
                       }
                     }
                     
-                    // 포인트 데이터 백업
-                    if (localStorage.getItem('userPoints')) {
-                      try {
-                        const pointsData = JSON.parse(localStorage.getItem('userPoints'));
-                        if (pointsData[currentEmail]) {
-                          backupData.userPoints = JSON.stringify({ [userEmail]: pointsData[currentEmail] });
-                        }
-                      } catch (e) {
-                        console.warn('포인트 데이터 백업 실패:', e);
-                      }
-                    }
+                    // 포인트 시스템 제거됨
                   }
                   
                   // 백업 파일명으로 저장
@@ -3382,9 +3243,8 @@ if (mypageBtn) {
       
       // 절감왕 섹션 버튼 함수들
       function showEvidence() {
-        if (checkPurchaseCaseAccess()) {
-          window.location.href = 'gallery.html';
-        }
+        // 포인트 시스템 제거 - 바로 후기 페이지로 이동
+        window.location.href = 'reviews.html';
       }
       
       // 포인트 시스템 함수들은 위에서 이미 정의됨
@@ -3492,7 +3352,7 @@ if (mypageBtn) {
         setTimeout(showNext, 1000);
         
         // 포인트 시스템 초기화 및 렌더링
-        initializePointsSystem();
+        initializeReviewSystem();
         renderCaseSlider();
         
         // 햄버거 메뉴 초기화

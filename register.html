@@ -14,7 +14,7 @@
     <meta http-equiv="Expires" content="0" />
     
     <!-- Content Security Policy - Firebase iframe 허용 -->
-    <meta http-equiv="Content-Security-Policy" content="frame-src 'self' https://www.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com;" />
+    <meta http-equiv="Content-Security-Policy" content="frame-src 'self' https://www.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com;" />
     
     <meta name="cache-buster" content="v3.2-20241220" />
     <script>
@@ -175,7 +175,7 @@
             <span class="mr-2">📧</span>
             이메일로 가입하기
         </button>
-          <p class="text-sm text-green-600 mt-3">🎉 가입 시 50포인트 지급!</p>
+          <p class="text-sm text-green-600 mt-3">🎉 가입 후 실제 고객 후기를 확인하세요!</p>
       </div>
     </div>
 
@@ -417,24 +417,7 @@
         }
         
         // 포인트 추가
-      function addPoints(userEmail, points = 50) {
-        try {
-          const pointsData = JSON.parse(localStorage.getItem('userPoints') || '{}');
-          if (!pointsData[userEmail]) {
-            pointsData[userEmail] = { total: 0, history: [] };
-          }
-        pointsData[userEmail].total += points;
-        pointsData[userEmail].history.push({
-          points: points,
-            reason: '회원가입 보너스',
-            date: new Date().toISOString()
-        });
-        localStorage.setItem('userPoints', JSON.stringify(pointsData));
-          console.log(`✅ ${points}포인트 추가 완료`);
-      } catch (error) {
-          console.error('❌ 포인트 추가 실패:', error);
-        }
-      }
+      // 포인트 시스템 제거됨
 
       // EmailJS 초기화
       function initEmailJS() {
@@ -726,14 +709,13 @@
             // localStorage에도 백업 저장
             saveUserToLocalStorage(formData);
             
-            // 포인트 추가
-            addPoints(formData.email, 50);
+            // 포인트 시스템 제거됨
             
             // 성공 메시지 표시
             if (firebaseResult === 'localStorage_fallback') {
-              alert('회원가입이 완료되었습니다! 50포인트가 지급되었습니다.\n(데이터는 로컬에 저장되었습니다)\n\n실제 고객 후기를 확인해보세요!');
+              alert('회원가입이 완료되었습니다!\n(데이터는 로컬에 저장되었습니다)\n\n실제 고객 후기를 확인해보세요!');
             } else {
-              alert('회원가입이 완료되었습니다! 50포인트가 지급되었습니다.\n데이터가 Firebase 서버에 안전하게 저장되었습니다.\n\n실제 고객 후기를 확인해보세요!');
+              alert('회원가입이 완료되었습니다!\n데이터가 Firebase 서버에 안전하게 저장되었습니다.\n\n실제 고객 후기를 확인해보세요!');
             }
             
             // 후기 페이지로 이동

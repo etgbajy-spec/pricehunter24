@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
     <!-- Content Security Policy - Firebase iframe 허용 -->
-    <meta http-equiv="Content-Security-Policy" content="frame-src 'self' https://www.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com;" />
+    <meta http-equiv="Content-Security-Policy" content="frame-src 'self' https://www.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com;" />
     
     <title>관리자 대시보드 - PriceHunter</title>
     
@@ -774,7 +774,7 @@
                 
                 const dataSource = user.source || 'Firebase';
                 const dataSourceColor = dataSource === 'localStorage' ? 'bg-orange-100 text-orange-800' : 'bg-green-100 text-green-800';
-                const points = user.points || 0;
+                // 포인트 시스템 제거됨
                 const userName = user.displayName || user.name || '이름 없음';
                 const userEmail = user.email || '이메일 없음';
                 const userPhone = user.phone || '-';
@@ -791,7 +791,6 @@
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
                         <div class="text-sm font-medium text-gray-900">${userName}</div>
-                        <div class="text-xs text-gray-500">${points}P</div>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
                         <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${loginMethod === 'kakao' ? 'bg-yellow-100 text-yellow-800' : 'bg-blue-100 text-blue-800'}">
@@ -1384,10 +1383,7 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                                 <span class="text-gray-600">사용자 ID:</span>
                                 <span class="font-mono text-sm">${user.id || user.firebaseId || '정보 없음'}</span>
                             </div>
-                            <div class="flex justify-between">
-                                <span class="text-gray-600">포인트:</span>
-                                <span class="font-medium text-green-600">${user.points || 0}P</span>
-                            </div>
+                            <!-- 포인트 시스템 제거됨 -->
                             <div class="flex justify-between">
                                 <span class="text-gray-600">가입일:</span>
                                 <span class="font-medium">${user.createdAt ? new Date(user.createdAt).toLocaleDateString('ko-KR') : '정보 없음'}</span>
@@ -2609,7 +2605,7 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                                 <thead class="bg-green-50">
                                     <tr>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">프로필</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">회원명/포인트</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">회원명</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">로그인 방식</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">이메일</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-green-700 uppercase tracking-wider">휴대폰</th>
