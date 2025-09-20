@@ -552,7 +552,7 @@
                 </div>
               </div>
               <div class="bg-white rounded-lg p-4 shadow-sm">
-                <div class="whitespace-pre-wrap text-gray-700 leading-relaxed" id="modal-response-content"></div>
+                <div id="modal-response-content"></div>
               </div>
               <div class="mt-4 flex items-center text-sm text-gray-500">
                 <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
@@ -2262,10 +2262,114 @@
       if (request.adminResponse || request.response) {
         document.getElementById('modal-admin-response').classList.remove('hidden');
         document.getElementById('modal-response-date').textContent = request.responseDate ? new Date(request.responseDate).toLocaleString('ko-KR') : 'N/A';
-        document.getElementById('modal-response-content').textContent = request.adminResponse || request.response || 'N/A';
+        
+        // 답변이 구조화된 데이터인지 확인
+        if (typeof request.adminResponse === 'object' && request.adminResponse !== null) {
+          // 구조화된 답변 데이터 표시
+          document.getElementById('modal-response-content').innerHTML = formatMemberResponseDisplay(request.adminResponse, request);
+        } else {
+          // 기존 텍스트 답변 표시
+          document.getElementById('modal-response-content').innerHTML = `<div class="whitespace-pre-wrap text-gray-700">${request.adminResponse || request.response || 'N/A'}</div>`;
+        }
       } else {
         document.getElementById('modal-admin-response').classList.add('hidden');
       }
+    }
+
+    // 회원용 답변 표시 포맷팅 (의뢰건과 비교)
+    function formatMemberResponseDisplay(responseData, originalRequest) {
+      let html = '<div class="space-y-4">';
+      
+      // 가격 비교 섹션
+      if (responseData.lowestPrice || originalRequest.originalPrice) {
+        html += `
+          <div class="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-4 border-l-4 border-green-500">
+            <h4 class="font-semibold text-green-800 mb-3 flex items-center">
+              <span class="text-xl mr-2">💰</span>
+              가격 비교 결과
+            </h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="bg-white rounded-lg p-3 shadow-sm">
+                <div class="text-sm text-gray-600 mb-1">의뢰하신 가격</div>
+                <div class="text-lg font-bold text-gray-800">${originalRequest.originalPrice || originalRequest.price || 'N/A'}</div>
+              </div>
+              <div class="bg-white rounded-lg p-3 shadow-sm">
+                <div class="text-sm text-gray-600 mb-1">찾은 최저가</div>
+                <div class="text-lg font-bold text-green-600">${responseData.lowestPrice || 'N/A'}</div>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+      
+      // 판매업체 정보
+      if (responseData.seller) {
+        html += `
+          <div class="flex items-center p-3 bg-blue-50 rounded-lg border-l-4 border-blue-500">
+            <span class="text-2xl mr-3">🏪</span>
+            <div>
+              <div class="font-semibold text-blue-800">추천 판매업체</div>
+              <div class="text-blue-600">${responseData.seller}</div>
+            </div>
+          </div>
+        `;
+      }
+      
+      // 판매 링크
+      if (responseData.sellerLink) {
+        html += `
+          <div class="flex items-center p-3 bg-purple-50 rounded-lg border-l-4 border-purple-500">
+            <span class="text-2xl mr-3">🔗</span>
+            <div>
+              <div class="font-semibold text-purple-800">구매 링크</div>
+              <a href="${responseData.sellerLink}" target="_blank" class="text-purple-600 hover:underline break-all">${responseData.sellerLink}</a>
+            </div>
+          </div>
+        `;
+      }
+      
+      // 배송 정보
+      if (responseData.shippingCost || responseData.shippingTime) {
+        html += `
+          <div class="flex items-center p-3 bg-yellow-50 rounded-lg border-l-4 border-yellow-500">
+            <span class="text-2xl mr-3">🚚</span>
+            <div>
+              <div class="font-semibold text-yellow-800">배송 정보</div>
+              <div class="text-yellow-600">
+                ${responseData.shippingCost ? `배송비: ${responseData.shippingCost}` : ''}
+                ${responseData.shippingCost && responseData.shippingTime ? '<br>' : ''}
+                ${responseData.shippingTime ? `배송기간: ${responseData.shippingTime}` : ''}
+              </div>
+            </div>
+          </div>
+        `;
+      }
+      
+      // 총 비용
+      if (responseData.totalCost) {
+        html += `
+          <div class="flex items-center p-3 bg-red-50 rounded-lg border-l-4 border-red-500">
+            <span class="text-2xl mr-3">💳</span>
+            <div>
+              <div class="font-semibold text-red-800">총 구매비용</div>
+              <div class="text-red-600 text-lg font-bold">${responseData.totalCost}</div>
+            </div>
+          </div>
+        `;
+      }
+      
+      // 추가 정보
+      if (responseData.additionalInfo) {
+        html += `
+          <div class="p-3 bg-gray-50 rounded-lg border-l-4 border-gray-500">
+            <div class="font-semibold text-gray-800 mb-2">📝 추가 정보 및 추천사유</div>
+            <div class="text-gray-600 whitespace-pre-wrap">${responseData.additionalInfo}</div>
+          </div>
+        `;
+      }
+      
+      html += '</div>';
+      return html;
     }
 
     // 상태에 따른 CSS 클래스 반환
