@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
     <!-- Content Security Policy - Firebase iframe 허용 -->
-    <meta http-equiv="Content-Security-Policy" content="frame-src 'self' https://www.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com https://apis.google.com; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com https://*.gstatic.com;" />
+    <meta http-equiv="Content-Security-Policy" content="frame-src 'self' https://www.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com https://apis.google.com; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com https://*.gstatic.com https://firebasejs.com https://images.unsplash.com https://*.unsplash.com; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://www.gstatic.com https://*.gstatic.com https://firebasejs.com; img-src 'self' data: https: http: blob:;" />
     
     <title>관리자 대시보드 - PriceHunter</title>
     
@@ -89,7 +89,7 @@
                 const script = document.createElement('script');
                 script.src = 'https://cdn.tailwindcss.com';
                 script.onload = () => {
-                    console.log('✅ Tailwind CSS 로드됨');
+                    console.log('✅ Tailwind CSS 로드됨 (개발용 CDN)');
                     resolve();
                 };
                 script.onerror = (error) => {
@@ -2454,9 +2454,8 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             
             // 모든 후기 가져오기 (승인/미승인 포함, 최신순 정렬)
             try {
-                const q = query(reviewsRef, orderBy('createdAt', 'desc'));
-                
-                reviewsUnsubscribe = onSnapshot(q, async (snapshot) => {
+                // 인덱스 오류 방지를 위해 단순 쿼리 사용
+                reviewsUnsubscribe = onSnapshot(reviewsRef, async (snapshot) => {
                 console.log('📋 후기 데이터 실시간 업데이트...');
                 
                 allReviews = [];
@@ -2489,17 +2488,24 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                         }
                     }
                     
-                    allReviews.push(reviewData);
-                }
-                
-                filteredReviews = [...allReviews];
-                updateReviewStatistics();
-                displayReviewsTable();
-                
-                console.log(`✅ 후기 데이터 실시간 업데이트 완료: ${allReviews.length}개 (승인: ${allReviews.filter(r => r.approved).length}개, 미승인: ${allReviews.filter(r => !r.approved).length}개)`);
-            }, (error) => {
-                console.error('❌ 후기 실시간 리스너 오류:', error);
+                allReviews.push(reviewData);
+            }
+            
+            // 클라이언트에서 정렬 (최신순)
+            allReviews.sort((a, b) => {
+                const dateA = a.createdAt?.toDate?.() || new Date(0);
+                const dateB = b.createdAt?.toDate?.() || new Date(0);
+                return dateB - dateA;
             });
+            
+            filteredReviews = [...allReviews];
+            updateReviewStatistics();
+            displayReviewsTable();
+            
+            console.log(`✅ 후기 데이터 실시간 업데이트 완료: ${allReviews.length}개 (승인: ${allReviews.filter(r => r.approved).length}개, 미승인: ${allReviews.filter(r => !r.approved).length}개)`);
+        }, (error) => {
+            console.error('❌ 후기 실시간 리스너 오류:', error);
+        });
             } catch (indexError) {
                 console.warn('⚠️ 복합 인덱스 오류, 모든 후기 실시간 감시로 폴백:', indexError);
                 // 모든 후기를 실시간 감시하고 클라이언트에서 정렬

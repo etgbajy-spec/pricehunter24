@@ -5,15 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
     <!-- Content Security Policy - Firebase iframe 허용 (개선된 버전) -->
-    <meta http-equiv="Content-Security-Policy" content="frame-src 'self' https://www.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com https://apis.google.com; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com https://*.gstatic.com https://firebasejs.com https://images.unsplash.com https://*.unsplash.com; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://www.gstatic.com https://*.gstatic.com https://firebasejs.com; img-src 'self' data: https: http: blob:;" />
+    <meta http-equiv="Content-Security-Policy" content="frame-src 'self' https://www.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com https://apis.google.com; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com https://*.gstatic.com https://firebasejs.com https://images.unsplash.com https://*.unsplash.com https://*.firebaseapp.com; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://www.gstatic.com https://*.gstatic.com https://firebasejs.com; img-src 'self' data: https: http: blob:;" />
     
     <title>실제 고객 후기 - PriceHunter</title>
     
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🔍%3C/text%3E%3C/svg%3E">
     
-    <!-- Tailwind CSS -->
+    <!-- Tailwind CSS (개발용 - 프로덕션에서는 로컬 파일 사용 권장) -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // Tailwind CSS 개발용 경고 무시
+        console.log('🎨 Tailwind CSS 로드됨 (개발용 CDN)');
+    </script>
     
     <style>
         @keyframes fadeInUp {
@@ -286,13 +290,7 @@
                 
                 let snapshot;
                 try {
-                    // 승인된 후기만 가져오기 (최신순 정렬) - 복합 인덱스 필요
-                    const q = query(reviewsRef, where('approved', '==', true), orderBy('createdAt', 'desc'));
-                    snapshot = await getDocs(q);
-                    console.log('✅ Firebase 쿼리 성공 (인덱스 사용)');
-                } catch (indexError) {
-                    console.warn('⚠️ 복합 인덱스 오류, 클라이언트 사이드 필터링으로 폴백:', indexError);
-                    // 모든 후기를 가져와서 클라이언트에서 필터링
+                    // 인덱스 오류 방지를 위해 단순 쿼리 사용
                     const allSnapshot = await getDocs(reviewsRef);
                     snapshot = {
                         forEach: (callback) => {
@@ -304,6 +302,10 @@
                             });
                         }
                     };
+                    console.log('✅ Firebase 쿼리 성공 (클라이언트 필터링)');
+                } catch (error) {
+                    console.warn('⚠️ Firebase 쿼리 오류:', error);
+                    snapshot = { forEach: () => {} };
                 }
                 
                 allReviews = [];
@@ -376,102 +378,57 @@
             const { collection, onSnapshot, query, where, orderBy } = window.firebaseFirestoreFunctions;
             const reviewsRef = collection(window.firebaseDb, 'reviews');
             
-            // 승인된 후기만 실시간 감시
-            try {
-                const q = query(reviewsRef, where('approved', '==', true), orderBy('createdAt', 'desc'));
+            // 인덱스 오류 방지를 위해 모든 후기를 실시간 감시하고 클라이언트에서 필터링
+            reviewsUnsubscribe = onSnapshot(reviewsRef, (snapshot) => {
+                console.log('📋 리뷰페이지 후기 실시간 업데이트...');
                 
-                reviewsUnsubscribe = onSnapshot(q, (snapshot) => {
-                    console.log('📋 리뷰페이지 후기 실시간 업데이트...');
-                    
-                    allReviews = [];
-                    snapshot.forEach(doc => {
-                        const data = doc.data();
-                        // 데이터 유효성 검사
-                        if (data && data.name && data.productName) {
-                            // 데이터 구조 표준화 (기본값 설정)
-                            const standardizedData = {
-                                id: doc.id,
-                                ...data,
-                                approved: data.approved || false,
-                                featured: data.featured || false,
-                                rating: data.rating || 5,
-                                views: data.views || 0,
-                                country: data.country || '대한민국',
-                                shipping: data.shipping || '3일',
-                                method: data.method || 'PriceHunter 검증',
-                                badge: data.badge || '실제 구매자',
-                                category: data.category || '일반',
-                                savingsPercent: typeof data.savingsPercent === 'number' ? data.savingsPercent : 
-                                              typeof data.savingsPercent === 'string' ? parseInt(data.savingsPercent) || 0 : 0
-                            };
-                            allReviews.push(standardizedData);
-                        }
-                    });
-                    
-                    filteredReviews = [...allReviews];
-                    updateStatistics();
-                    displayReviews();
-                    
-                    console.log(`✅ 리뷰페이지 후기 실시간 업데이트 완료: ${allReviews.length}개`);
-                }, (error) => {
-                    console.error('❌ 리뷰페이지 후기 실시간 리스너 오류:', error);
-                    
-                    // 오류 발생 시 5초 후 재연결 시도
-                    setTimeout(() => {
-                        console.log('🔄 후기 리스너 재연결 시도...');
-                        subscribeToReviews();
-                    }, 5000);
+                allReviews = [];
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    if (data.approved === true && data && data.name && data.productName) {
+                        // 데이터 구조 표준화 (기본값 설정)
+                        const standardizedData = {
+                            id: doc.id,
+                            ...data,
+                            approved: data.approved || false,
+                            featured: data.featured || false,
+                            rating: data.rating || 5,
+                            views: data.views || 0,
+                            country: data.country || '대한민국',
+                            shipping: data.shipping || '3일',
+                            method: data.method || 'PriceHunter 검증',
+                            badge: data.badge || '실제 구매자',
+                            category: data.category || '일반',
+                            savingsPercent: typeof data.savingsPercent === 'number' ? data.savingsPercent : 
+                                          typeof data.savingsPercent === 'string' ? parseInt(data.savingsPercent) || 0 : 0
+                        };
+                        allReviews.push(standardizedData);
+                    }
                 });
                 
-                console.log('✅ 후기 실시간 리스너 시작됨');
-                
-            } catch (indexError) {
-                console.warn('⚠️ 복합 인덱스 오류, 모든 후기 실시간 감시로 폴백:', indexError);
-                // 모든 후기를 실시간 감시하고 클라이언트에서 필터링
-                reviewsUnsubscribe = onSnapshot(reviewsRef, (snapshot) => {
-                    console.log('📋 리뷰페이지 후기 실시간 업데이트 (폴백 모드)...');
-                    
-                    allReviews = [];
-                    snapshot.forEach(doc => {
-                        const data = doc.data();
-                        if (data.approved === true && data && data.name && data.productName) {
-                            // 데이터 구조 표준화 (기본값 설정)
-                            const standardizedData = {
-                                id: doc.id,
-                                ...data,
-                                approved: data.approved || false,
-                                featured: data.featured || false,
-                                rating: data.rating || 5,
-                                views: data.views || 0,
-                                country: data.country || '대한민국',
-                                shipping: data.shipping || '3일',
-                                method: data.method || 'PriceHunter 검증',
-                                badge: data.badge || '실제 구매자',
-                                category: data.category || '일반',
-                                savingsPercent: typeof data.savingsPercent === 'number' ? data.savingsPercent : 
-                                              typeof data.savingsPercent === 'string' ? parseInt(data.savingsPercent) || 0 : 0
-                            };
-                            allReviews.push(standardizedData);
-                        }
-                    });
-                    
-                    filteredReviews = [...allReviews];
-                    updateStatistics();
-                    displayReviews();
-                    
-                    console.log(`✅ 리뷰페이지 후기 실시간 업데이트 완료 (폴백 모드): ${allReviews.length}개`);
-                }, (error) => {
-                    console.error('❌ 리뷰페이지 후기 실시간 리스너 오류 (폴백 모드):', error);
-                    
-                    // 오류 발생 시 5초 후 재연결 시도
-                    setTimeout(() => {
-                        console.log('🔄 후기 리스너 재연결 시도 (폴백 모드)...');
-                        subscribeToReviews();
-                    }, 5000);
+                // 클라이언트에서 정렬 (최신순)
+                allReviews.sort((a, b) => {
+                    const dateA = a.createdAt?.toDate?.() || new Date(0);
+                    const dateB = b.createdAt?.toDate?.() || new Date(0);
+                    return dateB - dateA;
                 });
                 
-                console.log('✅ 후기 실시간 리스너 시작됨 (폴백 모드)');
-            }
+                filteredReviews = [...allReviews];
+                updateStatistics();
+                displayReviews();
+                
+                console.log(`✅ 리뷰페이지 후기 실시간 업데이트 완료: ${allReviews.length}개`);
+            }, (error) => {
+                console.error('❌ 리뷰페이지 후기 실시간 리스너 오류:', error);
+                
+                // 오류 발생 시 5초 후 재연결 시도
+                setTimeout(() => {
+                    console.log('🔄 후기 리스너 재연결 시도...');
+                    subscribeToReviews();
+                }, 5000);
+            });
+            
+            console.log('✅ 후기 실시간 리스너 시작됨');
         }
 
         // 페이지 언로드 시 리스너 정리

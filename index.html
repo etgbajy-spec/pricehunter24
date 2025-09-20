@@ -13,15 +13,19 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     
     <!-- Content Security Policy - Firebase iframe 허용 -->
-    <meta http-equiv="Content-Security-Policy" content="frame-src 'self' https://www.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com https://apis.google.com; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com https://*.gstatic.com;" />
+    <meta http-equiv="Content-Security-Policy" content="frame-src 'self' https://www.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com https://apis.google.com; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com https://*.gstatic.com https://firebasejs.com https://images.unsplash.com https://*.unsplash.com; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://www.gstatic.com https://*.gstatic.com https://firebasejs.com; img-src 'self' data: https: http: blob:;" />
     
     <title>PriceHunter</title>
     
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🔍%3C/text%3E%3C/svg%3E">
     
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Tailwind CSS CDN (개발용 - 프로덕션에서는 로컬 파일 사용 권장) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    // Tailwind CSS 개발용 경고 무시
+    console.log('🎨 Tailwind CSS 로드됨 (개발용 CDN)');
+  </script>
     
     <!-- 모바일 여백 제거 CSS -->
     <link rel="stylesheet" href="mobile-fix.css">
@@ -694,67 +698,67 @@
             const { collection, query, where, orderBy, onSnapshot } = window.firebaseFirestoreFunctions;
             const reviewsRef = collection(window.firebaseDb, 'reviews');
             
-            // 승인되고 인덱스페이지 노출 설정된 후기만 가져오기 (최신순, 최대 16개)
-            try {
-                const q = query(reviewsRef, where('approved', '==', true), where('featured', '==', true), orderBy('createdAt', 'desc'));
+            // 인덱스 오류 방지를 위해 모든 후기를 가져와서 클라이언트에서 필터링
+            reviewsUnsubscribe = onSnapshot(reviewsRef, (snapshot) => {
+                console.log('📋 메인페이지 후기 실시간 업데이트...');
                 
-                reviewsUnsubscribe = onSnapshot(q, (snapshot) => {
-                    console.log('📋 메인페이지 후기 실시간 업데이트...');
-                    
-                    const firebaseReviews = [];
-                    snapshot.forEach(doc => {
-                        const data = doc.data();
-                        if (data && data.name && data.productName) {
-                            // Firebase 데이터를 메인페이지 형식으로 변환
-                            const formattedReview = {
-                                name: `${data.name}, ${data.ageGroup} ${data.occupation}`,
-                                img: data.profileImage || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=600&q=80',
-                                originalPrice: data.originalPrice,
-                                finalPrice: data.finalPrice,
-                                savings: data.savings,
-                                savingsPercent: `${data.savingsPercent}%`,
-                                desc: data.review ? data.review.substring(0, 50) + '...' : '만족스러운 구매',
-                                review: data.review,
-                                country: data.country || '대한민국',
-                                shipping: data.shipping || '3일',
-                                method: data.method || 'PriceHunter 검증',
-                                badge: data.badge || '실제 구매자',
-                                stars: data.rating || 5,
-                                date: data.purchaseDate || data.createdAt?.toDate?.()?.toISOString().split('T')[0] || '2024-01-01'
-                            };
-                            firebaseReviews.push(formattedReview);
-                        }
-                    });
-                    
-                    // 최대 16개로 제한
-                    const limitedReviews = firebaseReviews.slice(0, 16);
-                    
-                    if (limitedReviews.length > 0) {
-                        console.log(`✅ Firebase에서 ${limitedReviews.length}개 실제 후기 로드 완료`);
-                        firebaseReviewsLoaded = true;
-                        
-                        // 로컬 스토리지에 저장
-                        localStorage.setItem('firebaseReviews', JSON.stringify(limitedReviews));
-                        
-                        // UI 업데이트
-                        renderReviewsFromFirebase(limitedReviews);
-                    } else {
-                        console.log('📝 Firebase에 승인된 후기가 없음, 기본 데이터 사용');
-                        if (!firebaseReviewsLoaded) {
-                            renderReviewsFromFirebase(getDefaultReviews());
-                        }
-                    }
-                }, (error) => {
-                    console.error('❌ Firebase 후기 로드 오류:', error);
-                    if (!firebaseReviewsLoaded) {
-                        renderReviewsFromFirebase(getDefaultReviews());
+                const firebaseReviews = [];
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    // 승인되고 인덱스페이지 노출 설정된 후기만 필터링
+                    if (data && data.name && data.productName && data.approved === true && data.featured === true) {
+                        // Firebase 데이터를 메인페이지 형식으로 변환
+                        const formattedReview = {
+                            name: `${data.name}, ${data.ageGroup} ${data.occupation}`,
+                            img: data.profileImage || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=600&q=80',
+                            originalPrice: data.originalPrice,
+                            finalPrice: data.finalPrice,
+                            savings: data.savings,
+                            savingsPercent: `${data.savingsPercent}%`,
+                            desc: data.review ? data.review.substring(0, 50) + '...' : '만족스러운 구매',
+                            review: data.review,
+                            country: data.country || '대한민국',
+                            shipping: data.shipping || '3일',
+                            method: data.method || 'PriceHunter 검증',
+                            badge: data.badge || '실제 구매자',
+                            stars: data.rating || 5,
+                            date: data.purchaseDate || data.createdAt?.toDate?.()?.toISOString().split('T')[0] || '2024-01-01'
+                        };
+                        firebaseReviews.push(formattedReview);
                     }
                 });
                 
-            } catch (indexError) {
-                console.warn('⚠️ Firebase 인덱스 오류, 기본 데이터 사용:', indexError);
-                renderReviewsFromFirebase(getDefaultReviews());
-            }
+                // 클라이언트에서 정렬 (최신순)
+                firebaseReviews.sort((a, b) => {
+                    const dateA = new Date(a.date);
+                    const dateB = new Date(b.date);
+                    return dateB - dateA;
+                });
+                
+                // 최대 16개로 제한
+                const limitedReviews = firebaseReviews.slice(0, 16);
+                
+                if (limitedReviews.length > 0) {
+                    console.log(`✅ Firebase에서 ${limitedReviews.length}개 실제 후기 로드 완료`);
+                    firebaseReviewsLoaded = true;
+                    
+                    // 로컬 스토리지에 저장
+                    localStorage.setItem('firebaseReviews', JSON.stringify(limitedReviews));
+                    
+                    // UI 업데이트
+                    renderReviewsFromFirebase(limitedReviews);
+                } else {
+                    console.log('📝 Firebase에 승인된 후기가 없음, 기본 데이터 사용');
+                    if (!firebaseReviewsLoaded) {
+                        renderReviewsFromFirebase(getDefaultReviews());
+                    }
+                }
+            }, (error) => {
+                console.error('❌ Firebase 후기 로드 오류:', error);
+                if (!firebaseReviewsLoaded) {
+                    renderReviewsFromFirebase(getDefaultReviews());
+                }
+            });
             
           } catch (error) {
             console.error('❌ Firebase 후기 로드 실패:', error);
