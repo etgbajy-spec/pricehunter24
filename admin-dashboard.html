@@ -767,7 +767,86 @@
             console.log('✅ 회원 테이블 업데이트 완료');
         }
 
-        // Firebase에서 의뢰 데이터 가져오기
+        // Firebase에서 의뢰 데이터 가져오기 (실시간 구독)
+        let requestsUnsubscribe = null;
+        
+        function subscribeToRequests() {
+            try {
+                const { collection, query, orderBy, onSnapshot } = window.firebaseFirestoreFunctions;
+                const db = window.firebaseDb;
+                
+                const requestsQuery = query(
+                    collection(db, 'requests'),
+                    orderBy('createdAt', 'desc')
+                );
+                
+                console.log('🔄 의뢰 데이터 실시간 구독 시작...');
+                
+                requestsUnsubscribe = onSnapshot(requestsQuery, (querySnapshot) => {
+                    const requests = [];
+                    
+                    querySnapshot.forEach((doc) => {
+                        requests.push({
+                            id: doc.id,
+                            ...doc.data()
+                        });
+                    });
+                    
+                    console.log(`✅ 실시간 의뢰 데이터 업데이트: ${requests.length}개`);
+                    
+                    // UI 업데이트
+                    updateRequestListUI(requests);
+                }, (error) => {
+                    console.error('❌ 의뢰 데이터 실시간 구독 오류:', error);
+                });
+                
+            } catch (error) {
+                console.error('❌ 의뢰 데이터 구독 설정 실패:', error);
+            }
+        }
+        
+        // 의뢰 목록 UI 업데이트
+        function updateRequestListUI(requests) {
+            const requestList = document.getElementById('request-list');
+            
+            if (!requestList) {
+                console.warn('⚠️ request-list 요소를 찾을 수 없습니다.');
+                return;
+            }
+            
+            requestList.innerHTML = '';
+            
+            if (requests.length === 0) {
+                requestList.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-gray-500">의뢰가 없습니다.</td></tr>';
+                return;
+            }
+            
+            requests.forEach((request) => {
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-gray-50';
+                row.innerHTML = `
+                    <td class="px-4 py-3">
+                        <input type="checkbox" class="request-checkbox" value="${request.id}">
+                    </td>
+                    <td class="px-4 py-3 text-sm">${request.reqNum || request.requestNumber || 'N/A'}</td>
+                    <td class="px-4 py-3 text-sm">${request.productName || request.name || 'N/A'}</td>
+                    <td class="px-4 py-3 text-sm">${request.userName || request.name || 'N/A'}</td>
+                    <td class="px-4 py-3 text-sm">
+                        <span class="px-2 py-1 text-xs rounded-full ${request.status === '답변완료' ? 'bg-green-100 text-green-800' : request.status === '처리중' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'}">
+                            ${request.status || '대기'}
+                        </span>
+                    </td>
+                    <td class="px-4 py-3 text-sm">
+                        <button onclick="viewRequestDetail('${request.id}')" class="px-2 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600">
+                            상세보기
+                        </button>
+                    </td>
+                `;
+                requestList.appendChild(row);
+            });
+        }
+        
+        // Firebase에서 의뢰 데이터 가져오기 (일회성 조회 - 호환성 유지)
         async function getRequestsFromFirebase() {
             try {
                 const { collection, query, orderBy, getDocs } = window.firebaseFirestoreFunctions;
@@ -796,7 +875,85 @@
             }
         }
         
-        // Firebase에서 문의 데이터 가져오기
+        // Firebase에서 문의 데이터 가져오기 (실시간 구독)
+        let inquiriesUnsubscribe = null;
+        
+        function subscribeToInquiries() {
+            try {
+                const { collection, query, orderBy, onSnapshot } = window.firebaseFirestoreFunctions;
+                const db = window.firebaseDb;
+                
+                const inquiriesQuery = query(
+                    collection(db, 'inquiries'),
+                    orderBy('createdAt', 'desc')
+                );
+                
+                console.log('🔄 문의 데이터 실시간 구독 시작...');
+                
+                inquiriesUnsubscribe = onSnapshot(inquiriesQuery, (querySnapshot) => {
+                    const inquiries = [];
+                    
+                    querySnapshot.forEach((doc) => {
+                        inquiries.push({
+                            id: doc.id,
+                            ...doc.data()
+                        });
+                    });
+                    
+                    console.log(`✅ 실시간 문의 데이터 업데이트: ${inquiries.length}개`);
+                    
+                    // UI 업데이트
+                    updateInquiryListUI(inquiries);
+                }, (error) => {
+                    console.error('❌ 문의 데이터 실시간 구독 오류:', error);
+                });
+                
+            } catch (error) {
+                console.error('❌ 문의 데이터 구독 설정 실패:', error);
+            }
+        }
+        
+        // 문의 목록 UI 업데이트
+        function updateInquiryListUI(inquiries) {
+            const inquiryList = document.getElementById('inquiry-list');
+            
+            if (!inquiryList) {
+                console.warn('⚠️ inquiry-list 요소를 찾을 수 없습니다.');
+                return;
+            }
+            
+            inquiryList.innerHTML = '';
+            
+            if (inquiries.length === 0) {
+                inquiryList.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-gray-500">문의가 없습니다.</td></tr>';
+                return;
+            }
+            
+            inquiries.forEach((inquiry) => {
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-gray-50';
+                row.innerHTML = `
+                    <td class="px-4 py-3">
+                        <input type="checkbox" class="inquiry-checkbox" value="${inquiry.id}">
+                    </td>
+                    <td class="px-4 py-3 text-sm">${inquiry.subject || 'N/A'}</td>
+                    <td class="px-4 py-3 text-sm">${inquiry.name || inquiry.userName || 'N/A'}</td>
+                    <td class="px-4 py-3 text-sm">
+                        <span class="px-2 py-1 text-xs rounded-full ${inquiry.status === '답변완료' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}">
+                            ${inquiry.status === '답변완료' ? '답변완료' : '대기중'}
+                        </span>
+                    </td>
+                    <td class="px-4 py-3 text-sm">
+                        <button onclick="viewInquiryDetail('${inquiry.id}')" class="px-2 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600">
+                            상세보기
+                        </button>
+                    </td>
+                `;
+                inquiryList.appendChild(row);
+            });
+        }
+        
+        // Firebase에서 문의 데이터 가져오기 (일회성 조회 - 호환성 유지)
         async function getInquiriesFromFirebase() {
             try {
                 const { collection, query, orderBy, getDocs } = window.firebaseFirestoreFunctions;
@@ -1031,9 +1188,11 @@
                     return;
                 }
                 
-                // 문의 상세 정보 표시 (기존 문의 상세보기 로직 활용)
-                // 여기에 문의 상세보기 모달이나 섹션 표시 로직 추가
-                alert(`문의 제목: ${inquiry.subject}\n내용: ${inquiry.message}\n작성자: ${inquiry.name}`);
+                // 현재 문의 ID 저장
+                currentInquiryId = inquiryId;
+                
+                // 문의 상세보기 모달 표시
+                showInquiryDetailModal(inquiry);
                 
             } catch (error) {
                 console.error('❌ 문의 상세보기 실패:', error);
@@ -1144,7 +1303,15 @@
                 return;
             }
             
-            // Firebase 데이터 로드
+            // 실시간 구독 시작 (이미 시작되어 있으면 무시)
+            if (!requestsUnsubscribe) {
+                subscribeToRequests();
+            }
+            if (!inquiriesUnsubscribe) {
+                subscribeToInquiries();
+            }
+            
+            // 초기 데이터 로드 (호환성 유지)
             renderRequestList();
             renderInquiryList();
             console.log('✅ 대시보드 데이터 로드 완료');
@@ -1961,9 +2128,17 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             // 섹션별 데이터 새로고침
             switch(section) {
                 case 'requests':
+                    // 의뢰 관리 섹션인 경우 실시간 구독 시작 (이미 시작되어 있으면 무시)
+                    if (!requestsUnsubscribe) {
+                        subscribeToRequests();
+                    }
                     renderRequestList();
                     break;
                 case 'inquiries':
+                    // 문의 관리 섹션인 경우 실시간 구독 시작 (이미 시작되어 있으면 무시)
+                    if (!inquiriesUnsubscribe) {
+                        subscribeToInquiries();
+                    }
                     renderInquiryList();
                     break;
                 case 'members':
@@ -3449,11 +3624,20 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             // 추가 요청사항
             document.getElementById('admin-modal-special-request').textContent = request.specialRequest || request.additionalRequest || 'N/A';
 
+            // 기존 답변을 폼에 채우기
+            loadExistingResponseToForm(request);
+
             // 관리자 답변 (있는 경우)
             if (request.adminResponse || request.response) {
                 document.getElementById('admin-modal-admin-response').classList.remove('hidden');
                 document.getElementById('admin-modal-response-date').textContent = request.responseDate ? new Date(request.responseDate).toLocaleString('ko-KR') : 'N/A';
-                document.getElementById('admin-modal-response-content').textContent = request.adminResponse || request.response || 'N/A';
+                
+                // 답변이 구조화된 데이터인지 확인
+                if (typeof request.adminResponse === 'object' && request.adminResponse !== null) {
+                    document.getElementById('admin-modal-response-content').innerHTML = formatResponseForDisplay(request.adminResponse);
+                } else {
+                    document.getElementById('admin-modal-response-content').textContent = request.adminResponse || request.response || 'N/A';
+                }
             } else {
                 document.getElementById('admin-modal-admin-response').classList.add('hidden');
             }
@@ -3528,6 +3712,30 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
 
         // 전역 변수
         let currentRequestId = null;
+        let currentInquiryId = null;
+
+        // 기존 답변을 폼에 채우기
+        function loadExistingResponseToForm(request) {
+            // 기존 답변이 있는지 확인
+            if (request.adminResponse && typeof request.adminResponse === 'object') {
+                const response = request.adminResponse;
+                
+                // 각 필드에 기존 값 채우기
+                document.getElementById('response-lowest-price').value = response.lowestPrice || '';
+                document.getElementById('response-seller').value = response.seller || '';
+                document.getElementById('response-seller-link').value = response.sellerLink || '';
+                document.getElementById('response-shipping-cost').value = response.shippingCost || '';
+                document.getElementById('response-shipping-time').value = response.shippingTime || '';
+                document.getElementById('response-total-cost').value = response.totalCost || '';
+                document.getElementById('response-additional-info').value = response.additionalInfo || '';
+                
+                console.log('✅ 기존 답변 데이터를 폼에 로드했습니다:', response);
+            } else {
+                // 기존 답변이 없으면 폼 초기화
+                clearResponseForm();
+                console.log('📝 새로운 답변을 위한 폼을 초기화했습니다.');
+            }
+        }
 
         // 답변 폼 초기화
         function clearResponseForm() {
@@ -3766,6 +3974,323 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             document.getElementById('admin-response-form').addEventListener('submit', function(e) {
                 e.preventDefault();
                 saveResponse();
+            });
+        });
+
+        // 문의 상세보기 모달 표시
+        function showInquiryDetailModal(inquiry) {
+            console.log('문의 상세보기 모달 표시:', inquiry);
+            
+            // 모달 데이터 채우기
+            fillInquiryDetailModal(inquiry);
+            
+            // 모달 표시
+            document.getElementById('inquiry-detail-modal').classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        // 문의 모달 데이터 채우기
+        function fillInquiryDetailModal(inquiry) {
+            // 문의 기본 정보
+            document.getElementById('inquiry-modal-id').textContent = inquiry.id || 'N/A';
+            document.getElementById('inquiry-modal-date').textContent = inquiry.date ? new Date(inquiry.date).toLocaleString('ko-KR') : 'N/A';
+            document.getElementById('inquiry-modal-subject').textContent = inquiry.subject || 'N/A';
+            document.getElementById('inquiry-modal-message').textContent = inquiry.message || 'N/A';
+            
+            // 상태
+            const status = inquiry.status || '대기';
+            const statusElement = document.getElementById('inquiry-modal-status');
+            statusElement.textContent = status;
+            statusElement.className = 'px-2 py-1 rounded-full text-xs font-bold text-white ' + getInquiryStatusClass(status);
+
+            // 회원 정보
+            document.getElementById('inquiry-modal-user-name').textContent = inquiry.name || inquiry.userName || 'N/A';
+            document.getElementById('inquiry-modal-user-email').textContent = inquiry.email || 'N/A';
+            document.getElementById('inquiry-modal-user-phone').textContent = inquiry.phone || inquiry.userPhone || 'N/A';
+            document.getElementById('inquiry-modal-user-kakao').textContent = inquiry.kakao || inquiry.userKakao || 'N/A';
+
+            // 기존 답변을 폼에 채우기
+            loadExistingInquiryResponseToForm(inquiry);
+
+            // 관리자 답변 (있는 경우)
+            if (inquiry.adminResponse || inquiry.response) {
+                document.getElementById('inquiry-modal-admin-response').classList.remove('hidden');
+                document.getElementById('inquiry-modal-response-date').textContent = inquiry.responseDate ? new Date(inquiry.responseDate).toLocaleString('ko-KR') : 'N/A';
+                
+                // 답변이 구조화된 데이터인지 확인
+                if (typeof inquiry.adminResponse === 'object' && inquiry.adminResponse !== null) {
+                    document.getElementById('inquiry-modal-response-content').innerHTML = formatInquiryResponseForDisplay(inquiry.adminResponse);
+                } else {
+                    document.getElementById('inquiry-modal-response-content').textContent = inquiry.adminResponse || inquiry.response || 'N/A';
+                }
+            } else {
+                document.getElementById('inquiry-modal-admin-response').classList.add('hidden');
+            }
+        }
+
+        // 문의 상태에 따른 CSS 클래스 반환
+        function getInquiryStatusClass(status) {
+            switch(status) {
+                case '답변완료': return 'bg-green-500';
+                case '완료': return 'bg-green-500';
+                case '처리중': return 'bg-yellow-500';
+                case '대기': return 'bg-gray-500';
+                case '취소': return 'bg-red-500';
+                default: return 'bg-blue-500';
+            }
+        }
+
+        // 기존 문의 답변을 폼에 채우기
+        function loadExistingInquiryResponseToForm(inquiry) {
+            // 기존 답변이 있는지 확인
+            if (inquiry.adminResponse && typeof inquiry.adminResponse === 'object') {
+                const response = inquiry.adminResponse;
+                
+                // 각 필드에 기존 값 채우기
+                document.getElementById('inquiry-response-answer').value = response.answer || '';
+                document.getElementById('inquiry-response-additional-info').value = response.additionalInfo || '';
+                
+                console.log('✅ 기존 문의 답변 데이터를 폼에 로드했습니다:', response);
+            } else {
+                // 기존 답변이 없으면 폼 초기화
+                clearInquiryResponseForm();
+                console.log('📝 새로운 문의 답변을 위한 폼을 초기화했습니다.');
+            }
+        }
+
+        // 문의 답변 폼 초기화
+        function clearInquiryResponseForm() {
+            document.getElementById('inquiry-response-answer').value = '';
+            document.getElementById('inquiry-response-additional-info').value = '';
+        }
+
+        // 문의 답변 저장
+        async function saveInquiryResponse() {
+            const formData = getInquiryResponseFormData();
+            
+            if (!formData.answer && !formData.additionalInfo) {
+                alert('최소한 하나의 정보는 입력해주세요.');
+                return;
+            }
+
+            try {
+                await waitForFirebase();
+                const { collection, doc, updateDoc, serverTimestamp } = window.firebaseFirestoreFunctions;
+                
+                // Firebase에서 문의 문서 업데이트
+                const inquiryRef = doc(collection(window.firebaseDb, 'inquiries'), currentInquiryId);
+                await updateDoc(inquiryRef, {
+                    adminResponse: formData,
+                    responseDate: serverTimestamp(),
+                    status: '답변완료',
+                    lastUpdated: serverTimestamp()
+                });
+
+                alert('답변이 성공적으로 저장되었습니다.');
+                
+                // 답변 섹션 업데이트
+                document.getElementById('inquiry-modal-admin-response').classList.remove('hidden');
+                document.getElementById('inquiry-modal-response-content').innerHTML = formatInquiryResponseForDisplay(formData);
+                document.getElementById('inquiry-modal-response-date').textContent = new Date().toLocaleString('ko-KR');
+                
+                // 모달의 상태 표시도 업데이트
+                const statusElement = document.getElementById('inquiry-modal-status');
+                statusElement.textContent = '답변완료';
+                statusElement.className = 'px-2 py-1 rounded-full text-xs font-bold text-white ' + getInquiryStatusClass('답변완료');
+                
+                // 폼 초기화
+                clearInquiryResponseForm();
+                
+                // 문의 목록 새로고침
+                renderInquiryList();
+                
+            } catch (error) {
+                console.error('❌ 문의 답변 저장 실패:', error);
+                alert('답변 저장에 실패했습니다. 다시 시도해주세요.');
+            }
+        }
+
+        // 문의 답변 폼 데이터 가져오기
+        function getInquiryResponseFormData() {
+            return {
+                answer: document.getElementById('inquiry-response-answer').value.trim(),
+                additionalInfo: document.getElementById('inquiry-response-additional-info').value.trim()
+            };
+        }
+
+        // 문의 답변을 표시용으로 포맷팅
+        function formatInquiryResponseForDisplay(formData) {
+            let html = '<div class="space-y-4">';
+            
+            if (formData.answer) {
+                html += `
+                    <div class="p-3 bg-blue-50 rounded-lg border-l-4 border-blue-500">
+                        <div class="font-semibold text-blue-800 mb-2">💬 답변</div>
+                        <div class="text-blue-600 whitespace-pre-wrap">${formData.answer}</div>
+                    </div>
+                `;
+            }
+            
+            if (formData.additionalInfo) {
+                html += `
+                    <div class="p-3 bg-gray-50 rounded-lg border-l-4 border-gray-500">
+                        <div class="font-semibold text-gray-800 mb-2">📝 추가 정보</div>
+                        <div class="text-gray-600 whitespace-pre-wrap">${formData.additionalInfo}</div>
+                    </div>
+                `;
+            }
+            
+            html += '</div>';
+            return html;
+        }
+
+        // 문의 모달 닫기
+        function closeInquiryDetailModal() {
+            document.getElementById('inquiry-detail-modal').classList.add('hidden');
+            document.body.style.overflow = 'auto';
+        }
+    </script>
+
+    <!-- 문의 상세보기 모달 -->
+    <div id="inquiry-detail-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+                <!-- 모달 헤더 -->
+                <div class="sticky top-0 bg-white border-b border-gray-200 p-6 rounded-t-2xl">
+                    <div class="flex justify-between items-center">
+                        <h2 class="text-2xl font-bold text-gray-800">💬 문의 상세 정보</h2>
+                        <button id="close-inquiry-modal" class="text-gray-500 hover:text-gray-700 text-3xl font-bold">&times;</button>
+                    </div>
+                </div>
+                
+                <!-- 모달 내용 -->
+                <div class="p-6">
+                    <!-- 문의 기본 정보 -->
+                    <div class="mb-6">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                            📝 문의 기본 정보
+                        </h3>
+                        <div class="bg-blue-50 rounded-lg p-4 border-l-4 border-blue-500">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                                <div><span class="font-semibold text-gray-700">문의번호:</span> <span id="inquiry-modal-id" class="text-blue-600"></span></div>
+                                <div><span class="font-semibold text-gray-700">문의일시:</span> <span id="inquiry-modal-date" class="text-blue-600"></span></div>
+                                <div><span class="font-semibold text-gray-700">제목:</span> <span id="inquiry-modal-subject" class="text-blue-600"></span></div>
+                                <div><span class="font-semibold text-gray-700">상태:</span> <span id="inquiry-modal-status" class="px-2 py-1 rounded-full text-xs font-bold text-white"></span></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 문의 내용 -->
+                    <div class="mb-6">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                            📄 문의 내용
+                        </h3>
+                        <div class="bg-green-50 rounded-lg p-4 border-l-4 border-green-500">
+                            <div class="text-sm">
+                                <div class="whitespace-pre-wrap text-green-600" id="inquiry-modal-message"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 회원 정보 -->
+                    <div class="mb-6">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                            👤 회원 정보
+                        </h3>
+                        <div class="bg-purple-50 rounded-lg p-4 border-l-4 border-purple-500">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                                <div><span class="font-semibold text-gray-700">이름:</span> <span id="inquiry-modal-user-name" class="text-purple-600"></span></div>
+                                <div><span class="font-semibold text-gray-700">이메일:</span> <span id="inquiry-modal-user-email" class="text-purple-600"></span></div>
+                                <div><span class="font-semibold text-gray-700">휴대폰:</span> <span id="inquiry-modal-user-phone" class="text-purple-600"></span></div>
+                                <div><span class="font-semibold text-gray-700">카카오ID:</span> <span id="inquiry-modal-user-kakao" class="text-purple-600"></span></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 관리자 답변 작성 -->
+                    <div class="mb-6">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                            💬 관리자 답변 작성
+                        </h3>
+                        <div class="bg-indigo-50 rounded-lg p-6 border-l-4 border-indigo-500">
+                            <form id="inquiry-response-form" class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">💬 답변 내용</label>
+                                    <textarea id="inquiry-response-answer" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="문의에 대한 답변을 작성해주세요..."></textarea>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">📝 추가 정보</label>
+                                    <textarea id="inquiry-response-additional-info" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="추가로 알려드릴 정보가 있다면 입력해주세요..."></textarea>
+                                </div>
+
+                                <div class="flex gap-3 pt-4">
+                                    <button type="submit" class="px-6 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition font-medium">
+                                        답변 저장
+                                    </button>
+                                    <button type="button" onclick="clearInquiryResponseForm()" class="px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition font-medium">
+                                        내용 지우기
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- 관리자 답변 (있는 경우) -->
+                    <div id="inquiry-modal-admin-response" class="mb-6 hidden">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                            💼 관리자 답변
+                        </h3>
+                        <div class="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-6 border-l-4 border-purple-500 shadow-lg">
+                            <div class="flex items-center mb-4">
+                                <div class="w-10 h-10 bg-purple-500 rounded-full flex items-center justify-center mr-3">
+                                    <span class="text-white font-bold text-lg">A</span>
+                                </div>
+                                <div>
+                                    <div class="font-semibold text-gray-800">관리자</div>
+                                    <div class="text-sm text-gray-500" id="inquiry-modal-response-date"></div>
+                                </div>
+                            </div>
+                            <div class="bg-white rounded-lg p-4 shadow-sm">
+                                <div id="inquiry-modal-response-content"></div>
+                            </div>
+                            <div class="mt-4 flex items-center text-sm text-gray-500">
+                                <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                </svg>
+                                답변이 완료되었습니다
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 문의 모달 이벤트 리스너 -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 문의 모달 닫기 버튼
+            document.getElementById('close-inquiry-modal').addEventListener('click', closeInquiryDetailModal);
+            
+            // 문의 모달 배경 클릭 시 닫기
+            document.getElementById('inquiry-detail-modal').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closeInquiryDetailModal();
+                }
+            });
+            
+            // ESC 키로 문의 모달 닫기
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && !document.getElementById('inquiry-detail-modal').classList.contains('hidden')) {
+                    closeInquiryDetailModal();
+                }
+            });
+
+            // 문의 답변 폼 제출 이벤트 리스너
+            document.getElementById('inquiry-response-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                saveInquiryResponse();
             });
         });
     </script>
