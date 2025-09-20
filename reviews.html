@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
-    <!-- Content Security Policy - Firebase iframe 허용 -->
-    <meta http-equiv="Content-Security-Policy" content="frame-src 'self' https://www.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com https://apis.google.com; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com https://*.gstatic.com https://firebasejs.com;" />
+    <!-- Content Security Policy - Firebase iframe 허용 (개선된 버전) -->
+    <meta http-equiv="Content-Security-Policy" content="frame-src 'self' https://www.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com https://apis.google.com; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com https://*.gstatic.com https://firebasejs.com https://images.unsplash.com https://*.unsplash.com; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://www.gstatic.com https://*.gstatic.com https://firebasejs.com; img-src 'self' data: https: http: blob:;" />
     
     <title>실제 고객 후기 - PriceHunter</title>
     
@@ -207,16 +207,17 @@
     <!-- Firebase SDK -->
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
-        import { getFirestore, collection, getDocs } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
+        import { getFirestore, collection, getDocs, query, where, orderBy, onSnapshot } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
 
         // Firebase 설정
         const firebaseConfig = {
-            apiKey: "AIzaSyBvQZvQZvQZvQZvQZvQZvQZvQZvQZvQZvQ",
+            apiKey: "AIzaSyDBZxKyMS7eeBTbPnbZkj0WWOZQHNldoL4",
             authDomain: "pricehunter-99a1b.firebaseapp.com",
             projectId: "pricehunter-99a1b",
-            storageBucket: "pricehunter-99a1b.appspot.com",
-            messagingSenderId: "123456789012",
-            appId: "1:123456789012:web:abcdefghijklmnopqrstuv"
+            storageBucket: "pricehunter-99a1b.firebasestorage.app",
+            messagingSenderId: "242265693919",
+            appId: "1:242265693919:web:74234d942b82a51541136a",
+            measurementId: "G-4BKLV4EVB9"
         };
 
         // Firebase 초기화
@@ -240,17 +241,38 @@
         let currentPage = 1;
         const reviewsPerPage = 9;
 
+        // Firebase 초기화 대기 함수
+        function waitForFirebase() {
+            return new Promise((resolve) => {
+                const checkFirebase = () => {
+                    if (window.firebaseDb && window.firebaseFirestoreFunctions) {
+                        console.log('✅ Firebase 초기화 확인됨');
+                        resolve();
+                    } else {
+                        console.log('⏳ Firebase 초기화 대기 중...');
+                        setTimeout(checkFirebase, 100);
+                    }
+                };
+                checkFirebase();
+            });
+        }
+
         // DOM 요소
         const loadingSpinner = document.getElementById('loading-spinner');
         const reviewsContainer = document.getElementById('reviews-container');
         const pagination = document.getElementById('pagination');
 
-        // 후기 데이터 로드 (통합 시스템)
+        // 후기 데이터 로드 (통합 시스템 - 개선된 버전)
         let reviewsUnsubscribe = null;
+        let loadAttempts = 0;
+        const maxLoadAttempts = 3;
         
         async function loadReviews() {
             try {
                 loadingSpinner.classList.remove('hidden');
+                loadAttempts++;
+                
+                console.log(`🔄 후기 데이터 로드 시도 ${loadAttempts}/${maxLoadAttempts}`);
                 
                 // Firebase 초기화 대기
                 await waitForFirebase();
@@ -264,21 +286,22 @@
                 
                 let snapshot;
                 try {
-                    // 승인된 후기만 가져오기 (최신순 정렬) - 복합 인덱스 필요
-                    const q = query(reviewsRef, where('approved', '==', true), orderBy('createdAt', 'desc'));
+                    // 모든 후기 가져오기 (최신순 정렬) - 승인 상태 제거
+                    const q = query(reviewsRef, orderBy('createdAt', 'desc'));
                     snapshot = await getDocs(q);
+                    console.log('✅ Firebase 쿼리 성공 (인덱스 사용)');
                 } catch (indexError) {
-                    console.warn('복합 인덱스 오류, 클라이언트 사이드 필터링으로 폴백:', indexError);
-                    // 모든 후기를 가져와서 클라이언트에서 필터링
+                    console.warn('⚠️ 복합 인덱스 오류, 모든 후기 가져와서 클라이언트 정렬:', indexError);
+                    // 모든 후기를 가져와서 클라이언트에서 정렬
                     const allSnapshot = await getDocs(reviewsRef);
                     snapshot = {
-                        forEach: (callback) => {
-                            allSnapshot.forEach(doc => {
-                                const data = doc.data();
-                                if (data.approved === true) {
-                                    callback(doc);
-                                }
-                            });
+                        docs: allSnapshot.docs.sort((a, b) => {
+                            const aTime = a.data().createdAt?.toDate?.() || new Date(0);
+                            const bTime = b.data().createdAt?.toDate?.() || new Date(0);
+                            return bTime - aTime; // 최신순
+                        }),
+                        forEach: function(callback) {
+                            this.docs.forEach(callback);
                         }
                     };
                 }
@@ -286,7 +309,10 @@
                 allReviews = [];
                 snapshot.forEach(doc => {
                     const data = doc.data();
-                    allReviews.push({ id: doc.id, ...data });
+                    // 데이터 유효성 검사
+                    if (data && data.name && data.productName) {
+                        allReviews.push({ id: doc.id, ...data });
+                    }
                 });
                 
                 filteredReviews = [...allReviews];
@@ -294,34 +320,49 @@
                 displayReviews();
                 
                 console.log(`✅ ${allReviews.length}개 승인된 후기 로드 완료`);
+                loadAttempts = 0; // 성공 시 리셋
                 
             } catch (error) {
-                console.error('후기 로드 실패:', error);
-                // 기본 데이터 사용
+                console.error('❌ 후기 로드 실패:', error);
+                
+                // 재시도 로직
+                if (loadAttempts < maxLoadAttempts) {
+                    console.log(`⏳ ${2000 * loadAttempts}ms 후 재시도...`);
+                    setTimeout(() => {
+                        loadReviews();
+                    }, 2000 * loadAttempts);
+                    return;
+                }
+                
+                // 최대 재시도 횟수 초과 시 기본 데이터 사용
+                console.log('🔄 최대 재시도 횟수 초과, 기본 데이터 사용');
                 loadDefaultReviews();
+                loadAttempts = 0; // 리셋
+                
             } finally {
                 loadingSpinner.classList.add('hidden');
             }
         }
 
-        // 후기 실시간 리스너
+        // 후기 실시간 리스너 (개선된 버전)
         function subscribeToReviews() {
             if (reviewsUnsubscribe) {
                 reviewsUnsubscribe();
+                console.log('🔄 기존 후기 리스너 정리');
             }
 
             // Firebase 초기화 확인
             if (!window.firebaseDb || !window.firebaseFirestoreFunctions) {
-                console.warn('Firebase가 초기화되지 않아 실시간 리스너를 시작할 수 없습니다.');
+                console.warn('⚠️ Firebase가 초기화되지 않아 실시간 리스너를 시작할 수 없습니다.');
                 return;
             }
 
             const { collection, onSnapshot, query, where, orderBy } = window.firebaseFirestoreFunctions;
             const reviewsRef = collection(window.firebaseDb, 'reviews');
             
-            // 승인된 후기만 실시간 감시
+            // 모든 후기 실시간 감시 (승인 상태 제거)
             try {
-                const q = query(reviewsRef, where('approved', '==', true), orderBy('createdAt', 'desc'));
+                const q = query(reviewsRef, orderBy('createdAt', 'desc'));
                 
                 reviewsUnsubscribe = onSnapshot(q, (snapshot) => {
                     console.log('📋 리뷰페이지 후기 실시간 업데이트...');
@@ -329,7 +370,10 @@
                     allReviews = [];
                     snapshot.forEach(doc => {
                         const data = doc.data();
-                        allReviews.push({ id: doc.id, ...data });
+                        // 데이터 유효성 검사
+                        if (data && data.name) {
+                            allReviews.push({ id: doc.id, ...data });
+                        }
                     });
                     
                     filteredReviews = [...allReviews];
@@ -339,19 +383,35 @@
                     console.log(`✅ 리뷰페이지 후기 실시간 업데이트 완료: ${allReviews.length}개`);
                 }, (error) => {
                     console.error('❌ 리뷰페이지 후기 실시간 리스너 오류:', error);
+                    
+                    // 오류 발생 시 5초 후 재연결 시도
+                    setTimeout(() => {
+                        console.log('🔄 후기 리스너 재연결 시도...');
+                        subscribeToReviews();
+                    }, 5000);
                 });
+                
+                console.log('✅ 후기 실시간 리스너 시작됨');
+                
             } catch (indexError) {
-                console.warn('복합 인덱스 오류, 모든 후기 실시간 감시로 폴백:', indexError);
-                // 모든 후기를 실시간 감시하고 클라이언트에서 필터링
+                console.warn('⚠️ 복합 인덱스 오류, 모든 후기 실시간 감시로 폴백:', indexError);
+                // 모든 후기를 실시간 감시
                 reviewsUnsubscribe = onSnapshot(reviewsRef, (snapshot) => {
                     console.log('📋 리뷰페이지 후기 실시간 업데이트 (폴백 모드)...');
                     
                     allReviews = [];
                     snapshot.forEach(doc => {
                         const data = doc.data();
-                        if (data.approved === true) {
+                        if (data && data.name) {
                             allReviews.push({ id: doc.id, ...data });
                         }
+                    });
+                    
+                    // 클라이언트에서 최신순 정렬
+                    allReviews.sort((a, b) => {
+                        const aTime = a.createdAt?.toDate?.() || new Date(a.date || 0);
+                        const bTime = b.createdAt?.toDate?.() || new Date(b.date || 0);
+                        return bTime - aTime;
                     });
                     
                     filteredReviews = [...allReviews];
@@ -361,7 +421,15 @@
                     console.log(`✅ 리뷰페이지 후기 실시간 업데이트 완료 (폴백 모드): ${allReviews.length}개`);
                 }, (error) => {
                     console.error('❌ 리뷰페이지 후기 실시간 리스너 오류 (폴백 모드):', error);
+                    
+                    // 오류 발생 시 5초 후 재연결 시도
+                    setTimeout(() => {
+                        console.log('🔄 후기 리스너 재연결 시도 (폴백 모드)...');
+                        subscribeToReviews();
+                    }, 5000);
                 });
+                
+                console.log('✅ 후기 실시간 리스너 시작됨 (폴백 모드)');
             }
         }
 
@@ -702,27 +770,62 @@
         window.openPhotoModal = openPhotoModal;
         window.closePhotoModal = closePhotoModal;
 
-        // 로그인 상태 확인 및 접근 제어
+        // 로그인 상태 확인 및 접근 제어 (개선된 버전)
         function checkLoginStatus() {
             const loggedIn = localStorage.getItem('loggedIn');
             const currentUser = localStorage.getItem('currentUser');
             const user = localStorage.getItem('user');
             const loggedInEmail = localStorage.getItem('loggedInEmail');
+            const userEmail = localStorage.getItem('userEmail');
+            const userData = localStorage.getItem('userData');
             
-            // 더 강화된 로그인 상태 확인
-            const isLoggedIn = loggedIn === 'true' || 
-                              currentUser || 
-                              user || 
-                              loggedInEmail;
+            // 더 강화된 로그인 상태 확인 - JSON 파싱도 포함
+            let isLoggedIn = false;
+            
+            try {
+                // 문자열 형태의 'true' 체크
+                if (loggedIn === 'true') {
+                    isLoggedIn = true;
+                }
+                
+                // 사용자 데이터가 있는지 체크
+                if (currentUser || user || loggedInEmail || userEmail) {
+                    isLoggedIn = true;
+                }
+                
+                // JSON 형태의 사용자 데이터 체크
+                if (userData) {
+                    const parsedUserData = JSON.parse(userData);
+                    if (parsedUserData && (parsedUserData.email || parsedUserData.name)) {
+                        isLoggedIn = true;
+                    }
+                }
+                
+                // 세션 스토리지도 체크
+                if (sessionStorage.getItem('loggedIn') === 'true' || 
+                    sessionStorage.getItem('currentUser') ||
+                    sessionStorage.getItem('user')) {
+                    isLoggedIn = true;
+                }
+                
+            } catch (error) {
+                console.warn('로그인 상태 파싱 오류:', error);
+                // 파싱 오류 시 기본값 사용
+                isLoggedIn = loggedIn === 'true' || currentUser || user || loggedInEmail || userEmail;
+            }
             
             const loginOverlay = document.getElementById('login-required-overlay');
             const mainContent = document.getElementById('main-content');
             
-            console.log('🔐 로그인 상태 확인 (강화):', {
+            console.log('🔐 로그인 상태 확인 (개선된 버전):', {
                 loggedIn: loggedIn,
                 currentUser: currentUser,
                 user: user,
                 loggedInEmail: loggedInEmail,
+                userEmail: userEmail,
+                userData: userData,
+                sessionLoggedIn: sessionStorage.getItem('loggedIn'),
+                sessionCurrentUser: sessionStorage.getItem('currentUser'),
                 isLoggedIn: isLoggedIn,
                 loginOverlay: !!loginOverlay,
                 mainContent: !!mainContent
@@ -731,14 +834,26 @@
             if (isLoggedIn) {
                 // 로그인된 경우
                 console.log('✅ 로그인됨 - 후기 페이지 접근 허용');
-                if (loginOverlay) loginOverlay.style.display = 'none';
-                if (mainContent) mainContent.classList.remove('hidden');
+                if (loginOverlay) {
+                    loginOverlay.style.display = 'none';
+                    loginOverlay.classList.add('hidden');
+                }
+                if (mainContent) {
+                    mainContent.classList.remove('hidden');
+                    mainContent.style.display = 'block';
+                }
                 loadReviews();
             } else {
                 // 로그인되지 않은 경우
                 console.log('❌ 로그인 안됨 - 후기 페이지 접근 차단');
-                if (loginOverlay) loginOverlay.style.display = 'flex';
-                if (mainContent) mainContent.classList.add('hidden');
+                if (loginOverlay) {
+                    loginOverlay.style.display = 'flex';
+                    loginOverlay.classList.remove('hidden');
+                }
+                if (mainContent) {
+                    mainContent.classList.add('hidden');
+                    mainContent.style.display = 'none';
+                }
             }
         }
 

@@ -88,11 +88,138 @@
       <!-- Friendly Message -->
       <div class="text-lg text-pink-500 font-bold mb-8">최저가 결과로 곧 찾아뵐게요 :)</div>
       <!-- CTA Buttons -->
-      <div class="flex flex-col md:flex-row gap-4 w-full">
-        <a href="index.html" class="flex-1 py-3 rounded-xl bg-gradient-to-r from-blue-400 to-emerald-400 text-white font-bold text-lg shadow hover:scale-105 transition text-center">홈으로 돌아가기</a>
-        <a href="member-dashboard.html" class="flex-1 py-3 rounded-xl bg-gradient-to-r from-pink-400 to-amber-400 text-white font-bold text-lg shadow hover:scale-105 transition text-center">회원 대시보드</a>
+      <div class="flex flex-col gap-4 w-full">
+        <div class="flex flex-col md:flex-row gap-4">
+          <a href="index.html" class="flex-1 py-3 rounded-xl bg-gradient-to-r from-blue-400 to-emerald-400 text-white font-bold text-lg shadow hover:scale-105 transition text-center">홈으로 돌아가기</a>
+          <a href="member-dashboard.html" class="flex-1 py-3 rounded-xl bg-gradient-to-r from-pink-400 to-amber-400 text-white font-bold text-lg shadow hover:scale-105 transition text-center">회원 대시보드</a>
+        </div>
+        <button onclick="openReviewForm()" class="w-full py-3 rounded-xl bg-gradient-to-r from-purple-400 to-indigo-400 text-white font-bold text-lg shadow hover:scale-105 transition">
+          ✍️ 후기 작성하기
+        </button>
       </div>
     </main>
+
+    <!-- 후기 작성 모달 -->
+    <div id="review-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center">
+        <div class="bg-white rounded-xl shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-2xl font-bold text-gray-800">후기 작성하기</h3>
+                    <button onclick="closeReviewModal()" class="text-gray-500 hover:text-gray-700 text-2xl">×</button>
+                </div>
+                
+                <form id="review-form" class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">사용자명</label>
+                            <input type="text" id="review-name" required
+                                   class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">국가</label>
+                            <select id="review-country" required
+                                    class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                <option value="대한민국">대한민국</option>
+                                <option value="미국">미국</option>
+                                <option value="일본">일본</option>
+                                <option value="중국">중국</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">후기 요약</label>
+                        <input type="text" id="review-desc" required
+                               class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                               placeholder="예: 노트북을 정말 싸게 샀어요!">
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">원래 가격</label>
+                            <input type="text" id="review-original-price" required
+                                   class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                   placeholder="예: 1,200,000원">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">최종 가격</label>
+                            <input type="text" id="review-final-price" required
+                                   class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                   placeholder="예: 780,000원">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">절약 금액</label>
+                            <input type="text" id="review-savings" required
+                                   class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                   placeholder="예: 420,000원">
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">절약률</label>
+                            <input type="text" id="review-savings-percent" required
+                                   class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                   placeholder="예: 35%">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">별점</label>
+                            <select id="review-stars" required
+                                    class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                <option value="5">⭐⭐⭐⭐⭐ (5점)</option>
+                                <option value="4.5">⭐⭐⭐⭐⭐ (4.5점)</option>
+                                <option value="4">⭐⭐⭐⭐ (4점)</option>
+                                <option value="3.5">⭐⭐⭐⭐ (3.5점)</option>
+                                <option value="3">⭐⭐⭐ (3점)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">구매일</label>
+                            <input type="date" id="review-date" required
+                                   class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">배송</label>
+                            <input type="text" id="review-shipping" required
+                                   class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                   placeholder="예: 2일">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">구매방법</label>
+                            <select id="review-method" required
+                                    class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                <option value="공장 직접구매">공장 직접구매</option>
+                                <option value="도매처 연동">도매처 연동</option>
+                                <option value="PriceHunter 검증">PriceHunter 검증</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">후기 내용</label>
+                        <textarea id="review-content" required rows="4"
+                                  class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                  placeholder="제품에 대한 솔직한 후기를 작성해주세요. 구매 과정, 제품 품질, 배송 등에 대해 자유롭게 작성하세요."></textarea>
+                    </div>
+                    
+                    <div class="flex justify-end space-x-4 pt-6">
+                        <button type="button" onclick="closeReviewModal()" 
+                                class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition">
+                            취소
+                        </button>
+                        <button type="submit" 
+                                class="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition">
+                            후기 등록하기
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <script>
       // Generate unique request number (e.g. #PH-20250717001)
       function generateReqNum() {
@@ -138,6 +265,119 @@
           if (req.kakao) document.getElementById('summary-kakao').textContent = '카카오: ' + req.kakao;
         }
       } catch(e) {}
+      
+      // 후기 작성 관련 함수들
+      function openReviewForm() {
+        document.getElementById('review-modal').classList.remove('hidden');
+        // 오늘 날짜를 기본값으로 설정
+        document.getElementById('review-date').value = new Date().toISOString().split('T')[0];
+        
+        // 저장된 의뢰 정보가 있으면 자동으로 채우기
+        loadRequestDataForReview();
+      }
+      
+      // 저장된 의뢰 정보를 후기 폼에 자동으로 채우기
+      function loadRequestDataForReview() {
+        try {
+          const savedRequest = localStorage.getItem('currentRequestForReview');
+          if (savedRequest) {
+            const requestData = JSON.parse(savedRequest);
+            
+            // 폼에 데이터 자동 입력
+            if (requestData.productName) {
+              document.getElementById('review-desc').value = `${requestData.productName}을 정말 싸게 샀어요!`;
+            }
+            if (requestData.originalPrice) {
+              document.getElementById('review-original-price').value = requestData.originalPrice;
+            }
+            if (requestData.finalPrice) {
+              document.getElementById('review-final-price').value = requestData.finalPrice;
+            }
+            if (requestData.savings) {
+              document.getElementById('review-savings').value = requestData.savings;
+            }
+            if (requestData.savingsPercent) {
+              document.getElementById('review-savings-percent').value = requestData.savingsPercent;
+            }
+            
+            // 후기 내용에 기본 템플릿 제공
+            const reviewContent = document.getElementById('review-content');
+            if (reviewContent && !reviewContent.value) {
+              reviewContent.value = `요청가 ${requestData.originalPrice} → ${requestData.finalPrice}으로 구매! 정말 만족스러운 구매였습니다. 빠른 배송과 좋은 품질에 감사합니다.`;
+            }
+            
+            console.log('✅ 의뢰 정보가 후기 폼에 자동으로 채워졌습니다:', requestData);
+          }
+        } catch (error) {
+          console.error('의뢰 정보 로드 실패:', error);
+        }
+      }
+      
+      function closeReviewModal() {
+        document.getElementById('review-modal').classList.add('hidden');
+      }
+      
+      // 후기 폼 제출 처리
+      document.getElementById('review-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const reviewData = {
+          name: document.getElementById('review-name').value,
+          country: document.getElementById('review-country').value,
+          desc: document.getElementById('review-desc').value,
+          originalPrice: document.getElementById('review-original-price').value,
+          finalPrice: document.getElementById('review-final-price').value,
+          savings: document.getElementById('review-savings').value,
+          savingsPercent: document.getElementById('review-savings-percent').value,
+          stars: parseFloat(document.getElementById('review-stars').value),
+          date: document.getElementById('review-date').value,
+          shipping: document.getElementById('review-shipping').value,
+          method: document.getElementById('review-method').value,
+          review: document.getElementById('review-content').value,
+          img: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=600&q=80',
+          badge: '실제 구매자',
+          createdAt: new Date(),
+          updatedAt: new Date()
+        };
+        
+        try {
+          // Firebase에 저장
+          if (typeof window.firebaseDb !== 'undefined' && window.firebaseDb) {
+            const { collection, addDoc, serverTimestamp } = window.firebaseFirestoreFunctions;
+            const reviewsRef = collection(window.firebaseDb, 'reviews');
+            
+            const reviewToSave = {
+              ...reviewData,
+              createdAt: serverTimestamp(),
+              updatedAt: serverTimestamp(),
+              badge: '실제 구매자',
+              img: reviewData.img || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=600&q=80'
+            };
+            
+            await addDoc(reviewsRef, reviewToSave);
+            console.log('✅ Firebase에 후기 저장 완료');
+          } else {
+            // Firebase가 없으면 로컬 스토리지에 저장
+            const reviews = JSON.parse(localStorage.getItem('reviews') || '[]');
+            reviews.push({ id: Date.now().toString(), ...reviewData });
+            localStorage.setItem('reviews', JSON.stringify(reviews));
+            console.log('✅ 로컬 스토리지에 후기 저장 완료');
+          }
+          
+          alert('후기가 성공적으로 등록되었습니다! 메인 페이지에서 확인하실 수 있습니다.');
+          closeReviewModal();
+          
+          // 폼 초기화
+          document.getElementById('review-form').reset();
+          
+          // 저장된 의뢰 정보 정리
+          localStorage.removeItem('currentRequestForReview');
+          
+        } catch (error) {
+          console.error('후기 저장 실패:', error);
+          alert('후기 저장에 실패했습니다. 다시 시도해주세요.');
+        }
+      });
     </script>
   </body>
 </html> 

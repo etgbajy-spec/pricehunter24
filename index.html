@@ -674,8 +674,9 @@
       </div>
     </section>
     <script>
-        // 1. Firebase에서 실제 후기 데이터 로드 (실시간 연동)
+        // 1. Firebase에서 실제 후기 데이터 로드 (실시간 연동 - 개선된 버전)
         let reviewsUnsubscribe = null;
+        let firebaseReviewsLoaded = false;
         
         async function loadReviewsFromFirebase() {
           try {
@@ -684,66 +685,97 @@
               console.log('Firebase가 초기화되지 않음, 기본 데이터 사용');
               return getDefaultReviews();
             }
-
-            // 실시간 리스너 시작
-            subscribeToReviews();
             
-            // 초기 데이터 로드
-            const { collection, getDocs, query, where, orderBy } = window.firebaseFirestoreFunctions;
+            console.log('🔄 Firebase에서 실제 후기 데이터 로드 시작...');
+            
+            // Firebase 초기화 대기
+            await waitForFirebase();
+            
+            const { collection, query, where, orderBy, onSnapshot } = window.firebaseFirestoreFunctions;
             const reviewsRef = collection(window.firebaseDb, 'reviews');
             
-            let snapshot;
+            // 모든 후기 가져오기 (최신순, 최대 16개) - 승인 상태 제거
             try {
-              // 승인된 후기만 가져오기 (최신순 정렬) - 복합 인덱스 필요
-              const q = query(reviewsRef, where('approved', '==', true), orderBy('createdAt', 'desc'));
-              snapshot = await getDocs(q);
-            } catch (indexError) {
-              console.warn('복합 인덱스 오류, 클라이언트 사이드 필터링으로 폴백:', indexError);
-              // 모든 후기를 가져와서 클라이언트에서 필터링
-              const allSnapshot = await getDocs(reviewsRef);
-              snapshot = {
-                forEach: (callback) => {
-                  allSnapshot.forEach(doc => {
-                    const data = doc.data();
-                    if (data.approved === true) {
-                      callback(doc);
+                const q = query(reviewsRef, orderBy('createdAt', 'desc'));
+                
+                reviewsUnsubscribe = onSnapshot(q, (snapshot) => {
+                    console.log('📋 메인페이지 후기 실시간 업데이트...');
+                    
+                    const firebaseReviews = [];
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        if (data && data.name && data.productName) {
+                            // Firebase 데이터를 메인페이지 형식으로 변환
+                            const formattedReview = {
+                                name: `${data.name}, ${data.ageGroup} ${data.occupation}`,
+                                img: data.profileImage || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=600&q=80',
+                                originalPrice: data.originalPrice,
+                                finalPrice: data.finalPrice,
+                                savings: data.savings,
+                                savingsPercent: `${data.savingsPercent}%`,
+                                desc: data.review ? data.review.substring(0, 50) + '...' : '만족스러운 구매',
+                                review: data.review,
+                                country: data.country || '대한민국',
+                                shipping: data.shipping || '3일',
+                                method: data.method || 'PriceHunter 검증',
+                                badge: data.badge || '실제 구매자',
+                                stars: data.rating || 5,
+                                date: data.purchaseDate || data.createdAt?.toDate?.()?.toISOString().split('T')[0] || '2024-01-01'
+                            };
+                            firebaseReviews.push(formattedReview);
+                        }
+                    });
+                    
+                    // 최대 16개로 제한
+                    const limitedReviews = firebaseReviews.slice(0, 16);
+                    
+                    if (limitedReviews.length > 0) {
+                        console.log(`✅ Firebase에서 ${limitedReviews.length}개 실제 후기 로드 완료`);
+                        firebaseReviewsLoaded = true;
+                        
+                        // 로컬 스토리지에 저장
+                        localStorage.setItem('firebaseReviews', JSON.stringify(limitedReviews));
+                        
+                        // UI 업데이트
+                        renderReviewsFromFirebase(limitedReviews);
+                    } else {
+                        console.log('📝 Firebase에 승인된 후기가 없음, 기본 데이터 사용');
+                        if (!firebaseReviewsLoaded) {
+                            renderReviewsFromFirebase(getDefaultReviews());
+                        }
                     }
-                  });
-                }
-              };
+                }, (error) => {
+                    console.error('❌ Firebase 후기 로드 오류:', error);
+                    if (!firebaseReviewsLoaded) {
+                        renderReviewsFromFirebase(getDefaultReviews());
+                    }
+                });
+                
+            } catch (indexError) {
+                console.warn('⚠️ Firebase 인덱스 오류, 기본 데이터 사용:', indexError);
+                renderReviewsFromFirebase(getDefaultReviews());
             }
             
-            const reviews = [];
-            snapshot.forEach(doc => {
-              const data = doc.data();
-              reviews.push({
-                id: doc.id,
-                name: `${data.name}, ${data.ageGroup} ${data.occupation}`,
-                img: data.profileImage || "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80",
-                originalPrice: data.originalPrice,
-                finalPrice: data.finalPrice,
-                savings: data.savings,
-                savingsPercent: data.savingsPercent + "%",
-                desc: data.review.substring(0, 50) + "...",
-                review: data.review,
-                country: data.country,
-                shipping: data.shipping,
-                method: data.method,
-                badge: data.badge,
-                stars: data.rating || 5,
-                date: data.purchaseDate,
-                // 원본 데이터도 보관
-                originalData: data
-              });
-            });
-            
-            console.log(`✅ Firebase에서 ${reviews.length}개 승인된 후기 로드됨`);
-            return reviews.length > 0 ? reviews : getDefaultReviews();
-            
           } catch (error) {
-            console.error('Firebase 후기 로드 실패:', error);
-            return getDefaultReviews();
+            console.error('❌ Firebase 후기 로드 실패:', error);
+            renderReviewsFromFirebase(getDefaultReviews());
           }
+        }
+        
+        // Firebase 초기화 대기 함수
+        function waitForFirebase() {
+            return new Promise((resolve) => {
+                const checkFirebase = () => {
+                    if (window.firebaseDb && window.firebaseFirestoreFunctions) {
+                        console.log('✅ Firebase 초기화 확인됨');
+                        resolve();
+                    } else {
+                        console.log('⏳ Firebase 초기화 대기 중...');
+                        setTimeout(checkFirebase, 100);
+                    }
+                };
+                checkFirebase();
+            });
         }
 
         // 후기 실시간 리스너
@@ -791,15 +823,22 @@
           }
         }
 
-        // 페이지 언로드 시 리스너 정리
-        window.addEventListener('beforeunload', () => {
-          if (reviewsUnsubscribe) {
-            reviewsUnsubscribe();
-            console.log('🧹 메인페이지 후기 리스너 정리 완료');
-          }
-        });
 
         // 기본 후기 데이터 (Firebase 연결 실패 시 사용)
+        // 2. Firebase 후기 데이터 렌더링 함수
+        function renderReviewsFromFirebase(reviews) {
+            console.log('🎨 Firebase 후기 데이터 렌더링:', reviews.length, '개');
+            
+            // 로컬 스토리지에 저장
+            localStorage.setItem('reviews', JSON.stringify(reviews));
+            
+            // UI 업데이트
+            updateReviewAccess();
+            
+            // 슬라이더 업데이트
+            renderCaseSlider();
+        }
+        
         function getDefaultReviews() {
           const saved = localStorage.getItem('caseProducts');
           if (saved) {
@@ -891,6 +930,14 @@
           initializeReviewSystem();
         }
         
+        // 페이지 언로드 시 리스너 정리
+        window.addEventListener('beforeunload', () => {
+            if (reviewsUnsubscribe) {
+                reviewsUnsubscribe();
+                console.log('🧹 메인페이지 후기 리스너 정리 완료');
+            }
+        });
+
         // 전역 함수로 노출
         window.updateReviewAccess = updateReviewAccess;
         
@@ -3460,10 +3507,68 @@ if (mypageBtn) {
         }
       }
       
-      // 절감왕 섹션 버튼 함수들
+      // 절감왕 섹션 버튼 함수들 (개선된 로그인 체크)
       function showEvidence() {
-        // 포인트 시스템 제거 - 바로 후기 페이지로 이동
-        window.location.href = 'reviews.html';
+        console.log('🔍 실제 후기 보기 버튼 클릭');
+        
+        // 강화된 로그인 상태 확인
+        const loggedIn = localStorage.getItem('loggedIn');
+        const currentUser = localStorage.getItem('currentUser');
+        const user = localStorage.getItem('user');
+        const loggedInEmail = localStorage.getItem('loggedInEmail');
+        const userEmail = localStorage.getItem('userEmail');
+        const userData = localStorage.getItem('userData');
+        
+        let isLoggedIn = false;
+        
+        try {
+          // 다양한 로그인 상태 체크
+          if (loggedIn === 'true') {
+            isLoggedIn = true;
+          }
+          
+          if (currentUser || user || loggedInEmail || userEmail) {
+            isLoggedIn = true;
+          }
+          
+          // JSON 형태의 사용자 데이터 체크
+          if (userData) {
+            const parsedUserData = JSON.parse(userData);
+            if (parsedUserData && (parsedUserData.email || parsedUserData.name)) {
+              isLoggedIn = true;
+            }
+          }
+          
+          // 세션 스토리지도 체크
+          if (sessionStorage.getItem('loggedIn') === 'true' || 
+              sessionStorage.getItem('currentUser') ||
+              sessionStorage.getItem('user')) {
+            isLoggedIn = true;
+          }
+          
+        } catch (error) {
+          console.warn('로그인 상태 파싱 오류:', error);
+          isLoggedIn = loggedIn === 'true' || currentUser || user || loggedInEmail || userEmail;
+        }
+        
+        console.log('🔐 로그인 상태 확인 결과:', {
+          loggedIn: loggedIn,
+          currentUser: currentUser,
+          user: user,
+          loggedInEmail: loggedInEmail,
+          userEmail: userEmail,
+          userData: userData,
+          isLoggedIn: isLoggedIn
+        });
+        
+        if (isLoggedIn) {
+          console.log('✅ 로그인됨 - 후기 페이지로 이동');
+          window.location.href = 'reviews.html';
+        } else {
+          console.log('❌ 로그인 안됨 - 로그인 모달 표시');
+          document.getElementById('login-modal').classList.remove('hidden');
+          showToast('후기를 보려면 로그인이 필요합니다.', 'info');
+        }
       }
       
       // 포인트 시스템 함수들은 위에서 이미 정의됨
