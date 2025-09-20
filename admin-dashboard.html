@@ -772,17 +772,15 @@
         
         function subscribeToRequests() {
             try {
-                const { collection, query, orderBy, onSnapshot } = window.firebaseFirestoreFunctions;
+                const { collection, onSnapshot } = window.firebaseFirestoreFunctions;
                 const db = window.firebaseDb;
                 
-                const requestsQuery = query(
-                    collection(db, 'requests'),
-                    orderBy('createdAt', 'desc')
-                );
+                // orderBy 없이 모든 데이터 구독 (복합 인덱스 문제 방지)
+                const requestsRef = collection(db, 'requests');
                 
                 console.log('🔄 의뢰 데이터 실시간 구독 시작...');
                 
-                requestsUnsubscribe = onSnapshot(requestsQuery, (querySnapshot) => {
+                requestsUnsubscribe = onSnapshot(requestsRef, (querySnapshot) => {
                     const requests = [];
                     
                     querySnapshot.forEach((doc) => {
@@ -792,10 +790,21 @@
                         });
                     });
                     
+                    // 클라이언트 사이드에서 정렬 (createdAt 기준 내림차순)
+                    requests.sort((a, b) => {
+                        const aTime = a.createdAt ? (a.createdAt.toDate ? a.createdAt.toDate() : new Date(a.createdAt)) : new Date(0);
+                        const bTime = b.createdAt ? (b.createdAt.toDate ? b.createdAt.toDate() : new Date(b.createdAt)) : new Date(0);
+                        return bTime - aTime;
+                    });
+                    
                     console.log(`✅ 실시간 의뢰 데이터 업데이트: ${requests.length}개`);
+                    console.log('📊 실시간 의뢰 데이터 상세:', requests);
                     
                     // UI 업데이트
                     updateRequestListUI(requests);
+                    
+                    // 통계 업데이트
+                    updateRequestStats(requests);
                 }, (error) => {
                     console.error('❌ 의뢰 데이터 실시간 구독 오류:', error);
                 });
@@ -849,15 +858,12 @@
         // Firebase에서 의뢰 데이터 가져오기 (일회성 조회 - 호환성 유지)
         async function getRequestsFromFirebase() {
             try {
-                const { collection, query, orderBy, getDocs } = window.firebaseFirestoreFunctions;
+                const { collection, getDocs } = window.firebaseFirestoreFunctions;
                 const db = window.firebaseDb;
                 
-                const requestsQuery = query(
-                    collection(db, 'requests'),
-                    orderBy('createdAt', 'desc')
-                );
-                
-                const querySnapshot = await getDocs(requestsQuery);
+                // orderBy 없이 모든 데이터 가져오기 (복합 인덱스 문제 방지)
+                const requestsRef = collection(db, 'requests');
+                const querySnapshot = await getDocs(requestsRef);
                 const requests = [];
                 
                 querySnapshot.forEach((doc) => {
@@ -867,7 +873,15 @@
                     });
                 });
                 
+                // 클라이언트 사이드에서 정렬 (createdAt 기준 내림차순)
+                requests.sort((a, b) => {
+                    const aTime = a.createdAt ? (a.createdAt.toDate ? a.createdAt.toDate() : new Date(a.createdAt)) : new Date(0);
+                    const bTime = b.createdAt ? (b.createdAt.toDate ? b.createdAt.toDate() : new Date(b.createdAt)) : new Date(0);
+                    return bTime - aTime;
+                });
+                
                 console.log(`✅ Firebase에서 의뢰 데이터 ${requests.length}개 가져옴`);
+                console.log('📊 의뢰 데이터 상세:', requests);
                 return requests;
             } catch (error) {
                 console.error('❌ Firebase에서 의뢰 데이터 가져오기 실패:', error);
@@ -880,17 +894,15 @@
         
         function subscribeToInquiries() {
             try {
-                const { collection, query, orderBy, onSnapshot } = window.firebaseFirestoreFunctions;
+                const { collection, onSnapshot } = window.firebaseFirestoreFunctions;
                 const db = window.firebaseDb;
                 
-                const inquiriesQuery = query(
-                    collection(db, 'inquiries'),
-                    orderBy('createdAt', 'desc')
-                );
+                // orderBy 없이 모든 데이터 구독 (복합 인덱스 문제 방지)
+                const inquiriesRef = collection(db, 'inquiries');
                 
                 console.log('🔄 문의 데이터 실시간 구독 시작...');
                 
-                inquiriesUnsubscribe = onSnapshot(inquiriesQuery, (querySnapshot) => {
+                inquiriesUnsubscribe = onSnapshot(inquiriesRef, (querySnapshot) => {
                     const inquiries = [];
                     
                     querySnapshot.forEach((doc) => {
@@ -900,10 +912,21 @@
                         });
                     });
                     
+                    // 클라이언트 사이드에서 정렬 (createdAt 기준 내림차순)
+                    inquiries.sort((a, b) => {
+                        const aTime = a.createdAt ? (a.createdAt.toDate ? a.createdAt.toDate() : new Date(a.createdAt)) : new Date(0);
+                        const bTime = b.createdAt ? (b.createdAt.toDate ? b.createdAt.toDate() : new Date(b.createdAt)) : new Date(0);
+                        return bTime - aTime;
+                    });
+                    
                     console.log(`✅ 실시간 문의 데이터 업데이트: ${inquiries.length}개`);
+                    console.log('📊 실시간 문의 데이터 상세:', inquiries);
                     
                     // UI 업데이트
                     updateInquiryListUI(inquiries);
+                    
+                    // 통계 업데이트
+                    updateInquiryStats(inquiries);
                 }, (error) => {
                     console.error('❌ 문의 데이터 실시간 구독 오류:', error);
                 });
@@ -956,15 +979,12 @@
         // Firebase에서 문의 데이터 가져오기 (일회성 조회 - 호환성 유지)
         async function getInquiriesFromFirebase() {
             try {
-                const { collection, query, orderBy, getDocs } = window.firebaseFirestoreFunctions;
+                const { collection, getDocs } = window.firebaseFirestoreFunctions;
                 const db = window.firebaseDb;
                 
-                const inquiriesQuery = query(
-                    collection(db, 'inquiries'),
-                    orderBy('createdAt', 'desc')
-                );
-                
-                const querySnapshot = await getDocs(inquiriesQuery);
+                // orderBy 없이 모든 데이터 가져오기 (복합 인덱스 문제 방지)
+                const inquiriesRef = collection(db, 'inquiries');
+                const querySnapshot = await getDocs(inquiriesRef);
                 const inquiries = [];
                 
                 querySnapshot.forEach((doc) => {
@@ -974,7 +994,15 @@
                     });
                 });
                 
+                // 클라이언트 사이드에서 정렬 (createdAt 기준 내림차순)
+                inquiries.sort((a, b) => {
+                    const aTime = a.createdAt ? (a.createdAt.toDate ? a.createdAt.toDate() : new Date(a.createdAt)) : new Date(0);
+                    const bTime = b.createdAt ? (b.createdAt.toDate ? b.createdAt.toDate() : new Date(b.createdAt)) : new Date(0);
+                    return bTime - aTime;
+                });
+                
                 console.log(`✅ Firebase에서 문의 데이터 ${inquiries.length}개 가져옴`);
+                console.log('📊 문의 데이터 상세:', inquiries);
                 return inquiries;
             } catch (error) {
                 console.error('❌ Firebase에서 문의 데이터 가져오기 실패:', error);
@@ -1294,6 +1322,124 @@
             }
         }
 
+        // 의뢰 통계 업데이트 함수
+        function updateRequestStats(requests) {
+            const totalRequestsElement = document.getElementById('total-requests');
+            const completedRequestsElement = document.getElementById('completed-requests');
+            
+            if (totalRequestsElement) {
+                totalRequestsElement.textContent = requests.length;
+            }
+            
+            if (completedRequestsElement) {
+                const completedCount = requests.filter(req => req.status === '답변완료' || req.status === '완료').length;
+                completedRequestsElement.textContent = completedCount;
+            }
+            
+            console.log('📊 의뢰 통계 업데이트:', {
+                total: requests.length,
+                completed: requests.filter(req => req.status === '답변완료' || req.status === '완료').length
+            });
+        }
+        
+        // 문의 통계 업데이트 함수
+        function updateInquiryStats(inquiries) {
+            const totalInquiriesElement = document.getElementById('total-inquiries');
+            const unansweredInquiriesElement = document.getElementById('unanswered-inquiries');
+            
+            if (totalInquiriesElement) {
+                totalInquiriesElement.textContent = inquiries.length;
+            }
+            
+            if (unansweredInquiriesElement) {
+                const unansweredCount = inquiries.filter(inq => inq.status !== '답변완료' && inq.status !== '완료').length;
+                unansweredInquiriesElement.textContent = unansweredCount;
+            }
+            
+            console.log('📊 문의 통계 업데이트:', {
+                total: inquiries.length,
+                unanswered: inquiries.filter(inq => inq.status !== '답변완료' && inq.status !== '완료').length
+            });
+        }
+        
+        // 대시보드 통계 업데이트 함수
+        async function updateDashboardStats() {
+            try {
+                console.log('📊 대시보드 통계 업데이트 시작...');
+                
+                // 의뢰 통계 업데이트
+                const requests = await getRequestsFromFirebase();
+                const totalRequestsElement = document.getElementById('total-requests');
+                const completedRequestsElement = document.getElementById('completed-requests');
+                
+                if (totalRequestsElement) {
+                    totalRequestsElement.textContent = requests.length;
+                }
+                
+                if (completedRequestsElement) {
+                    const completedCount = requests.filter(req => req.status === '답변완료' || req.status === '완료').length;
+                    completedRequestsElement.textContent = completedCount;
+                }
+                
+                // 문의 통계 업데이트
+                const inquiries = await getInquiriesFromFirebase();
+                const totalInquiriesElement = document.getElementById('total-inquiries');
+                const unansweredInquiriesElement = document.getElementById('unanswered-inquiries');
+                
+                if (totalInquiriesElement) {
+                    totalInquiriesElement.textContent = inquiries.length;
+                }
+                
+                if (unansweredInquiriesElement) {
+                    const unansweredCount = inquiries.filter(inq => inq.status !== '답변완료' && inq.status !== '완료').length;
+                    unansweredInquiriesElement.textContent = unansweredCount;
+                }
+                
+                // 회원 통계 업데이트
+                const users = await getUsersFromFirebase();
+                const totalMembersElement = document.getElementById('total-members');
+                
+                if (totalMembersElement) {
+                    totalMembersElement.textContent = users.length;
+                }
+                
+                console.log('✅ 대시보드 통계 업데이트 완료:', {
+                    requests: requests.length,
+                    completedRequests: requests.filter(req => req.status === '답변완료' || req.status === '완료').length,
+                    inquiries: inquiries.length,
+                    unansweredInquiries: inquiries.filter(inq => inq.status !== '답변완료' && inq.status !== '완료').length,
+                    members: users.length
+                });
+                
+            } catch (error) {
+                console.error('❌ 대시보드 통계 업데이트 실패:', error);
+            }
+        }
+        
+        // Firebase에서 사용자 데이터 가져오기
+        async function getUsersFromFirebase() {
+            try {
+                const { collection, getDocs } = window.firebaseFirestoreFunctions;
+                const db = window.firebaseDb;
+                
+                const usersRef = collection(db, 'users');
+                const querySnapshot = await getDocs(usersRef);
+                const users = [];
+                
+                querySnapshot.forEach((doc) => {
+                    users.push({
+                        id: doc.id,
+                        ...doc.data()
+                    });
+                });
+                
+                return users;
+            } catch (error) {
+                console.error('❌ Firebase에서 사용자 데이터 가져오기 실패:', error);
+                return [];
+            }
+        }
+
         // 대시보드 데이터 로드 함수
         function loadDashboardData() {
             console.log('📊 대시보드 데이터 로드 시작...');
@@ -1314,6 +1460,10 @@
             // 초기 데이터 로드 (호환성 유지)
             renderRequestList();
             renderInquiryList();
+            
+            // 통계 업데이트
+            updateDashboardStats();
+            
             console.log('✅ 대시보드 데이터 로드 완료');
         }
         
@@ -3046,8 +3196,20 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                                     <span class="text-2xl">💬</span>
                                 </div>
                                 <div class="ml-4">
+                                    <p class="text-sm text-gray-500">총 문의</p>
+                                    <p class="text-2xl font-bold text-gray-800" id="total-inquiries">0</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-white rounded-xl shadow-lg p-6">
+                            <div class="flex items-center">
+                                <div class="p-3 bg-red-100 rounded-lg">
+                                    <span class="text-2xl">⏰</span>
+                                </div>
+                                <div class="ml-4">
                                     <p class="text-sm text-gray-500">미답변 문의</p>
-                                    <p class="text-2xl font-bold text-gray-800" id="pending-inquiries">0</p>
+                                    <p class="text-2xl font-bold text-gray-800" id="unanswered-inquiries">0</p>
                                 </div>
                             </div>
                         </div>
