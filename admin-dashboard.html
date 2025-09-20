@@ -3305,16 +3305,39 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                         </h3>
                         <div class="bg-indigo-50 rounded-lg p-4 border-l-4 border-indigo-500">
                             <div class="space-y-4">
+                                <!-- 답변 템플릿 버튼들 -->
+                                <div class="flex flex-wrap gap-2 mb-4">
+                                    <button onclick="useRequestTemplate('price_analysis')" class="px-3 py-1 bg-blue-100 text-blue-700 text-xs rounded-full hover:bg-blue-200 transition">
+                                        💰 가격 분석
+                                    </button>
+                                    <button onclick="useRequestTemplate('market_research')" class="px-3 py-1 bg-green-100 text-green-700 text-xs rounded-full hover:bg-green-200 transition">
+                                        📊 시장 조사
+                                    </button>
+                                    <button onclick="useRequestTemplate('supplier_info')" class="px-3 py-1 bg-yellow-100 text-yellow-700 text-xs rounded-full hover:bg-yellow-200 transition">
+                                        🏪 공급업체 정보
+                                    </button>
+                                    <button onclick="useRequestTemplate('shipping_info')" class="px-3 py-1 bg-purple-100 text-purple-700 text-xs rounded-full hover:bg-purple-200 transition">
+                                        🚚 배송 정보
+                                    </button>
+                                    <button onclick="useRequestTemplate('custom')" class="px-3 py-1 bg-gray-100 text-gray-700 text-xs rounded-full hover:bg-gray-200 transition">
+                                        ✏️ 직접 작성
+                                    </button>
+                                </div>
+                                
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">답변 내용</label>
-                                    <textarea id="admin-request-response" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="의뢰에 대한 답변을 작성해주세요..."></textarea>
+                                    <textarea id="admin-request-response" rows="8" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="의뢰에 대한 답변을 작성해주세요..."></textarea>
                                 </div>
+                                
                                 <div class="flex gap-3">
                                     <button onclick="saveRequestResponse()" class="px-4 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition">
                                         답변 저장
                                     </button>
                                     <button onclick="clearRequestResponse()" class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition">
                                         내용 지우기
+                                    </button>
+                                    <button onclick="previewRequestResponse()" class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition">
+                                        미리보기
                                     </button>
                                 </div>
                             </div>
@@ -3346,10 +3369,24 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                         <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                             💼 관리자 답변
                         </h3>
-                        <div class="bg-gray-50 rounded-lg p-4 border-l-4 border-gray-500">
-                            <div class="text-sm">
-                                <div class="mb-2"><span class="font-semibold text-gray-700">답변일시:</span> <span id="admin-modal-response-date" class="text-gray-600"></span></div>
-                                <div><span class="font-semibold text-gray-700">답변내용:</span> <span id="admin-modal-response-content" class="text-gray-600"></span></div>
+                        <div class="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-6 border-l-4 border-green-500 shadow-lg">
+                            <div class="flex items-center mb-4">
+                                <div class="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center mr-3">
+                                    <span class="text-white font-bold text-lg">A</span>
+                                </div>
+                                <div>
+                                    <div class="font-semibold text-gray-800">관리자</div>
+                                    <div class="text-sm text-gray-500" id="admin-modal-response-date"></div>
+                                </div>
+                            </div>
+                            <div class="bg-white rounded-lg p-4 shadow-sm">
+                                <div class="whitespace-pre-wrap text-gray-700 leading-relaxed" id="admin-modal-response-content"></div>
+                            </div>
+                            <div class="mt-4 flex items-center text-sm text-gray-500">
+                                <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                </svg>
+                                답변이 완료되었습니다
                             </div>
                         </div>
                     </div>
@@ -3541,6 +3578,166 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             document.getElementById('admin-request-response').value = '';
         }
 
+        // 의뢰 답변 템플릿 사용
+        function useRequestTemplate(templateType) {
+            const textarea = document.getElementById('admin-request-response');
+            const productName = document.getElementById('admin-modal-product-name').textContent;
+            const userName = document.getElementById('admin-modal-user-name').textContent;
+            
+            let template = '';
+            
+            switch(templateType) {
+                case 'price_analysis':
+                    template = `안녕하세요 ${userName}님,
+
+${productName}에 대한 가격 분석 결과를 말씀드리겠습니다.
+
+📊 **가격 분석 결과**
+• 시장 평균가: [가격 입력]
+• 최저가: [가격 입력]
+• 권장 구매가: [가격 입력]
+
+💰 **비용 분석**
+• 제품 가격: [가격 입력]
+• 배송비: [가격 입력]
+• 수수료: [가격 입력]
+• 총 비용: [가격 입력]
+
+📈 **추천 사유**
+[추천 사유를 입력해주세요]
+
+추가 문의사항이 있으시면 언제든 연락주세요.
+
+감사합니다.
+PriceHunter 팀`;
+                    break;
+                    
+                case 'market_research':
+                    template = `안녕하세요 ${userName}님,
+
+${productName}에 대한 시장 조사 결과를 공유드립니다.
+
+🔍 **시장 현황**
+• 시장 규모: [정보 입력]
+• 주요 브랜드: [브랜드 입력]
+• 트렌드: [트렌드 입력]
+
+📊 **경쟁사 분석**
+• 경쟁사 A: [분석 내용]
+• 경쟁사 B: [분석 내용]
+• 경쟁사 C: [분석 내용]
+
+💡 **시장 기회**
+[시장 기회 분석 내용]
+
+📋 **권장사항**
+[권장사항 내용]
+
+문의사항이 있으시면 언제든 연락주세요.
+
+감사합니다.
+PriceHunter 팀`;
+                    break;
+                    
+                case 'supplier_info':
+                    template = `안녕하세요 ${userName}님,
+
+${productName} 관련 공급업체 정보를 제공드립니다.
+
+🏪 **추천 공급업체**
+
+**1. [업체명]**
+• 연락처: [연락처]
+• 가격: [가격]
+• 배송: [배송 정보]
+• 특징: [특징]
+
+**2. [업체명]**
+• 연락처: [연락처]
+• 가격: [가격]
+• 배송: [배송 정보]
+• 특징: [특징]
+
+**3. [업체명]**
+• 연락처: [연락처]
+• 가격: [가격]
+• 배송: [배송 정보]
+• 특징: [특징]
+
+💡 **선택 가이드**
+[선택 가이드 내용]
+
+추가 정보가 필요하시면 언제든 연락주세요.
+
+감사합니다.
+PriceHunter 팀`;
+                    break;
+                    
+                case 'shipping_info':
+                    template = `안녕하세요 ${userName}님,
+
+${productName} 배송 관련 정보를 안내드립니다.
+
+🚚 **배송 옵션**
+
+**국내 배송**
+• 배송비: [가격]
+• 배송기간: [기간]
+• 배송업체: [업체명]
+
+**해외 배송**
+• 배송비: [가격]
+• 배송기간: [기간]
+• 통관비용: [비용]
+• 배송업체: [업체명]
+
+📋 **배송 주의사항**
+• [주의사항 1]
+• [주의사항 2]
+• [주의사항 3]
+
+⏰ **예상 도착일**
+[예상 도착일 계산]
+
+추가 문의사항이 있으시면 언제든 연락주세요.
+
+감사합니다.
+PriceHunter 팀`;
+                    break;
+                    
+                case 'custom':
+                    template = '';
+                    break;
+            }
+            
+            textarea.value = template;
+            textarea.focus();
+        }
+
+        // 의뢰 답변 미리보기
+        function previewRequestResponse() {
+            const responseText = document.getElementById('admin-request-response').value.trim();
+            if (!responseText) {
+                alert('미리보기할 내용이 없습니다.');
+                return;
+            }
+            
+            const previewModal = document.createElement('div');
+            previewModal.className = 'fixed inset-0 bg-black bg-opacity-50 z-60 flex items-center justify-center';
+            previewModal.innerHTML = `
+                <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-xl font-bold text-gray-800">답변 미리보기</h3>
+                        <button onclick="this.parentElement.parentElement.parentElement.remove()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+                    </div>
+                    <div class="bg-gray-50 rounded-lg p-4 border-l-4 border-blue-500">
+                        <div class="whitespace-pre-wrap text-gray-700">${responseText}</div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(previewModal);
+        }
+
         // 관리자 액션 함수들
         function updateRequestStatusFromModal() {
             const requestNumber = document.getElementById('admin-modal-request-number').textContent;
@@ -3663,16 +3860,39 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                         </h3>
                         <div class="bg-indigo-50 rounded-lg p-4 border-l-4 border-indigo-500">
                             <div class="space-y-4">
+                                <!-- 답변 템플릿 버튼들 -->
+                                <div class="flex flex-wrap gap-2 mb-4">
+                                    <button onclick="useInquiryTemplate('general')" class="px-3 py-1 bg-blue-100 text-blue-700 text-xs rounded-full hover:bg-blue-200 transition">
+                                        💬 일반 답변
+                                    </button>
+                                    <button onclick="useInquiryTemplate('technical')" class="px-3 py-1 bg-green-100 text-green-700 text-xs rounded-full hover:bg-green-200 transition">
+                                        🔧 기술 문의
+                                    </button>
+                                    <button onclick="useInquiryTemplate('service')" class="px-3 py-1 bg-yellow-100 text-yellow-700 text-xs rounded-full hover:bg-yellow-200 transition">
+                                        🛠️ 서비스 문의
+                                    </button>
+                                    <button onclick="useInquiryTemplate('billing')" class="px-3 py-1 bg-purple-100 text-purple-700 text-xs rounded-full hover:bg-purple-200 transition">
+                                        💳 결제 문의
+                                    </button>
+                                    <button onclick="useInquiryTemplate('custom')" class="px-3 py-1 bg-gray-100 text-gray-700 text-xs rounded-full hover:bg-gray-200 transition">
+                                        ✏️ 직접 작성
+                                    </button>
+                                </div>
+                                
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">답변 내용</label>
-                                    <textarea id="admin-inquiry-response" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="문의에 대한 답변을 작성해주세요..."></textarea>
+                                    <textarea id="admin-inquiry-response" rows="6" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="문의에 대한 답변을 작성해주세요..."></textarea>
                                 </div>
+                                
                                 <div class="flex gap-3">
                                     <button onclick="saveInquiryResponse()" class="px-4 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition">
                                         답변 저장
                                     </button>
                                     <button onclick="clearInquiryResponse()" class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition">
                                         내용 지우기
+                                    </button>
+                                    <button onclick="previewInquiryResponse()" class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition">
+                                        미리보기
                                     </button>
                                 </div>
                             </div>
@@ -3704,10 +3924,24 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                         <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                             💼 관리자 답변
                         </h3>
-                        <div class="bg-gray-50 rounded-lg p-4 border-l-4 border-gray-500">
-                            <div class="text-sm">
-                                <div class="mb-2"><span class="font-semibold text-gray-700">답변일시:</span> <span id="admin-inquiry-response-date" class="text-gray-600"></span></div>
-                                <div class="whitespace-pre-wrap"><span class="font-semibold text-gray-700">답변내용:</span> <span id="admin-inquiry-response-content" class="text-gray-600"></span></div>
+                        <div class="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-6 border-l-4 border-purple-500 shadow-lg">
+                            <div class="flex items-center mb-4">
+                                <div class="w-10 h-10 bg-purple-500 rounded-full flex items-center justify-center mr-3">
+                                    <span class="text-white font-bold text-lg">A</span>
+                                </div>
+                                <div>
+                                    <div class="font-semibold text-gray-800">관리자</div>
+                                    <div class="text-sm text-gray-500" id="admin-inquiry-response-date"></div>
+                                </div>
+                            </div>
+                            <div class="bg-white rounded-lg p-4 shadow-sm">
+                                <div class="whitespace-pre-wrap text-gray-700 leading-relaxed" id="admin-inquiry-response-content"></div>
+                            </div>
+                            <div class="mt-4 flex items-center text-sm text-gray-500">
+                                <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                </svg>
+                                답변이 완료되었습니다
                             </div>
                         </div>
                     </div>
@@ -3844,6 +4078,155 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
         // 문의 답변 내용 지우기
         function clearInquiryResponse() {
             document.getElementById('admin-inquiry-response').value = '';
+        }
+
+        // 문의 답변 템플릿 사용
+        function useInquiryTemplate(templateType) {
+            const textarea = document.getElementById('admin-inquiry-response');
+            const userName = document.getElementById('admin-inquiry-user-name').textContent;
+            const subject = document.getElementById('admin-inquiry-subject').textContent;
+            
+            let template = '';
+            
+            switch(templateType) {
+                case 'general':
+                    template = `안녕하세요 ${userName}님,
+
+"${subject}" 문의에 대해 답변드리겠습니다.
+
+📋 **문의 내용 확인**
+귀하의 문의사항을 확인했습니다.
+
+💡 **답변**
+[답변 내용을 입력해주세요]
+
+📞 **추가 문의**
+추가로 궁금한 점이 있으시면 언제든 연락주세요.
+
+감사합니다.
+PriceHunter 고객지원팀`;
+                    break;
+                    
+                case 'technical':
+                    template = `안녕하세요 ${userName}님,
+
+"${subject}" 기술 문의에 대해 답변드리겠습니다.
+
+🔧 **기술 문의 답변**
+
+**문제 분석:**
+[문제 분석 내용]
+
+**해결 방법:**
+1. [해결 방법 1]
+2. [해결 방법 2]
+3. [해결 방법 3]
+
+**주의사항:**
+• [주의사항 1]
+• [주의사항 2]
+
+**참고 자료:**
+[참고 자료 링크 또는 정보]
+
+추가 기술 지원이 필요하시면 언제든 연락주세요.
+
+감사합니다.
+PriceHunter 기술지원팀`;
+                    break;
+                    
+                case 'service':
+                    template = `안녕하세요 ${userName}님,
+
+"${subject}" 서비스 문의에 대해 답변드리겠습니다.
+
+🛠️ **서비스 안내**
+
+**서비스 내용:**
+[서비스 내용 설명]
+
+**이용 방법:**
+1. [이용 방법 1]
+2. [이용 방법 2]
+3. [이용 방법 3]
+
+**서비스 특징:**
+• [특징 1]
+• [특징 2]
+• [특징 3]
+
+**이용 요금:**
+[요금 정보]
+
+**문의 및 예약:**
+[연락처 및 예약 방법]
+
+서비스 이용에 대해 추가 문의사항이 있으시면 언제든 연락주세요.
+
+감사합니다.
+PriceHunter 서비스팀`;
+                    break;
+                    
+                case 'billing':
+                    template = `안녕하세요 ${userName}님,
+
+"${subject}" 결제 관련 문의에 대해 답변드리겠습니다.
+
+💳 **결제 정보 확인**
+
+**결제 내역:**
+• 결제일: [날짜]
+• 결제금액: [금액]
+• 결제방법: [방법]
+• 결제상태: [상태]
+
+**결제 관련 안내:**
+[결제 관련 안내 내용]
+
+**영수증 발급:**
+[영수증 발급 방법]
+
+**환불 정책:**
+[환불 정책 안내]
+
+**추가 문의:**
+결제 관련 추가 문의사항이 있으시면 언제든 연락주세요.
+
+감사합니다.
+PriceHunter 결제팀`;
+                    break;
+                    
+                case 'custom':
+                    template = '';
+                    break;
+            }
+            
+            textarea.value = template;
+            textarea.focus();
+        }
+
+        // 문의 답변 미리보기
+        function previewInquiryResponse() {
+            const responseText = document.getElementById('admin-inquiry-response').value.trim();
+            if (!responseText) {
+                alert('미리보기할 내용이 없습니다.');
+                return;
+            }
+            
+            const previewModal = document.createElement('div');
+            previewModal.className = 'fixed inset-0 bg-black bg-opacity-50 z-60 flex items-center justify-center';
+            previewModal.innerHTML = `
+                <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-xl font-bold text-gray-800">답변 미리보기</h3>
+                        <button onclick="this.parentElement.parentElement.parentElement.remove()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+                    </div>
+                    <div class="bg-gray-50 rounded-lg p-4 border-l-4 border-blue-500">
+                        <div class="whitespace-pre-wrap text-gray-700">${responseText}</div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(previewModal);
         }
 
         // 관리자용 문의 모달 닫기
