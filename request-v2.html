@@ -300,11 +300,17 @@
     let currentStep = 1;
     const steps = [1,2,3,4];
     function showStep(n) {
+      console.log(`showStep(${n}) 호출됨`);
       steps.forEach(s => {
         const el = document.getElementById(`step-${s}`);
-        el.classList.toggle('hidden', s !== n);
+        if (el) {
+          el.classList.toggle('hidden', s !== n);
+          console.log(`Step ${s} 요소:`, el.classList.contains('hidden') ? '숨김' : '표시');
+        }
         const dot = document.getElementById(`step-${s}-dot`);
-        dot.className = `w-10 h-10 rounded-full flex items-center justify-center font-bold text-white stepper-dot stepper-dot-animate${s === n ? ' stepper-dot-active' : ''}`;
+        if (dot) {
+          dot.className = `w-10 h-10 rounded-full flex items-center justify-center font-bold text-white stepper-dot stepper-dot-animate${s === n ? ' stepper-dot-active' : ''}`;
+        }
         if (s === n) {
           el.classList.remove('slidein-step','fadein-step');
           el.classList.add('fadein-step');
@@ -313,10 +319,12 @@
         }
       });
       currentStep = n;
+      console.log(`현재 단계: ${currentStep}`);
     }
     showStep(1);
     // 스텝 이동 버튼
     document.getElementById('to-step-2').onclick = function() {
+      console.log('다음 버튼 클릭됨');
       // Step 1 유효성
       if (!document.getElementById('productName').value.trim() || !document.getElementById('productDesc').value.trim()) {
         alert('제품명과 설명을 모두 입력해 주세요.');
@@ -331,6 +339,7 @@
         alert('브랜드 배제 정책에 동의해 주세요.');
         return;
       }
+      console.log('유효성 검사 통과, showStep(2) 호출');
       showStep(2);
     };
     document.getElementById('to-step-3').onclick = function() {
@@ -579,19 +588,19 @@
         let loaded = 0;
         imageFiles.forEach((file, idx) => {
           const reader = new FileReader();
-          reader.onload = function(e2) {
+          reader.onload = async function(e2) {
             imgArr[idx] = e2.target.result;
             loaded++;
             if (loaded === imageFiles.length) {
-              saveRequest(imgArr);
+              await saveRequest(imgArr);
             }
           };
           reader.readAsDataURL(file);
         });
       } else {
-        saveRequest([]);
+        await saveRequest([]);
       }
-      function saveRequest(imgArr) {
+      async function saveRequest(imgArr) {
         // 로컬스토리지 정리 함수 제거됨 - Firebase 전용 사용
         
         const reqData = {
