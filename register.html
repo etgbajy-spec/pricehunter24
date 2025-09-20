@@ -419,14 +419,8 @@
 
       // localStorage에 사용자 데이터 저장
       function saveUserToLocalStorage(userData) {
-        try {
-          const users = JSON.parse(localStorage.getItem('users') || '[]');
-          users.push(userData);
-          localStorage.setItem('users', JSON.stringify(users));
-          console.log('✅ localStorage에 사용자 저장 완료');
-        } catch (error) {
-          console.error('❌ localStorage 저장 실패:', error);
-        }
+        // localStorage 저장 제거 - Firebase 전용
+        console.log('✅ Firebase에만 사용자 데이터 저장');
         }
         
         // 포인트 추가
@@ -461,12 +455,8 @@
             return user.email && user.password && user.name && user.phone;
           });
           
-          if (cleanedUsers.length !== existingUsers.length) {
-            localStorage.setItem('users', JSON.stringify(cleanedUsers));
-            console.log('✅ 사용자 데이터 정리 완료:', cleanedUsers.length, '명');
-          } else {
-            console.log('✅ 사용자 데이터가 이미 정리되어 있습니다.');
-          }
+          // localStorage 사용자 데이터 정리 제거 - Firebase 전용
+          console.log('✅ Firebase 전용 시스템 - localStorage 사용자 데이터 정리 불필요');
           
           return cleanedUsers;
         } catch (error) {
@@ -719,13 +709,13 @@
             // Firebase에 저장 (권한 오류 시 localStorage로 폴백)
             const firebaseResult = await saveUserToFirebase(formData);
             
-            // localStorage에도 백업 저장
-            saveUserToLocalStorage(formData);
+            // localStorage 백업 저장 제거 - Firebase 전용
             
             // 현재 사용자 정보를 user 키로도 저장 (마이페이지 호환성)
             localStorage.setItem('user', JSON.stringify(formData));
             localStorage.setItem('currentUser', JSON.stringify(formData));
             localStorage.setItem('loggedIn', 'true');
+            localStorage.setItem('loggedInEmail', formData.email); // 이메일 저장
             
             // 포인트 시스템 제거됨
             

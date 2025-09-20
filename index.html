@@ -1777,8 +1777,8 @@
             status: 'active',
             loginType: user.loginType || 'normal'
           };
-          users.push(migratedUser);
-          localStorage.setItem('users', JSON.stringify(users));
+          // localStorage 사용자 데이터 저장 제거 - Firebase 전용
+          console.log('✅ Firebase 전용 시스템 - localStorage 사용자 데이터 저장 불필요');
   
         }
         
@@ -1795,8 +1795,8 @@
             status: 'active',
             loginType: currentUser.loginType || 'normal'
           };
-          users.push(migratedUser);
-          localStorage.setItem('users', JSON.stringify(users));
+          // localStorage 사용자 데이터 저장 제거 - Firebase 전용
+          console.log('✅ Firebase 전용 시스템 - localStorage 사용자 데이터 저장 불필요');
   
         }
         
@@ -2566,10 +2566,8 @@
             
             // 사용자 비밀번호 업데이트
             const userIndex = users.findIndex(user => user.email === email);
-            if (userIndex >= 0) {
-              users[userIndex].password = tempPassword;
-              localStorage.setItem('users', JSON.stringify(users));
-            }
+            // localStorage 사용자 데이터 업데이트 제거 - Firebase 전용
+            console.log('✅ Firebase 전용 시스템 - localStorage 사용자 데이터 업데이트 불필요');
             
             resultP.innerHTML = `
               <div class="text-green-600">
@@ -2683,10 +2681,8 @@
             // users 배열에서도 업데이트
             const users = JSON.parse(localStorage.getItem('users') || '[]');
             const userIndex = users.findIndex(u => u.email === email);
-            if (userIndex >= 0) {
-              users[userIndex].lastLogin = Date.now();
-              localStorage.setItem('users', JSON.stringify(users));
-            }
+            // localStorage 사용자 데이터 업데이트 제거 - Firebase 전용
+            console.log('✅ Firebase 전용 시스템 - localStorage 사용자 데이터 업데이트 불필요');
             
             localStorage.setItem('loggedIn', 'true');
             localStorage.setItem('currentUser', JSON.stringify(user));

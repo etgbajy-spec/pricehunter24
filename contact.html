@@ -271,22 +271,11 @@
         console.log('🔥 Firebase에 문의 저장 시작...');
         const firebaseResult = await saveInquiryToFirebase(inquiry);
         
-        // localStorage에도 백업 저장
-        let history = JSON.parse(localStorage.getItem('contact-history') || '[]');
-        history.unshift(inquiry);
-        if (history.length > 20) history = history.slice(0, 20);
-        localStorage.setItem('contact-history', JSON.stringify(history));
-        
-        // inquiry-로도 저장 (관리자페이지용)
-        const inquiryKey = 'inquiry-' + Date.now();
-        localStorage.setItem(inquiryKey, JSON.stringify(inquiry));
+        // localStorage 백업 저장 제거 - Firebase 전용
+        console.log('✅ Firebase에만 문의 데이터 저장');
         
         // 성공 메시지 표시
-        if (firebaseResult === 'localStorage_fallback') {
-          alert('문의가 접수되었습니다!\n(데이터는 로컬에 저장되었습니다)');
-        } else {
-          alert('문의가 접수되었습니다!\n데이터가 Firebase 서버에 안전하게 저장되었습니다.');
-        }
+        alert('문의가 접수되었습니다!\n데이터가 Firebase 서버에 안전하게 저장되었습니다.');
         
         document.getElementById('contact-success').classList.remove('hidden');
         this.reset();
@@ -375,21 +364,9 @@
       }
       
       // contact-history에서 삭제
-      let history = JSON.parse(localStorage.getItem('contact-history') || '[]');
-      history = history.filter(inq => !(inq.subject === subject && inq.date === date));
-      localStorage.setItem('contact-history', JSON.stringify(history));
-      
-      // inquiry-에서도 동기화하여 삭제
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key.startsWith('inquiry-')) {
-          const obj = JSON.parse(localStorage.getItem(key));
-          if (obj && obj.subject === subject && obj.date === date) {
-            localStorage.removeItem(key);
-            break;
-          }
-        }
-      }
+      // localStorage 삭제 로직 제거 - Firebase 전용
+      console.log('✅ Firebase에서 문의 삭제');
+      // localStorage 삭제 로직 제거 - Firebase 전용
       
       // 화면 새로고침
       renderHistory();
@@ -500,12 +477,8 @@
         if (!inquiryKey) return false;
         const author = (JSON.parse(localStorage.getItem('user')||'{}').name) || '회원';
         const inquiry = JSON.parse(localStorage.getItem(inquiryKey));
-        const comments = (inquiry.comments||[]).concat({author, text, date: Date.now()});
-        inquiry.comments = comments;
-        localStorage.setItem(inquiryKey, JSON.stringify(inquiry));
-        found.comments = comments;
-        history[foundIdx] = found;
-        localStorage.setItem('contact-history', JSON.stringify(history));
+        // localStorage 댓글 저장 제거 - Firebase 전용
+        console.log('✅ Firebase에서 댓글 업데이트');
         // 즉시 렌더링 갱신
         renderHistory();
         // 입력 필드 초기화

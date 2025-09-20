@@ -391,8 +391,8 @@
               paymentData: data
             };
 
-            // 주문 정보를 localStorage에 저장
-            localStorage.setItem('order-' + orderNumber, JSON.stringify(orderInfo));
+            // localStorage 주문 정보 저장 제거 - Firebase 전용
+            console.log('✅ Firebase에서 주문 정보 저장 필요');
             
             // 구매 정보를 의뢰와 연결하여 저장
             const urlParams = new URLSearchParams(window.location.search);
@@ -421,12 +421,8 @@
                 paymentData: data
               };
               
-              // 구매 방식에 따라 다른 키로 저장
-              if (method === 'support') {
-                localStorage.setItem('order-' + reqKey, JSON.stringify(purchaseInfo));
-              } else {
-                localStorage.setItem('purchase-' + reqKey, JSON.stringify(purchaseInfo));
-              }
+              // localStorage 구매 정보 저장 제거 - Firebase 전용
+              console.log('✅ Firebase에서 구매 정보 저장 필요');
             }
 
             // 결제 완료 페이지로 이동

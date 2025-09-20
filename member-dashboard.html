@@ -526,9 +526,10 @@
         const db = window.firebaseDb;
         
         // 현재 로그인된 사용자 이메일 가져오기
-        const loggedInEmail = localStorage.getItem('loggedInEmail');
+        const loggedInEmail = getUserEmail();
+        
         if (!loggedInEmail) {
-          console.error('로그인된 사용자 정보가 없습니다.');
+          console.error('❌ 로그인된 사용자 정보를 찾을 수 없습니다.');
           return;
         }
         
@@ -571,31 +572,66 @@
         const db = window.firebaseDb;
         
         // 현재 사용자 이메일 가져오기
-        const userEmail = localStorage.getItem('loggedInEmail');
+        const userEmail = getUserEmail();
+        console.log('🔍 최종 사용자 이메일:', userEmail);
         
         if (!userEmail) {
-          console.log('사용자 이메일이 없어서 Firebase에서 의뢰 데이터를 가져올 수 없습니다.');
+          console.log('❌ 사용자 이메일을 찾을 수 없어서 Firebase에서 의뢰 데이터를 가져올 수 없습니다.');
+          console.log('🔍 localStorage 상태:', {
+            loggedInEmail: localStorage.getItem('loggedInEmail'),
+            currentUser: localStorage.getItem('currentUser'),
+            user: localStorage.getItem('user'),
+            loggedIn: localStorage.getItem('loggedIn')
+          });
           return [];
         }
         
         // Firebase에서 해당 사용자의 의뢰 데이터 조회
-        const requestsQuery = query(
-          collection(db, 'requests'),
-          where('email', '==', userEmail),
-          orderBy('createdAt', 'desc')
-        );
+        console.log('🔍 사용자 이메일로 의뢰 데이터 조회:', userEmail);
         
-        const querySnapshot = await getDocs(requestsQuery);
+        let querySnapshot;
+        try {
+          // 먼저 orderBy 없이 조회해보기
+          const requestsQuery = query(
+            collection(db, 'requests'),
+            where('email', '==', userEmail)
+          );
+          
+          querySnapshot = await getDocs(requestsQuery);
+          console.log('🔍 쿼리 결과:', querySnapshot.size, '개 문서 발견');
+        } catch (queryError) {
+          console.warn('⚠️ where 쿼리 실패, 모든 데이터를 가져와서 필터링:', queryError);
+          
+          // 쿼리 실패시 모든 데이터를 가져와서 클라이언트에서 필터링
+          const allRequestsQuery = query(collection(db, 'requests'));
+          querySnapshot = await getDocs(allRequestsQuery);
+          console.log('🔍 전체 의뢰 데이터:', querySnapshot.size, '개 문서 발견');
+        }
+        
         const requests = [];
         
         querySnapshot.forEach((doc) => {
-          requests.push({
-            id: doc.id,
-            ...doc.data()
-          });
+          const data = doc.data();
+          console.log('📄 문서 데이터:', doc.id, data.email, 'vs', userEmail);
+          
+          // 이메일이 일치하는 경우만 추가
+          if (data.email === userEmail) {
+            requests.push({
+              id: doc.id,
+              ...data
+            });
+          }
+        });
+        
+        // 클라이언트 사이드에서 정렬 (createdAt 기준 내림차순)
+        requests.sort((a, b) => {
+          const aTime = a.createdAt ? a.createdAt.toDate ? a.createdAt.toDate() : new Date(a.createdAt) : new Date(0);
+          const bTime = b.createdAt ? b.createdAt.toDate ? b.createdAt.toDate() : new Date(b.createdAt) : new Date(0);
+          return bTime - aTime;
         });
         
         console.log(`✅ Firebase에서 의뢰 데이터 ${requests.length}개 가져옴`);
+        console.log('📊 의뢰 데이터 상세:', requests);
         return requests;
       } catch (error) {
         console.error('❌ Firebase에서 의뢰 데이터 가져오기 실패:', error);
@@ -615,28 +651,54 @@
         const db = window.firebaseDb;
         
         // 현재 사용자 이메일 가져오기
-        const userEmail = localStorage.getItem('loggedInEmail');
+        const userEmail = getUserEmail();
         
         if (!userEmail) {
-          console.log('사용자 이메일이 없어서 Firebase에서 문의 데이터를 가져올 수 없습니다.');
+          console.log('❌ 사용자 이메일을 찾을 수 없어서 Firebase에서 문의 데이터를 가져올 수 없습니다.');
           return [];
         }
         
         // Firebase에서 해당 사용자의 문의 데이터 조회
-        const inquiriesQuery = query(
-          collection(db, 'inquiries'),
-          where('email', '==', userEmail),
-          orderBy('date', 'desc')
-        );
+        console.log('🔍 사용자 이메일로 문의 데이터 조회:', userEmail);
         
-        const querySnapshot = await getDocs(inquiriesQuery);
+        let querySnapshot;
+        try {
+          // 먼저 orderBy 없이 조회해보기
+          const inquiriesQuery = query(
+            collection(db, 'inquiries'),
+            where('email', '==', userEmail)
+          );
+          
+          querySnapshot = await getDocs(inquiriesQuery);
+          console.log('🔍 문의 쿼리 결과:', querySnapshot.size, '개 문서 발견');
+        } catch (queryError) {
+          console.warn('⚠️ 문의 where 쿼리 실패, 모든 데이터를 가져와서 필터링:', queryError);
+          
+          // 쿼리 실패시 모든 데이터를 가져와서 클라이언트에서 필터링
+          const allInquiriesQuery = query(collection(db, 'inquiries'));
+          querySnapshot = await getDocs(allInquiriesQuery);
+          console.log('🔍 전체 문의 데이터:', querySnapshot.size, '개 문서 발견');
+        }
         const inquiries = [];
         
         querySnapshot.forEach((doc) => {
-          inquiries.push({
-            id: doc.id,
-            ...doc.data()
-          });
+          const data = doc.data();
+          console.log('📄 문의 문서 데이터:', doc.id, data.email, 'vs', userEmail);
+          
+          // 이메일이 일치하는 경우만 추가
+          if (data.email === userEmail) {
+            inquiries.push({
+              id: doc.id,
+              ...data
+            });
+          }
+        });
+        
+        // 클라이언트 사이드에서 정렬 (date 기준 내림차순)
+        inquiries.sort((a, b) => {
+          const aTime = a.date ? new Date(a.date) : new Date(0);
+          const bTime = b.date ? new Date(b.date) : new Date(0);
+          return bTime - aTime;
         });
         
         console.log(`✅ Firebase에서 문의 데이터 ${inquiries.length}개 가져옴`);
@@ -1442,6 +1504,60 @@
       });
     }
 
+  // 공통 함수: 사용자 이메일 가져오기 (여러 방법으로 시도)
+  function getUserEmail() {
+    let userEmail = localStorage.getItem('loggedInEmail');
+    
+    // loggedInEmail이 없으면 다른 방법으로 시도
+    if (!userEmail) {
+      const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      
+      if (currentUser.email) {
+        userEmail = currentUser.email;
+        console.log('🔍 currentUser에서 이메일 가져옴:', userEmail);
+      } else if (user.email) {
+        userEmail = user.email;
+        console.log('🔍 user에서 이메일 가져옴:', userEmail);
+      }
+    }
+    
+    return userEmail;
+  }
+
+  // 디버깅용 함수 - 현재 상태 확인
+  async function debugCurrentState() {
+    console.log('🔍 === 디버깅 정보 ===');
+    console.log('🔍 localStorage loggedInEmail:', localStorage.getItem('loggedInEmail'));
+    console.log('🔍 localStorage user:', localStorage.getItem('user'));
+    console.log('🔍 localStorage currentUser:', localStorage.getItem('currentUser'));
+    console.log('🔍 localStorage loggedIn:', localStorage.getItem('loggedIn'));
+    
+    try {
+      await waitForFirebase();
+      const { collection, getDocs } = window.firebaseFirestoreFunctions;
+      const db = window.firebaseDb;
+      
+      // 모든 의뢰 데이터 가져오기
+      const allRequestsQuery = query(collection(db, 'requests'));
+      const allSnapshot = await getDocs(allRequestsQuery);
+      console.log('🔍 Firebase 전체 의뢰 데이터:', allSnapshot.size, '개');
+      
+      allSnapshot.forEach((doc) => {
+        const data = doc.data();
+        console.log('📄 의뢰 데이터:', {
+          id: doc.id,
+          email: data.email,
+          name: data.name,
+          reqNum: data.reqNum || data.requestNumber
+        });
+      });
+    } catch (error) {
+      console.error('🔍 디버깅 중 오류:', error);
+    }
+    console.log('🔍 === 디버깅 완료 ===');
+  }
+
   // Firebase 초기화 대기 함수
   async function waitForFirebase() {
     return new Promise((resolve, reject) => {
@@ -1657,6 +1773,9 @@
       console.log('초기 탭 상태:');
       console.log('- tab-info active:', document.getElementById('tab-info').classList.contains('active'));
       console.log('- panel-info active:', document.getElementById('panel-info').classList.contains('active'));
+      
+      // 디버깅 정보 출력
+      debugCurrentState();
       
       // Firebase 데이터 마이그레이션 실행
       migrateDataToFirebase();
@@ -1908,13 +2027,8 @@
           }
           if (!inquiryKey) return false;
           const author = (JSON.parse(localStorage.getItem('user')||'{}').name) || '회원';
-          const inquiry = JSON.parse(localStorage.getItem(inquiryKey));
-          const comments = (inquiry.comments||[]).concat({author, text, date: Date.now()});
-          inquiry.comments = comments;
-          localStorage.setItem(inquiryKey, JSON.stringify(inquiry));
-          found.comments = comments;
-          history[foundIdx] = found;
-          localStorage.setItem('contact-history', JSON.stringify(history));
+          // localStorage 댓글 저장 제거 - Firebase 전용
+          console.log('✅ Firebase에서 댓글 업데이트 필요');
           // 즉시 렌더링 갱신
           renderHistory();
           // 입력 필드 초기화
