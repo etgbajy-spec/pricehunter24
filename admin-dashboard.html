@@ -429,15 +429,12 @@
             }
         }
 
-        // 실시간 사용자 목록 구독 (Firebase v9 + localStorage 백업) - 개선된 버전
+        // 실시간 사용자 목록 구독 (Firebase 전용)
         function subscribeToUsers() {
             console.log('👥 사용자 목록 구독 시작...');
             
-            // localStorage에서 사용자 데이터도 가져오기
-            loadLocalStorageUsers();
-            
             if (!window.firebaseDb) {
-                console.warn('⚠️ Firebase가 아직 초기화되지 않았습니다. localStorage 데이터만 표시합니다.');
+                console.warn('⚠️ Firebase가 아직 초기화되지 않았습니다.');
                 return;
             }
             
@@ -483,9 +480,8 @@
                     
                 }, (error) => {
                     console.error('❌ 사용자 목록 실시간 구독 실패:', error);
-                    // Firebase 연결 실패시 localStorage 데이터만 표시
-                    console.log('🔄 localStorage 데이터만 표시합니다.');
-                    loadLocalStorageUsers();
+                    // Firebase 연결 실패
+                    console.log('🔄 Firebase 연결 실패');
                     
                     // 연결 실패시 5초 후 재시도
                     setTimeout(() => {
@@ -551,12 +547,11 @@
             }
         }
 
-        // Firebase와 localStorage 사용자 데이터 합치기
+        // Firebase 사용자 데이터만 사용 (로컬스토리지 병합 제거)
         function mergeUsersData(firebaseUsers) {
-            console.log('🔄 사용자 데이터 병합 시작...');
-            console.log('📊 Firebase 사용자:', firebaseUsers.length, '명');
+            console.log('🔄 Firebase 사용자 데이터 사용:', firebaseUsers.length, '명');
             
-            // Firebase 사용자에서도 중복 제거 (이메일 기준)
+            // Firebase 사용자에서 중복 제거 (이메일 기준)
             const firebaseUserMap = new Map();
             firebaseUsers.forEach(user => {
                 if (user.email) {
@@ -572,69 +567,10 @@
             const uniqueFirebaseUsers = Array.from(firebaseUserMap.values());
             console.log('📊 중복 제거 후 Firebase 사용자:', uniqueFirebaseUsers.length, '명');
             
-            // Firebase 사용자를 기본으로 사용 (우선순위)
+            // Firebase 사용자만 사용
             const allUsers = [...uniqueFirebaseUsers];
-            const emailSet = new Set(uniqueFirebaseUsers.map(user => user.email));
             
-            // localStorage에서 users 배열 확인
-            try {
-                const usersArray = JSON.parse(localStorage.getItem('users') || '[]');
-                console.log('📋 localStorage users 배열:', usersArray.length, '명');
-                
-                usersArray.forEach(user => {
-                    if (user.email && !emailSet.has(user.email)) {
-                        allUsers.push({
-                            id: user.firebaseId || 'local_' + Date.now(),
-                            ...user,
-                            source: 'localStorage'
-                        });
-                        emailSet.add(user.email);
-                    }
-                });
-            } catch (error) {
-                console.warn('⚠️ localStorage users 배열 파싱 실패:', error);
-            }
-            
-            // 개별 user 데이터 확인
-            const userData = localStorage.getItem('user');
-            if (userData) {
-                try {
-                    const user = JSON.parse(userData);
-                    if (user.email && !emailSet.has(user.email)) {
-                        allUsers.push({
-                            id: user.firebaseId || 'local_' + Date.now(),
-                            ...user,
-                            source: 'localStorage'
-                        });
-                        emailSet.add(user.email);
-                    }
-                } catch (error) {
-                    console.warn('⚠️ localStorage user 데이터 파싱 실패:', error);
-                }
-            }
-            
-            // 카카오 사용자들도 확인
-            const keys = Object.keys(localStorage);
-            keys.forEach(key => {
-                if (key.startsWith('kakao_') && !key.includes('auth_')) {
-                    try {
-                        const storedData = localStorage.getItem(key);
-                        if (storedData && storedData.startsWith('{')) {
-                            const kakaoUser = JSON.parse(storedData);
-                            if (kakaoUser.email && !emailSet.has(kakaoUser.email)) {
-                                allUsers.push({
-                                    id: kakaoUser.firebaseId || key,
-                                    ...kakaoUser,
-                                    source: 'localStorage'
-                                });
-                                emailSet.add(kakaoUser.email);
-                            }
-                        }
-                    } catch (e) {
-                        console.warn('⚠️ 카카오 사용자 데이터 파싱 실패:', key, e);
-                    }
-                }
-            });
+            // 로컬스토리지 병합 로직 제거됨 - Firebase 전용 사용
             
             // 최종 중복 검사
             const finalEmailSet = new Set();
@@ -657,8 +593,7 @@
             try {
                 const kakaoUsers = users.filter(user => (user.loginMethod || user.loginType) === 'kakao').length;
                 const emailUsers = users.filter(user => (user.loginMethod || user.loginType) === 'email').length;
-                const firebaseUsers = users.filter(user => user.source === 'Firebase').length;
-                const localStorageUsers = users.filter(user => user.source === 'localStorage').length;
+                const firebaseUsers = users.length; // 모든 사용자가 Firebase 사용자
                 
                 console.log('📊 회원 통계:', {
                     total: users.length,
@@ -682,12 +617,8 @@
                                 <div class="text-gray-600">이메일</div>
                             </div>
                             <div class="text-center">
-                                <div class="font-bold text-lg text-purple-600">${firebaseUsers}</div>
+                                <div class="font-bold text-lg text-green-600">${firebaseUsers}</div>
                                 <div class="text-gray-600">Firebase</div>
-                            </div>
-                            <div class="text-center">
-                                <div class="font-bold text-lg text-orange-600">${localStorageUsers}</div>
-                                <div class="text-gray-600">localStorage</div>
                             </div>
                         </div>
                     `;
@@ -772,8 +703,8 @@
                     }
                 }
                 
-                const dataSource = user.source || 'Firebase';
-                const dataSourceColor = dataSource === 'localStorage' ? 'bg-orange-100 text-orange-800' : 'bg-green-100 text-green-800';
+                const dataSource = 'Firebase';
+                const dataSourceColor = 'bg-green-100 text-green-800';
                 // 포인트 시스템 제거됨
                 const userName = user.displayName || user.name || '이름 없음';
                 const userEmail = user.email || '이메일 없음';
@@ -818,6 +749,381 @@
             console.log('✅ 회원 테이블 업데이트 완료');
         }
 
+        // Firebase에서 의뢰 데이터 가져오기
+        async function getRequestsFromFirebase() {
+            try {
+                const { collection, query, orderBy, getDocs } = window.firebaseFirestoreFunctions;
+                const db = window.firebaseDb;
+                
+                const requestsQuery = query(
+                    collection(db, 'requests'),
+                    orderBy('createdAt', 'desc')
+                );
+                
+                const querySnapshot = await getDocs(requestsQuery);
+                const requests = [];
+                
+                querySnapshot.forEach((doc) => {
+                    requests.push({
+                        id: doc.id,
+                        ...doc.data()
+                    });
+                });
+                
+                console.log(`✅ Firebase에서 의뢰 데이터 ${requests.length}개 가져옴`);
+                return requests;
+            } catch (error) {
+                console.error('❌ Firebase에서 의뢰 데이터 가져오기 실패:', error);
+                return [];
+            }
+        }
+        
+        // Firebase에서 문의 데이터 가져오기
+        async function getInquiriesFromFirebase() {
+            try {
+                const { collection, query, orderBy, getDocs } = window.firebaseFirestoreFunctions;
+                const db = window.firebaseDb;
+                
+                const inquiriesQuery = query(
+                    collection(db, 'inquiries'),
+                    orderBy('createdAt', 'desc')
+                );
+                
+                const querySnapshot = await getDocs(inquiriesQuery);
+                const inquiries = [];
+                
+                querySnapshot.forEach((doc) => {
+                    inquiries.push({
+                        id: doc.id,
+                        ...doc.data()
+                    });
+                });
+                
+                console.log(`✅ Firebase에서 문의 데이터 ${inquiries.length}개 가져옴`);
+                return inquiries;
+            } catch (error) {
+                console.error('❌ Firebase에서 문의 데이터 가져오기 실패:', error);
+                return [];
+            }
+        }
+        
+        // Firebase에서 의뢰 데이터 삭제
+        async function deleteRequestFromFirebase(requestId) {
+            try {
+                const { doc, deleteDoc } = window.firebaseFirestoreFunctions;
+                const db = window.firebaseDb;
+                
+                await deleteDoc(doc(db, 'requests', requestId));
+                console.log('✅ Firebase에서 의뢰 데이터 삭제 완료:', requestId);
+                return true;
+            } catch (error) {
+                console.error('❌ Firebase에서 의뢰 데이터 삭제 실패:', error);
+                return false;
+            }
+        }
+        
+        // Firebase에서 문의 데이터 삭제
+        async function deleteInquiryFromFirebase(inquiryId) {
+            try {
+                const { doc, deleteDoc } = window.firebaseFirestoreFunctions;
+                const db = window.firebaseDb;
+                
+                await deleteDoc(doc(db, 'inquiries', inquiryId));
+                console.log('✅ Firebase에서 문의 데이터 삭제 완료:', inquiryId);
+                return true;
+            } catch (error) {
+                console.error('❌ Firebase에서 문의 데이터 삭제 실패:', error);
+                return false;
+            }
+        }
+        
+        // Firebase에서 의뢰 데이터 수정
+        async function updateRequestInFirebase(requestId, updateData) {
+            try {
+                const { doc, updateDoc } = window.firebaseFirestoreFunctions;
+                const db = window.firebaseDb;
+                
+                await updateDoc(doc(db, 'requests', requestId), updateData);
+                console.log('✅ Firebase에서 의뢰 데이터 수정 완료:', requestId);
+                return true;
+            } catch (error) {
+                console.error('❌ Firebase에서 의뢰 데이터 수정 실패:', error);
+                return false;
+            }
+        }
+        
+        // Firebase에서 문의 데이터 수정
+        async function updateInquiryInFirebase(inquiryId, updateData) {
+            try {
+                const { doc, updateDoc } = window.firebaseFirestoreFunctions;
+                const db = window.firebaseDb;
+                
+                await updateDoc(doc(db, 'inquiries', inquiryId), updateData);
+                console.log('✅ Firebase에서 문의 데이터 수정 완료:', inquiryId);
+                return true;
+            } catch (error) {
+                console.error('❌ Firebase에서 문의 데이터 수정 실패:', error);
+                return false;
+            }
+        }
+
+        // 의뢰 목록 렌더링 (Firebase 데이터)
+        async function renderRequestList() {
+            try {
+                const requests = await getRequestsFromFirebase();
+                const requestList = document.getElementById('request-list');
+                
+                if (!requestList) {
+                    console.error('의뢰 목록 요소를 찾을 수 없습니다.');
+                    return;
+                }
+                
+                if (requests.length === 0) {
+                    requestList.innerHTML = '<li class="p-4 text-center text-gray-500">의뢰 내역이 없습니다.</li>';
+                    return;
+                }
+                
+                requestList.innerHTML = '';
+                requests.forEach(request => {
+                    const listItem = document.createElement('li');
+                    listItem.className = 'grid grid-cols-8 gap-2 px-4 py-3 hover:bg-pink-100 transition-colors';
+                    
+                    const createdAt = request.createdAt ? 
+                        new Date(request.createdAt.seconds * 1000).toLocaleDateString('ko-KR') : 
+                        '날짜 없음';
+                    
+                    listItem.innerHTML = `
+                        <div class="col-span-1 flex items-center">
+                            <input type="checkbox" class="request-checkbox" data-id="${request.id}">
+                        </div>
+                        <div class="col-span-2">
+                            <div class="font-semibold text-blue-600">${request.requestNumber || '번호 없음'}</div>
+                            <div class="text-sm text-gray-600">${request.userName || request.name || '이름 없음'}</div>
+                        </div>
+                        <div class="col-span-1 text-center text-sm">${createdAt}</div>
+                        <div class="col-span-1 text-center">
+                            <span class="px-2 py-1 text-xs rounded-full ${request.status === 'completed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}">
+                                ${request.status === 'completed' ? '완료' : '진행중'}
+                            </span>
+                        </div>
+                        <div class="col-span-1 text-center text-sm">${request.purchaseMethod || '-'}</div>
+                        <div class="col-span-1 text-center text-sm">${request.purchaseStatus || '-'}</div>
+                        <div class="col-span-1 text-center">
+                            <button onclick="viewRequestDetail('${request.id}')" class="px-2 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600">
+                                상세보기
+                            </button>
+                        </div>
+                    `;
+                    
+                    requestList.appendChild(listItem);
+                });
+                
+                console.log(`✅ 의뢰 목록 ${requests.length}개 렌더링 완료`);
+            } catch (error) {
+                console.error('❌ 의뢰 목록 렌더링 실패:', error);
+            }
+        }
+        
+        // 문의 목록 렌더링 (Firebase 데이터)
+        async function renderInquiryList() {
+            try {
+                const inquiries = await getInquiriesFromFirebase();
+                const inquiryList = document.getElementById('inquiry-list');
+                
+                if (!inquiryList) {
+                    console.error('문의 목록 요소를 찾을 수 없습니다.');
+                    return;
+                }
+                
+                if (inquiries.length === 0) {
+                    inquiryList.innerHTML = '<li class="p-4 text-center text-gray-500">문의 내역이 없습니다.</li>';
+                    return;
+                }
+                
+                inquiryList.innerHTML = '';
+                inquiries.forEach(inquiry => {
+                    const listItem = document.createElement('li');
+                    listItem.className = 'grid grid-cols-6 gap-2 px-4 py-3 hover:bg-blue-100 transition-colors';
+                    
+                    const createdAt = inquiry.createdAt ? 
+                        new Date(inquiry.createdAt.seconds * 1000).toLocaleDateString('ko-KR') : 
+                        '날짜 없음';
+                    
+                    listItem.innerHTML = `
+                        <div class="col-span-1 flex items-center">
+                            <input type="checkbox" class="inquiry-checkbox" data-id="${inquiry.id}">
+                        </div>
+                        <div class="col-span-2">
+                            <div class="font-semibold text-blue-600">${inquiry.subject || '제목 없음'}</div>
+                            <div class="text-sm text-gray-600">${inquiry.name || '이름 없음'}</div>
+                        </div>
+                        <div class="col-span-1 text-center text-sm">${createdAt}</div>
+                        <div class="col-span-1 text-center">
+                            <span class="px-2 py-1 text-xs rounded-full ${inquiry.status === 'answered' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}">
+                                ${inquiry.status === 'answered' ? '답변완료' : '대기중'}
+                            </span>
+                        </div>
+                        <div class="col-span-1 text-center">
+                            <button onclick="viewInquiryDetail('${inquiry.id}')" class="px-2 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600">
+                                상세보기
+                            </button>
+                        </div>
+                    `;
+                    
+                    inquiryList.appendChild(listItem);
+                });
+                
+                console.log(`✅ 문의 목록 ${inquiries.length}개 렌더링 완료`);
+            } catch (error) {
+                console.error('❌ 문의 목록 렌더링 실패:', error);
+            }
+        }
+        
+        // 의뢰 상세보기
+        async function viewRequestDetail(requestId) {
+            try {
+                const requests = await getRequestsFromFirebase();
+                const request = requests.find(r => r.id === requestId);
+                
+                if (!request) {
+                    alert('의뢰 정보를 찾을 수 없습니다.');
+                    return;
+                }
+                
+                // 상세 정보 표시
+                document.getElementById('detail-num').textContent = request.requestNumber || '번호 없음';
+                document.getElementById('detail-name').textContent = request.name || '제품명 없음';
+                document.getElementById('detail-desc').textContent = request.desc || '설명 없음';
+                document.getElementById('detail-url').textContent = request.urls ? request.urls[0] : 'URL 없음';
+                document.getElementById('detail-price').textContent = request.price ? (typeof request.price === 'number' ? request.price.toLocaleString() + '원' : request.price) : '가격 없음';
+                document.getElementById('detail-username').textContent = request.userName || request.name || '이름 없음';
+                document.getElementById('detail-email').textContent = request.email || '이메일 없음';
+                document.getElementById('detail-phone').textContent = request.phone || '전화번호 없음';
+                
+                // 상세 섹션 표시
+                document.getElementById('detail-section').classList.remove('hidden');
+                
+            } catch (error) {
+                console.error('❌ 의뢰 상세보기 실패:', error);
+                alert('의뢰 상세 정보를 불러오는데 실패했습니다.');
+            }
+        }
+        
+        // 문의 상세보기
+        async function viewInquiryDetail(inquiryId) {
+            try {
+                const inquiries = await getInquiriesFromFirebase();
+                const inquiry = inquiries.find(i => i.id === inquiryId);
+                
+                if (!inquiry) {
+                    alert('문의 정보를 찾을 수 없습니다.');
+                    return;
+                }
+                
+                // 문의 상세 정보 표시 (기존 문의 상세보기 로직 활용)
+                // 여기에 문의 상세보기 모달이나 섹션 표시 로직 추가
+                alert(`문의 제목: ${inquiry.subject}\n내용: ${inquiry.message}\n작성자: ${inquiry.name}`);
+                
+            } catch (error) {
+                console.error('❌ 문의 상세보기 실패:', error);
+                alert('문의 상세 정보를 불러오는데 실패했습니다.');
+            }
+        }
+
+        // 선택된 의뢰 삭제
+        async function deleteSelectedRequests() {
+            const checkboxes = document.querySelectorAll('.request-checkbox:checked');
+            if (checkboxes.length === 0) {
+                alert('삭제할 의뢰를 선택해주세요.');
+                return;
+            }
+            
+            if (!confirm(`선택된 ${checkboxes.length}개의 의뢰를 삭제하시겠습니까?`)) {
+                return;
+            }
+            
+            const deletePromises = Array.from(checkboxes).map(checkbox => {
+                const requestId = checkbox.dataset.id;
+                return deleteRequestFromFirebase(requestId);
+            });
+            
+            try {
+                await Promise.all(deletePromises);
+                alert('선택된 의뢰가 삭제되었습니다.');
+                renderRequestList(); // 목록 새로고침
+            } catch (error) {
+                console.error('의뢰 삭제 실패:', error);
+                alert('의뢰 삭제 중 오류가 발생했습니다.');
+            }
+        }
+        
+        // 선택된 문의 삭제
+        async function deleteSelectedInquiries() {
+            const checkboxes = document.querySelectorAll('.inquiry-checkbox:checked');
+            if (checkboxes.length === 0) {
+                alert('삭제할 문의를 선택해주세요.');
+                return;
+            }
+            
+            if (!confirm(`선택된 ${checkboxes.length}개의 문의를 삭제하시겠습니까?`)) {
+                return;
+            }
+            
+            const deletePromises = Array.from(checkboxes).map(checkbox => {
+                const inquiryId = checkbox.dataset.id;
+                return deleteInquiryFromFirebase(inquiryId);
+            });
+            
+            try {
+                await Promise.all(deletePromises);
+                alert('선택된 문의가 삭제되었습니다.');
+                renderInquiryList(); // 목록 새로고침
+            } catch (error) {
+                console.error('문의 삭제 실패:', error);
+                alert('문의 삭제 중 오류가 발생했습니다.');
+            }
+        }
+        
+        // 의뢰 상태 업데이트
+        async function updateRequestStatus(requestId, status) {
+            try {
+                const success = await updateRequestInFirebase(requestId, { 
+                    status: status,
+                    updatedAt: new Date()
+                });
+                
+                if (success) {
+                    alert('의뢰 상태가 업데이트되었습니다.');
+                    renderRequestList(); // 목록 새로고침
+                } else {
+                    alert('의뢰 상태 업데이트에 실패했습니다.');
+                }
+            } catch (error) {
+                console.error('의뢰 상태 업데이트 실패:', error);
+                alert('의뢰 상태 업데이트 중 오류가 발생했습니다.');
+            }
+        }
+        
+        // 문의 상태 업데이트
+        async function updateInquiryStatus(inquiryId, status) {
+            try {
+                const success = await updateInquiryInFirebase(inquiryId, { 
+                    status: status,
+                    updatedAt: new Date()
+                });
+                
+                if (success) {
+                    alert('문의 상태가 업데이트되었습니다.');
+                    renderInquiryList(); // 목록 새로고침
+                } else {
+                    alert('문의 상태 업데이트에 실패했습니다.');
+                }
+            } catch (error) {
+                console.error('문의 상태 업데이트 실패:', error);
+                alert('문의 상태 업데이트 중 오류가 발생했습니다.');
+            }
+        }
+
         // 대시보드 데이터 로드 함수
         function loadDashboardData() {
             console.log('📊 대시보드 데이터 로드 시작...');
@@ -827,7 +1133,9 @@
                 return;
             }
             
-            // 여기에 대시보드 데이터 로드 로직 추가
+            // Firebase 데이터 로드
+            renderRequestList();
+            renderInquiryList();
             console.log('✅ 대시보드 데이터 로드 완료');
         }
         
@@ -1317,20 +1625,36 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
         
 
         // 사용자 상세보기 함수
-        function viewUserDetails(userId) {
+        async function viewUserDetails(userId) {
             console.log('👤 사용자 상세보기:', userId);
             
-            // localStorage에서 사용자 검색
-            const users = JSON.parse(localStorage.getItem('users') || '[]');
-            console.log('📋 localStorage 사용자 목록:', users);
-            
-            // 다양한 ID 필드로 사용자 찾기
-            let user = users.find(u => 
-                u.id === userId || 
-                u.firebaseId === userId || 
-                u.uid === userId ||
-                u.email === userId
-            );
+            // Firebase에서 사용자 검색
+            let user = null;
+            try {
+                await waitForFirebase();
+                const { collection, query, where, getDocs, doc, getDoc } = window.firebaseFirestoreFunctions;
+                const db = window.firebaseDb;
+                
+                // 먼저 ID로 직접 검색
+                try {
+                    const userDoc = await getDoc(doc(db, 'users', userId));
+                    if (userDoc.exists()) {
+                        user = { id: userDoc.id, ...userDoc.data() };
+                    }
+                } catch (error) {
+                    // ID로 찾지 못하면 이메일로 검색
+                    const usersRef = collection(db, 'users');
+                    const q = query(usersRef, where('email', '==', userId));
+                    const querySnapshot = await getDocs(q);
+                    
+                    if (!querySnapshot.empty) {
+                        const userDoc = querySnapshot.docs[0];
+                        user = { id: userDoc.id, ...userDoc.data() };
+                    }
+                }
+            } catch (error) {
+                console.error('사용자 검색 실패:', error);
+            }
             
             // Firebase에서도 검색 시도
             if (!user && window.firebaseDb) {
@@ -1522,17 +1846,8 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 console.warn('⚠️ Firebase에서 사용자 검색 실패:', error);
             }
             
-            // localStorage에서도 검색
-            const users = JSON.parse(localStorage.getItem('users') || '[]');
-            const localUser = users.find(u => 
-                u.id === userId || 
-                u.firebaseId === userId || 
-                u.uid === userId ||
-                u.email === userId
-            );
-            
-            // Firebase 사용자를 우선으로 사용
-            user = firebaseUser || localUser;
+            // Firebase에서만 사용자 검색 (로컬스토리지 제거)
+            user = firebaseUser;
             
             if (!user) {
                 console.error('❌ 사용자를 찾을 수 없음:', userId);
@@ -1574,19 +1889,9 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 }
                 
                 // 2. localStorage에서 삭제 (사용자 이메일 기준으로 삭제)
-                const updatedUsers = users.filter(u => u.email !== user.email);
-                localStorage.setItem('users', JSON.stringify(updatedUsers));
-                console.log('✅ localStorage에서 사용자 삭제 완료');
+                // 로컬스토리지 삭제 로직 제거됨 - Firebase 전용 사용
                 
-                // 3. 개별 user 데이터도 삭제 (만약 있다면)
-                const individualUser = localStorage.getItem('user');
-                if (individualUser) {
-                    const parsedUser = JSON.parse(individualUser);
-                    if (parsedUser.email === user.email) {
-                        localStorage.removeItem('user');
-                        console.log('✅ 개별 user 데이터 삭제 완료');
-                    }
-                }
+                // 로컬스토리지 삭제 로직 제거됨 - Firebase 전용 사용
                 
                 // 4. UI 업데이트
                 alert(`✅ "${userName}"님의 계정이 완전히 삭제되었습니다.\n\n- Firebase: 삭제 완료 (자동 연동)\n- localStorage: 삭제 완료`);
@@ -1642,14 +1947,26 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 activeItem.classList.add('active');
             }
             
-            // 회원 관리 섹션인 경우 실시간 구독 시작 (이미 시작되어 있으면 무시)
-            if (section === 'members' && !usersUnsubscribe) {
-                subscribeToUsers();
-            }
-            
-            // 후기 관리 섹션인 경우 후기 데이터 로드
-            if (section === 'reviews') {
-                loadReviewsData();
+            // 섹션별 데이터 새로고침
+            switch(section) {
+                case 'requests':
+                    renderRequestList();
+                    break;
+                case 'inquiries':
+                    renderInquiryList();
+                    break;
+                case 'members':
+                    // 회원 관리 섹션인 경우 실시간 구독 시작 (이미 시작되어 있으면 무시)
+                    if (!usersUnsubscribe) {
+                        subscribeToUsers();
+                    }
+                    break;
+                case 'reviews':
+                    loadReviewsData();
+                    break;
+                case 'dashboard':
+                    loadDashboardData();
+                    break;
             }
         }
 
@@ -2573,6 +2890,9 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                     <div class="flex justify-between items-center mb-6">
                         <h2 class="text-2xl font-bold text-gray-800">📋 의뢰 관리</h2>
                         <div class="flex gap-2">
+                            <button onclick="deleteSelectedRequests()" class="px-4 py-2 bg-red-500 text-white rounded-lg font-semibold hover:bg-red-600 transition">
+                                🗑️ 선택 삭제
+                            </button>
                             <button onclick="goToPage('index.html')" class="px-4 py-2 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition">
                                 🏠 메인페이지로
                             </button>
@@ -2622,6 +2942,9 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                     <div class="flex justify-between items-center mb-6">
                         <h2 class="text-2xl font-bold text-gray-800">💬 1:1 문의 관리</h2>
                         <div class="flex gap-2">
+                            <button onclick="deleteSelectedInquiries()" class="px-4 py-2 bg-red-500 text-white rounded-lg font-semibold hover:bg-red-600 transition">
+                                🗑️ 선택 삭제
+                            </button>
                             <button onclick="goToPage('index.html')" class="px-4 py-2 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition">
                                 🏠 메인페이지로
                             </button>

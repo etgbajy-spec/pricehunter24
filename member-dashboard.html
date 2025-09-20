@@ -46,7 +46,19 @@
     window.firebaseApp = app;
     window.firebaseAuth = auth;
     window.firebaseDb = db;
-    window.firebaseFirestoreFunctions = { collection, addDoc, serverTimestamp, query, orderBy, onSnapshot };
+    window.firebaseFirestoreFunctions = { 
+      collection, 
+      addDoc, 
+      serverTimestamp, 
+      query, 
+      orderBy, 
+      onSnapshot, 
+      getDocs, 
+      where, 
+      doc, 
+      updateDoc, 
+      deleteDoc 
+    };
 
     console.log('✅ Firebase v9 초기화 완료 (member-dashboard.html)');
   </script>
@@ -482,64 +494,164 @@
         }
       }
       
+      // 탭별 데이터 새로고침
+      if (tabId === 'panel-requests') {
+        renderMyRequestList();
+      } else if (tabId === 'panel-inquiry') {
+        renderHistory();
+      }
+      
       console.log('=== switchTab 완료 ===');
     }
 
-    // 내 정보 표시
-    function renderMyInfo() {
-      const user = JSON.parse(localStorage.getItem('user') || '{}');
-      document.getElementById('mypage-name').textContent = user.name || '이름 없음';
-      document.getElementById('mypage-email').textContent = user.email || '이메일 없음';
-      document.getElementById('info-name').value = user.name || '';
-      document.getElementById('info-email').value = user.email || '';
-      document.getElementById('info-phone').value = user.phone || '';
-      document.getElementById('info-kakao').value = user.kakao || '';
-      
-      // 문의 폼에도 사용자 정보 자동 입력
-      document.getElementById('contact-name').value = user.name || '';
-      document.getElementById('contact-email').value = user.email || '';
+    // 내 정보 표시 (Firebase에서 사용자 정보 가져오기)
+    async function renderMyInfo() {
+      try {
+        await waitForFirebase();
+        const { collection, query, where, getDocs } = window.firebaseFirestoreFunctions;
+        const db = window.firebaseDb;
+        
+        // 현재 로그인된 사용자 이메일 가져오기
+        const loggedInEmail = localStorage.getItem('loggedInEmail');
+        if (!loggedInEmail) {
+          console.error('로그인된 사용자 정보가 없습니다.');
+          return;
+        }
+        
+        // Firebase에서 사용자 정보 조회
+        const usersRef = collection(db, 'users');
+        const q = query(usersRef, where('email', '==', loggedInEmail));
+        const querySnapshot = await getDocs(q);
+        
+        if (!querySnapshot.empty) {
+          const userDoc = querySnapshot.docs[0];
+          const userData = userDoc.data();
+          
+          document.getElementById('mypage-name').textContent = userData.name || '이름 없음';
+          document.getElementById('mypage-email').textContent = userData.email || '이메일 없음';
+          document.getElementById('info-name').value = userData.name || '';
+          document.getElementById('info-email').value = userData.email || '';
+          document.getElementById('info-phone').value = userData.phone || '';
+          document.getElementById('info-kakao').value = userData.kakao || '';
+          
+          // 문의 폼에도 사용자 정보 자동 입력
+          document.getElementById('contact-name').value = userData.name || '';
+          document.getElementById('contact-email').value = userData.email || '';
+        } else {
+          console.error('사용자 정보를 찾을 수 없습니다.');
+        }
+      } catch (error) {
+        console.error('사용자 정보 로드 실패:', error);
+      }
     }
 
-    // 의뢰 내역 목록 렌더링 (기존 페이지 기능 그대로)
-    function renderMyRequestList() {
-      const requestList = document.getElementById('my-request-list');
-      const requests = [];
-      
-      // localStorage에서 모든 의뢰 데이터 수집
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && key.startsWith('request-')) {
-          try {
-            const requestData = JSON.parse(localStorage.getItem(key));
-            if (requestData) {
-              const reqNum = requestData.reqNum || requestData.key || key.replace('request-', '');
-              const userName = requestData.userName || requestData.name || '이름 없음';
-              const reqDate = requestData.reqDate || requestData.date || requestData.createdAt;
-              const productName = requestData.productName || requestData.name || requestData.title || '제품명 없음';
-              
-              if (reqNum) {
-                requests.push({
-                  key: key,
-                  data: {
-                    reqNum: reqNum,
-                    userName: userName,
-                    reqDate: reqDate,
-                    productName: productName,
-                    originalData: requestData
-                  }
-                });
-              }
-            }
-          } catch (e) {
-            console.log('의뢰 데이터 파싱 오류:', key, e);
-          }
+    // Firebase에서 의뢰 데이터 가져오기
+    async function getRequestsFromFirebase() {
+      try {
+        await waitForFirebase();
+        const { collection, query, where, orderBy, getDocs } = window.firebaseFirestoreFunctions;
+        const db = window.firebaseDb;
+        
+        // 현재 사용자 이메일 가져오기
+        const userEmail = localStorage.getItem('loggedInEmail');
+        
+        if (!userEmail) {
+          console.log('사용자 이메일이 없어서 Firebase에서 의뢰 데이터를 가져올 수 없습니다.');
+          return [];
         }
+        
+        // Firebase에서 해당 사용자의 의뢰 데이터 조회
+        const requestsQuery = query(
+          collection(db, 'requests'),
+          where('email', '==', userEmail),
+          orderBy('createdAt', 'desc')
+        );
+        
+        const querySnapshot = await getDocs(requestsQuery);
+        const requests = [];
+        
+        querySnapshot.forEach((doc) => {
+          requests.push({
+            id: doc.id,
+            ...doc.data()
+          });
+        });
+        
+        console.log(`✅ Firebase에서 의뢰 데이터 ${requests.length}개 가져옴`);
+        return requests;
+      } catch (error) {
+        console.error('❌ Firebase에서 의뢰 데이터 가져오기 실패:', error);
+        return [];
       }
+    }
+    
+    // Firebase에서 문의 데이터 가져오기
+    async function getInquiriesFromFirebase() {
+      try {
+        await waitForFirebase();
+        const { collection, query, where, orderBy, getDocs } = window.firebaseFirestoreFunctions;
+        const db = window.firebaseDb;
+        
+        // 현재 사용자 이메일 가져오기
+        const userEmail = localStorage.getItem('loggedInEmail');
+        
+        if (!userEmail) {
+          console.log('사용자 이메일이 없어서 Firebase에서 문의 데이터를 가져올 수 없습니다.');
+          return [];
+        }
+        
+        // Firebase에서 해당 사용자의 문의 데이터 조회
+        const inquiriesQuery = query(
+          collection(db, 'inquiries'),
+          where('email', '==', userEmail),
+          orderBy('date', 'desc')
+        );
+        
+        const querySnapshot = await getDocs(inquiriesQuery);
+        const inquiries = [];
+        
+        querySnapshot.forEach((doc) => {
+          inquiries.push({
+            id: doc.id,
+            ...doc.data()
+          });
+        });
+        
+        console.log(`✅ Firebase에서 문의 데이터 ${inquiries.length}개 가져옴`);
+        return inquiries;
+      } catch (error) {
+        console.error('❌ Firebase에서 문의 데이터 가져오기 실패:', error);
+        return [];
+      }
+    }
+
+    // 의뢰 내역 목록 렌더링 (Firebase + 로컬스토리지 통합)
+    async function renderMyRequestList() {
+      const requestList = document.getElementById('my-request-list');
+      let requests = [];
+      
+      try {
+        // 1. Firebase에서 데이터 가져오기 시도
+        const firebaseRequests = await getRequestsFromFirebase();
+        if (firebaseRequests.length > 0) {
+          requests = firebaseRequests;
+          console.log('Firebase에서 의뢰 데이터 사용');
+        } else {
+          // Firebase에 데이터가 없음
+          console.log('Firebase에 데이터 없음');
+          requests = [];
+        }
+      } catch (error) {
+        console.error('Firebase 데이터 가져오기 실패:', error);
+        requests = [];
+      }
+      
+      // 로컬스토리지 함수 제거됨 - Firebase 전용 사용
       
       // 날짜순으로 정렬 (최신순)
       requests.sort((a, b) => {
-        const dateA = new Date(a.data.reqDate || 0);
-        const dateB = new Date(b.data.reqDate || 0);
+        const dateA = new Date(a.reqDate || a.createdAt || 0);
+        const dateB = new Date(b.reqDate || b.createdAt || 0);
         return dateB - dateA;
       });
       
@@ -549,11 +661,14 @@
       }
       
       requestList.innerHTML = '';
-      requests.forEach(({ key, data }) => {
-        const reqNum = data.reqNum;
-        const userName = data.userName;
-        const reqDate = data.reqDate ? new Date(data.reqDate).toLocaleDateString('ko-KR') : '날짜 없음';
-        const productName = data.productName;
+      requests.forEach((request) => {
+        // Firebase 데이터와 로컬스토리지 데이터 구조 통합 처리
+        const reqNum = request.reqNum || request.requestNumber || request.data?.reqNum;
+        const userName = request.userName || request.name || request.data?.userName;
+        const reqDate = request.reqDate || request.createdAt || request.data?.reqDate;
+        const productName = request.productName || request.name || request.data?.productName;
+        
+        const formattedDate = reqDate ? new Date(reqDate).toLocaleDateString('ko-KR') : '날짜 없음';
         
         // 결과 데이터 확인
         let hasResult = false;
@@ -599,7 +714,7 @@
           <div class="flex justify-between items-start">
             <div class="flex-1">
               <div class="font-semibold text-gray-800">${reqNum}</div>
-              <div class="text-sm text-gray-600">${userName} | ${reqDate}</div>
+              <div class="text-sm text-gray-600">${userName} | ${formattedDate}</div>
               <div class="text-sm text-gray-500 mt-1">${productName}</div>
             </div>
             <div class="ml-4 text-right">
@@ -609,7 +724,8 @@
         `;
         
         listItem.onclick = () => {
-          if (currentReqKey === key && currentDisplayedReq === reqNum) {
+          const currentKey = request.key || request.id;
+          if (currentReqKey === currentKey && currentDisplayedReq === reqNum) {
             hideResult();
           } else {
             showAdminResponse(reqNum);
@@ -1142,25 +1258,27 @@
       });
     }
 
-    // 문의 삭제 함수 (기존 contact.html 그대로)
-    function deleteInquiry(subject, date) {
+    // 문의 삭제 함수 (Firebase 전용)
+    async function deleteInquiry(subject, date) {
       if (!confirm('정말 이 문의를 삭제하시겠습니까?')) return;
       
-      // contact-history에서 삭제
-      let history = JSON.parse(localStorage.getItem('contact-history') || '[]');
-      history = history.filter(item => !(item.subject === subject && item.date === date));
-      localStorage.setItem('contact-history', JSON.stringify(history));
-      
-      // inquiry-에서도 삭제
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key.startsWith('inquiry-')) {
-          const obj = JSON.parse(localStorage.getItem(key));
-          if (obj && obj.subject === subject && obj.date === date) {
-            localStorage.removeItem(key);
-            break;
-          }
+      // Firebase에서 문의 삭제
+      try {
+        await waitForFirebase();
+        const { collection, query, where, getDocs, deleteDoc } = window.firebaseFirestoreFunctions;
+        const db = window.firebaseDb;
+        
+        const inquiriesRef = collection(db, 'inquiries');
+        const q = query(inquiriesRef, where('subject', '==', subject), where('date', '==', date));
+        const querySnapshot = await getDocs(q);
+        
+        if (!querySnapshot.empty) {
+          const doc = querySnapshot.docs[0];
+          await deleteDoc(doc.ref);
+          console.log('✅ Firebase에서 문의 삭제 완료');
         }
+      } catch (error) {
+        console.error('❌ Firebase 문의 삭제 실패:', error);
       }
       
       renderHistory();
@@ -1218,9 +1336,26 @@
       return result;
     }
 
-    // 문의 내역 렌더링 (기존 contact.html 그대로)
-    function renderHistory() {
-      const history = JSON.parse(localStorage.getItem('contact-history') || '[]');
+    // 문의 내역 렌더링 (Firebase + 로컬스토리지 통합)
+    async function renderHistory() {
+      let history = [];
+      
+      try {
+        // 1. Firebase에서 데이터 가져오기 시도
+        const firebaseInquiries = await getInquiriesFromFirebase();
+        if (firebaseInquiries.length > 0) {
+          history = firebaseInquiries;
+          console.log('Firebase에서 문의 데이터 사용');
+        } else {
+          // Firebase에 데이터가 없음
+          console.log('Firebase에 데이터 없음');
+          history = [];
+        }
+      } catch (error) {
+        console.error('Firebase 데이터 가져오기 실패:', error);
+        history = [];
+      }
+      
       const ul = document.getElementById('contact-history');
       ul.innerHTML = '';
       if (history.length === 0) {
@@ -1281,6 +1416,198 @@
       });
     }
 
+    // Firebase 초기화 대기 함수
+    async function waitForFirebase() {
+      return new Promise((resolve, reject) => {
+        if (window.firebaseApp && window.firebaseDb) {
+          resolve();
+        } else {
+          // Firebase 초기화 대기
+          const checkInterval = setInterval(() => {
+            if (window.firebaseApp && window.firebaseDb) {
+              clearInterval(checkInterval);
+              resolve();
+            }
+          }, 100);
+          
+          // 10초 후 타임아웃 (더 여유있게)
+          setTimeout(() => {
+            clearInterval(checkInterval);
+            console.warn('⚠️ Firebase 초기화 타임아웃 - 로컬스토리지 모드로 전환');
+            // Firebase 연결 실패 시에도 계속 진행 (로컬스토리지 사용)
+            resolve();
+          }, 10000);
+        }
+      });
+    }
+    
+    // Firebase 연결 상태 확인
+    function checkFirebaseConnection() {
+      if (!window.firebaseApp || !window.firebaseDb) {
+        console.warn('⚠️ Firebase 연결 실패 - 로컬스토리지 모드 사용');
+        return false;
+      }
+      return true;
+    }
+
+    // Firebase 데이터 마이그레이션 함수
+    async function migrateDataToFirebase() {
+      try {
+        console.log('🔄 Firebase 데이터 마이그레이션 시작...');
+        
+        // Firebase 초기화 대기
+        await waitForFirebase();
+        
+        // 1. 의뢰 데이터 마이그레이션
+        await migrateRequestData();
+        
+        // 2. 문의 데이터 마이그레이션
+        await migrateInquiryData();
+        
+        console.log('✅ Firebase 데이터 마이그레이션 완료');
+        
+        // 마이그레이션 완료 후 로컬스토리지 정리 (선택사항)
+        // cleanupLocalStorageAfterMigration();
+      } catch (error) {
+        console.error('❌ Firebase 데이터 마이그레이션 실패:', error);
+      }
+    }
+    
+    // 마이그레이션 후 로컬스토리지 정리 (선택사항)
+    function cleanupLocalStorageAfterMigration() {
+      try {
+        console.log('🧹 마이그레이션 후 로컬스토리지 정리 시작...');
+        
+        // 의뢰 데이터 정리
+        const requestKeys = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && key.startsWith('request-')) {
+            requestKeys.push(key);
+          }
+        }
+        
+        // 문의 데이터 정리
+        const hasInquiries = localStorage.getItem('contact-history');
+        
+        if (confirm(`마이그레이션이 완료되었습니다.\n\n로컬스토리지에서 다음 데이터를 정리하시겠습니까?\n- 의뢰 데이터: ${requestKeys.length}개\n- 문의 데이터: ${hasInquiries ? '있음' : '없음'}\n\n(정리해도 Firebase에 안전하게 저장되어 있습니다)`)) {
+          // 의뢰 데이터 정리
+          requestKeys.forEach(key => {
+            localStorage.removeItem(key);
+          });
+          
+          // 문의 데이터 정리
+          if (hasInquiries) {
+            localStorage.removeItem('contact-history');
+          }
+          
+          console.log('✅ 로컬스토리지 정리 완료');
+          alert('로컬스토리지 정리가 완료되었습니다.');
+        }
+      } catch (error) {
+        console.error('❌ 로컬스토리지 정리 실패:', error);
+      }
+    }
+    
+    // 의뢰 데이터 마이그레이션
+    async function migrateRequestData() {
+      try {
+        const { collection, addDoc, serverTimestamp, getDocs, query, where } = window.firebaseFirestoreFunctions;
+        const db = window.firebaseDb;
+        
+        // 로컬스토리지에서 의뢰 데이터 가져오기
+        const requests = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && key.startsWith('request-')) {
+            try {
+              const data = JSON.parse(localStorage.getItem(key));
+              if (data && data.email) {
+                requests.push({ key, data });
+              }
+            } catch (e) {
+              console.log('의뢰 데이터 파싱 실패:', key);
+            }
+          }
+        }
+        
+        console.log(`📋 마이그레이션할 의뢰 데이터: ${requests.length}개`);
+        
+        for (const { key, data } of requests) {
+          try {
+            // Firebase에 이미 존재하는지 확인
+            const existingQuery = query(
+              collection(db, 'requests'),
+              where('requestNumber', '==', data.requestNumber || key.replace('request-', ''))
+            );
+            const existingDocs = await getDocs(existingQuery);
+            
+            if (existingDocs.empty) {
+              // Firebase에 저장
+              const requestData = {
+                ...data,
+                requestNumber: data.requestNumber || key.replace('request-', ''),
+                migratedAt: serverTimestamp(),
+                source: 'localStorage_migration'
+              };
+              
+              await addDoc(collection(db, 'requests'), requestData);
+              console.log(`✅ 의뢰 데이터 마이그레이션 완료: ${key}`);
+            } else {
+              console.log(`⏭️ 의뢰 데이터 이미 존재: ${key}`);
+            }
+          } catch (error) {
+            console.error(`❌ 의뢰 데이터 마이그레이션 실패: ${key}`, error);
+          }
+        }
+      } catch (error) {
+        console.error('❌ 의뢰 데이터 마이그레이션 실패:', error);
+      }
+    }
+    
+    // 문의 데이터 마이그레이션
+    async function migrateInquiryData() {
+      try {
+        const { collection, addDoc, serverTimestamp, getDocs, query, where } = window.firebaseFirestoreFunctions;
+        const db = window.firebaseDb;
+        
+        // 로컬스토리지에서 문의 데이터 가져오기
+        const inquiries = JSON.parse(localStorage.getItem('contact-history') || '[]');
+        
+        console.log(`📋 마이그레이션할 문의 데이터: ${inquiries.length}개`);
+        
+        for (const inquiry of inquiries) {
+          try {
+            // Firebase에 이미 존재하는지 확인
+            const existingQuery = query(
+              collection(db, 'inquiries'),
+              where('subject', '==', inquiry.subject),
+              where('date', '==', inquiry.date)
+            );
+            const existingDocs = await getDocs(existingQuery);
+            
+            if (existingDocs.empty) {
+              // Firebase에 저장
+              const inquiryData = {
+                ...inquiry,
+                migratedAt: serverTimestamp(),
+                source: 'localStorage_migration'
+              };
+              
+              await addDoc(collection(db, 'inquiries'), inquiryData);
+              console.log(`✅ 문의 데이터 마이그레이션 완료: ${inquiry.subject}`);
+            } else {
+              console.log(`⏭️ 문의 데이터 이미 존재: ${inquiry.subject}`);
+            }
+          } catch (error) {
+            console.error(`❌ 문의 데이터 마이그레이션 실패: ${inquiry.subject}`, error);
+          }
+        }
+      } catch (error) {
+        console.error('❌ 문의 데이터 마이그레이션 실패:', error);
+      }
+    }
+
     // 페이지 로드 시 초기화
     document.addEventListener('DOMContentLoaded', function() {
       console.log('페이지 로드 완료 - 초기화 시작');
@@ -1289,6 +1616,9 @@
       console.log('초기 탭 상태:');
       console.log('- tab-info active:', document.getElementById('tab-info').classList.contains('active'));
       console.log('- panel-info active:', document.getElementById('panel-info').classList.contains('active'));
+      
+      // Firebase 데이터 마이그레이션 실행
+      migrateDataToFirebase();
       
       // 내 정보 표시
       renderMyInfo();
@@ -1339,7 +1669,7 @@
           phone: document.getElementById('info-phone').value,
           kakao: document.getElementById('info-kakao').value
         };
-        localStorage.setItem('user', JSON.stringify(user));
+        // 사용자 정보는 Firebase에만 저장 (로컬스토리지 제거)
         renderMyInfo();
         document.getElementById('info-form-container').classList.add('hidden');
         alert('정보가 저장되었습니다!');
@@ -1430,16 +1760,7 @@
         });
       }
 
-      // Firebase 초기화 대기 함수
-      async function waitForFirebase() {
-        return new Promise((resolve, reject) => {
-          if (window.firebaseApp && window.firebaseDb) {
-            resolve();
-          } else {
-            setTimeout(() => waitForFirebase().then(resolve).catch(reject), 100);
-          }
-        });
-      }
+      // Firebase 초기화 대기 함수 (전역으로 이동)
 
       // Firebase에 문의 데이터 저장
       async function saveInquiryToFirebase(inquiryData) {
@@ -1447,28 +1768,21 @@
           await waitForFirebase();
           
           const { collection, addDoc, serverTimestamp } = window.firebaseFirestoreFunctions;
-          const inquiriesRef = collection(window.firebaseDb, 'inquiries');
+          const db = window.firebaseDb;
           
-          const docRef = await addDoc(inquiriesRef, {
+          const firebaseData = {
             ...inquiryData,
             createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp(),
-            status: 'new',
-            source: 'member_dashboard'
-          });
+            status: 'pending',
+            source: 'web_form'
+          };
           
-          console.log('✅ Firebase에 문의 저장 완료:', docRef.id);
+          const docRef = await addDoc(collection(db, 'inquiries'), firebaseData);
+          console.log('✅ Firebase에 문의 데이터 저장 완료:', docRef.id);
+          
           return docRef.id;
         } catch (error) {
           console.error('❌ Firebase 문의 저장 실패:', error);
-          
-          // 권한 오류인 경우 localStorage로 폴백
-          if (error.message.includes('Missing or insufficient permissions') || 
-              error.message.includes('permission-denied')) {
-            console.log('🔄 Firebase 권한 오류 - localStorage로 폴백');
-            return 'localStorage_fallback';
-          }
-          
           throw error;
         }
       }
@@ -1503,22 +1817,10 @@
           console.log('🔥 Firebase에 문의 저장 시작...');
           const firebaseResult = await saveInquiryToFirebase(inquiry);
           
-          // localStorage에도 백업 저장
-          let history = JSON.parse(localStorage.getItem('contact-history') || '[]');
-          history.unshift(inquiry);
-          if (history.length > 20) history = history.slice(0, 20);
-          localStorage.setItem('contact-history', JSON.stringify(history));
-          
-          // inquiry-로도 저장 (관리자페이지용)
-          const inquiryKey = 'inquiry-' + Date.now();
-          localStorage.setItem(inquiryKey, JSON.stringify(inquiry));
+          // Firebase에만 저장 (로컬스토리지 백업 제거)
           
           // 성공 메시지 표시
-          if (firebaseResult === 'localStorage_fallback') {
-            alert('문의가 접수되었습니다!\n(데이터는 로컬에 저장되었습니다)');
-          } else {
-            alert('문의가 접수되었습니다!\n데이터가 Firebase 서버에 안전하게 저장되었습니다.');
-          }
+          alert('문의가 접수되었습니다!\n데이터가 Firebase 서버에 안전하게 저장되었습니다.');
           
           document.getElementById('contact-success').classList.remove('hidden');
           this.reset();
