@@ -222,6 +222,17 @@
         // Firebase 초기화
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
+        
+        // 전역 Firebase 설정
+        window.firebaseDb = db;
+        window.firebaseFirestoreFunctions = {
+            collection,
+            getDocs,
+            query,
+            where,
+            orderBy,
+            onSnapshot
+        };
 
         // 전역 변수
         let allReviews = [];
@@ -234,32 +245,55 @@
         const reviewsContainer = document.getElementById('reviews-container');
         const pagination = document.getElementById('pagination');
 
-        // 후기 데이터 로드
+        // 후기 데이터 로드 (통합 시스템)
+        let reviewsUnsubscribe = null;
+        
         async function loadReviews() {
             try {
                 loadingSpinner.classList.remove('hidden');
                 
-                const reviewsRef = collection(db, 'reviews');
-                const snapshot = await getDocs(reviewsRef);
+                // Firebase 초기화 대기
+                await waitForFirebase();
+                
+                // 실시간 리스너 시작
+                subscribeToReviews();
+                
+                // 초기 데이터 로드
+                const { collection, getDocs, query, where, orderBy } = window.firebaseFirestoreFunctions;
+                const reviewsRef = collection(window.firebaseDb, 'reviews');
+                
+                let snapshot;
+                try {
+                    // 승인된 후기만 가져오기 (최신순 정렬) - 복합 인덱스 필요
+                    const q = query(reviewsRef, where('approved', '==', true), orderBy('createdAt', 'desc'));
+                    snapshot = await getDocs(q);
+                } catch (indexError) {
+                    console.warn('복합 인덱스 오류, 클라이언트 사이드 필터링으로 폴백:', indexError);
+                    // 모든 후기를 가져와서 클라이언트에서 필터링
+                    const allSnapshot = await getDocs(reviewsRef);
+                    snapshot = {
+                        forEach: (callback) => {
+                            allSnapshot.forEach(doc => {
+                                const data = doc.data();
+                                if (data.approved === true) {
+                                    callback(doc);
+                                }
+                            });
+                        }
+                    };
+                }
                 
                 allReviews = [];
                 snapshot.forEach(doc => {
                     const data = doc.data();
-                    if (data.approved === true) {
-                        allReviews.push({ id: doc.id, ...data });
-                    }
-                });
-                
-                // 최신순 정렬
-                allReviews.sort((a, b) => {
-                    const dateA = a.createdAt ? new Date(a.createdAt.seconds * 1000) : new Date(a.purchaseDate || 0);
-                    const dateB = b.createdAt ? new Date(b.createdAt.seconds * 1000) : new Date(b.purchaseDate || 0);
-                    return dateB - dateA;
+                    allReviews.push({ id: doc.id, ...data });
                 });
                 
                 filteredReviews = [...allReviews];
                 updateStatistics();
                 displayReviews();
+                
+                console.log(`✅ ${allReviews.length}개 승인된 후기 로드 완료`);
                 
             } catch (error) {
                 console.error('후기 로드 실패:', error);
@@ -269,6 +303,75 @@
                 loadingSpinner.classList.add('hidden');
             }
         }
+
+        // 후기 실시간 리스너
+        function subscribeToReviews() {
+            if (reviewsUnsubscribe) {
+                reviewsUnsubscribe();
+            }
+
+            // Firebase 초기화 확인
+            if (!window.firebaseDb || !window.firebaseFirestoreFunctions) {
+                console.warn('Firebase가 초기화되지 않아 실시간 리스너를 시작할 수 없습니다.');
+                return;
+            }
+
+            const { collection, onSnapshot, query, where, orderBy } = window.firebaseFirestoreFunctions;
+            const reviewsRef = collection(window.firebaseDb, 'reviews');
+            
+            // 승인된 후기만 실시간 감시
+            try {
+                const q = query(reviewsRef, where('approved', '==', true), orderBy('createdAt', 'desc'));
+                
+                reviewsUnsubscribe = onSnapshot(q, (snapshot) => {
+                    console.log('📋 리뷰페이지 후기 실시간 업데이트...');
+                    
+                    allReviews = [];
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        allReviews.push({ id: doc.id, ...data });
+                    });
+                    
+                    filteredReviews = [...allReviews];
+                    updateStatistics();
+                    displayReviews();
+                    
+                    console.log(`✅ 리뷰페이지 후기 실시간 업데이트 완료: ${allReviews.length}개`);
+                }, (error) => {
+                    console.error('❌ 리뷰페이지 후기 실시간 리스너 오류:', error);
+                });
+            } catch (indexError) {
+                console.warn('복합 인덱스 오류, 모든 후기 실시간 감시로 폴백:', indexError);
+                // 모든 후기를 실시간 감시하고 클라이언트에서 필터링
+                reviewsUnsubscribe = onSnapshot(reviewsRef, (snapshot) => {
+                    console.log('📋 리뷰페이지 후기 실시간 업데이트 (폴백 모드)...');
+                    
+                    allReviews = [];
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        if (data.approved === true) {
+                            allReviews.push({ id: doc.id, ...data });
+                        }
+                    });
+                    
+                    filteredReviews = [...allReviews];
+                    updateStatistics();
+                    displayReviews();
+                    
+                    console.log(`✅ 리뷰페이지 후기 실시간 업데이트 완료 (폴백 모드): ${allReviews.length}개`);
+                }, (error) => {
+                    console.error('❌ 리뷰페이지 후기 실시간 리스너 오류 (폴백 모드):', error);
+                });
+            }
+        }
+
+        // 페이지 언로드 시 리스너 정리
+        window.addEventListener('beforeunload', () => {
+            if (reviewsUnsubscribe) {
+                reviewsUnsubscribe();
+                console.log('🧹 리뷰페이지 후기 리스너 정리 완료');
+            }
+        });
 
         // 기본 후기 데이터 (Firebase 연결 실패 시)
         function loadDefaultReviews() {

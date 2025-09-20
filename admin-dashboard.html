@@ -2327,8 +2327,9 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
         // 후기 관리 함수들
         let allReviews = [];
         let filteredReviews = [];
+        let reviewsUnsubscribe = null;
 
-        // 후기 데이터 로드
+        // 후기 데이터 로드 (통합 시스템)
         async function loadReviewsData() {
             try {
                 console.log('📋 후기 데이터 로드 시작...');
@@ -2338,9 +2339,29 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                     return;
                 }
 
-                const { collection, getDocs, doc, getDoc } = window.firebaseFirestoreFunctions;
-                const reviewsRef = collection(window.firebaseDb, 'reviews');
-                const snapshot = await getDocs(reviewsRef);
+                // 실시간 리스너 시작
+                subscribeToReviews();
+                
+            } catch (error) {
+                console.error('❌ 후기 데이터 로드 실패:', error);
+                alert('후기 데이터를 불러오는데 실패했습니다: ' + error.message);
+            }
+        }
+
+        // 후기 실시간 리스너
+        function subscribeToReviews() {
+            if (reviewsUnsubscribe) {
+                reviewsUnsubscribe();
+            }
+
+            const { collection, onSnapshot, doc, getDoc, query, orderBy } = window.firebaseFirestoreFunctions;
+            const reviewsRef = collection(window.firebaseDb, 'reviews');
+            
+            // 모든 후기 가져오기 (승인/미승인 포함, 최신순 정렬)
+            const q = query(reviewsRef, orderBy('createdAt', 'desc'));
+            
+            reviewsUnsubscribe = onSnapshot(q, async (snapshot) => {
+                console.log('📋 후기 데이터 실시간 업데이트...');
                 
                 allReviews = [];
                 
@@ -2364,23 +2385,14 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                     allReviews.push(reviewData);
                 }
                 
-                // 클라이언트 사이드에서 정렬 (최신순)
-                allReviews.sort((a, b) => {
-                    const dateA = a.createdAt ? new Date(a.createdAt.seconds * 1000) : new Date(a.purchaseDate || 0);
-                    const dateB = b.createdAt ? new Date(b.createdAt.seconds * 1000) : new Date(b.purchaseDate || 0);
-                    return dateB - dateA;
-                });
-                
                 filteredReviews = [...allReviews];
                 updateReviewStatistics();
                 displayReviewsTable();
                 
-                console.log(`✅ 후기 데이터 로드 완료: ${allReviews.length}개`);
-                
-            } catch (error) {
-                console.error('❌ 후기 데이터 로드 실패:', error);
-                alert('후기 데이터를 불러오는데 실패했습니다: ' + error.message);
-            }
+                console.log(`✅ 후기 데이터 실시간 업데이트 완료: ${allReviews.length}개 (승인: ${allReviews.filter(r => r.approved).length}개, 미승인: ${allReviews.filter(r => !r.approved).length}개)`);
+            }, (error) => {
+                console.error('❌ 후기 실시간 리스너 오류:', error);
+            });
         }
 
         // 후기 통계 업데이트
@@ -2587,16 +2599,18 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
         // 후기 승인
         async function approveReview(reviewId) {
             try {
-                const { doc, updateDoc } = window.firebaseFirestoreFunctions;
+                const { doc, updateDoc, serverTimestamp } = window.firebaseFirestoreFunctions;
                 const reviewRef = doc(window.firebaseDb, 'reviews', reviewId);
                 await updateDoc(reviewRef, {
                     approved: true,
+                    approvedAt: serverTimestamp(),
+                    approvedBy: 'admin',
                     rejected: false,
-                    updatedAt: new Date()
+                    updatedAt: serverTimestamp()
                 });
                 
-                alert('후기가 승인되었습니다.');
-                loadReviewsData();
+                alert('후기가 승인되었습니다. 메인페이지와 리뷰페이지에 실시간으로 반영됩니다.');
+                // loadReviewsData(); // 실시간 리스너가 자동으로 업데이트
                 
             } catch (error) {
                 console.error('후기 승인 실패:', error);
@@ -2607,16 +2621,18 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
         // 후기 거부
         async function rejectReview(reviewId) {
             try {
-                const { doc, updateDoc } = window.firebaseFirestoreFunctions;
+                const { doc, updateDoc, serverTimestamp } = window.firebaseFirestoreFunctions;
                 const reviewRef = doc(window.firebaseDb, 'reviews', reviewId);
                 await updateDoc(reviewRef, {
                     approved: false,
                     rejected: true,
-                    updatedAt: new Date()
+                    rejectedAt: serverTimestamp(),
+                    rejectedBy: 'admin',
+                    updatedAt: serverTimestamp()
                 });
                 
                 alert('후기가 거부되었습니다.');
-                loadReviewsData();
+                // loadReviewsData(); // 실시간 리스너가 자동으로 업데이트
                 
             } catch (error) {
                 console.error('후기 거부 실패:', error);
@@ -2634,7 +2650,7 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 await deleteDoc(reviewRef);
                 
                 alert('후기가 삭제되었습니다.');
-                loadReviewsData();
+                // loadReviewsData(); // 실시간 리스너가 자동으로 업데이트
                 
             } catch (error) {
                 console.error('후기 삭제 실패:', error);
@@ -2765,9 +2781,9 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                         updatedAt: serverTimestamp()
                     });
                     
-                    alert('새 후기가 추가되었습니다.');
+                    alert('새 후기가 추가되었습니다. 메인페이지와 리뷰페이지에 실시간으로 반영됩니다.');
                     modal.remove();
-                    loadReviewsData();
+                    // loadReviewsData(); // 실시간 리스너가 자동으로 업데이트
                     
                 } catch (error) {
                     console.error('후기 추가 실패:', error);
@@ -2877,8 +2893,8 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                     updatedAt: new Date()
                 });
                 
-                alert('후기가 성공적으로 수정되었습니다!');
-                loadReviewsData(); // 데이터 새로고침
+                alert('후기가 성공적으로 수정되었습니다! 메인페이지와 리뷰페이지에 실시간으로 반영됩니다.');
+                // loadReviewsData(); // 실시간 리스너가 자동으로 업데이트
                 
             } catch (error) {
                 console.error('후기 수정 실패:', error);

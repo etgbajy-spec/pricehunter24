@@ -180,7 +180,7 @@
     <!-- Firebase SDK -->
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
-        import { getFirestore, collection, addDoc, serverTimestamp, getDocs, query, where } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
+        import { getFirestore, collection, addDoc, serverTimestamp, getDocs, query, where, orderBy } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
 
         // Firebase 설정
         const firebaseConfig = {
@@ -195,6 +195,41 @@
         // Firebase 초기화
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
+        
+        // 전역 Firebase 설정
+        window.firebaseDb = db;
+        window.firebaseFirestoreFunctions = {
+            collection,
+            addDoc,
+            doc,
+            updateDoc,
+            getDocs,
+            query,
+            where,
+            orderBy,
+            serverTimestamp
+        };
+        
+        // Firebase 초기화 대기 함수
+        async function waitForFirebase() {
+            return new Promise((resolve, reject) => {
+                const checkFirebase = () => {
+                    if (window.firebaseDb && window.firebaseFirestoreFunctions) {
+                        console.log('✅ Firebase 초기화 완료');
+                        resolve();
+                    } else {
+                        console.log('⏳ Firebase 초기화 대기 중...');
+                        setTimeout(checkFirebase, 100);
+                    }
+                };
+                checkFirebase();
+                
+                // 10초 타임아웃
+                setTimeout(() => {
+                    reject(new Error('Firebase 초기화 타임아웃'));
+                }, 10000);
+            });
+        }
 
         // 전역 변수
         let selectedRating = 0;
@@ -335,6 +370,8 @@
             }
             
             try {
+                // Firebase 초기화 대기
+                await waitForFirebase();
                 // 현재 사용자 정보 가져오기
                 const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
                 
@@ -378,12 +415,12 @@
                 };
                 
                 // Firebase에 후기 저장
-                const { collection, addDoc, doc, updateDoc } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js');
-                const reviewsRef = collection(db, 'reviews');
+                const { collection, addDoc, doc, updateDoc, serverTimestamp } = window.firebaseFirestoreFunctions;
+                const reviewsRef = collection(window.firebaseDb, 'reviews');
                 const reviewDoc = await addDoc(reviewsRef, reviewData);
                 
                 // 의뢰 건에 후기 작성 상태 업데이트
-                const requestRef = doc(db, 'requests', selectedRequestId);
+                const requestRef = doc(window.firebaseDb, 'requests', selectedRequestId);
                 await updateDoc(requestRef, {
                     reviewId: reviewDoc.id,
                     reviewStatus: 'pending', // pending, approved, rejected

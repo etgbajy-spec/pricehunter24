@@ -43,7 +43,7 @@
     <script type="module">
       import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
       import { getAuth, signInWithCustomToken, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
-      import { getFirestore, doc, setDoc, getDoc, collection, query, orderBy, onSnapshot, getDocs } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
+      import { getFirestore, doc, setDoc, getDoc, collection, query, orderBy, onSnapshot, getDocs, where, serverTimestamp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
       
       // Firebase 설정
       const firebaseConfig = {
@@ -67,7 +67,7 @@
         window.firebaseAuth = auth;
         window.firebaseDb = db;
         window.firebaseAuthFunctions = { signInWithCustomToken, onAuthStateChanged, signOut };
-        window.firebaseFirestoreFunctions = { doc, setDoc, getDoc, collection, query, orderBy, onSnapshot, getDocs };
+        window.firebaseFirestoreFunctions = { doc, setDoc, getDoc, collection, query, orderBy, onSnapshot, getDocs, where, serverTimestamp };
         
         console.log('✅ Firebase v9 초기화 완료');
       } catch (error) {
@@ -77,7 +77,7 @@
         window.firebaseAuth = null;
         window.firebaseDb = null;
         window.firebaseAuthFunctions = { signInWithCustomToken: () => {}, onAuthStateChanged: () => {}, signOut: () => {} };
-        window.firebaseFirestoreFunctions = { doc: () => {}, setDoc: () => {}, getDoc: () => {}, collection: () => {}, query: () => {}, orderBy: () => {}, onSnapshot: () => {}, getDocs: () => {} };
+        window.firebaseFirestoreFunctions = { doc: () => {}, setDoc: () => {}, getDoc: () => {}, collection: () => {}, query: () => {}, orderBy: () => {}, onSnapshot: () => {}, getDocs: () => {}, where: () => {}, serverTimestamp: () => {} };
       }
     </script>
 
@@ -674,7 +674,9 @@
       </div>
     </section>
     <script>
-        // 1. Firebase에서 실제 후기 데이터 로드
+        // 1. Firebase에서 실제 후기 데이터 로드 (실시간 연동)
+        let reviewsUnsubscribe = null;
+        
         async function loadReviewsFromFirebase() {
           try {
             // Firebase 초기화 확인
@@ -683,37 +685,59 @@
               return getDefaultReviews();
             }
 
-            const { collection, getDocs } = window.firebaseFirestoreFunctions;
+            // 실시간 리스너 시작
+            subscribeToReviews();
+            
+            // 초기 데이터 로드
+            const { collection, getDocs, query, where, orderBy } = window.firebaseFirestoreFunctions;
             const reviewsRef = collection(window.firebaseDb, 'reviews');
-            const snapshot = await getDocs(reviewsRef);
+            
+            let snapshot;
+            try {
+              // 승인된 후기만 가져오기 (최신순 정렬) - 복합 인덱스 필요
+              const q = query(reviewsRef, where('approved', '==', true), orderBy('createdAt', 'desc'));
+              snapshot = await getDocs(q);
+            } catch (indexError) {
+              console.warn('복합 인덱스 오류, 클라이언트 사이드 필터링으로 폴백:', indexError);
+              // 모든 후기를 가져와서 클라이언트에서 필터링
+              const allSnapshot = await getDocs(reviewsRef);
+              snapshot = {
+                forEach: (callback) => {
+                  allSnapshot.forEach(doc => {
+                    const data = doc.data();
+                    if (data.approved === true) {
+                      callback(doc);
+                    }
+                  });
+                }
+              };
+            }
             
             const reviews = [];
             snapshot.forEach(doc => {
               const data = doc.data();
-              if (data.approved === true) {
-                reviews.push({
-                  name: `${data.name}, ${data.ageGroup} ${data.occupation}`,
-                  img: data.profileImage || "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80",
-                  originalPrice: data.originalPrice,
-                  finalPrice: data.finalPrice,
-                  savings: data.savings,
-                  savingsPercent: data.savingsPercent + "%",
-                  desc: data.review.substring(0, 50) + "...",
-                  review: data.review,
-                  country: data.country,
-                  shipping: data.shipping,
-                  method: data.method,
-                  badge: data.badge,
-                  stars: data.rating || 5,
-                  date: data.purchaseDate
-                });
-              }
+              reviews.push({
+                id: doc.id,
+                name: `${data.name}, ${data.ageGroup} ${data.occupation}`,
+                img: data.profileImage || "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80",
+                originalPrice: data.originalPrice,
+                finalPrice: data.finalPrice,
+                savings: data.savings,
+                savingsPercent: data.savingsPercent + "%",
+                desc: data.review.substring(0, 50) + "...",
+                review: data.review,
+                country: data.country,
+                shipping: data.shipping,
+                method: data.method,
+                badge: data.badge,
+                stars: data.rating || 5,
+                date: data.purchaseDate,
+                // 원본 데이터도 보관
+                originalData: data
+              });
             });
-
-            // 최신순 정렬
-            reviews.sort((a, b) => new Date(b.date) - new Date(a.date));
             
-            console.log(`✅ Firebase에서 ${reviews.length}개 후기 로드됨`);
+            console.log(`✅ Firebase에서 ${reviews.length}개 승인된 후기 로드됨`);
             return reviews.length > 0 ? reviews : getDefaultReviews();
             
           } catch (error) {
@@ -721,6 +745,59 @@
             return getDefaultReviews();
           }
         }
+
+        // 후기 실시간 리스너
+        function subscribeToReviews() {
+          if (reviewsUnsubscribe) {
+            reviewsUnsubscribe();
+          }
+
+          // Firebase 초기화 확인
+          if (!window.firebaseDb || !window.firebaseFirestoreFunctions) {
+            console.warn('Firebase가 초기화되지 않아 실시간 리스너를 시작할 수 없습니다.');
+            return;
+          }
+
+          const { collection, onSnapshot, query, where, orderBy } = window.firebaseFirestoreFunctions;
+          const reviewsRef = collection(window.firebaseDb, 'reviews');
+          
+          // 승인된 후기만 실시간 감시
+          try {
+            const q = query(reviewsRef, where('approved', '==', true), orderBy('createdAt', 'desc'));
+            
+            reviewsUnsubscribe = onSnapshot(q, (snapshot) => {
+              console.log('📋 메인페이지 후기 실시간 업데이트...');
+              
+              // 후기 데이터가 변경되면 슬라이더 새로고침
+              if (typeof renderCaseSlider === 'function') {
+                renderCaseSlider();
+              }
+            }, (error) => {
+              console.error('❌ 메인페이지 후기 실시간 리스너 오류:', error);
+            });
+          } catch (indexError) {
+            console.warn('복합 인덱스 오류, 모든 후기 실시간 감시로 폴백:', indexError);
+            // 모든 후기를 실시간 감시하고 클라이언트에서 필터링
+            reviewsUnsubscribe = onSnapshot(reviewsRef, (snapshot) => {
+              console.log('📋 메인페이지 후기 실시간 업데이트 (폴백 모드)...');
+              
+              // 후기 데이터가 변경되면 슬라이더 새로고침
+              if (typeof renderCaseSlider === 'function') {
+                renderCaseSlider();
+              }
+            }, (error) => {
+              console.error('❌ 메인페이지 후기 실시간 리스너 오류 (폴백 모드):', error);
+            });
+          }
+        }
+
+        // 페이지 언로드 시 리스너 정리
+        window.addEventListener('beforeunload', () => {
+          if (reviewsUnsubscribe) {
+            reviewsUnsubscribe();
+            console.log('🧹 메인페이지 후기 리스너 정리 완료');
+          }
+        });
 
         // 기본 후기 데이터 (Firebase 연결 실패 시 사용)
         function getDefaultReviews() {
@@ -735,6 +812,9 @@
         
         // 2. getCaseProducts 함수 (Firebase 데이터 우선 사용)
         async function getCaseProducts() {
+          // Firebase 초기화 대기
+          await waitForFirebase();
+          
           // Firebase에서 데이터 로드 시도
           const firebaseReviews = await loadReviewsFromFirebase();
           if (firebaseReviews && firebaseReviews.length > 0) {
