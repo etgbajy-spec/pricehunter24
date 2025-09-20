@@ -24,7 +24,7 @@
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
     import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
-    import { getFirestore, collection, addDoc, serverTimestamp, query, orderBy, onSnapshot } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
+    import { getFirestore, collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, getDocs, where, doc, updateDoc, deleteDoc } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
     
     // Firebase 설정
     const firebaseConfig = {
@@ -62,6 +62,19 @@
 
     console.log('✅ Firebase v9 초기화 완료 (member-dashboard.html)');
     console.log('🔍 Firebase 함수들 확인:', Object.keys(window.firebaseFirestoreFunctions));
+    console.log('🔍 Firebase 함수들 상세:', {
+      collection: typeof collection,
+      getDocs: typeof getDocs,
+      where: typeof where,
+      query: typeof query,
+      orderBy: typeof orderBy,
+      addDoc: typeof addDoc,
+      serverTimestamp: typeof serverTimestamp,
+      onSnapshot: typeof onSnapshot,
+      doc: typeof doc,
+      updateDoc: typeof updateDoc,
+      deleteDoc: typeof deleteDoc
+    });
   </script>
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1429,36 +1442,45 @@
       });
     }
 
-    // Firebase 초기화 대기 함수
-    async function waitForFirebase() {
-      return new Promise((resolve, reject) => {
-        console.log('🔄 Firebase 초기화 상태 확인:', {
-          firebaseApp: !!window.firebaseApp,
-          firebaseDb: !!window.firebaseDb,
-          firebaseFirestoreFunctions: !!window.firebaseFirestoreFunctions
-        });
-        
-        if (window.firebaseApp && window.firebaseDb && window.firebaseFirestoreFunctions) {
-          console.log('✅ Firebase 초기화 완료');
-          resolve();
-        } else {
-          // Firebase 초기화 대기
-          const checkInterval = setInterval(() => {
-            if (window.firebaseApp && window.firebaseDb && window.firebaseFirestoreFunctions) {
-              clearInterval(checkInterval);
-              resolve();
-            }
-          }, 100);
-          
-          // 10초 후 타임아웃
-          setTimeout(() => {
-            clearInterval(checkInterval);
-            console.error('❌ Firebase 초기화 타임아웃 - Firebase 함수들을 사용할 수 없습니다.');
-            reject(new Error('Firebase 초기화 실패'));
-          }, 10000);
-        }
+  // Firebase 초기화 대기 함수
+  async function waitForFirebase() {
+    return new Promise((resolve, reject) => {
+      console.log('🔄 Firebase 초기화 상태 확인:', {
+        firebaseApp: !!window.firebaseApp,
+        firebaseDb: !!window.firebaseDb,
+        firebaseFirestoreFunctions: !!window.firebaseFirestoreFunctions,
+        firebaseFirestoreFunctionsKeys: window.firebaseFirestoreFunctions ? Object.keys(window.firebaseFirestoreFunctions) : 'undefined'
       });
-    }
+      
+      if (window.firebaseApp && window.firebaseDb && window.firebaseFirestoreFunctions) {
+        console.log('✅ Firebase 초기화 완료');
+        console.log('🔍 사용 가능한 Firebase 함수들:', Object.keys(window.firebaseFirestoreFunctions));
+        resolve();
+      } else {
+        // Firebase 초기화 대기
+        const checkInterval = setInterval(() => {
+          if (window.firebaseApp && window.firebaseDb && window.firebaseFirestoreFunctions) {
+            clearInterval(checkInterval);
+            console.log('✅ Firebase 초기화 완료 (대기 후)');
+            console.log('🔍 사용 가능한 Firebase 함수들:', Object.keys(window.firebaseFirestoreFunctions));
+            resolve();
+          }
+        }, 100);
+        
+        // 10초 후 타임아웃
+        setTimeout(() => {
+          clearInterval(checkInterval);
+          console.error('❌ Firebase 초기화 타임아웃 - Firebase 함수들을 사용할 수 없습니다.');
+          console.error('🔍 최종 상태:', {
+            firebaseApp: !!window.firebaseApp,
+            firebaseDb: !!window.firebaseDb,
+            firebaseFirestoreFunctions: !!window.firebaseFirestoreFunctions
+          });
+          reject(new Error('Firebase 초기화 실패'));
+        }, 10000);
+      }
+    });
+  }
     
     // Firebase 연결 상태 확인
     function checkFirebaseConnection() {

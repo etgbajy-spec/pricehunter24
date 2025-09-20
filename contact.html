@@ -182,10 +182,29 @@
     // Firebase 초기화 대기 함수
     async function waitForFirebase() {
       return new Promise((resolve, reject) => {
-        if (window.firebaseApp && window.firebaseDb) {
+        console.log('🔄 Firebase 초기화 상태 확인:', {
+          firebaseApp: !!window.firebaseApp,
+          firebaseDb: !!window.firebaseDb,
+          firebaseFirestoreFunctions: !!window.firebaseFirestoreFunctions
+        });
+        
+        if (window.firebaseApp && window.firebaseDb && window.firebaseFirestoreFunctions) {
+          console.log('✅ Firebase 초기화 완료');
           resolve();
         } else {
-          setTimeout(() => waitForFirebase().then(resolve).catch(reject), 100);
+          const checkInterval = setInterval(() => {
+            if (window.firebaseApp && window.firebaseDb && window.firebaseFirestoreFunctions) {
+              clearInterval(checkInterval);
+              console.log('✅ Firebase 초기화 완료');
+              resolve();
+            }
+          }, 100);
+          
+          setTimeout(() => {
+            clearInterval(checkInterval);
+            console.error('❌ Firebase 초기화 타임아웃');
+            reject(new Error('Firebase 초기화 실패'));
+          }, 10000);
         }
       });
     }
