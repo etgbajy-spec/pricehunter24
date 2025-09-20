@@ -2067,6 +2067,48 @@
         });
       }
 
+      // Base64 이미지 직접 압축 함수 (CSP 문제 해결)
+      function compressBase64Image(base64DataUrl, targetSizeKB = 500) {
+        return new Promise((resolve, reject) => {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          const img = new Image();
+          
+          img.onload = function() {
+            let { width, height } = img;
+            let quality = 0.8;
+            let maxWidth = 1200;
+            
+            // 초기 압축
+            if (width > maxWidth) {
+              height = (height * maxWidth) / width;
+              width = maxWidth;
+            }
+            
+            canvas.width = width;
+            canvas.height = height;
+            ctx.drawImage(img, 0, 0, width, height);
+            
+            // 크기 체크 및 재압축
+            const checkSize = (q) => {
+              const dataUrl = canvas.toDataURL('image/jpeg', q);
+              const sizeKB = (dataUrl.length * 0.75) / 1024; // base64 to KB
+              
+              if (sizeKB > targetSizeKB && q > 0.1) {
+                return checkSize(q - 0.1);
+              }
+              return dataUrl;
+            };
+            
+            const compressedDataUrl = checkSize(quality);
+            resolve(compressedDataUrl);
+          };
+          
+          img.onerror = () => reject(new Error('이미지 로드 실패'));
+          img.src = base64DataUrl; // Base64 데이터를 직접 사용
+        });
+      }
+
       // Firebase에 문의 데이터 저장
       async function saveInquiryToFirebase(inquiryData) {
         try {
@@ -2118,44 +2160,39 @@
         };
         
         try {
-          // 파일이 있고 이미지인 경우 압축 적용
-          if (file && file.startsWith('data:image/')) {
-            console.log('📷 이미지 파일 감지 - 압축 시작...');
-            
-            // Base64에서 파일 객체로 변환
-            const response = await fetch(file);
-            const blob = await response.blob();
-            const originalFile = new File([blob], 'image.jpg', { type: 'image/jpeg' });
-            
-            // 압축 진행 상황 표시
-            const submitBtn = document.querySelector('#contact-form button[type="submit"]');
-            if (submitBtn) {
-              submitBtn.disabled = true;
-              submitBtn.textContent = '이미지 압축 중...';
-            }
-            
+        // 파일이 있고 이미지인 경우 압축 적용
+        if (file && file.startsWith('data:image/')) {
+          console.log('📷 이미지 파일 감지 - 압축 시작...');
+          
+          // 압축 진행 상황 표시
+          const submitBtn = document.querySelector('#contact-form button[type="submit"]');
+          if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.textContent = '이미지 압축 중...';
+          }
+          
+          try {
+            // Base64 데이터를 직접 압축 (fetch 사용하지 않음)
+            const compressedDataUrl = await compressBase64Image(file, 500);
+            inquiry.file = compressedDataUrl;
+            console.log('✅ 이미지 압축 완료');
+          } catch (compressError) {
+            console.warn('⚠️ 첫 번째 압축 실패, 더 강한 압축 시도...');
             try {
-              // 500KB 이하로 압축 시도
-              const compressedDataUrl = await compressImage(originalFile, 500);
+              // 200KB 이하로 강한 압축 시도
+              const compressedDataUrl = await compressBase64Image(file, 200);
               inquiry.file = compressedDataUrl;
-              console.log('✅ 이미지 압축 완료');
-            } catch (compressError) {
-              console.warn('⚠️ 첫 번째 압축 실패, 더 강한 압축 시도...');
-              try {
-                // 200KB 이하로 강한 압축 시도
-                const compressedDataUrl = await compressImage(originalFile, 200);
-                inquiry.file = compressedDataUrl;
-                console.log('✅ 강한 압축 완료');
-              } catch (strongCompressError) {
-                console.error('❌ 압축 실패, 원본 사용 (Firebase 저장 실패 가능성 있음)');
-                // 압축 실패 시 원본 사용 (Firebase 저장 실패 가능성 있음)
-              }
-            }
-            
-            if (submitBtn) {
-              submitBtn.textContent = '문의 제출 중...';
+              console.log('✅ 강한 압축 완료');
+            } catch (strongCompressError) {
+              console.error('❌ 압축 실패, 원본 사용 (Firebase 저장 실패 가능성 있음)');
+              // 압축 실패 시 원본 사용 (Firebase 저장 실패 가능성 있음)
             }
           }
+          
+          if (submitBtn) {
+            submitBtn.textContent = '문의 제출 중...';
+          }
+        }
           
           // Firebase에 저장 시도
           console.log('🔥 Firebase에 문의 저장 시작...');
