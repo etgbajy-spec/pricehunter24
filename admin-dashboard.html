@@ -2392,32 +2392,11 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 for (const docSnapshot of snapshot.docs) {
                     const reviewData = { id: docSnapshot.id, ...docSnapshot.data() };
                     
-                    // 데이터 유효성 검사 (메인페이지 데이터 구조에 맞춰 수정)
-                    if (!reviewData.name) {
-                        console.warn('⚠️ 유효하지 않은 후기 데이터 건너뜀 (name 없음):', reviewData.id);
+                    // 데이터 유효성 검사
+                    if (!reviewData.name || !reviewData.productName) {
+                        console.warn('⚠️ 유효하지 않은 후기 데이터 건너뜀:', reviewData.id);
                         continue;
                     }
-                    
-                    // 메인페이지 데이터 구조에 맞춰 변환
-                    const formattedReview = {
-                        ...reviewData,
-                        name: reviewData.name || '익명',
-                        country: reviewData.country || '대한민국',
-                        desc: reviewData.desc || reviewData.review?.substring(0, 50) + '...' || '후기',
-                        originalPrice: reviewData.originalPrice || '0원',
-                        finalPrice: reviewData.finalPrice || '0원',
-                        savings: reviewData.savings || '0원',
-                        savingsPercent: reviewData.savingsPercent || '0%',
-                        stars: reviewData.stars || 5,
-                        date: reviewData.date || reviewData.createdAt?.toDate?.()?.toISOString().split('T')[0] || new Date().toISOString().split('T')[0],
-                        shipping: reviewData.shipping || '2일',
-                        method: reviewData.method || 'PriceHunter 검증',
-                        review: reviewData.review || '',
-                        img: reviewData.img || reviewData.profileImage || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=600&q=80',
-                        badge: reviewData.badge || '실제 구매자'
-                    };
-                    
-                    reviewData = formattedReview;
                     
                     // 의뢰 건 정보가 있으면 함께 로드
                     if (reviewData.requestId) {
@@ -2482,37 +2461,20 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 
                 allReviews = [];
                 
-                // 각 후기에 대해 데이터 변환 및 의뢰 건 정보 로드
+                // 각 후기에 대해 의뢰 건 정보도 함께 로드
                 for (const docSnapshot of snapshot.docs) {
-                    const data = docSnapshot.data();
+                    const reviewData = { id: docSnapshot.id, ...docSnapshot.data() };
                     
-                    // 데이터 유효성 검사 (메인페이지 데이터 구조에 맞춰 수정)
-                    if (!data.name) {
-                        console.warn('⚠️ 유효하지 않은 후기 데이터 건너뜀 (name 없음):', docSnapshot.id);
-                        continue;
-                    }
-                    
-                    // 메인페이지 데이터 구조에 맞춰 변환
-                    const reviewData = {
-                        id: docSnapshot.id,
-                        name: data.name || '익명',
-                        country: data.country || '대한민국',
-                        desc: data.desc || data.review?.substring(0, 50) + '...' || '후기',
-                        originalPrice: data.originalPrice || '0원',
-                        finalPrice: data.finalPrice || '0원',
-                        savings: data.savings || '0원',
-                        savingsPercent: data.savingsPercent || '0%',
-                        stars: data.stars || 5,
-                        date: data.date || data.createdAt?.toDate?.()?.toISOString().split('T')[0] || new Date().toISOString().split('T')[0],
-                        shipping: data.shipping || '2일',
-                        method: data.method || 'PriceHunter 검증',
-                        review: data.review || '',
-                        img: data.img || data.profileImage || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=600&q=80',
-                        badge: data.badge || '실제 구매자',
-                        createdAt: data.createdAt,
-                        updatedAt: data.updatedAt,
-                        requestId: data.requestId
-                    };
+                    // 데이터 구조 표준화 (기본값 설정)
+                    reviewData.approved = reviewData.approved || false;
+                    reviewData.featured = reviewData.featured || false;
+                    reviewData.rating = reviewData.rating || 5;
+                    reviewData.views = reviewData.views || 0;
+                    reviewData.country = reviewData.country || '대한민국';
+                    reviewData.shipping = reviewData.shipping || '3일';
+                    reviewData.method = reviewData.method || 'PriceHunter 검증';
+                    reviewData.badge = reviewData.badge || '실제 구매자';
+                    reviewData.category = reviewData.category || '일반';
                     
                     // 의뢰 건 정보가 있으면 함께 로드
                     if (reviewData.requestId) {
@@ -2584,55 +2546,40 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             }
         }
 
-        // 후기 통계 업데이트 (승인 상태 제거)
+        // 후기 통계 업데이트
         function updateReviewStatistics() {
             const totalReviews = allReviews.length;
-            const averageRating = allReviews.reduce((sum, r) => sum + (r.stars || 5), 0) / totalReviews || 0;
-            const totalSavings = allReviews.reduce((sum, r) => {
-                const savings = parseInt(r.savings?.replace(/[^0-9]/g, '') || '0');
-                return sum + savings;
-            }, 0);
-            const recentReviews = allReviews.filter(r => {
-                const date = new Date(r.date || r.createdAt || r.purchaseDate || 0);
-                const weekAgo = new Date();
-                weekAgo.setDate(weekAgo.getDate() - 7);
-                return date > weekAgo;
-            }).length;
+            const approvedReviews = allReviews.filter(r => r.approved === true).length;
+            const pendingReviews = allReviews.filter(r => r.approved === false && r.rejected !== true).length;
+            const featuredReviews = allReviews.filter(r => r.featured === true).length;
+            const avgRating = allReviews.length > 0 ? 
+                (allReviews.reduce((sum, r) => sum + (r.rating || 5), 0) / allReviews.length).toFixed(1) : 0;
 
             console.log('📊 후기 통계 업데이트:', {
                 total: totalReviews,
-                averageRating: averageRating.toFixed(1),
-                totalSavings: totalSavings,
-                recent: recentReviews
+                approved: approvedReviews,
+                pending: pendingReviews,
+                featured: featuredReviews,
+                avgRating: avgRating
             });
 
-            const stats = document.getElementById('review-stats');
-            if (stats) {
-                stats.innerHTML = `
-                    <div class="text-center">
-                        <div class="font-bold text-lg text-blue-600">${totalReviews}</div>
-                        <div class="text-gray-600">총 후기</div>
-                    </div>
-                    <div class="text-center">
-                        <div class="font-bold text-lg text-yellow-600">${averageRating.toFixed(1)}</div>
-                        <div class="text-gray-600">평균 별점</div>
-                    </div>
-                    <div class="text-center">
-                        <div class="font-bold text-lg text-green-600">${totalSavings.toLocaleString()}원</div>
-                        <div class="text-gray-600">총 절약 금액</div>
-                    </div>
-                    <div class="text-center">
-                        <div class="font-bold text-lg text-purple-600">${recentReviews}</div>
-                        <div class="text-gray-600">최근 7일 후기</div>
-                    </div>
-                `;
-                console.log('✅ 후기 통계 UI 업데이트 완료');
-            } else {
-                console.error('❌ review-stats 요소를 찾을 수 없습니다.');
-            }
+            // 개별 요소 업데이트
+            const totalElement = document.getElementById('total-reviews');
+            const approvedElement = document.getElementById('approved-reviews');
+            const pendingElement = document.getElementById('pending-reviews');
+            const featuredElement = document.getElementById('featured-reviews');
+            const avgRatingElement = document.getElementById('avg-rating');
+            
+            if (totalElement) totalElement.textContent = totalReviews;
+            if (approvedElement) approvedElement.textContent = approvedReviews;
+            if (pendingElement) pendingElement.textContent = pendingReviews;
+            if (featuredElement) featuredElement.textContent = featuredReviews;
+            if (avgRatingElement) avgRatingElement.textContent = avgRating;
+            
+            console.log('✅ 후기 통계 UI 업데이트 완료');
         }
 
-        // 후기 테이블 표시 (메인페이지 데이터 구조에 맞춰 수정)
+        // 후기 테이블 표시
         function displayReviewsTable() {
             console.log('📊 후기 테이블 표시 시작:', {
                 allReviews: allReviews.length,
@@ -2650,7 +2597,7 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 console.log('📝 후기 데이터가 없어서 빈 테이블 표시');
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="9" class="px-6 py-4 text-center text-gray-500">
+                        <td colspan="8" class="px-6 py-4 text-center text-gray-500">
                             후기가 없습니다. <button onclick="initializeReviewsData()" class="text-blue-600 hover:text-blue-800 underline">초기 데이터 생성</button>
                         </td>
                     </tr>
@@ -2661,46 +2608,53 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             console.log('✅ 후기 테이블 렌더링:', filteredReviews.length, '개');
 
             tbody.innerHTML = filteredReviews.map(review => {
-                const stars = '★'.repeat(Math.floor(review.stars || 5)) + '☆'.repeat(5 - Math.floor(review.stars || 5));
+                const statusBadge = getStatusBadge(review);
+                const stars = '★'.repeat(review.rating || 5) + '☆'.repeat(5 - (review.rating || 5));
                 
                 return `
                     <tr class="hover:bg-gray-50">
                         <td class="px-6 py-4 whitespace-nowrap">
-                            <img src="${review.img || review.profileImage || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=100&q=80'}" 
+                            <img src="${review.profileImage || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=100&q=80'}" 
                                  alt="${review.name}" class="w-10 h-10 rounded-full object-cover">
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="text-sm font-medium text-gray-900">${review.name}</div>
-                            <div class="text-sm text-gray-500">${review.country || '대한민국'}</div>
-                            ${review.requestId ? `<div class="text-xs text-blue-600">의뢰연결됨</div>` : ''}
+                            <div class="text-sm text-gray-500">${review.ageGroup} • ${review.occupation}</div>
+                            ${review.requestData ? `<div class="text-xs text-blue-600">의뢰건: ${review.requestData.productName}</div>` : ''}
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="text-sm font-medium text-gray-900">${review.desc || review.review?.substring(0, 30) + '...' || '후기'}</div>
-                            <div class="text-sm text-gray-500">${formatDate(review.date || review.createdAt || review.purchaseDate)}</div>
+                            <div class="text-sm font-medium text-gray-900">${review.productName}</div>
+                            <div class="text-sm text-gray-500">${review.category}</div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="text-sm font-medium text-red-600">${review.originalPrice}</div>
-                            <div class="text-sm text-gray-500">원래가격</div>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="text-sm font-medium text-green-600">${review.finalPrice}</div>
-                            <div class="text-sm text-gray-500">최종가격</div>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="text-sm font-medium text-blue-600">${review.savings}</div>
-                            <div class="text-sm text-gray-500">${review.savingsPercent}</div>
+                            <div class="text-sm font-medium text-red-600">${review.savings}</div>
+                            <div class="text-sm text-gray-500">${review.savingsPercent}%</div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="text-sm text-yellow-500">${stars}</div>
-                            <div class="text-sm text-gray-500">${review.stars || 5}/5</div>
+                            <div class="text-sm text-gray-500">${review.rating || 5}/5</div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
-                            <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">활성</span>
+                            <div class="flex flex-col space-y-1">
+                                ${statusBadge}
+                                <span class="px-2 py-1 rounded-full text-xs ${review.featured ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}">
+                                    ${review.featured ? '인덱스 노출' : '숨김'}
+                                </span>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            ${formatDate(review.createdAt || review.purchaseDate)}
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                             <div class="flex space-x-2">
                                 <button onclick="viewReviewDetails('${review.id}')" class="text-blue-600 hover:text-blue-900">보기</button>
-                                <button onclick="editReviewInline('${review.id}')" class="text-green-600 hover:text-green-900">편집</button>
+                                <button onclick="editReview('${review.id}')" class="text-green-600 hover:text-green-900">수정</button>
+                                <button onclick="toggleReviewApproval('${review.id}', ${!review.approved})" class="text-purple-600 hover:text-purple-900">
+                                    ${review.approved ? '승인취소' : '승인'}
+                                </button>
+                                <button onclick="toggleReviewFeatured('${review.id}', ${!review.featured})" class="text-orange-600 hover:text-orange-900">
+                                    ${review.featured ? '노출취소' : '노출'}
+                                </button>
                                 <button onclick="deleteReview('${review.id}')" class="text-red-600 hover:text-red-900">삭제</button>
                             </div>
                         </td>
@@ -2729,169 +2683,6 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 month: 'short',
                 day: 'numeric'
             });
-        }
-
-        // 후기 인라인 편집
-        function editReviewInline(reviewId) {
-            const review = allReviews.find(r => r.id === reviewId);
-            if (!review) return;
-
-            // 편집 모달 생성
-            const modal = document.createElement('div');
-            modal.className = 'fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center';
-            modal.innerHTML = `
-                <div class="bg-white rounded-xl shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-                    <div class="p-6">
-                        <div class="flex justify-between items-center mb-6">
-                            <h3 class="text-2xl font-bold text-gray-800">후기 편집</h3>
-                            <button onclick="closeReviewModal()" class="text-gray-500 hover:text-gray-700 text-2xl">×</button>
-                        </div>
-                        
-                        <form id="review-edit-form" class="space-y-6">
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">사용자명</label>
-                                    <input type="text" id="edit-name" value="${review.name}" 
-                                           class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">국가</label>
-                                    <input type="text" id="edit-country" value="${review.country || '대한민국'}" 
-                                           class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                                </div>
-                            </div>
-                            
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">후기 요약</label>
-                                <input type="text" id="edit-desc" value="${review.desc || ''}" 
-                                       class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                            </div>
-                            
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">원래 가격</label>
-                                    <input type="text" id="edit-original-price" value="${review.originalPrice}" 
-                                           class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">최종 가격</label>
-                                    <input type="text" id="edit-final-price" value="${review.finalPrice}" 
-                                           class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">절약 금액</label>
-                                    <input type="text" id="edit-savings" value="${review.savings}" 
-                                           class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                                </div>
-                            </div>
-                            
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">절약률</label>
-                                    <input type="text" id="edit-savings-percent" value="${review.savingsPercent}" 
-                                           class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">별점</label>
-                                    <input type="number" id="edit-stars" value="${review.stars || 5}" min="1" max="5" step="0.1" 
-                                           class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">구매일</label>
-                                    <input type="date" id="edit-date" value="${review.date || ''}" 
-                                           class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                                </div>
-                            </div>
-                            
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">배송</label>
-                                    <input type="text" id="edit-shipping" value="${review.shipping || ''}" 
-                                           class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">구매방법</label>
-                                    <input type="text" id="edit-method" value="${review.method || ''}" 
-                                           class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                                </div>
-                            </div>
-                            
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">후기 내용</label>
-                                <textarea id="edit-review" rows="4" 
-                                          class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">${review.review || ''}</textarea>
-                            </div>
-                            
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">프로필 이미지 URL</label>
-                                <input type="url" id="edit-img" value="${review.img || review.profileImage || ''}" 
-                                       class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                            </div>
-                            
-                            <div class="flex justify-end space-x-4 pt-6">
-                                <button type="button" onclick="closeReviewModal()" 
-                                        class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition">
-                                    취소
-                                </button>
-                                <button type="submit" 
-                                        class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
-                                    저장
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            `;
-            
-            document.body.appendChild(modal);
-            
-            // 폼 제출 이벤트
-            document.getElementById('review-edit-form').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                await saveReviewEdit(reviewId);
-            });
-        }
-        
-        // 후기 편집 저장
-        async function saveReviewEdit(reviewId) {
-            try {
-                const { doc, updateDoc, serverTimestamp } = window.firebaseFirestoreFunctions;
-                const reviewRef = doc(window.firebaseDb, 'reviews', reviewId);
-                
-                const updatedData = {
-                    name: document.getElementById('edit-name').value,
-                    country: document.getElementById('edit-country').value,
-                    desc: document.getElementById('edit-desc').value,
-                    originalPrice: document.getElementById('edit-original-price').value,
-                    finalPrice: document.getElementById('edit-final-price').value,
-                    savings: document.getElementById('edit-savings').value,
-                    savingsPercent: document.getElementById('edit-savings-percent').value,
-                    stars: parseFloat(document.getElementById('edit-stars').value),
-                    date: document.getElementById('edit-date').value,
-                    shipping: document.getElementById('edit-shipping').value,
-                    method: document.getElementById('edit-method').value,
-                    review: document.getElementById('edit-review').value,
-                    img: document.getElementById('edit-img').value,
-                    updatedAt: serverTimestamp()
-                };
-                
-                await updateDoc(reviewRef, updatedData);
-                
-                alert('후기가 성공적으로 수정되었습니다!');
-                closeReviewModal();
-                
-            } catch (error) {
-                console.error('후기 수정 실패:', error);
-                alert('후기 수정에 실패했습니다. 다시 시도해주세요.');
-            }
-        }
-        
-        // 모달 닫기
-        function closeReviewModal() {
-            const modal = document.querySelector('.fixed.inset-0.bg-black.bg-opacity-50');
-            if (modal) {
-                modal.remove();
-            }
         }
 
         // 후기 상세보기
@@ -3845,7 +3636,7 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                             <button onclick="initializeReviewsData()" class="px-4 py-2 bg-purple-500 text-white rounded-lg font-semibold hover:bg-purple-600 transition">
                                 🚀 초기 후기 데이터 생성
                             </button>
-                            <button onclick="addNewReview()" class="px-4 py-2 bg-green-500 text-white rounded-lg font-semibold hover:bg-green-600 transition">
+                            <button onclick="showAddReviewModal()" class="px-4 py-2 bg-green-500 text-white rounded-lg font-semibold hover:bg-green-600 transition">
                                 ➕ 새 후기 추가
                             </button>
                             <button onclick="editReview()" class="px-4 py-2 bg-yellow-500 text-white rounded-lg font-semibold hover:bg-yellow-600 transition">
@@ -3860,22 +3651,26 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                     <!-- 후기 통계 -->
                     <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
                         <h3 class="text-lg font-semibold text-gray-800 mb-4">📊 후기 통계</h3>
-                        <div id="review-stats" class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                        <div id="review-stats" class="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
                             <div class="text-center">
-                                <div class="font-bold text-lg text-blue-600">0</div>
+                                <div id="total-reviews" class="font-bold text-lg text-blue-600">0</div>
                                 <div class="text-gray-600">총 후기</div>
                             </div>
                             <div class="text-center">
-                                <div class="font-bold text-lg text-green-600">0</div>
+                                <div id="approved-reviews" class="font-bold text-lg text-green-600">0</div>
                                 <div class="text-gray-600">승인된 후기</div>
                             </div>
                             <div class="text-center">
-                                <div class="font-bold text-lg text-yellow-600">0</div>
+                                <div id="pending-reviews" class="font-bold text-lg text-yellow-600">0</div>
                                 <div class="text-gray-600">대기 중</div>
                             </div>
                             <div class="text-center">
-                                <div class="font-bold text-lg text-red-600">0</div>
-                                <div class="text-gray-600">거부된 후기</div>
+                                <div id="featured-reviews" class="font-bold text-lg text-purple-600">0</div>
+                                <div class="text-gray-600">인덱스 노출</div>
+                            </div>
+                            <div class="text-center">
+                                <div id="avg-rating" class="font-bold text-lg text-orange-600">0</div>
+                                <div class="text-gray-600">평균 평점</div>
                             </div>
                         </div>
                     </div>
@@ -3914,13 +3709,12 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                                 <thead class="bg-yellow-50">
                                     <tr>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-yellow-700 uppercase tracking-wider">프로필</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-yellow-700 uppercase tracking-wider">사용자</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-yellow-700 uppercase tracking-wider">후기내용</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-yellow-700 uppercase tracking-wider">원래가격</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-yellow-700 uppercase tracking-wider">최종가격</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-yellow-700 uppercase tracking-wider">절약</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-yellow-700 uppercase tracking-wider">평점</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-yellow-700 uppercase tracking-wider">작성자</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-yellow-700 uppercase tracking-wider">상품명</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-yellow-700 uppercase tracking-wider">절약금액</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-yellow-700 uppercase tracking-wider">별점</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-yellow-700 uppercase tracking-wider">상태</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-yellow-700 uppercase tracking-wider">작성일</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-yellow-700 uppercase tracking-wider">작업</th>
                                     </tr>
                                 </thead>
@@ -3956,6 +3750,147 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                     닫기
                 </button>
             </div>
+        </div>
+    </div>
+
+    <!-- 후기 추가/수정 모달 -->
+    <div id="review-modal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-6">
+                <h2 id="review-modal-title" class="text-2xl font-bold text-gray-800">➕ 새 후기 추가</h2>
+                <button onclick="closeReviewModal()" class="text-gray-400 hover:text-gray-700 text-2xl">&times;</button>
+            </div>
+            
+            <form id="review-form" class="space-y-6">
+                <!-- 작성자 정보 -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">작성자 이름 *</label>
+                        <input type="text" id="review-name" required
+                               class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                               placeholder="예: 홍길동">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">나이대 *</label>
+                        <select id="review-age-group" required
+                                class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <option value="">선택하세요</option>
+                            <option value="10대">10대</option>
+                            <option value="20대">20대</option>
+                            <option value="30대">30대</option>
+                            <option value="40대">40대</option>
+                            <option value="50대">50대</option>
+                            <option value="60대 이상">60대 이상</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">직업 *</label>
+                        <input type="text" id="review-occupation" required
+                               class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                               placeholder="예: 직장인, 학생, 프리랜서">
+                    </div>
+                </div>
+
+                <!-- 제품 정보 -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">제품명 *</label>
+                        <input type="text" id="review-product-name" required
+                               class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                               placeholder="구매하신 제품명을 입력하세요">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">구매일 *</label>
+                        <input type="date" id="review-purchase-date" required
+                               class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                </div>
+
+                <!-- 가격 정보 -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">원래 가격 *</label>
+                        <input type="text" id="review-original-price" required
+                               class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                               placeholder="예: 500,000원">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">실제 구매 가격 *</label>
+                        <input type="text" id="review-final-price" required
+                               class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                               placeholder="예: 350,000원">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">절약 금액</label>
+                        <input type="text" id="review-savings" readonly
+                               class="w-full p-3 border border-gray-300 rounded-lg bg-gray-50"
+                               placeholder="자동 계산됩니다">
+                    </div>
+                </div>
+
+                <!-- 평점 -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">만족도 *</label>
+                    <div class="flex space-x-2" id="review-rating-stars">
+                        <button type="button" class="text-3xl text-gray-300 hover:text-yellow-400 transition" data-rating="1">⭐</button>
+                        <button type="button" class="text-3xl text-gray-300 hover:text-yellow-400 transition" data-rating="2">⭐</button>
+                        <button type="button" class="text-3xl text-gray-300 hover:text-yellow-400 transition" data-rating="3">⭐</button>
+                        <button type="button" class="text-3xl text-gray-300 hover:text-yellow-400 transition" data-rating="4">⭐</button>
+                        <button type="button" class="text-3xl text-gray-300 hover:text-yellow-400 transition" data-rating="5">⭐</button>
+                    </div>
+                    <input type="hidden" id="review-rating" required>
+                </div>
+
+                <!-- 후기 내용 -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">후기 내용 *</label>
+                    <textarea id="review-content" required rows="5"
+                              class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              placeholder="제품에 대한 솔직한 후기를 작성해주세요."></textarea>
+                </div>
+
+                <!-- 사진 업로드 -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">제품 사진 (선택사항)</label>
+                    <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                        <input type="file" id="review-photo-upload" multiple accept="image/*" class="hidden">
+                        <button type="button" onclick="document.getElementById('review-photo-upload').click()" 
+                                class="text-blue-600 hover:text-blue-700 font-medium">
+                            📷 사진 업로드하기
+                        </button>
+                        <p class="text-sm text-gray-500 mt-2">최대 5장까지 업로드 가능합니다</p>
+                    </div>
+                    <div id="review-photo-preview" class="grid grid-cols-2 md:grid-cols-5 gap-4 mt-4 hidden">
+                        <!-- 업로드된 사진 미리보기가 여기에 표시됩니다 -->
+                    </div>
+                </div>
+
+                <!-- 관리 옵션 -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">승인 상태</label>
+                        <select id="review-approved" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <option value="true">승인됨</option>
+                            <option value="false">승인 대기</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">인덱스페이지 노출</label>
+                        <select id="review-featured" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <option value="true">노출</option>
+                            <option value="false">숨김</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- 제출 버튼 -->
+                <div class="flex justify-center pt-6">
+                    <button type="submit" 
+                            class="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-12 py-3 rounded-full font-bold hover:from-blue-700 hover:to-purple-700 transition-all duration-300 shadow-lg">
+                        후기 저장하기
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -4823,6 +4758,366 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
         function closeInquiryDetailModal() {
             document.getElementById('inquiry-detail-modal').classList.add('hidden');
             document.body.style.overflow = 'auto';
+        }
+
+        // 후기 모달 관련 함수들
+        let selectedReviewRating = 0;
+        let uploadedReviewPhotos = [];
+
+        // 후기 추가 모달 표시
+        function showAddReviewModal() {
+            document.getElementById('review-modal-title').textContent = '➕ 새 후기 추가';
+            document.getElementById('review-form').reset();
+            selectedReviewRating = 0;
+            uploadedReviewPhotos = [];
+            resetReviewRatingStars();
+            hideReviewPhotoPreview();
+            
+            // 오늘 날짜를 기본값으로 설정
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('review-purchase-date').value = today;
+            
+            document.getElementById('review-modal').classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        // 후기 모달 닫기
+        function closeReviewModal() {
+            document.getElementById('review-modal').classList.add('hidden');
+            document.body.style.overflow = 'auto';
+        }
+
+        // 후기 평점 리셋
+        function resetReviewRatingStars() {
+            document.querySelectorAll('#review-rating-stars button').forEach((star, i) => {
+                star.classList.remove('text-yellow-400');
+                star.classList.add('text-gray-300');
+            });
+        }
+
+        // 후기 사진 미리보기 숨기기
+        function hideReviewPhotoPreview() {
+            document.getElementById('review-photo-preview').classList.add('hidden');
+        }
+
+        // 후기 절약 금액 자동 계산
+        function calculateReviewSavings() {
+            const originalPrice = document.getElementById('review-original-price').value.replace(/[^0-9]/g, '');
+            const finalPrice = document.getElementById('review-final-price').value.replace(/[^0-9]/g, '');
+            
+            if (originalPrice && finalPrice) {
+                const savings = parseInt(originalPrice) - parseInt(finalPrice);
+                const savingsPercent = Math.round((savings / parseInt(originalPrice)) * 100);
+                document.getElementById('review-savings').value = `${savings.toLocaleString()}원 (${savingsPercent}%)`;
+            }
+        }
+
+        // 후기 폼 이벤트 리스너 등록
+        document.addEventListener('DOMContentLoaded', function() {
+            // 후기 평점 선택
+            document.querySelectorAll('#review-rating-stars button').forEach((star, index) => {
+                star.addEventListener('click', () => {
+                    selectedReviewRating = index + 1;
+                    document.getElementById('review-rating').value = selectedReviewRating;
+                    
+                    // 별점 시각적 업데이트
+                    document.querySelectorAll('#review-rating-stars button').forEach((s, i) => {
+                        if (i < selectedReviewRating) {
+                            s.classList.remove('text-gray-300');
+                            s.classList.add('text-yellow-400');
+                        } else {
+                            s.classList.remove('text-yellow-400');
+                            s.classList.add('text-gray-300');
+                        }
+                    });
+                });
+            });
+
+            // 절약 금액 자동 계산
+            document.getElementById('review-original-price').addEventListener('input', calculateReviewSavings);
+            document.getElementById('review-final-price').addEventListener('input', calculateReviewSavings);
+
+            // 사진 업로드 처리
+            document.getElementById('review-photo-upload').addEventListener('change', function(e) {
+                const files = Array.from(e.target.files);
+                const preview = document.getElementById('review-photo-preview');
+                
+                if (files.length > 0) {
+                    preview.classList.remove('hidden');
+                    preview.innerHTML = '';
+                    
+                    files.slice(0, 5).forEach((file, index) => {
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            const photoDiv = document.createElement('div');
+                            photoDiv.className = 'relative';
+                            photoDiv.innerHTML = `
+                                <img src="${e.target.result}" alt="업로드된 사진" class="w-full h-24 object-cover rounded-lg">
+                                <button type="button" onclick="removeReviewPhoto(${index})" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 text-sm">×</button>
+                            `;
+                            preview.appendChild(photoDiv);
+                        };
+                        reader.readAsDataURL(file);
+                    });
+                    
+                    uploadedReviewPhotos = files.slice(0, 5);
+                }
+            });
+
+            // 후기 폼 제출
+            document.getElementById('review-form').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                if (selectedReviewRating === 0) {
+                    alert('만족도를 선택해주세요.');
+                    return;
+                }
+                
+                try {
+                    // Firebase 초기화 대기
+                    await waitForFirebase();
+                    
+                    // 사진 URL 배열 생성 (실제로는 Firebase Storage에 업로드해야 함)
+                    const photoUrls = uploadedReviewPhotos.map((file, index) => 
+                        `https://images.unsplash.com/photo-${1500000000000 + index}?w=400&h=300&fit=crop`
+                    );
+                    
+                    // 후기 데이터 준비
+                    const reviewData = {
+                        name: document.getElementById('review-name').value,
+                        ageGroup: document.getElementById('review-age-group').value,
+                        occupation: document.getElementById('review-occupation').value,
+                        productName: document.getElementById('review-product-name').value,
+                        originalPrice: document.getElementById('review-original-price').value,
+                        finalPrice: document.getElementById('review-final-price').value,
+                        savings: document.getElementById('review-savings').value.split(' ')[0],
+                        savingsPercent: parseInt(document.getElementById('review-savings').value.match(/\d+%/)?.[0] || '0'),
+                        rating: selectedReviewRating,
+                        review: document.getElementById('review-content').value,
+                        photos: photoUrls,
+                        country: '대한민국',
+                        shipping: '3일',
+                        method: 'PriceHunter 검증',
+                        badge: '실제 구매자',
+                        purchaseDate: document.getElementById('review-purchase-date').value,
+                        profileImage: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
+                        approved: document.getElementById('review-approved').value === 'true',
+                        featured: document.getElementById('review-featured').value === 'true',
+                        views: 0,
+                        createdAt: serverTimestamp(),
+                        updatedAt: serverTimestamp(),
+                        userId: 'admin',
+                        requestId: null, // 관리자가 직접 작성한 후기
+                        category: '일반' // 카테고리 추가
+                    };
+                    
+                    // Firebase에 후기 저장
+                    const { collection, addDoc, serverTimestamp } = window.firebaseFirestoreFunctions;
+                    const reviewsRef = collection(window.firebaseDb, 'reviews');
+                    await addDoc(reviewsRef, reviewData);
+                    
+                    alert('후기가 성공적으로 저장되었습니다!');
+                    closeReviewModal();
+                    
+                    // 후기 목록 새로고침
+                    if (typeof loadReviewsData === 'function') {
+                        loadReviewsData();
+                    }
+                    
+                } catch (error) {
+                    console.error('후기 저장 실패:', error);
+                    alert('후기 저장에 실패했습니다. 다시 시도해주세요.');
+                }
+            });
+        });
+
+        // 후기 사진 제거
+        function removeReviewPhoto(index) {
+            uploadedReviewPhotos.splice(index, 1);
+            const preview = document.getElementById('review-photo-preview');
+            preview.innerHTML = '';
+            
+            if (uploadedReviewPhotos.length > 0) {
+                uploadedReviewPhotos.forEach((file, i) => {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const photoDiv = document.createElement('div');
+                        photoDiv.className = 'relative';
+                        photoDiv.innerHTML = `
+                            <img src="${e.target.result}" alt="업로드된 사진" class="w-full h-24 object-cover rounded-lg">
+                            <button type="button" onclick="removeReviewPhoto(${i})" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 text-sm">×</button>
+                        `;
+                        preview.appendChild(photoDiv);
+                    };
+                    reader.readAsDataURL(file);
+                });
+            } else {
+                preview.classList.add('hidden');
+            }
+        }
+
+        // 후기 승인/거부 토글
+        async function toggleReviewApproval(reviewId, approved) {
+            try {
+                await waitForFirebase();
+                const { doc, updateDoc, serverTimestamp } = window.firebaseFirestoreFunctions;
+                const reviewRef = doc(window.firebaseDb, 'reviews', reviewId);
+                
+                await updateDoc(reviewRef, {
+                    approved: approved,
+                    updatedAt: serverTimestamp()
+                });
+                
+                alert(`후기가 ${approved ? '승인' : '거부'}되었습니다.`);
+                
+                // 후기 목록 새로고침
+                if (typeof loadReviewsData === 'function') {
+                    loadReviewsData();
+                }
+                
+            } catch (error) {
+                console.error('후기 승인 상태 변경 실패:', error);
+                alert('후기 승인 상태 변경에 실패했습니다.');
+            }
+        }
+
+        // 후기 인덱스페이지 노출 토글
+        async function toggleReviewFeatured(reviewId, featured) {
+            try {
+                await waitForFirebase();
+                const { doc, updateDoc, serverTimestamp } = window.firebaseFirestoreFunctions;
+                const reviewRef = doc(window.firebaseDb, 'reviews', reviewId);
+                
+                await updateDoc(reviewRef, {
+                    featured: featured,
+                    updatedAt: serverTimestamp()
+                });
+                
+                alert(`후기가 인덱스페이지에서 ${featured ? '노출' : '숨김'} 처리되었습니다.`);
+                
+                // 후기 목록 새로고침
+                if (typeof loadReviewsData === 'function') {
+                    loadReviewsData();
+                }
+                
+            } catch (error) {
+                console.error('후기 노출 상태 변경 실패:', error);
+                alert('후기 노출 상태 변경에 실패했습니다.');
+            }
+        }
+
+        // 후기 삭제
+        async function deleteReview(reviewId) {
+            if (!confirm('정말로 이 후기를 삭제하시겠습니까?')) {
+                return;
+            }
+            
+            try {
+                await waitForFirebase();
+                const { doc, deleteDoc } = window.firebaseFirestoreFunctions;
+                const reviewRef = doc(window.firebaseDb, 'reviews', reviewId);
+                
+                await deleteDoc(reviewRef);
+                
+                alert('후기가 삭제되었습니다.');
+                
+                // 후기 목록 새로고침
+                if (typeof loadReviewsData === 'function') {
+                    loadReviewsData();
+                }
+                
+            } catch (error) {
+                console.error('후기 삭제 실패:', error);
+                alert('후기 삭제에 실패했습니다.');
+            }
+        }
+
+        // 후기 상세보기
+        function viewReviewDetails(reviewId) {
+            const review = allReviews.find(r => r.id === reviewId);
+            if (!review) {
+                alert('후기 정보를 찾을 수 없습니다.');
+                return;
+            }
+            
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+            modal.innerHTML = `
+                <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-bold text-gray-800">후기 상세보기</h2>
+                        <button onclick="this.parentElement.parentElement.parentElement.remove()" class="text-gray-400 hover:text-gray-700 text-2xl">&times;</button>
+                    </div>
+                    
+                    <div class="space-y-6">
+                        <div class="flex items-center space-x-4">
+                            <img src="${review.profileImage || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face'}" 
+                                 alt="${review.name}" class="w-16 h-16 rounded-full object-cover">
+                            <div>
+                                <h3 class="text-lg font-semibold">${review.name}, ${review.ageGroup} ${review.occupation}</h3>
+                                <p class="text-gray-600">${review.productName}</p>
+                                <div class="flex items-center">
+                                    ${'★'.repeat(review.rating || 5)}${'☆'.repeat(5 - (review.rating || 5))}
+                                    <span class="ml-2 text-sm text-gray-500">${review.rating || 5}/5</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-gray-50 rounded-lg p-4">
+                            <h4 class="font-semibold mb-2">가격 정보</h4>
+                            <div class="grid grid-cols-3 gap-4 text-sm">
+                                <div>
+                                    <span class="text-gray-600">원래 가격:</span>
+                                    <div class="font-semibold">${review.originalPrice}</div>
+                                </div>
+                                <div>
+                                    <span class="text-gray-600">구매 가격:</span>
+                                    <div class="font-semibold text-green-600">${review.finalPrice}</div>
+                                </div>
+                                <div>
+                                    <span class="text-gray-600">절약 금액:</span>
+                                    <div class="font-semibold text-red-600">${review.savings} (${review.savingsPercent}%)</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <h4 class="font-semibold mb-2">후기 내용</h4>
+                            <p class="text-gray-700 leading-relaxed">${review.review}</p>
+                        </div>
+                        
+                        ${review.photos && review.photos.length > 0 ? `
+                            <div>
+                                <h4 class="font-semibold mb-2">후기 사진</h4>
+                                <div class="grid grid-cols-2 gap-2">
+                                    ${review.photos.slice(0, 4).map(photo => `
+                                        <img src="${photo}" alt="후기 사진" class="w-full h-24 object-cover rounded-lg">
+                                    `).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
+                        
+                        <div class="bg-blue-50 rounded-lg p-4">
+                            <h4 class="font-semibold mb-2">상태 정보</h4>
+                            <div class="grid grid-cols-2 gap-4 text-sm">
+                                <div>
+                                    <span class="text-gray-600">승인 상태:</span>
+                                    <span class="ml-2 px-2 py-1 rounded-full text-xs ${review.approved ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}">
+                                        ${review.approved ? '승인됨' : '승인 대기'}
+                                    </span>
+                                </div>
+                                <div>
+                                    <span class="text-gray-600">인덱스 노출:</span>
+                                    <span class="ml-2 px-2 py-1 rounded-full text-xs ${review.featured ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}">
+                                        ${review.featured ? '노출' : '숨김'}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
         }
     </script>
 

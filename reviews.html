@@ -286,22 +286,22 @@
                 
                 let snapshot;
                 try {
-                    // 모든 후기 가져오기 (최신순 정렬) - 승인 상태 제거
-                    const q = query(reviewsRef, orderBy('createdAt', 'desc'));
+                    // 승인된 후기만 가져오기 (최신순 정렬) - 복합 인덱스 필요
+                    const q = query(reviewsRef, where('approved', '==', true), orderBy('createdAt', 'desc'));
                     snapshot = await getDocs(q);
                     console.log('✅ Firebase 쿼리 성공 (인덱스 사용)');
                 } catch (indexError) {
-                    console.warn('⚠️ 복합 인덱스 오류, 모든 후기 가져와서 클라이언트 정렬:', indexError);
-                    // 모든 후기를 가져와서 클라이언트에서 정렬
+                    console.warn('⚠️ 복합 인덱스 오류, 클라이언트 사이드 필터링으로 폴백:', indexError);
+                    // 모든 후기를 가져와서 클라이언트에서 필터링
                     const allSnapshot = await getDocs(reviewsRef);
                     snapshot = {
-                        docs: allSnapshot.docs.sort((a, b) => {
-                            const aTime = a.data().createdAt?.toDate?.() || new Date(0);
-                            const bTime = b.data().createdAt?.toDate?.() || new Date(0);
-                            return bTime - aTime; // 최신순
-                        }),
-                        forEach: function(callback) {
-                            this.docs.forEach(callback);
+                        forEach: (callback) => {
+                            allSnapshot.forEach(doc => {
+                                const data = doc.data();
+                                if (data.approved === true) {
+                                    callback(doc);
+                                }
+                            });
                         }
                     };
                 }
@@ -311,7 +311,23 @@
                     const data = doc.data();
                     // 데이터 유효성 검사
                     if (data && data.name && data.productName) {
-                        allReviews.push({ id: doc.id, ...data });
+                        // 데이터 구조 표준화 (기본값 설정)
+                        const standardizedData = {
+                            id: doc.id,
+                            ...data,
+                            approved: data.approved || false,
+                            featured: data.featured || false,
+                            rating: data.rating || 5,
+                            views: data.views || 0,
+                            country: data.country || '대한민국',
+                            shipping: data.shipping || '3일',
+                            method: data.method || 'PriceHunter 검증',
+                            badge: data.badge || '실제 구매자',
+                            category: data.category || '일반',
+                            savingsPercent: typeof data.savingsPercent === 'number' ? data.savingsPercent : 
+                                          typeof data.savingsPercent === 'string' ? parseInt(data.savingsPercent) || 0 : 0
+                        };
+                        allReviews.push(standardizedData);
                     }
                 });
                 
@@ -360,9 +376,9 @@
             const { collection, onSnapshot, query, where, orderBy } = window.firebaseFirestoreFunctions;
             const reviewsRef = collection(window.firebaseDb, 'reviews');
             
-            // 모든 후기 실시간 감시 (승인 상태 제거)
+            // 승인된 후기만 실시간 감시
             try {
-                const q = query(reviewsRef, orderBy('createdAt', 'desc'));
+                const q = query(reviewsRef, where('approved', '==', true), orderBy('createdAt', 'desc'));
                 
                 reviewsUnsubscribe = onSnapshot(q, (snapshot) => {
                     console.log('📋 리뷰페이지 후기 실시간 업데이트...');
@@ -371,8 +387,24 @@
                     snapshot.forEach(doc => {
                         const data = doc.data();
                         // 데이터 유효성 검사
-                        if (data && data.name) {
-                            allReviews.push({ id: doc.id, ...data });
+                        if (data && data.name && data.productName) {
+                            // 데이터 구조 표준화 (기본값 설정)
+                            const standardizedData = {
+                                id: doc.id,
+                                ...data,
+                                approved: data.approved || false,
+                                featured: data.featured || false,
+                                rating: data.rating || 5,
+                                views: data.views || 0,
+                                country: data.country || '대한민국',
+                                shipping: data.shipping || '3일',
+                                method: data.method || 'PriceHunter 검증',
+                                badge: data.badge || '실제 구매자',
+                                category: data.category || '일반',
+                                savingsPercent: typeof data.savingsPercent === 'number' ? data.savingsPercent : 
+                                              typeof data.savingsPercent === 'string' ? parseInt(data.savingsPercent) || 0 : 0
+                            };
+                            allReviews.push(standardizedData);
                         }
                     });
                     
@@ -395,23 +427,32 @@
                 
             } catch (indexError) {
                 console.warn('⚠️ 복합 인덱스 오류, 모든 후기 실시간 감시로 폴백:', indexError);
-                // 모든 후기를 실시간 감시
+                // 모든 후기를 실시간 감시하고 클라이언트에서 필터링
                 reviewsUnsubscribe = onSnapshot(reviewsRef, (snapshot) => {
                     console.log('📋 리뷰페이지 후기 실시간 업데이트 (폴백 모드)...');
                     
                     allReviews = [];
                     snapshot.forEach(doc => {
                         const data = doc.data();
-                        if (data && data.name) {
-                            allReviews.push({ id: doc.id, ...data });
+                        if (data.approved === true && data && data.name && data.productName) {
+                            // 데이터 구조 표준화 (기본값 설정)
+                            const standardizedData = {
+                                id: doc.id,
+                                ...data,
+                                approved: data.approved || false,
+                                featured: data.featured || false,
+                                rating: data.rating || 5,
+                                views: data.views || 0,
+                                country: data.country || '대한민국',
+                                shipping: data.shipping || '3일',
+                                method: data.method || 'PriceHunter 검증',
+                                badge: data.badge || '실제 구매자',
+                                category: data.category || '일반',
+                                savingsPercent: typeof data.savingsPercent === 'number' ? data.savingsPercent : 
+                                              typeof data.savingsPercent === 'string' ? parseInt(data.savingsPercent) || 0 : 0
+                            };
+                            allReviews.push(standardizedData);
                         }
-                    });
-                    
-                    // 클라이언트에서 최신순 정렬
-                    allReviews.sort((a, b) => {
-                        const aTime = a.createdAt?.toDate?.() || new Date(a.date || 0);
-                        const bTime = b.createdAt?.toDate?.() || new Date(b.date || 0);
-                        return bTime - aTime;
                     });
                     
                     filteredReviews = [...allReviews];
@@ -501,12 +542,26 @@
         // 통계 업데이트
         function updateStatistics() {
             const totalReviews = allReviews.length;
+            
+            if (totalReviews === 0) {
+                document.getElementById('total-reviews').textContent = '0';
+                document.getElementById('total-savings').textContent = '0원';
+                document.getElementById('avg-rating').textContent = '0.0';
+                document.getElementById('avg-savings').textContent = '0.0%';
+                return;
+            }
+            
             const totalSavings = allReviews.reduce((sum, review) => {
-                const savings = parseInt(review.savings.replace(/[^0-9]/g, ''));
+                const savings = parseInt(review.savings?.replace(/[^0-9]/g, '') || '0');
                 return sum + (isNaN(savings) ? 0 : savings);
             }, 0);
-            const avgRating = allReviews.reduce((sum, review) => sum + (review.rating || 0), 0) / totalReviews;
-            const avgSavings = allReviews.reduce((sum, review) => sum + (review.savingsPercent || 0), 0) / totalReviews;
+            
+            const avgRating = allReviews.reduce((sum, review) => sum + (review.rating || 5), 0) / totalReviews;
+            const avgSavings = allReviews.reduce((sum, review) => {
+                const savingsPercent = typeof review.savingsPercent === 'number' ? review.savingsPercent : 
+                                     typeof review.savingsPercent === 'string' ? parseInt(review.savingsPercent) || 0 : 0;
+                return sum + savingsPercent;
+            }, 0) / totalReviews;
 
             document.getElementById('total-reviews').textContent = totalReviews.toLocaleString();
             document.getElementById('total-savings').textContent = totalSavings.toLocaleString() + '원';
@@ -699,6 +754,7 @@
             const categoryFilter = document.getElementById('category-filter').value;
             if (categoryFilter) {
                 filtered = filtered.filter(review => 
+                    (review.category && review.category.toLowerCase().includes(categoryFilter.toLowerCase())) ||
                     review.productName.toLowerCase().includes(categoryFilter.toLowerCase())
                 );
             }
@@ -740,7 +796,13 @@
                     filtered.sort((a, b) => (b.rating || 0) - (a.rating || 0));
                     break;
                 case 'savings':
-                    filtered.sort((a, b) => (b.savingsPercent || 0) - (a.savingsPercent || 0));
+                    filtered.sort((a, b) => {
+                        const aSavings = typeof a.savingsPercent === 'number' ? a.savingsPercent : 
+                                        typeof a.savingsPercent === 'string' ? parseInt(a.savingsPercent) || 0 : 0;
+                        const bSavings = typeof b.savingsPercent === 'number' ? b.savingsPercent : 
+                                        typeof b.savingsPercent === 'string' ? parseInt(b.savingsPercent) || 0 : 0;
+                        return bSavings - aSavings;
+                    });
                     break;
             }
 
