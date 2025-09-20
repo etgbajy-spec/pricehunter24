@@ -452,6 +452,107 @@
     </div>
   </div>
 
+  <!-- 의뢰내역 상세보기 모달 -->
+  <div id="request-detail-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
+    <div class="flex items-center justify-center min-h-screen p-4">
+      <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        <!-- 모달 헤더 -->
+        <div class="sticky top-0 bg-white border-b border-gray-200 p-6 rounded-t-2xl">
+          <div class="flex justify-between items-center">
+            <h2 class="text-2xl font-bold text-gray-800">의뢰 상세 정보</h2>
+            <button id="close-request-modal" class="text-gray-500 hover:text-gray-700 text-3xl font-bold">&times;</button>
+          </div>
+        </div>
+        
+        <!-- 모달 내용 -->
+        <div class="p-6">
+          <!-- 의뢰 기본 정보 -->
+          <div class="mb-6">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+              📝 의뢰 기본 정보
+            </h3>
+            <div class="bg-blue-50 rounded-lg p-4 border-l-4 border-blue-500">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <div><span class="font-semibold text-gray-700">의뢰번호:</span> <span id="modal-request-number" class="text-blue-600"></span></div>
+                <div><span class="font-semibold text-gray-700">의뢰일시:</span> <span id="modal-request-date" class="text-blue-600"></span></div>
+                <div><span class="font-semibold text-gray-700">제품명:</span> <span id="modal-product-name" class="text-blue-600"></span></div>
+                <div><span class="font-semibold text-gray-700">요청가:</span> <span id="modal-original-price" class="text-blue-600"></span></div>
+                <div><span class="font-semibold text-gray-700">상태:</span> <span id="modal-status" class="px-2 py-1 rounded-full text-xs font-bold text-white"></span></div>
+                <div><span class="font-semibold text-gray-700">진행률:</span> <span id="modal-progress" class="text-blue-600"></span></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 제품 상세 정보 -->
+          <div class="mb-6">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+              🛍️ 제품 상세 정보
+            </h3>
+            <div class="bg-green-50 rounded-lg p-4 border-l-4 border-green-500">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <div><span class="font-semibold text-gray-700">브랜드:</span> <span id="modal-brand" class="text-green-600"></span></div>
+                <div><span class="font-semibold text-gray-700">모델명:</span> <span id="modal-model" class="text-green-600"></span></div>
+                <div><span class="font-semibold text-gray-700">카테고리:</span> <span id="modal-category" class="text-green-600"></span></div>
+                <div><span class="font-semibold text-gray-700">수량:</span> <span id="modal-quantity" class="text-green-600"></span></div>
+                <div class="md:col-span-2"><span class="font-semibold text-gray-700">제품 설명:</span> <span id="modal-description" class="text-green-600"></span></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 첨부 이미지 -->
+          <div class="mb-6">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+              📸 첨부 이미지
+            </h3>
+            <div id="modal-images" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <!-- 이미지들이 여기에 동적으로 추가됩니다 -->
+            </div>
+          </div>
+
+          <!-- 연락처 정보 -->
+          <div class="mb-6">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+              📞 연락처 정보
+            </h3>
+            <div class="bg-yellow-50 rounded-lg p-4 border-l-4 border-yellow-500">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <div><span class="font-semibold text-gray-700">이름:</span> <span id="modal-user-name" class="text-yellow-600"></span></div>
+                <div><span class="font-semibold text-gray-700">이메일:</span> <span id="modal-user-email" class="text-yellow-600"></span></div>
+                <div><span class="font-semibold text-gray-700">휴대폰:</span> <span id="modal-user-phone" class="text-yellow-600"></span></div>
+                <div><span class="font-semibold text-gray-700">카카오ID:</span> <span id="modal-user-kakao" class="text-yellow-600"></span></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 추가 요청사항 -->
+          <div class="mb-6">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+              💬 추가 요청사항
+            </h3>
+            <div class="bg-purple-50 rounded-lg p-4 border-l-4 border-purple-500">
+              <div class="text-sm">
+                <span class="font-semibold text-gray-700">특별 요청:</span> <span id="modal-special-request" class="text-purple-600"></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 관리자 답변 (있는 경우) -->
+          <div id="modal-admin-response" class="mb-6 hidden">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+              💼 관리자 답변
+            </h3>
+            <div class="bg-gray-50 rounded-lg p-4 border-l-4 border-gray-500">
+              <div class="text-sm">
+                <div class="mb-2"><span class="font-semibold text-gray-700">답변일시:</span> <span id="modal-response-date" class="text-gray-600"></span></div>
+                <div><span class="font-semibold text-gray-700">답변내용:</span> <span id="modal-response-content" class="text-gray-600"></span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script>
     // 전역 변수
     let currentReqKey = null;
@@ -812,12 +913,8 @@
         `;
         
         listItem.onclick = () => {
-          const currentKey = request.key || request.id;
-          if (currentReqKey === currentKey && currentDisplayedReq === reqNum) {
-            hideResult();
-          } else {
-            showAdminResponse(reqNum);
-          }
+          // 의뢰 상세보기 모달 표시
+          showRequestDetailModal(request);
         };
         
         requestList.appendChild(listItem);
@@ -2097,5 +2194,151 @@
       </div>
     </div>
   </div>
+
+  <!-- 의뢰 상세보기 모달 관련 함수들 -->
+  <script>
+    // 의뢰 상세보기 모달 표시
+    function showRequestDetailModal(request) {
+      console.log('의뢰 상세보기 모달 표시:', request);
+      
+      // 모달 데이터 채우기
+      fillRequestDetailModal(request);
+      
+      // 모달 표시
+      document.getElementById('request-detail-modal').classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+    }
+
+    // 모달 데이터 채우기
+    function fillRequestDetailModal(request) {
+      // 의뢰 기본 정보
+      document.getElementById('modal-request-number').textContent = request.reqNum || request.requestNumber || 'N/A';
+      document.getElementById('modal-request-date').textContent = request.reqDate ? new Date(request.reqDate).toLocaleString('ko-KR') : 'N/A';
+      document.getElementById('modal-product-name').textContent = request.productName || request.name || 'N/A';
+      document.getElementById('modal-original-price').textContent = request.originalPrice || request.price || 'N/A';
+      
+      // 상태 및 진행률
+      const status = request.status || '처리중';
+      const statusElement = document.getElementById('modal-status');
+      statusElement.textContent = status;
+      statusElement.className = 'px-2 py-1 rounded-full text-xs font-bold text-white ' + getStatusClass(status);
+      
+      document.getElementById('modal-progress').textContent = request.progress || '0%';
+
+      // 제품 상세 정보
+      document.getElementById('modal-brand').textContent = request.brand || 'N/A';
+      document.getElementById('modal-model').textContent = request.model || 'N/A';
+      document.getElementById('modal-category').textContent = request.category || 'N/A';
+      document.getElementById('modal-quantity').textContent = request.quantity || '1';
+      document.getElementById('modal-description').textContent = request.description || request.productDescription || 'N/A';
+
+      // 첨부 이미지
+      displayModalImages(request.images || request.attachedImages || []);
+
+      // 연락처 정보
+      document.getElementById('modal-user-name').textContent = request.userName || request.name || 'N/A';
+      document.getElementById('modal-user-email').textContent = request.email || 'N/A';
+      document.getElementById('modal-user-phone').textContent = request.userPhone || request.phone || 'N/A';
+      document.getElementById('modal-user-kakao').textContent = request.userKakao || request.kakao || 'N/A';
+
+      // 추가 요청사항
+      document.getElementById('modal-special-request').textContent = request.specialRequest || request.additionalRequest || 'N/A';
+
+      // 관리자 답변 (있는 경우)
+      if (request.adminResponse || request.response) {
+        document.getElementById('modal-admin-response').classList.remove('hidden');
+        document.getElementById('modal-response-date').textContent = request.responseDate ? new Date(request.responseDate).toLocaleString('ko-KR') : 'N/A';
+        document.getElementById('modal-response-content').textContent = request.adminResponse || request.response || 'N/A';
+      } else {
+        document.getElementById('modal-admin-response').classList.add('hidden');
+      }
+    }
+
+    // 상태에 따른 CSS 클래스 반환
+    function getStatusClass(status) {
+      switch(status) {
+        case '완료': return 'bg-green-500';
+        case '처리중': return 'bg-yellow-500';
+        case '대기': return 'bg-gray-500';
+        case '취소': return 'bg-red-500';
+        default: return 'bg-blue-500';
+      }
+    }
+
+    // 모달에 이미지 표시
+    function displayModalImages(images) {
+      const imagesContainer = document.getElementById('modal-images');
+      imagesContainer.innerHTML = '';
+
+      if (!images || images.length === 0) {
+        imagesContainer.innerHTML = '<div class="col-span-full text-center text-gray-500 py-8">첨부된 이미지가 없습니다.</div>';
+        return;
+      }
+
+      images.forEach((image, index) => {
+        const imageElement = document.createElement('div');
+        imageElement.className = 'relative group';
+        
+        if (typeof image === 'string') {
+          // Base64 이미지 또는 URL
+          imageElement.innerHTML = `
+            <img src="${image}" alt="첨부 이미지 ${index + 1}" class="w-full h-48 object-cover rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer" onclick="openImageModal('${image}')">
+            <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200 rounded-lg flex items-center justify-center">
+              <span class="text-white opacity-0 group-hover:opacity-100 transition-opacity text-sm font-semibold">클릭하여 확대</span>
+            </div>
+          `;
+        } else if (image.url) {
+          // 이미지 객체
+          imageElement.innerHTML = `
+            <img src="${image.url}" alt="${image.name || '첨부 이미지 ' + (index + 1)}" class="w-full h-48 object-cover rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer" onclick="openImageModal('${image.url}')">
+            <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200 rounded-lg flex items-center justify-center">
+              <span class="text-white opacity-0 group-hover:opacity-100 transition-opacity text-sm font-semibold">클릭하여 확대</span>
+            </div>
+          `;
+        }
+        
+        imagesContainer.appendChild(imageElement);
+      });
+    }
+
+    // 이미지 확대 모달 (간단한 버전)
+    function openImageModal(imageSrc) {
+      const modal = document.createElement('div');
+      modal.className = 'fixed inset-0 bg-black bg-opacity-75 z-60 flex items-center justify-center';
+      modal.innerHTML = `
+        <div class="relative max-w-4xl max-h-full p-4">
+          <img src="${imageSrc}" alt="확대된 이미지" class="max-w-full max-h-full object-contain rounded-lg">
+          <button onclick="this.parentElement.parentElement.remove()" class="absolute top-2 right-2 text-white text-3xl font-bold hover:text-gray-300">&times;</button>
+        </div>
+      `;
+      document.body.appendChild(modal);
+    }
+
+    // 모달 닫기
+    function closeRequestDetailModal() {
+      document.getElementById('request-detail-modal').classList.add('hidden');
+      document.body.style.overflow = 'auto';
+    }
+
+    // 모달 이벤트 리스너 등록
+    document.addEventListener('DOMContentLoaded', function() {
+      // 모달 닫기 버튼
+      document.getElementById('close-request-modal').addEventListener('click', closeRequestDetailModal);
+      
+      // 모달 배경 클릭 시 닫기
+      document.getElementById('request-detail-modal').addEventListener('click', function(e) {
+        if (e.target === this) {
+          closeRequestDetailModal();
+        }
+      });
+      
+      // ESC 키로 모달 닫기
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && !document.getElementById('request-detail-modal').classList.contains('hidden')) {
+          closeRequestDetailModal();
+        }
+      });
+    });
+  </script>
 </body>
 </html>
