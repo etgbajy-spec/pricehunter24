@@ -327,6 +327,10 @@
         alert('최소 의뢰 금액은 1,000원 이상입니다. 더 저렴한 제품은 의뢰가 어렵습니다.');
         return;
       }
+      if (!document.getElementById('brandExcludeAgree').checked) {
+        alert('브랜드 배제 정책에 동의해 주세요.');
+        return;
+      }
       showStep(2);
     };
     document.getElementById('to-step-3').onclick = function() {
@@ -343,7 +347,7 @@
       }
       showStep(3);
     };
-    document.getElementById('to-step-4').onclick = function() {
+    document.getElementById('to-step-4').onclick = async function() {
       // Step 3 유효성
       if (!document.getElementById('userName').value.trim() || !document.getElementById('userPhone').value.trim() || !document.getElementById('userEmail').value.trim()) {
         alert('연락처 정보를 모두 입력해 주세요.');
@@ -494,7 +498,7 @@
     }
     
     // 제출
-    document.getElementById('step-form').addEventListener('submit', function(e) {
+    document.getElementById('step-form').addEventListener('submit', async function(e) {
       e.preventDefault();
       if (!document.getElementById('privacyAgree').checked) {
         alert('개인정보 수집 및 이용에 동의하셔야 제출이 가능합니다.');
