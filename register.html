@@ -304,15 +304,28 @@
             firebaseApps: firebase ? firebase.apps.length : 0,
             windowFirebaseApp: !!window.firebaseApp,
             windowFirebaseDb: !!window.firebaseDb,
-            windowFirebaseAuth: !!window.firebaseAuth
+            windowFirebaseAuth: !!window.firebaseAuth,
+            firebaseFirestoreFunctions: !!window.firebaseFirestoreFunctions
           });
           
-          if (window.firebaseApp && window.firebaseDb && window.firebaseAuth) {
+          if (window.firebaseApp && window.firebaseDb && window.firebaseAuth && window.firebaseFirestoreFunctions) {
             console.log('✅ Firebase v9 준비됨');
             resolve();
           } else {
-            console.log('⏳ Firebase v9 대기 중... 100ms 후 재시도');
-            setTimeout(() => waitForFirebase().then(resolve).catch(reject), 100);
+            const checkInterval = setInterval(() => {
+              if (window.firebaseApp && window.firebaseDb && window.firebaseAuth && window.firebaseFirestoreFunctions) {
+                clearInterval(checkInterval);
+                console.log('✅ Firebase v9 준비됨');
+                resolve();
+              }
+            }, 100);
+            
+            // 10초 후 타임아웃
+            setTimeout(() => {
+              clearInterval(checkInterval);
+              console.error('❌ Firebase 초기화 타임아웃');
+              reject(new Error('Firebase 초기화 실패'));
+            }, 10000);
           }
         });
       }

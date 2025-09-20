@@ -411,22 +411,40 @@
 
         // Firebase 준비 상태 확인 (Firebase v8)
         async function waitForFirebase() {
-            try {
+            return new Promise((resolve, reject) => {
                 console.log('🔄 Firebase 준비 상태 확인 중...');
+                console.log('🔍 Firebase 초기화 상태:', {
+                    firebaseApp: !!window.firebaseApp,
+                    firebaseAuth: !!window.firebaseAuth,
+                    firebaseDb: !!window.firebaseDb,
+                    firebaseFirestoreFunctions: !!window.firebaseFirestoreFunctions
+                });
                 
                 // Firebase v9 초기화 확인
-                if (window.firebaseApp && window.firebaseAuth && window.firebaseDb) {
+                if (window.firebaseApp && window.firebaseAuth && window.firebaseDb && window.firebaseFirestoreFunctions) {
                     isFirebaseReady = true;
                     console.log('✅ Firebase v9 초기화 성공');
+                    resolve();
                     return;
                 }
                 
                 // 재시도
-                setTimeout(() => waitForFirebase(), 100);
-            } catch (error) {
-                console.error('❌ Firebase 초기화 실패:', error);
-                setTimeout(() => waitForFirebase(), 1000);
-            }
+                const checkInterval = setInterval(() => {
+                    if (window.firebaseApp && window.firebaseAuth && window.firebaseDb && window.firebaseFirestoreFunctions) {
+                        clearInterval(checkInterval);
+                        isFirebaseReady = true;
+                        console.log('✅ Firebase v9 초기화 성공');
+                        resolve();
+                    }
+                }, 100);
+                
+                // 10초 후 타임아웃
+                setTimeout(() => {
+                    clearInterval(checkInterval);
+                    console.error('❌ Firebase 초기화 타임아웃');
+                    reject(new Error('Firebase 초기화 실패'));
+                }, 10000);
+            });
         }
 
         // 실시간 사용자 목록 구독 (Firebase 전용)

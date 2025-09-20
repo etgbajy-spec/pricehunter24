@@ -61,6 +61,7 @@
     };
 
     console.log('✅ Firebase v9 초기화 완료 (member-dashboard.html)');
+    console.log('🔍 Firebase 함수들 확인:', Object.keys(window.firebaseFirestoreFunctions));
   </script>
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -542,6 +543,10 @@
         }
       } catch (error) {
         console.error('사용자 정보 로드 실패:', error);
+        if (error.message === 'Firebase 초기화 실패') {
+          console.error('❌ Firebase가 초기화되지 않았습니다. 페이지를 새로고침해주세요.');
+          alert('Firebase 연결에 실패했습니다. 페이지를 새로고침해주세요.');
+        }
       }
     }
 
@@ -581,6 +586,10 @@
         return requests;
       } catch (error) {
         console.error('❌ Firebase에서 의뢰 데이터 가져오기 실패:', error);
+        if (error.message === 'Firebase 초기화 실패') {
+          console.error('❌ Firebase가 초기화되지 않았습니다.');
+          alert('Firebase 연결에 실패했습니다. 페이지를 새로고침해주세요.');
+        }
         return [];
       }
     }
@@ -621,6 +630,10 @@
         return inquiries;
       } catch (error) {
         console.error('❌ Firebase에서 문의 데이터 가져오기 실패:', error);
+        if (error.message === 'Firebase 초기화 실패') {
+          console.error('❌ Firebase가 초기화되지 않았습니다.');
+          alert('Firebase 연결에 실패했습니다. 페이지를 새로고침해주세요.');
+        }
         return [];
       }
     }
@@ -1419,23 +1432,29 @@
     // Firebase 초기화 대기 함수
     async function waitForFirebase() {
       return new Promise((resolve, reject) => {
-        if (window.firebaseApp && window.firebaseDb) {
+        console.log('🔄 Firebase 초기화 상태 확인:', {
+          firebaseApp: !!window.firebaseApp,
+          firebaseDb: !!window.firebaseDb,
+          firebaseFirestoreFunctions: !!window.firebaseFirestoreFunctions
+        });
+        
+        if (window.firebaseApp && window.firebaseDb && window.firebaseFirestoreFunctions) {
+          console.log('✅ Firebase 초기화 완료');
           resolve();
         } else {
           // Firebase 초기화 대기
           const checkInterval = setInterval(() => {
-            if (window.firebaseApp && window.firebaseDb) {
+            if (window.firebaseApp && window.firebaseDb && window.firebaseFirestoreFunctions) {
               clearInterval(checkInterval);
               resolve();
             }
           }, 100);
           
-          // 10초 후 타임아웃 (더 여유있게)
+          // 10초 후 타임아웃
           setTimeout(() => {
             clearInterval(checkInterval);
-            console.warn('⚠️ Firebase 초기화 타임아웃 - 로컬스토리지 모드로 전환');
-            // Firebase 연결 실패 시에도 계속 진행 (로컬스토리지 사용)
-            resolve();
+            console.error('❌ Firebase 초기화 타임아웃 - Firebase 함수들을 사용할 수 없습니다.');
+            reject(new Error('Firebase 초기화 실패'));
           }, 10000);
         }
       });
