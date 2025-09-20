@@ -3462,6 +3462,7 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
         // 관리자용 상태에 따른 CSS 클래스 반환
         function getAdminStatusClass(status) {
             switch(status) {
+                case '답변완료': return 'bg-green-500';
                 case '완료': return 'bg-green-500';
                 case '처리중': return 'bg-yellow-500';
                 case '대기': return 'bg-gray-500';
@@ -3615,6 +3616,11 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 document.getElementById('admin-modal-admin-response').classList.remove('hidden');
                 document.getElementById('admin-modal-response-content').innerHTML = formatResponseForDisplay(formData);
                 document.getElementById('admin-modal-response-date').textContent = new Date().toLocaleString('ko-KR');
+                
+                // 모달의 상태 표시도 업데이트
+                const statusElement = document.getElementById('admin-modal-status');
+                statusElement.textContent = '답변완료';
+                statusElement.className = 'px-2 py-1 rounded-full text-xs font-bold text-white ' + getAdminStatusClass('답변완료');
                 
                 // 폼 초기화
                 clearResponseForm();
