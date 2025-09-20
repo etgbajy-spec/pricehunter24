@@ -2316,6 +2316,7 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                     }
                     break;
                 case 'reviews':
+                    console.log('🔄 후기 섹션으로 전환 - 데이터 로드 시작');
                     loadReviewsData();
                     break;
                 case 'dashboard':
@@ -2339,12 +2340,81 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                     return;
                 }
 
+                // Firebase 초기화 대기
+                await waitForFirebase();
+
                 // 실시간 리스너 시작
                 subscribeToReviews();
+                
+                // 초기 데이터도 로드
+                await loadInitialReviewsData();
                 
             } catch (error) {
                 console.error('❌ 후기 데이터 로드 실패:', error);
                 alert('후기 데이터를 불러오는데 실패했습니다: ' + error.message);
+            }
+        }
+
+        // 초기 후기 데이터 로드
+        async function loadInitialReviewsData() {
+            try {
+                const { collection, getDocs, doc, getDoc, query, orderBy } = window.firebaseFirestoreFunctions;
+                const reviewsRef = collection(window.firebaseDb, 'reviews');
+                
+                let snapshot;
+                try {
+                    // 모든 후기 가져오기 (최신순 정렬) - 복합 인덱스 필요할 수 있음
+                    const q = query(reviewsRef, orderBy('createdAt', 'desc'));
+                    snapshot = await getDocs(q);
+                    console.log('✅ Firebase 쿼리 성공 (인덱스 사용)');
+                } catch (indexError) {
+                    console.warn('⚠️ 복합 인덱스 오류, 모든 후기 가져와서 클라이언트 정렬:', indexError);
+                    // 모든 후기를 가져와서 클라이언트에서 정렬
+                    const allSnapshot = await getDocs(reviewsRef);
+                    snapshot = {
+                        docs: allSnapshot.docs.sort((a, b) => {
+                            const aTime = a.data().createdAt?.toDate?.() || new Date(0);
+                            const bTime = b.data().createdAt?.toDate?.() || new Date(0);
+                            return bTime - aTime; // 최신순
+                        })
+                    };
+                }
+                
+                allReviews = [];
+                
+                // 각 후기에 대해 의뢰 건 정보도 함께 로드
+                for (const docSnapshot of snapshot.docs) {
+                    const reviewData = { id: docSnapshot.id, ...docSnapshot.data() };
+                    
+                    // 의뢰 건 정보가 있으면 함께 로드
+                    if (reviewData.requestId) {
+                        try {
+                            const requestRef = doc(window.firebaseDb, 'requests', reviewData.requestId);
+                            const requestSnap = await getDoc(requestRef);
+                            if (requestSnap.exists()) {
+                                reviewData.requestData = { id: requestSnap.id, ...requestSnap.data() };
+                            }
+                        } catch (error) {
+                            console.warn('의뢰 건 정보 로드 실패:', reviewData.requestId, error);
+                        }
+                    }
+                    
+                    allReviews.push(reviewData);
+                }
+                
+                filteredReviews = [...allReviews];
+                updateReviewStatistics();
+                displayReviewsTable();
+                
+                console.log(`✅ 초기 후기 데이터 로드 완료: ${allReviews.length}개 (승인: ${allReviews.filter(r => r.approved).length}개, 미승인: ${allReviews.filter(r => !r.approved).length}개)`);
+                
+            } catch (error) {
+                console.error('❌ 초기 후기 데이터 로드 실패:', error);
+                // 오류 발생 시 빈 테이블 표시
+                allReviews = [];
+                filteredReviews = [];
+                updateReviewStatistics();
+                displayReviewsTable();
             }
         }
 
@@ -2358,9 +2428,10 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             const reviewsRef = collection(window.firebaseDb, 'reviews');
             
             // 모든 후기 가져오기 (승인/미승인 포함, 최신순 정렬)
-            const q = query(reviewsRef, orderBy('createdAt', 'desc'));
-            
-            reviewsUnsubscribe = onSnapshot(q, async (snapshot) => {
+            try {
+                const q = query(reviewsRef, orderBy('createdAt', 'desc'));
+                
+                reviewsUnsubscribe = onSnapshot(q, async (snapshot) => {
                 console.log('📋 후기 데이터 실시간 업데이트...');
                 
                 allReviews = [];
@@ -2393,6 +2464,50 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             }, (error) => {
                 console.error('❌ 후기 실시간 리스너 오류:', error);
             });
+            } catch (indexError) {
+                console.warn('⚠️ 복합 인덱스 오류, 모든 후기 실시간 감시로 폴백:', indexError);
+                // 모든 후기를 실시간 감시하고 클라이언트에서 정렬
+                reviewsUnsubscribe = onSnapshot(reviewsRef, async (snapshot) => {
+                    console.log('📋 후기 데이터 실시간 업데이트 (폴백 모드)...');
+                    
+                    allReviews = [];
+                    
+                    // 클라이언트에서 정렬
+                    const sortedDocs = snapshot.docs.sort((a, b) => {
+                        const aTime = a.data().createdAt?.toDate?.() || new Date(0);
+                        const bTime = b.data().createdAt?.toDate?.() || new Date(0);
+                        return bTime - aTime; // 최신순
+                    });
+                    
+                    // 각 후기에 대해 의뢰 건 정보도 함께 로드
+                    for (const docSnapshot of sortedDocs) {
+                        const reviewData = { id: docSnapshot.id, ...docSnapshot.data() };
+                        
+                        // 의뢰 건 정보가 있으면 함께 로드
+                        if (reviewData.requestId) {
+                            try {
+                                const requestRef = doc(window.firebaseDb, 'requests', reviewData.requestId);
+                                const requestSnap = await getDoc(requestRef);
+                                if (requestSnap.exists()) {
+                                    reviewData.requestData = { id: requestSnap.id, ...requestSnap.data() };
+                                }
+                            } catch (error) {
+                                console.warn('의뢰 건 정보 로드 실패:', reviewData.requestId, error);
+                            }
+                        }
+                        
+                        allReviews.push(reviewData);
+                    }
+                    
+                    filteredReviews = [...allReviews];
+                    updateReviewStatistics();
+                    displayReviewsTable();
+                    
+                    console.log(`✅ 후기 데이터 실시간 업데이트 완료 (폴백 모드): ${allReviews.length}개 (승인: ${allReviews.filter(r => r.approved).length}개, 미승인: ${allReviews.filter(r => !r.approved).length}개)`);
+                }, (error) => {
+                    console.error('❌ 후기 실시간 리스너 오류 (폴백 모드):', error);
+                });
+            }
         }
 
         // 후기 통계 업데이트
@@ -2401,6 +2516,13 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             const approvedReviews = allReviews.filter(r => r.approved === true).length;
             const pendingReviews = allReviews.filter(r => r.approved === false && r.rejected !== true).length;
             const rejectedReviews = allReviews.filter(r => r.rejected === true).length;
+
+            console.log('📊 후기 통계 업데이트:', {
+                total: totalReviews,
+                approved: approvedReviews,
+                pending: pendingReviews,
+                rejected: rejectedReviews
+            });
 
             const stats = document.getElementById('review-stats');
             if (stats) {
@@ -2422,24 +2544,39 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                         <div class="text-gray-600">거부된 후기</div>
                     </div>
                 `;
+                console.log('✅ 후기 통계 UI 업데이트 완료');
+            } else {
+                console.error('❌ review-stats 요소를 찾을 수 없습니다.');
             }
         }
 
         // 후기 테이블 표시
         function displayReviewsTable() {
+            console.log('📊 후기 테이블 표시 시작:', {
+                allReviews: allReviews.length,
+                filteredReviews: filteredReviews.length,
+                tbody: !!document.getElementById('reviews-table-body')
+            });
+
             const tbody = document.getElementById('reviews-table-body');
-            if (!tbody) return;
+            if (!tbody) {
+                console.error('❌ reviews-table-body 요소를 찾을 수 없습니다.');
+                return;
+            }
 
             if (filteredReviews.length === 0) {
+                console.log('📝 후기 데이터가 없어서 빈 테이블 표시');
                 tbody.innerHTML = `
                     <tr>
                         <td colspan="8" class="px-6 py-4 text-center text-gray-500">
-                            후기가 없습니다.
+                            후기가 없습니다. <button onclick="initializeReviewsData()" class="text-blue-600 hover:text-blue-800 underline">초기 데이터 생성</button>
                         </td>
                     </tr>
                 `;
                 return;
             }
+
+            console.log('✅ 후기 테이블 렌더링:', filteredReviews.length, '개');
 
             tbody.innerHTML = filteredReviews.map(review => {
                 const statusBadge = getStatusBadge(review);
@@ -2910,6 +3047,9 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 if (!window.firebaseDb) {
                     throw new Error('Firebase가 초기화되지 않았습니다.');
                 }
+
+                // Firebase 초기화 대기
+                await waitForFirebase();
                 
                 const { collection, addDoc, serverTimestamp } = window.firebaseFirestoreFunctions;
                 const reviewsRef = collection(window.firebaseDb, 'reviews');
@@ -3054,10 +3194,13 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 console.log(`🎉 후기 데이터 초기화 완료! 총 ${successCount}개 후기 추가됨`);
                 alert(`후기 데이터 초기화가 완료되었습니다!\n총 ${successCount}개의 후기가 추가되었습니다.`);
                 
-                // 후기 데이터 새로고침
-                if (typeof loadReviewsData === 'function') {
-                    loadReviewsData();
-                }
+                // 후기 데이터 새로고침 (실시간 리스너가 자동으로 업데이트하지만 확실히 하기 위해)
+                setTimeout(() => {
+                    if (typeof loadReviewsData === 'function') {
+                        console.log('🔄 후기 데이터 새로고침 시작...');
+                        loadReviewsData();
+                    }
+                }, 1000);
                 
                 return successCount;
                 

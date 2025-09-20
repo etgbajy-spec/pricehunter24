@@ -704,24 +704,60 @@
 
         // 로그인 상태 확인 및 접근 제어
         function checkLoginStatus() {
-            const isLoggedIn = localStorage.getItem('loggedIn') === 'true' || localStorage.getItem('currentUser');
+            const loggedIn = localStorage.getItem('loggedIn');
+            const currentUser = localStorage.getItem('currentUser');
+            const user = localStorage.getItem('user');
+            const loggedInEmail = localStorage.getItem('loggedInEmail');
+            
+            // 더 강화된 로그인 상태 확인
+            const isLoggedIn = loggedIn === 'true' || 
+                              currentUser || 
+                              user || 
+                              loggedInEmail;
+            
             const loginOverlay = document.getElementById('login-required-overlay');
             const mainContent = document.getElementById('main-content');
             
+            console.log('🔐 로그인 상태 확인 (강화):', {
+                loggedIn: loggedIn,
+                currentUser: currentUser,
+                user: user,
+                loggedInEmail: loggedInEmail,
+                isLoggedIn: isLoggedIn,
+                loginOverlay: !!loginOverlay,
+                mainContent: !!mainContent
+            });
+            
             if (isLoggedIn) {
                 // 로그인된 경우
-                loginOverlay.style.display = 'none';
-                mainContent.classList.remove('hidden');
+                console.log('✅ 로그인됨 - 후기 페이지 접근 허용');
+                if (loginOverlay) loginOverlay.style.display = 'none';
+                if (mainContent) mainContent.classList.remove('hidden');
                 loadReviews();
             } else {
                 // 로그인되지 않은 경우
-                loginOverlay.style.display = 'flex';
-                mainContent.classList.add('hidden');
+                console.log('❌ 로그인 안됨 - 후기 페이지 접근 차단');
+                if (loginOverlay) loginOverlay.style.display = 'flex';
+                if (mainContent) mainContent.classList.add('hidden');
             }
         }
+
+        // 로그인 상태 변경 감지
+        function onLoginStatusChange() {
+            checkLoginStatus();
+        }
+
+        // 로그인 상태 변경 이벤트 리스너
+        window.addEventListener('storage', function(e) {
+            if (e.key === 'loggedIn' || e.key === 'currentUser') {
+                console.log('🔄 로그인 상태 변경 감지:', e.key, e.newValue);
+                onLoginStatusChange();
+            }
+        });
 
         // 페이지 로드 시 로그인 상태 확인
         document.addEventListener('DOMContentLoaded', checkLoginStatus);
     </script>
 </body>
+</html>
 </html>

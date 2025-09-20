@@ -860,6 +860,13 @@
           const isLoggedIn = localStorage.getItem('loggedIn') === 'true' || localStorage.getItem('currentUser');
           const loginOverlay = document.getElementById('login-required-overlay');
           
+          console.log('🔐 후기 시스템 초기화:', {
+            loggedIn: localStorage.getItem('loggedIn'),
+            currentUser: localStorage.getItem('currentUser'),
+            isLoggedIn: isLoggedIn,
+            loginOverlay: !!loginOverlay
+          });
+          
           if (loginOverlay) {
             if (isLoggedIn) {
               // 로그인된 경우 오버레이 숨김
@@ -870,6 +877,8 @@
               loginOverlay.style.display = 'flex';
               console.log('🔒 비로그인 상태: 후기 오버레이 표시');
             }
+          } else {
+            console.warn('⚠️ login-required-overlay 요소를 찾을 수 없습니다.');
           }
         }
 
@@ -3545,7 +3554,35 @@ if (mypageBtn) {
         
         // 후기 페이지로 이동하는 함수
         function goToReviewsPage() {
-          window.location.href = 'reviews.html';
+          // 더 강화된 로그인 상태 확인
+          const loggedIn = localStorage.getItem('loggedIn');
+          const currentUser = localStorage.getItem('currentUser');
+          const user = localStorage.getItem('user');
+          const loggedInEmail = localStorage.getItem('loggedInEmail');
+          
+          const isLoggedIn = loggedIn === 'true' || 
+                            currentUser || 
+                            user || 
+                            loggedInEmail;
+          
+          console.log('🔐 후기 페이지 접근 시도:', {
+            loggedIn: loggedIn,
+            currentUser: currentUser,
+            user: user,
+            loggedInEmail: loggedInEmail,
+            isLoggedIn: isLoggedIn
+          });
+          
+          if (isLoggedIn) {
+            // 로그인된 경우 바로 이동
+            console.log('✅ 로그인됨 - 후기 페이지로 이동');
+            window.location.href = 'reviews.html';
+          } else {
+            // 로그인되지 않은 경우 로그인 모달 표시
+            console.log('❌ 로그인 안됨 - 로그인 모달 표시');
+            document.getElementById('login-modal').classList.remove('hidden');
+            showToast('후기를 보려면 로그인이 필요합니다.', 'info');
+          }
         }
         
         // 전역 함수로 노출
