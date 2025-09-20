@@ -1307,6 +1307,8 @@
           // localStorage 정리
           localStorage.removeItem('loggedIn');
           localStorage.removeItem('user');
+          localStorage.removeItem('currentUser');
+          localStorage.removeItem('loggedInEmail');
           
           // UI 업데이트
           updateAuthUI();
@@ -2643,6 +2645,8 @@
               // 로그인 성공 처리
               localStorage.setItem('loggedIn', 'true');
               localStorage.setItem('currentUser', JSON.stringify(userData));
+              localStorage.setItem('user', JSON.stringify(userData)); // 마이페이지 호환성
+              localStorage.setItem('loggedInEmail', userData.email); // 이메일 저장
               document.getElementById('login-modal').classList.add('hidden');
               document.getElementById('login-error').classList.add('hidden');
               updateAuthUI();
@@ -2665,6 +2669,8 @@
             
             localStorage.setItem('loggedIn', 'true');
             localStorage.setItem('currentUser', JSON.stringify(user));
+            localStorage.setItem('user', JSON.stringify(user)); // 마이페이지 호환성
+            localStorage.setItem('loggedInEmail', user.email); // 이메일 저장
             document.getElementById('login-modal').classList.add('hidden');
             document.getElementById('login-error').classList.add('hidden');
             document.body.style.overflow = '';
@@ -2689,6 +2695,7 @@
               localStorage.removeItem('loggedIn');
               localStorage.removeItem('currentUser');
               localStorage.removeItem('user');
+              localStorage.removeItem('loggedInEmail');
               
               updateAuthUI();
               showToast('로그아웃 되었습니다.', 'success');

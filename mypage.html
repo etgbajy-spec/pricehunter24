@@ -39,9 +39,27 @@
     
     // 내 정보 표시
     function renderMyInfo() {
-      const user = JSON.parse(localStorage.getItem('user') || '{}');
-      document.getElementById('mypage-name').textContent = user.name || '';
-      document.getElementById('mypage-email').textContent = user.email || '';
+      // 여러 키에서 사용자 데이터 찾기
+      let user = JSON.parse(localStorage.getItem('user') || '{}');
+      
+      // user가 비어있으면 currentUser에서 찾기
+      if (!user.name && !user.email) {
+        user = JSON.parse(localStorage.getItem('currentUser') || '{}');
+      }
+      
+      // 여전히 비어있으면 users 배열에서 현재 로그인된 사용자 찾기
+      if (!user.name && !user.email) {
+        const users = JSON.parse(localStorage.getItem('users') || '[]');
+        const loggedInEmail = localStorage.getItem('loggedInEmail');
+        if (loggedInEmail) {
+          user = users.find(u => u.email === loggedInEmail) || {};
+        }
+      }
+      
+      console.log('마이페이지 사용자 데이터:', user);
+      
+      document.getElementById('mypage-name').textContent = user.name || '이름 없음';
+      document.getElementById('mypage-email').textContent = user.email || '이메일 없음';
       document.getElementById('info-name').value = user.name || '';
       document.getElementById('info-email').value = user.email || '';
       document.getElementById('info-phone').value = user.phone || '';
@@ -61,7 +79,19 @@
           phone: document.getElementById('info-phone').value,
           kakao: document.getElementById('info-kakao').value
         };
+        
+        // 모든 키에 동기화 저장
         localStorage.setItem('user', JSON.stringify(user));
+        localStorage.setItem('currentUser', JSON.stringify(user));
+        
+        // users 배열에서도 업데이트
+        const users = JSON.parse(localStorage.getItem('users') || '[]');
+        const userIndex = users.findIndex(u => u.email === user.email);
+        if (userIndex >= 0) {
+          users[userIndex] = { ...users[userIndex], ...user };
+          localStorage.setItem('users', JSON.stringify(users));
+        }
+        
         renderMyInfo();
         alert('정보가 저장되었습니다!');
       });

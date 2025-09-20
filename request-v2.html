@@ -307,7 +307,22 @@
         return;
       }
       // 이름 일치 검증 (스텝 이동 시에도)
-      const user = JSON.parse(localStorage.getItem('user') || 'null');
+      let user = JSON.parse(localStorage.getItem('user') || 'null');
+      
+      // user가 비어있으면 currentUser에서 찾기
+      if (!user || !user.name) {
+        user = JSON.parse(localStorage.getItem('currentUser') || 'null');
+      }
+      
+      // 여전히 비어있으면 users 배열에서 현재 로그인된 사용자 찾기
+      if (!user || !user.name) {
+        const users = JSON.parse(localStorage.getItem('users') || '[]');
+        const loggedInEmail = localStorage.getItem('loggedInEmail');
+        if (loggedInEmail) {
+          user = users.find(u => u.email === loggedInEmail) || null;
+        }
+      }
+      
       const userName = document.getElementById('userName').value.trim();
       if (!user || !user.name || user.name.trim() !== userName) {
         alert('회원가입 시 입력한 이름과 동일하게 입력해야 합니다.');
@@ -428,7 +443,22 @@
         return;
       }
       // 이름 일치 검증 (스텝 이동 시에도)
-      const user = JSON.parse(localStorage.getItem('user') || 'null');
+      let user = JSON.parse(localStorage.getItem('user') || 'null');
+      
+      // user가 비어있으면 currentUser에서 찾기
+      if (!user || !user.name) {
+        user = JSON.parse(localStorage.getItem('currentUser') || 'null');
+      }
+      
+      // 여전히 비어있으면 users 배열에서 현재 로그인된 사용자 찾기
+      if (!user || !user.name) {
+        const users = JSON.parse(localStorage.getItem('users') || '[]');
+        const loggedInEmail = localStorage.getItem('loggedInEmail');
+        if (loggedInEmail) {
+          user = users.find(u => u.email === loggedInEmail) || null;
+        }
+      }
+      
       const userName = document.getElementById('userName').value.trim();
       if (!user || !user.name || user.name.trim() !== userName) {
         alert('회원가입 시 입력한 이름과 동일하게 입력해야 합니다.');
@@ -571,7 +601,22 @@
           document.getElementById('submit-success').classList.remove('hidden');
           
           // 포인트 지급 (의뢰 접수 시)
-          const user = JSON.parse(localStorage.getItem('user') || 'null');
+          let user = JSON.parse(localStorage.getItem('user') || 'null');
+          
+          // user가 비어있으면 currentUser에서 찾기
+          if (!user || !user.email) {
+            user = JSON.parse(localStorage.getItem('currentUser') || 'null');
+          }
+          
+          // 여전히 비어있으면 users 배열에서 현재 로그인된 사용자 찾기
+          if (!user || !user.email) {
+            const users = JSON.parse(localStorage.getItem('users') || '[]');
+            const loggedInEmail = localStorage.getItem('loggedInEmail');
+            if (loggedInEmail) {
+              user = users.find(u => u.email === loggedInEmail) || null;
+            }
+          }
+          
           if (user && user.email) {
             // 새로운 포인트 시스템 사용
             if (typeof addPoints === 'function') {
@@ -597,12 +642,34 @@
     });
     // 이메일 입력란 자동 채우기 및 읽기전용 처리
     window.addEventListener('DOMContentLoaded', function() {
-      var user = JSON.parse(localStorage.getItem('user') || 'null');
+      // 여러 키에서 사용자 데이터 찾기
+      let user = JSON.parse(localStorage.getItem('user') || 'null');
+      
+      // user가 비어있으면 currentUser에서 찾기
+      if (!user || !user.email) {
+        user = JSON.parse(localStorage.getItem('currentUser') || 'null');
+      }
+      
+      // 여전히 비어있으면 users 배열에서 현재 로그인된 사용자 찾기
+      if (!user || !user.email) {
+        const users = JSON.parse(localStorage.getItem('users') || '[]');
+        const loggedInEmail = localStorage.getItem('loggedInEmail');
+        if (loggedInEmail) {
+          user = users.find(u => u.email === loggedInEmail) || null;
+        }
+      }
+      
       var loggedIn = localStorage.getItem('loggedIn') === 'true';
       var emailInput = document.getElementById('userEmail');
+      var nameInput = document.getElementById('userName');
+      
       if (emailInput && user && user.email && loggedIn) {
         emailInput.value = user.email;
         emailInput.readOnly = true;
+      }
+      
+      if (nameInput && user && user.name) {
+        nameInput.value = user.name;
         emailInput.classList.add('bg-gray-100','cursor-not-allowed');
       }
     });

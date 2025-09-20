@@ -709,6 +709,11 @@
             // localStorage에도 백업 저장
             saveUserToLocalStorage(formData);
             
+            // 현재 사용자 정보를 user 키로도 저장 (마이페이지 호환성)
+            localStorage.setItem('user', JSON.stringify(formData));
+            localStorage.setItem('currentUser', JSON.stringify(formData));
+            localStorage.setItem('loggedIn', 'true');
+            
             // 포인트 시스템 제거됨
             
             // 성공 메시지 표시
