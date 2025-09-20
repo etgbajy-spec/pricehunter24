@@ -620,6 +620,84 @@
       });
     }
 
+    // 의뢰 정보만 표시 (결과 데이터가 없을 때)
+    function displayRequestOnly(requestData, reqNum) {
+      console.log('의뢰 정보만 표시:', reqNum, requestData);
+      
+      // 로딩 숨기기
+      document.getElementById('loading').classList.add('hidden');
+      
+      // 의뢰 정보 표시
+      const resultInfo = document.getElementById('result-info');
+      resultInfo.classList.remove('hidden');
+      
+      // 제목 설정
+      const resultTitle = document.getElementById('result-title');
+      if (resultTitle) {
+        resultTitle.textContent = '의뢰 접수 완료';
+      }
+      
+      // 내용 설정 - 의뢰 접수 완료 메시지
+      const content = `
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+          <div class="flex items-center">
+            <svg class="w-6 h-6 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <h3 class="text-lg font-semibold text-blue-800">의뢰가 성공적으로 접수되었습니다</h3>
+          </div>
+          <p class="text-blue-700 mt-2">전문 검증팀이 최저가 검증을 진행 중입니다. 결과는 1-2일 내에 연락드리겠습니다.</p>
+        </div>
+        <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+          <h4 class="font-semibold text-gray-800 mb-2">의뢰 상세 정보</h4>
+          <div class="space-y-2 text-sm text-gray-600">
+            <p><span class="font-medium">상품명:</span> ${requestData.name || '정보 없음'}</p>
+            <p><span class="font-medium">요청가격:</span> ${requestData.price ? (typeof requestData.price === 'number' ? requestData.price.toLocaleString() + '원' : requestData.price) : '정보 없음'}</p>
+            <p><span class="font-medium">상품 설명:</span> ${requestData.desc || '정보 없음'}</p>
+            ${requestData.urls && requestData.urls.length > 0 ? `<p><span class="font-medium">참고 링크:</span> <a href="${requestData.urls[0]}" target="_blank" class="text-blue-600 hover:underline">${requestData.urls[0]}</a></p>` : ''}
+          </div>
+        </div>
+      `;
+      document.getElementById('result-summary').innerHTML = content;
+      
+      // 의뢰 기본 정보 설정
+      const requestNumber = document.getElementById('request-number');
+      const requestDate = document.getElementById('request-date');
+      const productName = document.getElementById('product-name');
+      const originalPrice = document.getElementById('original-price');
+      
+      if (requestNumber) requestNumber.textContent = reqNum;
+      if (requestDate) {
+        const dateStr = requestData.date || requestData.createdAt || '';
+        requestDate.textContent = formatDateTime(dateStr);
+      }
+      if (productName) {
+        productName.textContent = requestData.name || requestData.productName || '';
+      }
+      if (originalPrice) {
+        const price = requestData.price;
+        if (typeof price === 'number') {
+          originalPrice.textContent = price.toLocaleString() + '원';
+        } else if (typeof price === 'string') {
+          originalPrice.textContent = price;
+        } else {
+          originalPrice.textContent = '';
+        }
+      }
+      
+      // 증거자료 섹션 숨기기 (결과가 없으므로)
+      const evidenceSection = document.getElementById('evidence-section');
+      if (evidenceSection) {
+        evidenceSection.classList.add('hidden');
+      }
+      
+      // 링크 섹션 숨기기 (결과가 없으므로)
+      const linkSection = document.getElementById('link-section');
+      if (linkSection) {
+        linkSection.classList.add('hidden');
+      }
+    }
+
     // 관리자 답변 표시 (기존 페이지 기능 그대로)
     function showAdminResponse(reqNum) {
       currentReqKey = 'request-' + reqNum;
@@ -672,9 +750,17 @@
         console.log('결과 데이터를 찾을 수 없음. 검색한 키들:', possibleKeys);
       }
       
+      // 결과 데이터가 없어도 의뢰 정보는 표시
       if (!resultData) {
+        console.log('결과 데이터 없음 - 의뢰 정보만 표시');
         document.getElementById('loading').classList.add('hidden');
-        document.getElementById('no-result').classList.remove('hidden');
+        
+        // 의뢰 정보만 표시
+        if (requestData) {
+          displayRequestOnly(requestData, reqNum);
+        } else {
+          document.getElementById('no-result').classList.remove('hidden');
+        }
         return;
       }
       
