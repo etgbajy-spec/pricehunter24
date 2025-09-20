@@ -938,41 +938,54 @@
         
         // 문의 목록 UI 업데이트
         function updateInquiryListUI(inquiries) {
-            const inquiryList = document.getElementById('inquiry-list');
+            const inquiryTableBody = document.getElementById('inquiries-table-body');
             
-            if (!inquiryList) {
-                console.warn('⚠️ inquiry-list 요소를 찾을 수 없습니다.');
+            if (!inquiryTableBody) {
+                console.warn('⚠️ inquiries-table-body 요소를 찾을 수 없습니다.');
                 return;
             }
             
-            inquiryList.innerHTML = '';
+            inquiryTableBody.innerHTML = '';
             
             if (inquiries.length === 0) {
-                inquiryList.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-gray-500">문의가 없습니다.</td></tr>';
+                inquiryTableBody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">문의 내역이 없습니다.</td></tr>';
                 return;
             }
             
             inquiries.forEach((inquiry) => {
                 const row = document.createElement('tr');
-                row.className = 'hover:bg-gray-50';
+                row.className = 'hover:bg-blue-50 transition-colors';
+                
+                const createdAt = inquiry.createdAt ? 
+                    new Date(inquiry.createdAt.seconds * 1000).toLocaleDateString('ko-KR') : 
+                    '날짜 없음';
+                
                 row.innerHTML = `
-                    <td class="px-4 py-3">
-                        <input type="checkbox" class="inquiry-checkbox" value="${inquiry.id}">
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <input type="checkbox" class="inquiry-checkbox" data-id="${inquiry.id}">
                     </td>
-                    <td class="px-4 py-3 text-sm">${inquiry.subject || 'N/A'}</td>
-                    <td class="px-4 py-3 text-sm">${inquiry.name || inquiry.userName || 'N/A'}</td>
-                    <td class="px-4 py-3 text-sm">
-                        <span class="px-2 py-1 text-xs rounded-full ${inquiry.status === '답변완료' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}">
-                            ${inquiry.status === '답변완료' ? '답변완료' : '대기중'}
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        ${inquiry.id ? inquiry.id.substring(0, 8) + '...' : 'ID 없음'}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <div class="font-semibold text-blue-600">${inquiry.subject || '제목 없음'}</div>
+                        <div class="text-sm text-gray-600">${inquiry.name || inquiry.userName || '이름 없음'}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-center">
+                        <span class="px-2 py-1 text-xs rounded-full ${inquiry.status === '답변완료' || inquiry.status === 'answered' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}">
+                            ${inquiry.status === '답변완료' || inquiry.status === 'answered' ? '답변완료' : '대기중'}
                         </span>
                     </td>
-                    <td class="px-4 py-3 text-sm">
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        ${createdAt}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-center">
                         <button onclick="viewInquiryDetail('${inquiry.id}')" class="px-2 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600">
                             상세보기
                         </button>
                     </td>
                 `;
-                inquiryList.appendChild(row);
+                inquiryTableBody.appendChild(row);
             });
         }
         
@@ -1131,49 +1144,54 @@
         async function renderInquiryList() {
             try {
                 const inquiries = await getInquiriesFromFirebase();
-                const inquiryList = document.getElementById('inquiry-list');
+                const inquiryTableBody = document.getElementById('inquiries-table-body');
                 
-                if (!inquiryList) {
-                    console.error('문의 목록 요소를 찾을 수 없습니다.');
+                if (!inquiryTableBody) {
+                    console.error('문의 목록 테이블 요소를 찾을 수 없습니다.');
                     return;
                 }
                 
                 if (inquiries.length === 0) {
-                    inquiryList.innerHTML = '<li class="p-4 text-center text-gray-500">문의 내역이 없습니다.</li>';
+                    inquiryTableBody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">문의 내역이 없습니다.</td></tr>';
                     return;
                 }
                 
-                inquiryList.innerHTML = '';
+                inquiryTableBody.innerHTML = '';
                 inquiries.forEach(inquiry => {
-                    const listItem = document.createElement('li');
-                    listItem.className = 'grid grid-cols-6 gap-2 px-4 py-3 hover:bg-blue-100 transition-colors';
+                    const row = document.createElement('tr');
+                    row.className = 'hover:bg-blue-50 transition-colors';
                     
                     const createdAt = inquiry.createdAt ? 
                         new Date(inquiry.createdAt.seconds * 1000).toLocaleDateString('ko-KR') : 
                         '날짜 없음';
                     
-                    listItem.innerHTML = `
-                        <div class="col-span-1 flex items-center">
+                    row.innerHTML = `
+                        <td class="px-6 py-4 whitespace-nowrap">
                             <input type="checkbox" class="inquiry-checkbox" data-id="${inquiry.id}">
-                        </div>
-                        <div class="col-span-2">
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            ${inquiry.id ? inquiry.id.substring(0, 8) + '...' : 'ID 없음'}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                             <div class="font-semibold text-blue-600">${inquiry.subject || '제목 없음'}</div>
                             <div class="text-sm text-gray-600">${inquiry.name || '이름 없음'}</div>
-                        </div>
-                        <div class="col-span-1 text-center text-sm">${createdAt}</div>
-                        <div class="col-span-1 text-center">
-                            <span class="px-2 py-1 text-xs rounded-full ${inquiry.status === 'answered' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}">
-                                ${inquiry.status === 'answered' ? '답변완료' : '대기중'}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-center">
+                            <span class="px-2 py-1 text-xs rounded-full ${inquiry.status === '답변완료' || inquiry.status === 'answered' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}">
+                                ${inquiry.status === '답변완료' || inquiry.status === 'answered' ? '답변완료' : '대기중'}
                             </span>
-                        </div>
-                        <div class="col-span-1 text-center">
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            ${createdAt}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-center">
                             <button onclick="viewInquiryDetail('${inquiry.id}')" class="px-2 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600">
                                 상세보기
                             </button>
-                        </div>
+                        </td>
                     `;
                     
-                    inquiryList.appendChild(listItem);
+                    inquiryTableBody.appendChild(row);
                 });
                 
                 console.log(`✅ 문의 목록 ${inquiries.length}개 렌더링 완료`);
