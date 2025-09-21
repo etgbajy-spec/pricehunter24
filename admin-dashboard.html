@@ -3386,9 +3386,17 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                         alert('수정 버튼이 클릭되었습니다! ID: ' + reviewId);
                         
                         if (reviewId && window.editReview) {
-                            window.editReview(reviewId);
+                            console.log('🔧 window.editReview 함수 호출 시도...');
+                            try {
+                                window.editReview(reviewId);
+                                console.log('✅ window.editReview 함수 호출 완료');
+                            } catch (error) {
+                                console.error('❌ window.editReview 함수 호출 중 오류:', error);
+                                alert('editReview 함수 호출 중 오류가 발생했습니다: ' + error.message);
+                            }
                         } else {
                             console.error('❌ reviewId 또는 editReview 함수가 없습니다:', { reviewId, editReview: typeof window.editReview });
+                            alert('editReview 함수를 찾을 수 없습니다!');
                         }
                     });
                 });
@@ -3727,8 +3735,9 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 console.log('📊 현재 allReviews:', allReviews);
                 console.log('🔍 window.editReview 함수 등록 확인:', typeof window.editReview);
                 
-            // 함수 호출 확인을 위한 콘솔 로그
-            console.log('✅ 수정 버튼이 클릭되었습니다! ID: ' + reviewId);
+                // 함수 호출 확인을 위한 강력한 알림
+                alert('editReview 함수가 호출되었습니다! ID: ' + reviewId);
+                console.log('✅ 수정 버튼이 클릭되었습니다! ID: ' + reviewId);
                 
                 if (reviewId) {
                     // reviewId가 있으면 새로운 모달 방식 사용
@@ -3741,7 +3750,14 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                         return;
                     }
                     console.log('✅ 모달 방식으로 후기 수정 시작');
-                    editReviewWithModal(reviewId);
+                    alert('editReviewWithModal 함수를 호출합니다!');
+                    try {
+                        editReviewWithModal(reviewId);
+                        console.log('✅ editReviewWithModal 함수 호출 완료');
+                    } catch (error) {
+                        console.error('❌ editReviewWithModal 함수 호출 중 오류:', error);
+                        alert('editReviewWithModal 함수 호출 중 오류: ' + error.message);
+                    }
                 } else {
                     // reviewId가 없으면 경고 메시지 표시
                     console.log('📝 reviewId가 없음');
@@ -3790,6 +3806,33 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
         window.testSimpleAlert = function() {
             alert('간단한 테스트 버튼이 작동합니다!');
             console.log('✅ 간단한 테스트 함수가 호출되었습니다.');
+        };
+        
+        // 간단한 모달 테스트 함수
+        window.testSimpleModal = function() {
+            console.log('🧪 간단한 모달 테스트 시작');
+            
+            // 기존 모달 제거
+            const existingModal = document.getElementById('test-modal');
+            if (existingModal) {
+                existingModal.remove();
+            }
+            
+            // 간단한 모달 생성
+            const modalHTML = `
+                <div id="test-modal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; display: flex; align-items: center; justify-content: center;">
+                    <div style="background: white; padding: 20px; border-radius: 10px; max-width: 500px; width: 90%;">
+                        <h2 style="margin-bottom: 20px;">🧪 간단한 모달 테스트</h2>
+                        <p>이 모달이 보인다면 모달 생성 기능은 정상입니다!</p>
+                        <button onclick="document.getElementById('test-modal').remove()" style="margin-top: 20px; padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                            닫기
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+            console.log('✅ 간단한 모달이 생성되었습니다.');
         };
 
         // Firebase에서 후기 업데이트
@@ -4392,6 +4435,9 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                             </button>
                             <button onclick="testSimpleAlert()" class="px-4 py-2 bg-pink-500 text-white rounded-lg font-semibold hover:bg-pink-600 transition">
                                 🚨 간단 테스트
+                            </button>
+                            <button onclick="testSimpleModal()" class="px-4 py-2 bg-indigo-500 text-white rounded-lg font-semibold hover:bg-indigo-600 transition">
+                                🧪 모달 테스트
                             </button>
                             <button onclick="goToPage('reviews.html')" class="px-4 py-2 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition">
                                 👁️ 후기 페이지 보기
