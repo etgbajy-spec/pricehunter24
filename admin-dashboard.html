@@ -2768,13 +2768,18 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
 
         // 후기 수정 모달 표시
         function editReviewWithModal(reviewId) {
+            console.log('🔧 editReviewWithModal 함수 호출됨:', reviewId);
+            console.log('📊 현재 allReviews:', allReviews);
+            
             const review = allReviews.find(r => r.id === reviewId);
+            console.log('🔍 찾은 후기:', review);
+            
             if (!review) {
                 alert('후기 정보를 찾을 수 없습니다.');
                 return;
             }
 
-            console.log('✏️ 후기 수정:', review);
+            console.log('✏️ 후기 수정 모달 생성 시작:', review);
 
             // 기존 모달들 닫기
             closeReviewDetailModal();
@@ -3595,16 +3600,22 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
         window.addNewReview = addNewReview;
         // 새로운 editReview 함수를 전역으로 등록 (모달 방식)
         window.editReview = function(reviewId) {
+            console.log('🔧 editReview 함수 호출됨:', { reviewId, allReviewsLength: allReviews.length });
+            
             if (reviewId) {
                 // reviewId가 있으면 새로운 모달 방식 사용
                 const review = allReviews.find(r => r.id === reviewId);
+                console.log('🔍 찾은 후기:', review);
+                
                 if (!review) {
                     alert('후기 정보를 찾을 수 없습니다.');
                     return;
                 }
+                console.log('✅ 모달 방식으로 후기 수정 시작');
                 editReviewWithModal(reviewId);
             } else {
                 // reviewId가 없으면 기존 방식 사용
+                console.log('📝 기존 방식으로 후기 수정 시작');
                 editReviewOld();
             }
         };
@@ -4209,7 +4220,7 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                                 ➕ 새 후기 추가
                             </button>
                             <button onclick="editReview()" class="px-4 py-2 bg-yellow-500 text-white rounded-lg font-semibold hover:bg-yellow-600 transition">
-                                ✏️ 후기 수정
+                                ✏️ 후기 수정 (목록에서 선택)
                             </button>
                             <button onclick="goToPage('reviews.html')" class="px-4 py-2 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition">
                                 👁️ 후기 페이지 보기
