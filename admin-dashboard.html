@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
     <!-- Content Security Policy - Firebase iframe 허용 -->
-    <meta http-equiv="Content-Security-Policy" content="frame-src 'self' https://www.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com https://apis.google.com; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com https://*.gstatic.com https://firebasejs.com https://images.unsplash.com https://*.unsplash.com https://apis.google.com; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://www.gstatic.com https://*.gstatic.com https://firebasejs.com https://apis.google.com; img-src 'self' data: https: http: blob:;" />
+    <meta http-equiv="Content-Security-Policy" content="frame-src 'self' https://www.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com https://apis.google.com; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com https://*.gstatic.com https://firebasejs.com https://images.unsplash.com https://*.unsplash.com https://apis.google.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://www.gstatic.com https://*.gstatic.com https://firebasejs.com https://apis.google.com; img-src 'self' data: https: http: blob:;" />
     
     <title>관리자 대시보드 - PriceHunter</title>
     
@@ -2454,10 +2454,16 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             
             // 모든 후기 가져오기 (승인/미승인 포함, 최신순 정렬)
             try {
-                // 인덱스 오류 방지를 위해 단순 쿼리 사용
-                reviewsUnsubscribe = onSnapshot(reviewsRef, async (snapshot) => {
+            // 인덱스 오류 방지를 위해 단순 쿼리 사용
+            reviewsUnsubscribe = onSnapshot(reviewsRef, async (snapshot) => {
                 console.log('📋 후기 데이터 실시간 업데이트...');
                 console.log('📊 Firebase에서 가져온 후기 문서 수:', snapshot.docs.length);
+                console.log('🔍 Firebase 문서 상세 정보:', snapshot.docs.map(doc => ({ id: doc.id, data: doc.data() })));
+                
+                // 기존 데이터와 비교하여 변경사항 확인
+                const newReviewCount = snapshot.docs.length;
+                const oldReviewCount = allReviews.length;
+                console.log(`📈 후기 수 변화: ${oldReviewCount} → ${newReviewCount}`);
                 
                 allReviews = [];
                 
@@ -2500,11 +2506,20 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 return dateB - dateA;
             });
             
-            filteredReviews = [...allReviews];
-            updateReviewStatistics();
-            displayReviewsTable();
-            
-            console.log(`✅ 후기 데이터 실시간 업데이트 완료: ${allReviews.length}개 (승인: ${allReviews.filter(r => r.approved).length}개, 미승인: ${allReviews.filter(r => !r.approved).length}개)`);
+                filteredReviews = [...allReviews];
+                updateReviewStatistics();
+                displayReviewsTable();
+                
+                console.log(`✅ 후기 데이터 실시간 업데이트 완료: ${allReviews.length}개 (승인: ${allReviews.filter(r => r.approved).length}개, 미승인: ${allReviews.filter(r => !r.approved).length}개)`);
+                
+                // 데이터 변경사항이 있으면 알림
+                if (newReviewCount !== oldReviewCount) {
+                    console.log(`🔄 후기 데이터 변경 감지! ${oldReviewCount}개 → ${newReviewCount}개`);
+                    // UI 업데이트 완료 알림 (선택적)
+                    if (newReviewCount > oldReviewCount) {
+                        console.log('📝 새로운 후기가 추가되었습니다!');
+                    }
+                }
         }, (error) => {
             console.error('❌ 후기 실시간 리스너 오류:', error);
         });
@@ -2587,33 +2602,95 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             console.log('✅ 후기 통계 UI 업데이트 완료');
         }
 
-        // 초기 후기 데이터 생성 함수
+        // Firebase 초기화 상태 확인 함수
+        function checkFirebaseStatus() {
+            console.log('🔍 Firebase 초기화 상태 확인...');
+            console.log('Firebase DB:', !!window.firebaseDb);
+            console.log('Firebase Auth:', !!window.firebaseAuth);
+            console.log('Firebase Functions:', !!window.firebaseFirestoreFunctions);
+            
+            if (window.firebaseFirestoreFunctions) {
+                console.log('사용 가능한 Firebase 함수들:', Object.keys(window.firebaseFirestoreFunctions));
+            }
+            
+            const status = {
+                db: !!window.firebaseDb,
+                auth: !!window.firebaseAuth,
+                functions: !!window.firebaseFirestoreFunctions
+            };
+            
+            alert(`Firebase 상태 확인:\n\nDB: ${status.db ? '✅' : '❌'}\nAuth: ${status.auth ? '✅' : '❌'}\nFunctions: ${status.functions ? '✅' : '❌'}`);
+            
+            return status;
+        }
+
+        // 실시간 동기화 테스트 함수
+        function testRealtimeSync() {
+            console.log('🔄 실시간 동기화 테스트 시작...');
+            console.log('현재 후기 수:', allReviews.length);
+            console.log('실시간 리스너 상태:', reviewsUnsubscribe ? '활성' : '비활성');
+            
+            if (reviewsUnsubscribe) {
+                console.log('✅ 실시간 리스너가 활성화되어 있습니다.');
+                console.log('📊 현재 후기 데이터:', allReviews.map(r => ({ name: r.name, product: r.productName, approved: r.approved })));
+            } else {
+                console.log('❌ 실시간 리스너가 비활성화되어 있습니다.');
+                console.log('🔄 리스너를 다시 시작합니다...');
+                subscribeToReviews();
+            }
+        }
+
+        // 초기 후기 데이터 생성 함수 (리뷰페이지 기본 데이터 기준)
         async function initializeReviewsData() {
-            console.log('🔄 초기 후기 데이터 생성 시작...');
+            console.log('🔄 리뷰페이지 기본 데이터를 Firebase에 저장 시작...');
             
             try {
                 const { collection, addDoc, serverTimestamp } = window.firebaseFirestoreFunctions;
                 const reviewsRef = collection(window.firebaseDb, 'reviews');
                 
-                // 인덱스페이지의 실제고객후기 데이터를 Firebase에 추가
+                // 리뷰페이지의 기본 데이터를 Firebase에 추가
                 const initialReviews = [
                     {
-                        name: '김OO',
+                        name: '최지은',
                         ageGroup: '30대',
-                        occupation: '직장인',
-                        productName: '음향기기',
-                        originalPrice: '1,200,000원',
-                        finalPrice: '780,000원',
-                        savings: '420,000원',
+                        occupation: '주부',
+                        productName: '다이슨 V15 무선청소기',
+                        originalPrice: '899,000원',
+                        finalPrice: '650,000원',
+                        savings: '249,000원',
+                        savingsPercent: 28,
+                        rating: 5,
+                        review: '가전제품 저렴하게 구입! 요청가 89.9만원 → 65만원으로 절약! 믿고 구매했어요.',
+                        country: '대한민국',
+                        shipping: '3일',
+                        method: '도매처 연동',
+                        badge: '실제 구매자',
+                        purchaseDate: '2024-01-28',
+                        profileImage: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?auto=format&fit=crop&w=600&q=80',
+                        category: '가전제품',
+                        photos: [],
+                        approved: true,
+                        featured: true,
+                        views: 0,
+                        createdAt: serverTimestamp()
+                    },
+                    {
+                        name: '김웅',
+                        ageGroup: '30대',
+                        occupation: '디자이너',
+                        productName: 'MacBook Pro 14인치',
+                        originalPrice: '2,890,000원',
+                        finalPrice: '1,890,000원',
+                        savings: '1,000,000원',
                         savingsPercent: 35,
                         rating: 5,
-                        review: '요청가 120만원 → 78만원으로 구매! 음질도 좋고 배송도 빨랐어요!',
+                        review: '요청가 289만원 → 189만원으로 구매! 성능도 훌륭하고 정말 만족합니다. PriceHunter 덕분에 100만원이나 절약했어요!',
                         country: '대한민국',
                         shipping: '2일',
                         method: '공장 직접구매',
                         badge: '실제 구매자',
-                        purchaseDate: '2024-06-28',
-                        profileImage: 'https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80',
+                        purchaseDate: '2024-01-15',
+                        profileImage: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=600&q=80',
                         category: '전자제품',
                         photos: [],
                         approved: true,
@@ -2622,47 +2699,71 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                         createdAt: serverTimestamp()
                     },
                     {
-                        name: '이OO',
-                        ageGroup: '20대',
-                        occupation: '대학생',
-                        productName: '전자제품',
-                        originalPrice: '450,000원',
-                        finalPrice: '280,000원',
-                        savings: '170,000원',
-                        savingsPercent: 38,
-                        rating: 4.5,
-                        review: '요청가 45만원 → 28만원으로 절약! 해외직구보다 더 싸게 샀어요.',
-                        country: '미국',
-                        shipping: '7일',
-                        method: '도매처 연동',
-                        badge: '실제 구매자',
-                        purchaseDate: '2024-06-25',
-                        profileImage: 'https://images.unsplash.com/photo-1503602642458-232111445657?auto=format&fit=crop&w=600&q=80',
-                        category: '전자제품',
-                        photos: [],
-                        approved: true,
-                        featured: true,
-                        views: 0,
-                        createdAt: serverTimestamp()
-                    },
-                    {
-                        name: '박OO',
+                        name: '정우성',
                         ageGroup: '40대',
-                        occupation: '주부',
-                        productName: '한정판 상품',
-                        originalPrice: '890,000원',
-                        finalPrice: '520,000원',
-                        savings: '370,000원',
-                        savingsPercent: 42,
+                        occupation: '직장인',
+                        productName: '로지텍 MX Master 3S',
+                        originalPrice: '149,000원',
+                        finalPrice: '89,000원',
+                        savings: '60,000원',
+                        savingsPercent: 40,
                         rating: 5,
-                        review: '요청가 89만원 → 52만원으로 절약! 한정판도 공장가로 득템! 만족합니다.',
-                        country: '일본',
-                        shipping: '5일',
+                        review: '스마트워치 득템! 요청가 14.9만원 → 8.9만원으로 절약! 기능도 많고 저렴!',
+                        country: '대한민국',
+                        shipping: '2일',
                         method: '공장 직접구매',
                         badge: '실제 구매자',
-                        purchaseDate: '2024-06-20',
-                        profileImage: 'https://images.unsplash.com/photo-1465101046530-73398c7f28ca?auto=format&fit=crop&w=600&q=80',
-                        category: '기타',
+                        purchaseDate: '2024-02-01',
+                        profileImage: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=600&q=80',
+                        category: '전자제품',
+                        photos: [],
+                        approved: true,
+                        featured: true,
+                        views: 0,
+                        createdAt: serverTimestamp()
+                    },
+                    {
+                        name: '이철수',
+                        ageGroup: '40대',
+                        occupation: '자영업자',
+                        productName: '삼성 갤럭시 S24 Ultra',
+                        originalPrice: '1,650,000원',
+                        finalPrice: '1,200,000원',
+                        savings: '450,000원',
+                        savingsPercent: 27,
+                        rating: 5,
+                        review: '사무용품 대량구매 성공! 요청가 165만원 → 120만원으로 절약! 빠른 배송, 저렴한 가격!',
+                        country: '대한민국',
+                        shipping: '2일',
+                        method: '공장 직접구매',
+                        badge: '사업자 대량구매',
+                        purchaseDate: '2024-01-20',
+                        profileImage: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=600&q=80',
+                        category: '전자제품',
+                        photos: [],
+                        approved: true,
+                        featured: true,
+                        views: 0,
+                        createdAt: serverTimestamp()
+                    },
+                    {
+                        name: '박민수',
+                        ageGroup: '20대',
+                        occupation: '대학생',
+                        productName: 'iPad Air 5세대',
+                        originalPrice: '899,000원',
+                        finalPrice: '650,000원',
+                        savings: '249,000원',
+                        savingsPercent: 28,
+                        rating: 5,
+                        review: '태블릿을 싸게 샀어요! 요청가 89.9만원 → 65만원으로 구매! 학생 할인까지 받아서 굿!',
+                        country: '대한민국',
+                        shipping: '4일',
+                        method: '공장 직접구매',
+                        badge: '실제 구매자',
+                        purchaseDate: '2024-01-25',
+                        profileImage: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=600&q=80',
+                        category: '전자제품',
                         photos: [],
                         approved: true,
                         featured: true,
@@ -2677,12 +2778,12 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                     console.log('✅ 후기 데이터 추가:', review.name);
                 }
                 
-                console.log('🎉 초기 후기 데이터 생성 완료!');
-                alert('초기 후기 데이터가 생성되었습니다. 페이지를 새로고침해주세요.');
+                console.log('🎉 리뷰페이지 기본 데이터 Firebase 저장 완료!');
+                alert('리뷰페이지 기본 데이터가 Firebase에 저장되었습니다. 페이지를 새로고침해주세요.');
                 
             } catch (error) {
-                console.error('❌ 초기 후기 데이터 생성 실패:', error);
-                alert('초기 후기 데이터 생성에 실패했습니다: ' + error.message);
+                console.error('❌ 리뷰페이지 기본 데이터 저장 실패:', error);
+                alert('리뷰페이지 기본 데이터 저장에 실패했습니다: ' + error.message);
             }
         }
 
@@ -3744,7 +3845,13 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                         <h2 class="text-2xl font-bold text-gray-800">⭐ 후기 관리</h2>
                         <div class="flex gap-2 flex-wrap">
                             <button onclick="initializeReviewsData()" class="px-4 py-2 bg-purple-500 text-white rounded-lg font-semibold hover:bg-purple-600 transition">
-                                🚀 초기 후기 데이터 생성
+                                🚀 리뷰페이지 데이터 저장
+                            </button>
+                            <button onclick="checkFirebaseStatus()" class="px-4 py-2 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition">
+                                🔍 Firebase 상태 확인
+                            </button>
+                            <button onclick="testRealtimeSync()" class="px-4 py-2 bg-orange-500 text-white rounded-lg font-semibold hover:bg-orange-600 transition">
+                                🔄 실시간 동기화 테스트
                             </button>
                             <button onclick="showAddReviewModal()" class="px-4 py-2 bg-green-500 text-white rounded-lg font-semibold hover:bg-green-600 transition">
                                 ➕ 새 후기 추가

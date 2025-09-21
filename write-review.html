@@ -441,6 +441,9 @@
                     updatedAt: serverTimestamp()
                 });
                 
+                console.log('✅ 후기 등록 완료:', reviewDoc.id);
+                console.log('📊 관리자 대시보드에 실시간 동기화됩니다.');
+                
                 alert('후기가 성공적으로 등록되었습니다! 관리자 승인 후 리뷰 페이지에 게시됩니다.');
                 window.location.href = 'reviews.html';
                 
