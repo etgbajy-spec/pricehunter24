@@ -618,7 +618,7 @@
       🎛️ 관리자 대시보드
     </button>
     <button id="admin-cleanup-btn" class="fixed top-16 right-48 z-50 px-4 py-2 bg-red-600 text-white rounded-lg shadow hover:bg-red-700 transition hidden cursor-default" aria-label="테스트 데이터 정리" title="테스트 데이터 정리" onclick="cleanupTestData()">🧹 정리</button>
-    <!-- 저렴하게 구입한 사례 섹션: main 바깥, 전체 폭 -->
+    <!-- 새로운 실제 고객 후기 섹션 (Firebase 연동) -->
     <section class="mt-24 mb-10 max-w-7xl mx-auto px-4 text-center">
       <div class="flex flex-col items-center mb-12">
         <h2 class="relative text-3xl md:text-4xl font-extrabold text-blue-800 text-center tracking-tight drop-shadow-lg mb-3">
@@ -627,47 +627,43 @@
           </span>
           <span class="block w-24 h-1 bg-gradient-to-r from-blue-400 via-emerald-400 to-pink-300 rounded-full mx-auto mt-4"></span>
         </h2>
-        <p class="text-lg md:text-xl text-gray-500 font-medium mt-2 text-center">요청가 대비<br class="sm:hidden">실제 절약한 금액을<br class="sm:hidden">확인해보세요</p>
+        <p class="text-lg md:text-xl text-gray-500 font-medium mt-2 text-center">실제 고객들의<br class="sm:hidden">생생한 절약 후기를<br class="sm:hidden">확인해보세요</p>
         
-        <!-- 회원가입 안내 -->
-        <div id="signup-info" class="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-2xl p-6 mb-8 text-center max-w-2xl">
-          <div class="flex items-center justify-center gap-4 mb-4">
-            <span class="text-2xl">⭐</span>
-            <span class="text-xl font-bold text-blue-800">실제 고객 후기</span>
-            <span class="text-2xl">⭐</span>
+        <!-- 통계 정보 -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 max-w-4xl">
+          <div class="bg-white rounded-xl p-4 shadow-lg">
+            <div class="text-2xl font-bold text-blue-600" id="total-reviews-count">0</div>
+            <div class="text-sm text-gray-600">총 후기</div>
           </div>
-          <p class="text-gray-700 mb-4">실제 고객들의<br class="sm:hidden">절약 사례를<br class="sm:hidden">확인해보세요!</p>
-          <div class="flex justify-center items-center gap-4">
-            <a href="register.html" class="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-full font-bold hover:from-blue-700 hover:to-purple-700 transition-all duration-300 shadow-lg">
-              회원가입하고 후기 보기
-            </a>
+          <div class="bg-white rounded-xl p-4 shadow-lg">
+            <div class="text-2xl font-bold text-green-600" id="total-savings-count">0원</div>
+            <div class="text-sm text-gray-600">총 절약금액</div>
+          </div>
+          <div class="bg-white rounded-xl p-4 shadow-lg">
+            <div class="text-2xl font-bold text-purple-600" id="avg-rating-count">0.0</div>
+            <div class="text-sm text-gray-600">평균 평점</div>
+          </div>
+          <div class="bg-white rounded-xl p-4 shadow-lg">
+            <div class="text-2xl font-bold text-orange-600" id="avg-savings-count">0%</div>
+            <div class="text-sm text-gray-600">평균 절약률</div>
           </div>
         </div>
       </div>
-      <div id="case-slider-wrapper" class="relative w-full max-w-7xl mx-auto text-center">
-        <!-- 로그인 필요 오버레이 -->
-        <div id="login-required-overlay" class="absolute inset-0 bg-white/90 backdrop-blur-md rounded-2xl z-10 flex items-center justify-center">
-          <div class="text-center">
-            <div class="text-6xl mb-4">🔒</div>
-            <h3 class="text-2xl font-bold text-gray-800 mb-2">회원가입 후 확인하세요</h3>
-            <p class="text-gray-600 mb-4">실제 고객들의 절약 사례를 보려면 회원가입이 필요합니다.</p>
-            <a href="register.html" class="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-3 rounded-full font-bold hover:from-blue-700 hover:to-purple-700 transition-all duration-300 shadow-lg">
-              회원가입하고 후기 보기
-            </a>
-          </div>
-        </div>
-        
-        <div id="case-slider" class="flex overflow-x-auto no-scrollbar snap-x snap-mandatory gap-2 sm:gap-8 py-2 sm:py-4 transition-all duration-500">
-          <!-- 슬라이드 아이템이 JS로 렌더링됨 -->
-        </div>
-        <!-- 좌우 네비게이션 버튼 -->
-        <button id="case-prev" class="absolute left-0 top-1/2 -translate-y-1/2 bg-white/80 rounded-full shadow p-2 z-10 hidden md:block" aria-label="이전 사례 보기" title="이전 사례 보기"><svg class="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-        <button id="case-next" class="absolute right-0 top-1/2 -translate-y-1/2 bg-white/80 rounded-full shadow p-2 z-10 hidden md:block" aria-label="다음 사례 보기" title="다음 사례 보기"><svg class="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+
+      <!-- 로딩 스피너 -->
+      <div id="reviews-loading" class="text-center py-12">
+        <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <p class="mt-4 text-gray-600">후기를 불러오는 중...</p>
       </div>
-      
-      <!-- 더 많은 후기 보기 버튼 -->
-      <div class="text-center mt-8">
-        <button onclick="goToReviewsPage()" class="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-3 rounded-full font-bold hover:from-blue-700 hover:to-purple-700 transition-all duration-300 shadow-lg flex items-center gap-2 mx-auto">
+
+      <!-- 후기 그리드 -->
+      <div id="new-reviews-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8 hidden">
+        <!-- 후기 카드들이 여기에 동적으로 생성됩니다 -->
+      </div>
+
+      <!-- 더보기 버튼 -->
+      <div class="text-center">
+        <a href="reviews.html" class="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-3 rounded-full font-bold hover:from-blue-700 hover:to-purple-700 transition-all duration-300 shadow-lg inline-flex items-center gap-2">
           <span>⭐</span>
           <span>더 많은 후기 보기</span>
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -678,34 +674,218 @@
       </div>
     </section>
     <script>
-        // 1. Firebase에서 실제 후기 데이터 로드 (실시간 연동 - 개선된 버전)
-        let reviewsUnsubscribe = null;
-        let firebaseReviewsLoaded = false;
+        // 새로운 Firebase 연동 후기 시스템
+        let indexReviewsUnsubscribe = null;
+        let indexReviewsLoaded = false;
+        let indexReviews = [];
         
-        async function loadReviewsFromFirebase() {
+        // 인덱스 페이지용 후기 로드 함수
+        async function loadIndexReviews() {
           try {
             // Firebase 초기화 확인
             if (typeof window.firebaseDb === 'undefined' || !window.firebaseDb) {
               console.log('Firebase가 초기화되지 않음, 기본 데이터 사용');
-              return getDefaultReviews();
+              loadDefaultIndexReviews();
+              return;
             }
             
-            console.log('🔄 Firebase에서 실제 후기 데이터 로드 시작...');
+            console.log('🔄 인덱스 페이지 - Firebase에서 후기 데이터 로드 시작...');
             
             // Firebase 초기화 대기
             await waitForFirebase();
             
-            const { collection, query, where, orderBy, onSnapshot } = window.firebaseFirestoreFunctions;
+            const { collection, query, where, orderBy, onSnapshot, limit } = window.firebaseFirestoreFunctions;
             const reviewsRef = collection(window.firebaseDb, 'reviews');
             
-            // 인덱스 오류 방지를 위해 모든 후기를 가져와서 클라이언트에서 필터링
-            reviewsUnsubscribe = onSnapshot(reviewsRef, (snapshot) => {
-                console.log('📋 메인페이지 후기 실시간 업데이트...');
+            // 승인된 후기만 가져오기 (최대 6개)
+            const q = query(
+              reviewsRef, 
+              where('approved', '==', true),
+              orderBy('createdAt', 'desc'),
+              limit(6)
+            );
+            
+            indexReviewsUnsubscribe = onSnapshot(q, (snapshot) => {
+                console.log('📋 인덱스 페이지 - 후기 실시간 업데이트...');
                 
-                const firebaseReviews = [];
+                indexReviews = [];
                 snapshot.forEach(doc => {
                     const data = doc.data();
-                    // 승인되고 인덱스페이지 노출 설정된 후기만 필터링
+                    // 승인된 후기만 표시
+                    if (data.approved) {
+                        indexReviews.push({
+                            id: doc.id,
+                            ...data
+                        });
+                    }
+                });
+                
+                console.log(`✅ 인덱스 페이지 - ${indexReviews.length}개 후기 로드 완료`);
+                indexReviewsLoaded = true;
+                
+                // 통계 업데이트
+                updateIndexStatistics();
+                
+                // 후기 카드 렌더링
+                renderIndexReviews();
+                
+            }, (error) => {
+                console.error('❌ 인덱스 페이지 - 후기 로드 실패:', error);
+                loadDefaultIndexReviews();
+            });
+            
+          } catch (error) {
+            console.error('❌ 인덱스 페이지 - Firebase 연결 실패:', error);
+            loadDefaultIndexReviews();
+          }
+        }
+        
+        // 기본 후기 데이터 로드 (Firebase 연결 실패 시)
+        function loadDefaultIndexReviews() {
+          console.log('📋 인덱스 페이지 - 기본 후기 데이터 로드');
+          indexReviews = [
+            {
+              id: 'default-1',
+              name: '김영희',
+              ageGroup: '30대',
+              occupation: '디자이너',
+              productName: 'MacBook Pro 14인치',
+              originalPrice: 2890000,
+              finalPrice: 1890000,
+              savings: 1000000,
+              savingsPercent: 35,
+              rating: 5,
+              review: '정말 싸게 구매했습니다! 성능도 훌륭하고 배송도 빠르네요.',
+              thumbnail: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&w=400&q=80',
+              approved: true,
+              featured: true,
+              createdAt: new Date()
+            },
+            {
+              id: 'default-2',
+              name: '이철수',
+              ageGroup: '40대',
+              occupation: '자영업자',
+              productName: '삼성 갤럭시 S24',
+              originalPrice: 1200000,
+              finalPrice: 800000,
+              savings: 400000,
+              savingsPercent: 33,
+              rating: 5,
+              review: '요청가 대비 정말 많이 절약했어요. 추천합니다!',
+              thumbnail: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=400&q=80',
+              approved: true,
+              featured: true,
+              createdAt: new Date()
+            },
+            {
+              id: 'default-3',
+              name: '박민수',
+              ageGroup: '20대',
+              occupation: '대학생',
+              productName: 'iPad Pro 12.9인치',
+              originalPrice: 1500000,
+              finalPrice: 1100000,
+              savings: 400000,
+              savingsPercent: 27,
+              rating: 4,
+              review: '학생 할인까지 받아서 정말 저렴하게 샀어요!',
+              thumbnail: 'https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?auto=format&fit=crop&w=400&q=80',
+              approved: true,
+              featured: true,
+              createdAt: new Date()
+            }
+          ];
+          
+          updateIndexStatistics();
+          renderIndexReviews();
+        }
+        
+        // 통계 업데이트
+        function updateIndexStatistics() {
+          const totalReviews = indexReviews.length;
+          const totalSavings = indexReviews.reduce((sum, review) => sum + (review.savings || 0), 0);
+          const avgRating = indexReviews.length > 0 ? 
+            (indexReviews.reduce((sum, review) => sum + (review.rating || 5), 0) / indexReviews.length).toFixed(1) : 0;
+          const avgSavings = indexReviews.length > 0 ? 
+            (indexReviews.reduce((sum, review) => sum + (review.savingsPercent || 0), 0) / indexReviews.length).toFixed(1) : 0;
+          
+          document.getElementById('total-reviews-count').textContent = totalReviews;
+          document.getElementById('total-savings-count').textContent = totalSavings.toLocaleString() + '원';
+          document.getElementById('avg-rating-count').textContent = avgRating;
+          document.getElementById('avg-savings-count').textContent = avgSavings + '%';
+        }
+        
+        // 후기 카드 렌더링
+        function renderIndexReviews() {
+          const reviewsGrid = document.getElementById('new-reviews-grid');
+          const loadingDiv = document.getElementById('reviews-loading');
+          
+          if (!reviewsGrid) return;
+          
+          if (indexReviews.length === 0) {
+            reviewsGrid.innerHTML = `
+              <div class="col-span-full text-center py-12">
+                <div class="text-6xl mb-4">📝</div>
+                <h3 class="text-xl font-bold text-gray-800 mb-2">아직 후기가 없습니다</h3>
+                <p class="text-gray-600">첫 번째 후기를 작성해보세요!</p>
+              </div>
+            `;
+          } else {
+            reviewsGrid.innerHTML = indexReviews.map((review, index) => `
+              <div class="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1" style="animation-delay: ${index * 0.1}s">
+                <div class="p-6">
+                  <!-- 썸네일 이미지와 프로필 -->
+                  <div class="flex items-start space-x-4 mb-4">
+                    ${review.thumbnail ? `
+                      <div class="w-16 h-16 flex-shrink-0">
+                        <img src="${review.thumbnail}" alt="${review.productName}" class="w-full h-full object-cover rounded-lg border-2 border-gray-200" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                        <div class="w-full h-full bg-gradient-to-r from-blue-400 to-purple-500 rounded-lg flex items-center justify-center text-white font-bold text-xl" style="display: none;">
+                          ${review.name?.charAt(0) || '?'}
+                        </div>
+                      </div>
+                    ` : `
+                      <div class="w-16 h-16 flex-shrink-0 bg-gradient-to-r from-blue-400 to-purple-500 rounded-lg flex items-center justify-center text-white font-bold text-xl">
+                        ${review.name?.charAt(0) || '?'}
+                      </div>
+                    `}
+                    
+                    <div class="flex-1">
+                      <h3 class="font-bold text-gray-900 text-lg">${review.name || '익명'}</h3>
+                      <p class="text-sm text-gray-600">${review.ageGroup || ''} • ${review.occupation || ''}</p>
+                      <div class="flex items-center mt-1">
+                        ${'★'.repeat(review.rating || 5)}${'☆'.repeat(5 - (review.rating || 5))}
+                        <span class="text-sm text-gray-500 ml-2">${review.rating || 5}/5</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- 상품 정보 -->
+                  <div class="mb-4">
+                    <h4 class="font-semibold text-gray-800 text-lg mb-2">${review.productName || '상품명 없음'}</h4>
+                    <div class="flex items-center justify-between text-sm">
+                      <span class="text-gray-500">원가: <span class="line-through">${(review.originalPrice || 0).toLocaleString()}원</span></span>
+                      <span class="text-green-600 font-bold">절약: ${(review.savings || 0).toLocaleString()}원</span>
+                    </div>
+                    <div class="text-right">
+                      <span class="text-2xl font-bold text-blue-600">${(review.finalPrice || 0).toLocaleString()}원</span>
+                      <span class="text-sm text-gray-500 ml-2">(${review.savingsPercent || 0}% 절약)</span>
+                    </div>
+                  </div>
+                  
+                  <!-- 후기 내용 -->
+                  <div class="bg-gray-50 rounded-lg p-3">
+                    <p class="text-gray-700 text-sm leading-relaxed">${review.review || '후기 내용이 없습니다.'}</p>
+                  </div>
+                </div>
+              </div>
+            `).join('');
+          }
+          
+          // 로딩 숨기고 그리드 표시
+          if (loadingDiv) loadingDiv.classList.add('hidden');
+          reviewsGrid.classList.remove('hidden');
+        }
                     if (data && data.name && data.productName && data.approved === true && data.featured === true) {
                         // Firebase 데이터를 메인페이지 형식으로 변환
                         const formattedReview = {
@@ -3765,9 +3945,8 @@ if (mypageBtn) {
         // 페이지 로드 후 1초 뒤에 시작
         setTimeout(showNext, 1000);
         
-        // 후기 시스템 초기화 및 렌더링
-        initializeReviewSystem();
-        renderCaseSlider();
+        // 새로운 후기 시스템 초기화
+        loadIndexReviews();
         
         // 햄버거 메뉴 초기화
         initHamburgerMenu();

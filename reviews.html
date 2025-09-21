@@ -788,14 +788,25 @@
             reviewsContainer.innerHTML = pageReviews.map((review, index) => `
                 <div class="bg-white rounded-2xl shadow-lg overflow-hidden card-hover animate-fade-in-up" style="animation-delay: ${index * 0.1}s">
                     <div class="p-6">
-                        <!-- 대표사진과 프로필 헤더 -->
+                        <!-- 썸네일 이미지와 프로필 헤더 -->
                         <div class="flex items-start space-x-4 mb-4">
-                            <!-- 대표사진 표시 -->
-                            ${review.photos && review.photos.length > 0 ? `
+                            <!-- 썸네일 이미지 표시 -->
+                            ${review.thumbnail ? `
+                                <div class="w-20 h-20 flex-shrink-0">
+                                    <img src="${review.thumbnail}" alt="${review.productName}" class="w-full h-full object-cover rounded-lg border-2 border-gray-200" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                    <div class="w-full h-full bg-gradient-to-r from-blue-400 to-purple-500 rounded-lg flex items-center justify-center text-white font-bold text-2xl" style="display: none;">
+                                        ${review.name?.charAt(0) || '?'}
+                                    </div>
+                                </div>
+                            ` : review.photos && review.photos.length > 0 ? `
                                 <div class="w-20 h-20 flex-shrink-0">
                                     <img src="${review.photos[0]}" alt="${review.productName}" class="w-full h-full object-cover rounded-lg">
                                 </div>
-                            ` : ''}
+                            ` : `
+                                <div class="w-20 h-20 flex-shrink-0 bg-gradient-to-r from-blue-400 to-purple-500 rounded-lg flex items-center justify-center text-white font-bold text-2xl">
+                                    ${review.name?.charAt(0) || '?'}
+                                </div>
+                            `}
                             
                             <div class="flex-1">
                                 <!-- 프로필 헤더 -->
