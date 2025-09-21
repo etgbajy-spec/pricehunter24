@@ -2729,7 +2729,7 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                                 <div class="bg-gray-50 p-4 rounded-lg">
                                     <h4 class="font-semibold text-gray-700 mb-2">🛠️ 액션</h4>
                                     <div class="space-y-2">
-                                        <button onclick="editReview('${review.id}')" class="w-full bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm">
+                                        <button class="edit-review-btn w-full bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm" data-review-id="${review.id}">
                                             ✏️ 후기 수정
                                         </button>
                                         <button onclick="toggleReviewApproval('${review.id}', ${!review.approved})" class="w-full ${review.approved ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-green-500 hover:bg-green-600'} text-white px-4 py-2 rounded-lg text-sm">
@@ -3359,7 +3359,7 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                             <div class="flex space-x-2">
                                 <button onclick="viewReviewDetails('${review.id}')" class="text-blue-600 hover:text-blue-900">보기</button>
-                                <button onclick="editReview('${review.id}')" class="text-green-600 hover:text-green-900">수정</button>
+                                <button class="edit-review-btn text-green-600 hover:text-green-900" data-review-id="${review.id}">수정</button>
                                 <button onclick="toggleReviewApproval('${review.id}', ${!review.approved})" class="text-purple-600 hover:text-purple-900">
                                     ${review.approved ? '승인취소' : '승인'}
                                 </button>
@@ -3372,6 +3372,29 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                     </tr>
                 `;
             }).join('');
+            
+            // 수정 버튼 이벤트 리스너 추가
+            setTimeout(() => {
+                const editButtons = document.querySelectorAll('.edit-review-btn');
+                console.log('🔍 수정 버튼 개수:', editButtons.length);
+                
+                editButtons.forEach(button => {
+                    button.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        const reviewId = this.getAttribute('data-review-id');
+                        console.log('🔧 수정 버튼 클릭됨! ID:', reviewId);
+                        alert('수정 버튼이 클릭되었습니다! ID: ' + reviewId);
+                        
+                        if (reviewId && window.editReview) {
+                            window.editReview(reviewId);
+                        } else {
+                            console.error('❌ reviewId 또는 editReview 함수가 없습니다:', { reviewId, editReview: typeof window.editReview });
+                        }
+                    });
+                });
+                
+                console.log('✅ 수정 버튼 이벤트 리스너가 추가되었습니다.');
+            }, 100);
         }
 
         // 상태 배지 생성
@@ -3473,7 +3496,7 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                         <button onclick="showReviewDetail('${review.id}')" class="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition">
                             📖 상세보기
                         </button>
-                        <button onclick="editReview('${review.id}')" class="px-4 py-2 bg-yellow-600 text-white rounded-lg font-semibold hover:bg-yellow-700 transition">
+                        <button class="edit-review-btn px-4 py-2 bg-yellow-600 text-white rounded-lg font-semibold hover:bg-yellow-700 transition" data-review-id="${review.id}">
                             ✏️ 수정
                         </button>
                         <button onclick="approveReview('${review.id}')" class="px-4 py-2 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition">
@@ -3761,6 +3784,12 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             } else {
                 alert('테스트할 후기가 없습니다. 먼저 후기 데이터를 로드해주세요.');
             }
+        };
+        
+        // 간단한 테스트 함수
+        window.testSimpleAlert = function() {
+            alert('간단한 테스트 버튼이 작동합니다!');
+            console.log('✅ 간단한 테스트 함수가 호출되었습니다.');
         };
 
         // Firebase에서 후기 업데이트
@@ -4360,6 +4389,9 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                             </button>
                             <button onclick="testEditReview()" class="px-4 py-2 bg-red-500 text-white rounded-lg font-semibold hover:bg-red-600 transition">
                                 🧪 수정 버튼 테스트
+                            </button>
+                            <button onclick="testSimpleAlert()" class="px-4 py-2 bg-pink-500 text-white rounded-lg font-semibold hover:bg-pink-600 transition">
+                                🚨 간단 테스트
                             </button>
                             <button onclick="goToPage('reviews.html')" class="px-4 py-2 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition">
                                 👁️ 후기 페이지 보기
