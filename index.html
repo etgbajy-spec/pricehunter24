@@ -766,21 +766,6 @@
           }
         }
         
-        // Firebase 초기화 대기 함수
-        function waitForFirebase() {
-            return new Promise((resolve) => {
-                const checkFirebase = () => {
-                    if (window.firebaseDb && window.firebaseFirestoreFunctions) {
-                        console.log('✅ Firebase 초기화 확인됨');
-                        resolve();
-                    } else {
-                        console.log('⏳ Firebase 초기화 대기 중...');
-                        setTimeout(checkFirebase, 100);
-                    }
-                };
-                checkFirebase();
-            });
-        }
 
         // 후기 실시간 리스너
         function subscribeToReviews() {
@@ -992,11 +977,17 @@
               return;
             }
             
+            let userData = null;
             querySnapshot.forEach((doc) => {
-              const userData = doc.data();
+              userData = doc.data();
               console.log('✅ 사용자 데이터 확인:', userData);
-              alert(`사용자 데이터 확인 완료:\n\n이메일: ${userData.email}\n이름: ${userData.name || userData.displayName || 'N/A'}\n전화번호: ${userData.phone || 'N/A'}\n가입일: ${userData.createdAt || 'N/A'}`);
             });
+            
+            if (userData) {
+              // Firestore 사용자 데이터 확인 완료
+              console.log('✅ Firestore 사용자 데이터 확인 완료');
+              alert(`사용자 데이터 확인 완료:\n\n이메일: ${userData.email}\n이름: ${userData.name || userData.displayName || 'N/A'}\n전화번호: ${userData.phone || 'N/A'}\n가입일: ${userData.createdAt || 'N/A'}\n\n이제 Firestore 기반 로그인을 사용하여 로그인할 수 있습니다.`);
+            }
             
           } catch (error) {
             console.error('❌ Firebase 사용자 데이터 확인 실패:', error);
@@ -1007,6 +998,7 @@
         // 전역 함수로 노출
         window.updateReviewAccess = updateReviewAccess;
         window.checkFirebaseUserData = checkFirebaseUserData;
+        window.createFirebaseAuthUser = createFirebaseAuthUser;
         
         // 6. renderCaseSlider 함수 정의
         async function renderCaseSlider() {
@@ -1537,6 +1529,9 @@
       async function createFirebaseAuthUser(email, password) {
         try {
           console.log('🔄 Firebase Auth 사용자 생성 시도:', email);
+          
+          // Firebase 초기화 대기
+          await waitForFirebase();
           
           const { createUserWithEmailAndPassword } = window.firebaseAuthFunctions;
           const authResult = await createUserWithEmailAndPassword(window.firebaseAuth, email, password);
@@ -2886,93 +2881,90 @@
             return;
           }
           
-          // Firebase Auth로 직접 로그인 시도
+          // Firestore 기반 로그인 시도
           try {
             await waitForFirebase();
             
-            console.log('🔐 Firebase Auth로 직접 로그인 시도:', email);
-            console.log('🔧 Firebase Auth 상태:', {
-              firebaseAuth: !!window.firebaseAuth,
-              signInWithEmailAndPassword: !!window.firebaseAuthFunctions?.signInWithEmailAndPassword,
-              functions: window.firebaseAuthFunctions
-            });
+            console.log('🔐 Firestore 기반 로그인 시도:', email);
             
-            // Firebase Auth 이메일/비밀번호 로그인
-            const { signInWithEmailAndPassword } = window.firebaseAuthFunctions;
-            const authResult = await signInWithEmailAndPassword(window.firebaseAuth, email, password);
+            // Firestore에서 사용자 데이터 검색
+            const { collection, query, where, getDocs } = window.firebaseFirestoreFunctions;
+            const usersRef = collection(window.firebaseDb, 'users');
+            const q = query(usersRef, where('email', '==', email));
+            const querySnapshot = await getDocs(q);
             
-            console.log('✅ Firebase Auth 인증 성공:', authResult.user.email);
-            
-            // Firebase에서 사용자 데이터 가져오기
-            const { doc, getDoc } = window.firebaseFirestoreFunctions;
-            const userDocRef = doc(window.firebaseDb, 'users', authResult.user.uid);
-            const userDoc = await getDoc(userDocRef);
-            
-            let userData;
-            if (userDoc.exists()) {
-              // Firebase에 사용자 데이터가 있으면 사용
-              userData = { id: userDoc.id, ...userDoc.data() };
-              console.log('📊 Firebase에서 사용자 데이터 로드:', userData);
-            } else {
-              // Firebase에 사용자 데이터가 없으면 기본 데이터 생성
-              userData = {
-                uid: authResult.user.uid,
-                email: authResult.user.email,
-                displayName: authResult.user.displayName || '',
-                photoURL: authResult.user.photoURL || '',
-                loginMethod: 'email',
-                isActive: true,
-                loginCount: 1,
-                createdAt: new Date(),
-                lastLogin: new Date(),
-                updatedAt: new Date()
-              };
-              console.log('📝 기본 사용자 데이터 생성:', userData);
+            if (querySnapshot.empty) {
+              throw new Error('등록되지 않은 이메일입니다.');
             }
             
-            // Firestore에 사용자 데이터 업데이트
-            await upsertUser(userData, {
+            // 사용자 데이터 확인
+            let userData = null;
+            let userDocId = null;
+            querySnapshot.forEach((doc) => {
+              userData = doc.data();
+              userDocId = doc.id;
+            });
+            
+            if (!userData) {
+              throw new Error('사용자 데이터를 찾을 수 없습니다.');
+            }
+            
+            // 비밀번호 확인
+            if (userData.password !== password) {
+              throw new Error('비밀번호가 올바르지 않습니다.');
+            }
+            
+            // 로그인 성공 처리
+            console.log('✅ Firestore 로그인 성공:', userData);
+            
+            // 로그인 횟수 및 마지막 로그인 시간 업데이트
+            const { doc, updateDoc } = window.firebaseFirestoreFunctions;
+            const userDocRef = doc(window.firebaseDb, 'users', userDocId);
+            await updateDoc(userDocRef, {
               lastLogin: new Date(),
               loginCount: (userData.loginCount || 0) + 1,
               updatedAt: new Date()
             });
-
-            // 로그인 성공 처리 (Firebase Auth 상태 리스너가 자동으로 처리)
+            
+            // 로컬 스토리지에 사용자 정보 저장
+            localStorage.setItem('loggedIn', 'true');
+            localStorage.setItem('currentUser', JSON.stringify(userData));
+            localStorage.setItem('user', JSON.stringify(userData));
+            localStorage.setItem('loggedInEmail', email);
+            localStorage.setItem('userEmail', email);
+            localStorage.setItem('userData', JSON.stringify(userData));
+            
+            // 세션 스토리지에도 저장
+            sessionStorage.setItem('loggedIn', 'true');
+            sessionStorage.setItem('currentUser', JSON.stringify(userData));
+            sessionStorage.setItem('user', JSON.stringify(userData));
+            
+            // 로그인 성공 UI 업데이트
+            updateAuthUI();
+            updateReviewAccess();
+            
+            // 로그인 모달 닫기
             document.getElementById('login-modal').classList.add('hidden');
             document.getElementById('login-error').classList.add('hidden');
             showToast('로그인 성공!', 'success');
             
-            // Firebase Auth 상태 리스너가 자동으로 updateAuthUI()와 updateReviewAccess() 호출
-            
           } catch (error) {
-            console.error('Firebase 로그인 실패:', error);
+            console.error('Firestore 로그인 실패:', error);
             document.getElementById('login-error').classList.remove('hidden');
             
-            // Firebase Auth 에러 메시지 처리
+            // 에러 메시지 처리
             let errorMessage = '로그인 처리 중 오류가 발생했습니다';
-            if (error.code === 'auth/user-not-found') {
+            if (error.message === '등록되지 않은 이메일입니다.') {
               errorMessage = '등록되지 않은 이메일입니다.';
-            } else if (error.code === 'auth/wrong-password') {
+            } else if (error.message === '비밀번호가 올바르지 않습니다.') {
               errorMessage = '비밀번호가 올바르지 않습니다.';
-            } else if (error.code === 'auth/invalid-email') {
-              errorMessage = '이메일 형식이 올바르지 않습니다.';
-            } else if (error.code === 'auth/invalid-login-credentials') {
-              errorMessage = '이메일 또는 비밀번호가 올바르지 않습니다.';
-            } else if (error.code === 'auth/too-many-requests') {
-              errorMessage = '너무 많은 로그인 시도가 있었습니다. 잠시 후 다시 시도해주세요.';
-            } else if (error.code === 'auth/network-request-failed') {
+            } else if (error.message === '사용자 데이터를 찾을 수 없습니다.') {
+              errorMessage = '사용자 데이터를 찾을 수 없습니다.';
+            } else if (error.message.includes('Firebase')) {
               errorMessage = '네트워크 연결을 확인해주세요.';
-            } else if (error.code === 'auth/operation-not-allowed') {
-              errorMessage = '이메일/비밀번호 로그인이 비활성화되어 있습니다.';
             }
             
             showToast(errorMessage, 'error');
-            
-            // 로그인 실패 시 Firebase 사용자 데이터 확인
-            if (email === 'etgbajy@gmail.com') {
-              console.log('🔍 etgbajy@gmail.com 로그인 실패 - 사용자 데이터 확인');
-              await checkFirebaseUserData(email);
-            }
           }
         };
         
