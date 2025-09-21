@@ -697,10 +697,6 @@
           </div>
         </div>
       </section>
-    <div id="request-form-area"></div>
-    <!-- 관리자 모드 버튼 (숨김) -->
-    <div class="fixed top-4 right-4 z-50">
-    </div>
     <!-- 통합 관리자 대시보드 버튼 -->
     <!-- 관리자 버튼들 (관리자 모드에서만 노출) -->
     <button id="admin-logout-btn" class="fixed top-4 right-4 z-50 px-4 py-2 bg-gray-800 text-white rounded-lg shadow hover:bg-amber-500 transition hidden cursor-default" aria-label="관리자 해제" title="관리자 해제" onclick="adminLogout()">관리자 해제</button>
@@ -2596,7 +2592,6 @@ if (logoutBtn) {
     showLogoutSuccess();
   };
 }
-// ... 기존 코드 ...
     </script>
     <!-- 로그아웃 성공 메시지(상단 고정) -->
     <div id="logout-success" class="fixed top-20 left-1/2 -translate-x-1/2 z-50 text-emerald-600 text-center mt-3 hidden flex items-center justify-center gap-2 animate-fadein bg-white/90 px-6 py-3 rounded-xl shadow-lg">
@@ -2604,7 +2599,6 @@ if (logoutBtn) {
       <span>로그아웃 되었습니다.</span>
     </div>
 
-// ... 기존 코드 ...
     </script>
     <script>
 // ... existing code ...
@@ -2622,7 +2616,6 @@ function showToast(msg, type = 'success') {
   setTimeout(() => { toast.classList.add('opacity-0'); }, 1500);
 }
 
-// ... 기존 코드 ...
     </script>
     <script>
 // ... existing code ...
@@ -2697,7 +2690,6 @@ if (mypageBtn) {
     setTimeout(renderMyActivity, 100); // 모달 열림 후 렌더링
   });
 }
-// ... 기존 코드 ...
     </script>
     <script>
 // ... existing code ...
@@ -2709,12 +2701,10 @@ if (mypageBtn) {
   localStorage.removeItem('contacts');
   localStorage.removeItem('answers');
 })();
-// ... 기존 코드 ...
     </script>
     <script>
 // ... existing code ...
 
-// ... 기존 코드 ...
     </script>
 
     <!-- 테스트 데이터 정리 함수 -->
@@ -2879,7 +2869,7 @@ if (mypageBtn) {
     </script>
     
     <!-- 페이스북 스타일 푸터 -->
-    <footer class="bg-gray-900 text-white mt-20">
+    <footer class="bg-gray-900 text-white mt-0">
       <div class="max-w-6xl mx-auto px-4 py-12">
         <!-- 메인 푸터 콘텐츠 -->
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 mb-8">
