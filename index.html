@@ -2349,35 +2349,66 @@
         // 사용자 데이터 동기화 함수
         async function syncUserData() {
           try {
-            if (!window.firebaseDb) return [];
+            console.log('🔄 사용자 데이터 동기화 시작...');
             
-            const { collection, getDocs } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js');
-            const usersRef = collection(window.firebaseDb, 'users');
-            const snapshot = await getDocs(usersRef);
+            // Firebase 데이터 가져오기
+            let firebaseUsers = [];
+            if (window.firebaseDb) {
+              try {
+                const { collection, getDocs } = window.firebaseFirestoreFunctions;
+                const usersRef = collection(window.firebaseDb, 'users');
+                const snapshot = await getDocs(usersRef);
+                
+                snapshot.forEach(doc => {
+                  const userData = doc.data();
+                  firebaseUsers.push({
+                    id: doc.id,
+                    ...userData
+                  });
+                });
+                console.log('📊 Firebase에서 가져온 사용자:', firebaseUsers.length, '명');
+              } catch (error) {
+                console.error('❌ Firebase 사용자 데이터 가져오기 실패:', error);
+              }
+            }
             
-            const firebaseUsers = [];
-            snapshot.forEach(doc => {
-              firebaseUsers.push({
-                id: doc.id,
-                ...doc.data()
-              });
-            });
-            
-            // localStorage와 Firebase 데이터 병합
+            // localStorage 데이터 가져오기
             const localUsers = JSON.parse(localStorage.getItem('users') || '[]');
-            const allUsers = [...localUsers];
+            console.log('📊 localStorage에서 가져온 사용자:', localUsers.length, '명');
             
-            firebaseUsers.forEach(firebaseUser => {
-              const exists = allUsers.find(u => u.email === firebaseUser.email);
-              if (!exists) {
-                allUsers.push(firebaseUser);
+            // 모든 사용자 데이터 병합 (Firebase 우선)
+            const userMap = new Map();
+            
+            // localStorage 사용자 먼저 추가
+            localUsers.forEach(user => {
+              if (user.email) {
+                userMap.set(user.email, { ...user, source: 'localStorage' });
               }
             });
+            
+            // Firebase 사용자 추가 (같은 이메일이 있으면 덮어쓰기)
+            firebaseUsers.forEach(user => {
+              if (user.email) {
+                userMap.set(user.email, { ...user, source: 'Firebase' });
+              }
+            });
+            
+            const allUsers = Array.from(userMap.values());
+            console.log('📊 최종 동기화된 사용자:', allUsers.length, '명');
+            console.log('📋 사용자 상세:', allUsers.map(u => ({ 
+              email: u.email, 
+              name: u.name || u.displayName, 
+              source: u.source,
+              hasPassword: !!u.password
+            })));
             
             return allUsers;
           } catch (error) {
             console.error('❌ 사용자 데이터 동기화 실패:', error);
-            return JSON.parse(localStorage.getItem('users') || '[]');
+            // 오류 시 localStorage 데이터만 반환
+            const localUsers = JSON.parse(localStorage.getItem('users') || '[]');
+            console.log('🔄 localStorage 데이터만 반환:', localUsers.length, '명');
+            return localUsers;
           }
         }
 
@@ -2401,7 +2432,12 @@
           
           // 동기화된 사용자 데이터에서 검색
           const allUsers = await syncUserData();
+          console.log('🔍 로그인 시도 - 검색할 이메일:', email);
+          console.log('📊 전체 사용자 수:', allUsers.length);
+          console.log('📋 사용자 목록:', allUsers.map(u => ({ email: u.email, name: u.name || u.displayName })));
+          
           const user = allUsers.find(u => u.email === email && u.password === password);
+          console.log('👤 찾은 사용자:', user ? '찾음' : '없음');
           
           if (user) {
             // Firebase Auth로 로그인 (이메일/비밀번호)

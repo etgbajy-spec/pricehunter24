@@ -375,11 +375,23 @@
           }
           console.log('📋 localStorage 중복 확인 결과: 중복 없음');
           
-          // 사용자 데이터 저장
+          // 사용자 데이터 저장 (일관된 형식으로)
           console.log('💾 Firebase에 사용자 데이터 저장 중...');
+          const uid = `email_${userData.email.replace('@', '_').replace('.', '_')}`;
           const docRef = await addDoc(usersRef, {
-          ...userData,
-          createdAt: serverTimestamp(),
+            uid: uid,
+            email: userData.email,
+            name: userData.name,
+            displayName: userData.name,
+            phone: userData.phone,
+            password: userData.password,
+            emailVerification: userData.emailVerification,
+            agreeTerms: userData.agreeTerms,
+            agreePrivacy: userData.agreePrivacy,
+            agreeMarketing: userData.agreeMarketing,
+            loginMethod: 'email',
+            isActive: true,
+            createdAt: serverTimestamp(),
             updatedAt: serverTimestamp()
           });
           
