@@ -803,15 +803,27 @@
             reviewsContainer.innerHTML = pageReviews.map((review, index) => `
                 <div class="bg-white rounded-2xl shadow-lg overflow-hidden card-hover animate-fade-in-up" style="animation-delay: ${index * 0.1}s">
                     <div class="p-6">
-                        <!-- 프로필 헤더 -->
-                        <div class="flex items-center mb-4">
-                            <img src="${review.profileImage || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face'}" 
-                                 alt="${review.name}" class="w-12 h-12 rounded-full object-cover mr-4">
-                            <div>
-                                <h3 class="font-bold text-gray-800">${review.name}, ${review.ageGroup} ${review.occupation}</h3>
+                        <!-- 대표사진과 프로필 헤더 -->
+                        <div class="flex items-start space-x-4 mb-4">
+                            <!-- 대표사진 표시 -->
+                            ${review.photos && review.photos.length > 0 ? `
+                                <div class="w-20 h-20 flex-shrink-0">
+                                    <img src="${review.photos[0]}" alt="${review.productName}" class="w-full h-full object-cover rounded-lg">
+                                </div>
+                            ` : ''}
+                            
+                            <div class="flex-1">
+                                <!-- 프로필 헤더 -->
                                 <div class="flex items-center">
-                                    ${getStarsHtml(review.rating)}
-                                    <span class="ml-2 text-sm text-gray-600">${formatDate(review.purchaseDate)}</span>
+                                    <img src="${review.profileImage || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face'}" 
+                                         alt="${review.name}" class="w-12 h-12 rounded-full object-cover mr-4">
+                                    <div>
+                                        <h3 class="font-bold text-gray-800">${review.name}, ${review.ageGroup} ${review.occupation}</h3>
+                                        <div class="flex items-center">
+                                            ${getStarsHtml(review.rating)}
+                                            <span class="ml-2 text-sm text-gray-600">${formatDate(review.purchaseDate)}</span>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
