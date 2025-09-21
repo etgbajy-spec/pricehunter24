@@ -2952,12 +2952,44 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
 
             // 모달을 body에 추가
             document.body.insertAdjacentHTML('beforeend', modalHTML);
+            console.log('✅ 수정 모달 HTML이 body에 추가되었습니다.');
+            
+            // 모달이 실제로 DOM에 추가되었는지 확인
+            const modalElement = document.getElementById('edit-review-modal');
+            if (modalElement) {
+                console.log('✅ edit-review-modal 요소가 DOM에 존재합니다.');
+                console.log('📊 모달 요소:', modalElement);
+                
+                // 모달이 보이도록 스타일 강제 적용
+                modalElement.style.display = 'flex';
+                modalElement.style.position = 'fixed';
+                modalElement.style.top = '0';
+                modalElement.style.left = '0';
+                modalElement.style.width = '100%';
+                modalElement.style.height = '100%';
+                modalElement.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+                modalElement.style.zIndex = '9999';
+                modalElement.style.alignItems = 'center';
+                modalElement.style.justifyContent = 'center';
+                
+                console.log('✅ 모달 스타일이 강제로 적용되었습니다.');
+            } else {
+                console.error('❌ edit-review-modal 요소를 찾을 수 없습니다.');
+                alert('모달 생성에 실패했습니다!');
+            }
 
             // 폼 제출 이벤트 리스너 추가
-            document.getElementById('edit-review-form').addEventListener('submit', async function(e) {
-                e.preventDefault();
-                await updateReview(reviewId);
-            });
+            const form = document.getElementById('edit-review-form');
+            if (form) {
+                form.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    await updateReview(reviewId);
+                });
+                console.log('✅ 폼 제출 이벤트 리스너가 추가되었습니다.');
+            } else {
+                console.error('❌ edit-review-form을 찾을 수 없습니다.');
+                alert('폼을 찾을 수 없습니다!');
+            }
         }
 
         // 후기 수정 모달 닫기
@@ -3672,8 +3704,8 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 console.log('📊 현재 allReviews:', allReviews);
                 console.log('🔍 window.editReview 함수 등록 확인:', typeof window.editReview);
                 
-                // 함수 호출 확인을 위한 알림
-                alert('수정 버튼이 클릭되었습니다! ID: ' + reviewId);
+            // 함수 호출 확인을 위한 콘솔 로그
+            console.log('✅ 수정 버튼이 클릭되었습니다! ID: ' + reviewId);
                 
                 if (reviewId) {
                     // reviewId가 있으면 새로운 모달 방식 사용
