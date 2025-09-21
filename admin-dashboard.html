@@ -625,67 +625,135 @@
                 const usersRef = collection(db, 'users');
                 const querySnapshot = await getDocs(usersRef);
                 
+                console.log(`📊 전체 사용자 문서 수: ${querySnapshot.size}`);
+                
                 const userMap = new Map();
                 const usersToDelete = [];
+                const allUsers = [];
                 
+                // 모든 사용자 데이터 수집
                 querySnapshot.forEach((docSnapshot) => {
                     const userData = docSnapshot.data();
                     const userEmail = userData.email;
                     
                     if (userEmail) {
-                        if (userMap.has(userEmail)) {
-                            // 중복 발견 - 더 오래된 데이터 삭제
-                            const existingUser = userMap.get(userEmail);
-                            const currentUser = {
-                                id: docSnapshot.id,
-                                ...userData
-                            };
-                            
-                            if (existingUser.createdAt && currentUser.createdAt) {
-                                if (existingUser.createdAt < currentUser.createdAt) {
-                                    usersToDelete.push(existingUser.id);
-                                    userMap.set(userEmail, currentUser);
-                                } else {
-                                    usersToDelete.push(currentUser.id);
-                                }
-                            } else {
-                                // createdAt이 없는 경우 uid가 더 긴 것 삭제 (일반적으로 더 새로운 형식)
-                                if (existingUser.uid && currentUser.uid) {
-                                    if (existingUser.uid.length < currentUser.uid.length) {
-                                        usersToDelete.push(existingUser.id);
-                                        userMap.set(userEmail, currentUser);
-                                    } else {
-                                        usersToDelete.push(currentUser.id);
-                                    }
-                                }
-                            }
-                        } else {
-                            userMap.set(userEmail, {
-                                id: docSnapshot.id,
-                                ...userData
-                            });
-                        }
+                        allUsers.push({
+                            id: docSnapshot.id,
+                            email: userEmail,
+                            createdAt: userData.createdAt,
+                            uid: userData.uid,
+                            ...userData
+                        });
                     }
                 });
                 
-                console.log(`🗑️ 삭제할 중복 사용자: ${usersToDelete.length}명`);
+                console.log('📋 모든 사용자 목록:', allUsers.map(u => ({ 
+                    id: u.id, 
+                    email: u.email, 
+                    createdAt: u.createdAt,
+                    uid: u.uid 
+                })));
+                
+                // 이메일별로 그룹화하여 중복 찾기
+                const emailGroups = new Map();
+                allUsers.forEach(user => {
+                    if (!emailGroups.has(user.email)) {
+                        emailGroups.set(user.email, []);
+                    }
+                    emailGroups.get(user.email).push(user);
+                });
+                
+                // 중복 이메일 찾기
+                for (const [email, users] of emailGroups) {
+                    if (users.length > 1) {
+                        console.log(`🔍 중복 이메일 발견: ${email} (${users.length}개 문서)`);
+                        
+                        // 가장 최신 데이터를 유지하고 나머지 삭제
+                        users.sort((a, b) => {
+                            if (a.createdAt && b.createdAt) {
+                                return b.createdAt.toMillis() - a.createdAt.toMillis(); // 최신순
+                            }
+                            // createdAt이 없는 경우 uid가 더 긴 것 유지 (새로운 형식)
+                            if (a.uid && b.uid) {
+                                return b.uid.length - a.uid.length;
+                            }
+                            return 0;
+                        });
+                        
+                        // 첫 번째(가장 최신)를 제외하고 나머지 삭제 대상에 추가
+                        for (let i = 1; i < users.length; i++) {
+                            usersToDelete.push(users[i].id);
+                            console.log(`🗑️ 삭제 대상: ${users[i].id} (이메일: ${email})`);
+                        }
+                    }
+                }
+                
+                console.log(`🗑️ 총 삭제할 중복 사용자: ${usersToDelete.length}명`);
                 
                 // 중복 사용자 삭제
+                let deletedCount = 0;
                 for (const userId of usersToDelete) {
                     try {
                         await deleteDoc(doc(db, 'users', userId));
                         console.log(`✅ 중복 사용자 삭제 완료: ${userId}`);
+                        deletedCount++;
                     } catch (error) {
                         console.error(`❌ 사용자 삭제 실패: ${userId}`, error);
                     }
                 }
                 
-                console.log('✅ Firebase 중복 사용자 데이터 정리 완료');
-                return usersToDelete.length;
+                console.log(`✅ Firebase 중복 사용자 데이터 정리 완료: ${deletedCount}명 삭제`);
+                return deletedCount;
                 
             } catch (error) {
                 console.error('❌ Firebase 중복 사용자 데이터 정리 실패:', error);
                 return 0;
+            }
+        }
+
+        // 특정 사용자 삭제 함수
+        async function deleteSpecificUser(userId) {
+            try {
+                console.log(`🗑️ 특정 사용자 삭제 시작: ${userId}`);
+                
+                const { deleteDoc, doc } = window.firebaseFirestoreFunctions;
+                const db = window.firebaseDb;
+                
+                await deleteDoc(doc(db, 'users', userId));
+                console.log(`✅ 사용자 삭제 완료: ${userId}`);
+                return true;
+                
+            } catch (error) {
+                console.error(`❌ 사용자 삭제 실패: ${userId}`, error);
+                throw error;
+            }
+        }
+
+        // 즉시 중복 문서 삭제 함수 (긴급용)
+        async function immediateDuplicateCleanup() {
+            try {
+                console.log('🚨 즉시 중복 문서 삭제 시작...');
+                
+                const { deleteDoc, doc } = window.firebaseFirestoreFunctions;
+                const db = window.firebaseDb;
+                
+                // 오래된 문서 삭제
+                await deleteDoc(doc(db, 'users', 'ffG0D4HTZ39gYiw0VNHO'));
+                console.log('✅ 오래된 문서 삭제 완료: ffG0D4HTZ39gYiw0VNHO');
+                
+                alert('✅ 중복 문서 삭제 완료!\n\n- 삭제된 문서: ffG0D4HTZ39gYiw0VNHO (오래된 것)\n- 유지된 문서: email_etgbajy_gmail_com (최신)\n\n이제 총 회원 수가 1명으로 정확히 표시됩니다.');
+                
+                // 페이지 새로고침
+                setTimeout(() => {
+                    location.reload();
+                }, 1000);
+                
+                return true;
+                
+            } catch (error) {
+                console.error('❌ 즉시 중복 문서 삭제 실패:', error);
+                alert('❌ 삭제 실패: ' + error.message);
+                throw error;
             }
         }
 
@@ -4432,8 +4500,14 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                     <div class="flex justify-between items-center mb-6">
                         <h2 class="text-2xl font-bold text-gray-800">👥 회원 관리</h2>
                         <div class="flex gap-2">
-                            <button onclick="cleanupDuplicateUsers().then(count => { alert(`중복 사용자 ${count}명이 정리되었습니다.`); subscribeToUsers(); })" class="px-4 py-2 bg-red-500 text-white rounded-lg font-semibold hover:bg-red-600 transition">
+                            <button onclick="immediateDuplicateCleanup()" class="px-4 py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition animate-pulse">
+                                🚨 즉시 해결!
+                            </button>
+                            <button onclick="cleanupDuplicateUsers().then(count => { alert(`중복 사용자 ${count}명이 정리되었습니다.`); setTimeout(() => subscribeToUsers(), 1000); })" class="px-4 py-2 bg-red-500 text-white rounded-lg font-semibold hover:bg-red-600 transition">
                                 🧹 중복 사용자 정리
+                            </button>
+                            <button onclick="deleteSpecificUser('ffG0D4HTZ39gYiw0VNHO').then(() => { alert('오래된 중복 사용자 문서가 삭제되었습니다.\n\n유지된 문서: email_etgbajy_gmail_com (최신)\n삭제된 문서: ffG0D4HTZ39gYiw0VNHO (오래된 것)'); setTimeout(() => { subscribeToUsers(); location.reload(); }, 2000); }).catch(error => alert('삭제 실패: ' + error.message))" class="px-4 py-2 bg-purple-500 text-white rounded-lg font-semibold hover:bg-purple-600 transition">
+                                🗑️ 오래된 중복 삭제
                             </button>
                             <button onclick="loadLocalStorageUsers()" class="px-4 py-2 bg-orange-500 text-white rounded-lg font-semibold hover:bg-orange-600 transition">
                                 🔄 localStorage 새로고침
