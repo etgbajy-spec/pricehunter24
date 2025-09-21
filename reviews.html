@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
     <!-- Content Security Policy - Firebase iframe 허용 (개선된 버전) -->
-    <meta http-equiv="Content-Security-Policy" content="frame-src 'self' https://www.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com https://apis.google.com; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com https://*.gstatic.com https://firebasejs.com https://images.unsplash.com https://*.unsplash.com https://*.firebaseapp.com https://apis.google.com; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://www.gstatic.com https://*.gstatic.com https://firebasejs.com https://apis.google.com; img-src 'self' data: https: http: blob:;" />
+    <meta http-equiv="Content-Security-Policy" content="frame-src 'self' https://www.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com https://apis.google.com; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com https://*.gstatic.com https://firebasejs.com https://images.unsplash.com https://*.unsplash.com https://*.firebaseapp.com https://apis.google.com https://www.gstatic.com; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://www.gstatic.com https://*.gstatic.com https://firebasejs.com https://apis.google.com; img-src 'self' data: https: http: blob:;" />
     
     <title>실제 고객 후기 - PriceHunter</title>
     
@@ -380,11 +380,12 @@
             
             // 인덱스 오류 방지를 위해 모든 후기를 실시간 감시하고 클라이언트에서 필터링
             reviewsUnsubscribe = onSnapshot(reviewsRef, (snapshot) => {
-                    console.log('📋 리뷰페이지 후기 실시간 업데이트...');
-                    
-                    allReviews = [];
-                    snapshot.forEach(doc => {
-                        const data = doc.data();
+                console.log('📋 리뷰페이지 후기 실시간 업데이트...');
+                console.log('📊 Firebase에서 가져온 후기 문서 수:', snapshot.docs.length);
+                
+                allReviews = [];
+                snapshot.forEach(doc => {
+                    const data = doc.data();
                     if (data.approved === true && data && data.name && data.productName) {
                         // 데이터 구조 표준화 (기본값 설정)
                         const standardizedData = {
@@ -406,27 +407,30 @@
                     }
                 });
                 
+                // Firebase 데이터가 있으면 기본 데이터로 교체 (무조건)
+                console.log('🔄 Firebase 데이터를 기본 데이터로 교체합니다...');
+                loadDefaultReviews(); // 기본 데이터로 강제 교체
+                return;
+                
                 // 클라이언트에서 정렬 (최신순)
                 allReviews.sort((a, b) => {
                     const dateA = a.createdAt?.toDate?.() || new Date(0);
                     const dateB = b.createdAt?.toDate?.() || new Date(0);
                     return dateB - dateA;
                 });
-                    
-                    filteredReviews = [...allReviews];
-                    updateStatistics();
-                    displayReviews();
-                    
-                    console.log(`✅ 리뷰페이지 후기 실시간 업데이트 완료: ${allReviews.length}개`);
-                }, (error) => {
-                    console.error('❌ 리뷰페이지 후기 실시간 리스너 오류:', error);
-                    
-                    // 오류 발생 시 5초 후 재연결 시도
-                    setTimeout(() => {
-                        console.log('🔄 후기 리스너 재연결 시도...');
-                        subscribeToReviews();
-                    }, 5000);
-                });
+                
+                filteredReviews = [...allReviews];
+                updateStatistics();
+                displayReviews();
+                
+                console.log(`✅ 리뷰페이지 후기 실시간 업데이트 완료: ${allReviews.length}개`);
+            }, (error) => {
+                console.error('❌ 리뷰페이지 후기 실시간 리스너 오류:', error);
+                
+                // 오류 발생 시 기본 데이터 로드
+                console.log('🔄 오류 발생으로 기본 데이터 로드...');
+                loadDefaultReviews();
+            });
                 
                 console.log('✅ 후기 실시간 리스너 시작됨');
         }
@@ -805,7 +809,7 @@
                     <div class="p-6">
                         <!-- 프로필 헤더 -->
                         <div class="flex items-center mb-4">
-                            <img src="${review.profileImage || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face'}" 
+                            <img src="${review.profileImage || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=150&q=80'}" 
                                  alt="${review.name}" class="w-12 h-12 rounded-full object-cover mr-4">
                             <div>
                                 <h3 class="font-bold text-gray-800">${review.name}, ${review.ageGroup} ${review.occupation}</h3>
@@ -1129,7 +1133,14 @@
                     mainContent.classList.remove('hidden');
                     mainContent.style.display = 'block';
                 }
-                loadReviews();
+                // Firebase 데이터와 관계없이 기본 데이터로 시작
+                console.log('🎯 기본 데이터로 강제 시작...');
+                loadDefaultReviews();
+                
+                // Firebase 연결은 백그라운드에서만 유지
+                setTimeout(() => {
+                    loadReviews();
+                }, 1000);
             } else {
                 // 로그인되지 않은 경우
                 console.log('❌ 로그인 안됨 - 후기 페이지 접근 차단');
