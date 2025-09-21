@@ -169,6 +169,12 @@
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🚀 관리자 대시보드 초기화 시작...');
             
+            // 함수 등록 상태 확인
+            console.log('🔍 함수 등록 상태 확인:');
+            console.log('- window.editReview:', typeof window.editReview);
+            console.log('- window.editReviewWithModal:', typeof window.editReviewWithModal);
+            console.log('- window.closeEditReviewModal:', typeof window.closeEditReviewModal);
+            
             // Firebase 준비 대기 후 실시간 구독 시작
             setTimeout(async () => {
                 try {
@@ -2916,14 +2922,19 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                                 <h4 class="text-lg font-semibold text-gray-800 mb-4">📸 대표사진</h4>
                                 <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                                     ${review.photos && review.photos.length > 0 ? review.photos.map(photo => `
-                                        <div class="relative">
+                                        <div class="photo-preview relative">
                                             <img src="${photo}" alt="후기 사진" class="w-full h-24 object-cover rounded-lg">
                                             <button type="button" onclick="removePhoto(this)" class="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">×</button>
                                         </div>
                                     `).join('') : ''}
                                 </div>
-                                <input type="file" id="edit-photos" multiple accept="image/*" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                <input type="file" id="edit-photos" multiple accept="image/*" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" onchange="previewPhotos(this)">
                                 <p class="text-sm text-gray-500 mt-2">여러 사진을 선택할 수 있습니다. (최대 4장)</p>
+                                
+                                <!-- 새 사진 미리보기 컨테이너 -->
+                                <div id="photo-preview-container" class="mt-4">
+                                    <!-- 새로 선택한 사진들의 미리보기가 여기에 표시됩니다 -->
+                                </div>
                             </div>
                             
                             <div class="flex justify-end gap-3 pt-6 border-t">
@@ -3022,6 +3033,66 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
 
         // 사진 제거 함수
         function removePhoto(button) {
+            const photoDiv = button.closest('.photo-preview');
+            if (photoDiv) {
+                photoDiv.classList.add('removed');
+                photoDiv.style.opacity = '0.3';
+                photoDiv.style.pointerEvents = 'none';
+                button.textContent = '복원';
+                button.onclick = function() {
+                    restorePhoto(this);
+                };
+            } else {
+                button.parentElement.remove();
+            }
+        }
+        
+        // 사진 복원 함수
+        function restorePhoto(button) {
+            const photoDiv = button.closest('.photo-preview');
+            if (photoDiv) {
+                photoDiv.classList.remove('removed');
+                photoDiv.style.opacity = '1';
+                photoDiv.style.pointerEvents = 'auto';
+                button.textContent = '×';
+                button.onclick = function() {
+                    removePhoto(this);
+                };
+            }
+        }
+        
+        // 사진 미리보기 함수
+        function previewPhotos(input) {
+            const files = input.files;
+            const previewContainer = document.getElementById('photo-preview-container');
+            
+            if (!previewContainer) return;
+            
+            // 기존 새 사진 미리보기 제거
+            const existingNewPreviews = previewContainer.querySelectorAll('.new-photo-preview');
+            existingNewPreviews.forEach(preview => preview.remove());
+            
+            // 새 사진들 미리보기 추가
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                if (file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const photoDiv = document.createElement('div');
+                        photoDiv.className = 'new-photo-preview relative inline-block m-2';
+                        photoDiv.innerHTML = `
+                            <img src="${e.target.result}" alt="새 후기 사진" class="w-24 h-24 object-cover rounded-lg border-2 border-blue-300">
+                            <button type="button" onclick="removeNewPhoto(this)" class="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">×</button>
+                        `;
+                        previewContainer.appendChild(photoDiv);
+                    };
+                    reader.readAsDataURL(file);
+                }
+            }
+        }
+        
+        // 새 사진 제거 함수
+        function removeNewPhoto(button) {
             button.parentElement.remove();
         }
 
@@ -3595,29 +3666,70 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
         window.deleteReview = deleteReview;
         window.addNewReview = addNewReview;
         // 새로운 editReview 함수를 전역으로 등록 (모달 방식)
-        window.editReview = function(reviewId) {
-            console.log('🔧 editReview 함수 호출됨:', { reviewId, allReviewsLength: allReviews.length });
-            console.log('📊 현재 allReviews:', allReviews);
-            
-            if (reviewId) {
-                // reviewId가 있으면 새로운 모달 방식 사용
-                const review = allReviews.find(r => r.id === reviewId);
-                console.log('🔍 찾은 후기:', review);
+        (function() {
+            window.editReview = function(reviewId) {
+                console.log('🔧 editReview 함수 호출됨:', { reviewId, allReviewsLength: allReviews.length });
+                console.log('📊 현재 allReviews:', allReviews);
+                console.log('🔍 window.editReview 함수 등록 확인:', typeof window.editReview);
                 
-                if (!review) {
-                    alert('후기 정보를 찾을 수 없습니다. ID: ' + reviewId);
-                    console.error('❌ 후기를 찾을 수 없음:', reviewId);
-                    return;
+                // 함수 호출 확인을 위한 알림
+                alert('수정 버튼이 클릭되었습니다! ID: ' + reviewId);
+                
+                if (reviewId) {
+                    // reviewId가 있으면 새로운 모달 방식 사용
+                    const review = allReviews.find(r => r.id === reviewId);
+                    console.log('🔍 찾은 후기:', review);
+                    
+                    if (!review) {
+                        alert('후기 정보를 찾을 수 없습니다. ID: ' + reviewId);
+                        console.error('❌ 후기를 찾을 수 없음:', reviewId);
+                        return;
+                    }
+                    console.log('✅ 모달 방식으로 후기 수정 시작');
+                    editReviewWithModal(reviewId);
+                } else {
+                    // reviewId가 없으면 경고 메시지 표시
+                    console.log('📝 reviewId가 없음');
+                    alert('수정할 후기를 선택해주세요.');
                 }
-                console.log('✅ 모달 방식으로 후기 수정 시작');
-                editReviewWithModal(reviewId);
+            };
+            
+            // 함수 등록 즉시 확인
+            console.log('✅ editReview 함수 등록 완료:', typeof window.editReview);
+        })();
+        
+        // 후기 수정 모달 관련 함수들을 전역으로 등록
+        (function() {
+            window.editReviewWithModal = editReviewWithModal;
+            window.closeEditReviewModal = closeEditReviewModal;
+            window.updateReview = updateReview;
+            window.removePhoto = removePhoto;
+            window.restorePhoto = restorePhoto;
+            window.previewPhotos = previewPhotos;
+            window.removeNewPhoto = removeNewPhoto;
+            
+            // 함수 등록 즉시 확인
+            console.log('✅ 후기 수정 관련 함수들 등록 완료:');
+            console.log('- editReviewWithModal:', typeof window.editReviewWithModal);
+            console.log('- closeEditReviewModal:', typeof window.closeEditReviewModal);
+            console.log('- updateReview:', typeof window.updateReview);
+            console.log('- removePhoto:', typeof window.removePhoto);
+        })();
+
+        // 테스트 함수 추가
+        window.testEditReview = function() {
+            console.log('🧪 테스트 함수 호출됨');
+            console.log('🔍 window.editReview 함수 존재 여부:', typeof window.editReview);
+            console.log('🔍 allReviews 길이:', allReviews.length);
+            
+            if (allReviews.length > 0) {
+                const firstReviewId = allReviews[0].id;
+                console.log('🧪 첫 번째 후기 ID로 테스트:', firstReviewId);
+                window.editReview(firstReviewId);
             } else {
-                // reviewId가 없으면 경고 메시지 표시
-                console.log('📝 reviewId가 없음');
-                alert('수정할 후기를 선택해주세요.');
+                alert('테스트할 후기가 없습니다. 먼저 후기 데이터를 로드해주세요.');
             }
         };
-
 
         // Firebase에서 후기 업데이트
         async function updateReviewInFirebase(review) {
@@ -4213,6 +4325,9 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                             </button>
                             <button onclick="editReview()" class="px-4 py-2 bg-yellow-500 text-white rounded-lg font-semibold hover:bg-yellow-600 transition">
                                 ✏️ 후기 수정 (목록에서 선택)
+                            </button>
+                            <button onclick="testEditReview()" class="px-4 py-2 bg-red-500 text-white rounded-lg font-semibold hover:bg-red-600 transition">
+                                🧪 수정 버튼 테스트
                             </button>
                             <button onclick="goToPage('reviews.html')" class="px-4 py-2 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition">
                                 👁️ 후기 페이지 보기
