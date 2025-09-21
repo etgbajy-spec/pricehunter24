@@ -504,8 +504,9 @@
                     
                 }, (error) => {
                     console.error('❌ 사용자 목록 실시간 구독 실패:', error);
-                    // Firebase 연결 실패
-                    console.log('🔄 Firebase 연결 실패');
+                    // Firebase 연결 실패시 빈 목록 표시
+                    updateUsersTable([]);
+                    document.getElementById('total-members').textContent = '0';
                     
                     // 연결 실패시 5초 후 재시도
                     setTimeout(() => {
@@ -515,8 +516,9 @@
                 });
             } catch (error) {
                 console.error('❌ Firestore 쿼리 생성 실패:', error);
-                // 쿼리 생성 실패시 localStorage 데이터만 표시
-                loadLocalStorageUsers();
+                // 쿼리 생성 실패시 빈 목록 표시
+                updateUsersTable([]);
+                document.getElementById('total-members').textContent = '0';
                 
                 // 쿼리 생성 실패시 3초 후 재시도
                 setTimeout(() => {
@@ -693,6 +695,7 @@
                 const kakaoUsers = users.filter(user => (user.loginMethod || user.loginType) === 'kakao').length;
                 const emailUsers = users.filter(user => (user.loginMethod || user.loginType) === 'email').length;
                 const firebaseUsers = users.length; // 모든 사용자가 Firebase 사용자
+                const localStorageUsers = 0; // Firebase 전용이므로 0
                 
                 console.log('📊 회원 통계:', {
                     total: users.length,
@@ -716,8 +719,12 @@
                                 <div class="text-gray-600">이메일</div>
                             </div>
                             <div class="text-center">
-                                <div class="font-bold text-lg text-green-600">${firebaseUsers}</div>
+                                <div class="font-bold text-lg text-purple-600">${firebaseUsers}</div>
                                 <div class="text-gray-600">Firebase</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="font-bold text-lg text-gray-400">${localStorageUsers}</div>
+                                <div class="text-gray-600">localStorage</div>
                             </div>
                         </div>
                     `;
