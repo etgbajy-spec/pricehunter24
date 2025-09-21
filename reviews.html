@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
     <!-- Content Security Policy - Firebase iframe 허용 (개선된 버전) -->
-    <meta http-equiv="Content-Security-Policy" content="frame-src 'self' https://www.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com https://apis.google.com; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com https://*.gstatic.com https://firebasejs.com https://images.unsplash.com https://*.unsplash.com https://*.firebaseapp.com https://apis.google.com https://*.firebasejs.com; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://www.gstatic.com https://*.gstatic.com https://firebasejs.com https://apis.google.com; img-src 'self' data: https: http: blob:;" />
+    <meta http-equiv="Content-Security-Policy" content="frame-src 'self' https://www.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com https://apis.google.com https://accounts.google.com; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com https://*.gstatic.com https://firebasejs.com https://images.unsplash.com https://*.unsplash.com https://*.firebaseapp.com https://apis.google.com https://*.firebasejs.com https://accounts.google.com; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://www.gstatic.com https://*.gstatic.com https://firebasejs.com https://apis.google.com; img-src 'self' data: https: http: blob:;" />
     
     <title>실제 고객 후기 - PriceHunter</title>
     
@@ -1061,6 +1061,11 @@
             const userEmail = localStorage.getItem('userEmail');
             const userData = localStorage.getItem('userData');
             
+            // 관리자 모드 체크
+            const isAdmin = localStorage.getItem('isAdmin') === 'true' || sessionStorage.getItem('isAdmin') === 'true';
+            const adminMode = localStorage.getItem('adminMode') === 'true' || sessionStorage.getItem('adminMode') === 'true';
+            const isAdminLoggedIn = localStorage.getItem('isAdminLoggedIn') === 'true' || sessionStorage.getItem('isAdminLoggedIn') === 'true';
+            
             // 더 강화된 로그인 상태 확인 - JSON 파싱도 포함
             let isLoggedIn = false;
             
@@ -1090,10 +1095,15 @@
                     isLoggedIn = true;
                 }
                 
+                // 관리자 모드인 경우 접근 허용
+                if (isAdmin || adminMode || isAdminLoggedIn) {
+                    isLoggedIn = true;
+                }
+                
             } catch (error) {
                 console.warn('로그인 상태 파싱 오류:', error);
                 // 파싱 오류 시 기본값 사용
-                isLoggedIn = loggedIn === 'true' || currentUser || user || loggedInEmail || userEmail;
+                isLoggedIn = loggedIn === 'true' || currentUser || user || loggedInEmail || userEmail || isAdmin || adminMode || isAdminLoggedIn;
             }
             
             const loginOverlay = document.getElementById('login-required-overlay');
@@ -1108,6 +1118,9 @@
                 userData: userData,
                 sessionLoggedIn: sessionStorage.getItem('loggedIn'),
                 sessionCurrentUser: sessionStorage.getItem('currentUser'),
+                isAdmin: isAdmin,
+                adminMode: adminMode,
+                isAdminLoggedIn: isAdminLoggedIn,
                 isLoggedIn: isLoggedIn,
                 loginOverlay: !!loginOverlay,
                 mainContent: !!mainContent
@@ -1146,7 +1159,7 @@
 
         // 로그인 상태 변경 이벤트 리스너
         window.addEventListener('storage', function(e) {
-            if (e.key === 'loggedIn' || e.key === 'currentUser') {
+            if (e.key === 'loggedIn' || e.key === 'currentUser' || e.key === 'isAdmin' || e.key === 'adminMode' || e.key === 'isAdminLoggedIn') {
                 console.log('🔄 로그인 상태 변경 감지:', e.key, e.newValue);
                 onLoginStatusChange();
             }

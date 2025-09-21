@@ -13,7 +13,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     
     <!-- Content Security Policy - Firebase iframe 허용 -->
-    <meta http-equiv="Content-Security-Policy" content="frame-src 'self' https://www.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com https://apis.google.com https://identitytoolkit.googleapis.com; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com https://*.gstatic.com https://firebasejs.com https://images.unsplash.com https://*.unsplash.com https://apis.google.com https://*.firebasejs.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://www.gstatic.com https://*.gstatic.com https://firebasejs.com https://apis.google.com; img-src 'self' data: https: http: blob:;" />
+    <meta http-equiv="Content-Security-Policy" content="frame-src 'self' https://www.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com https://apis.google.com https://identitytoolkit.googleapis.com https://accounts.google.com; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com https://*.gstatic.com https://firebasejs.com https://images.unsplash.com https://*.unsplash.com https://apis.google.com https://*.firebasejs.com https://accounts.google.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://www.gstatic.com https://*.gstatic.com https://firebasejs.com https://apis.google.com; img-src 'self' data: https: http: blob:;" />
     
     <title>PriceHunter</title>
     
@@ -1532,61 +1532,6 @@
         }
       }
 
-      // Firebase 사용자 데이터 확인 함수
-      async function checkFirebaseUserData(email) {
-        try {
-          console.log('🔍 Firebase 사용자 데이터 확인:', email);
-          
-          // Firestore에서 사용자 데이터 확인
-          const { collection, query, where, getDocs } = window.firebaseFirestoreFunctions;
-          const usersRef = collection(window.firebaseDb, 'users');
-          const q = query(usersRef, where('email', '==', email));
-          const querySnapshot = await getDocs(q);
-          
-          console.log('📊 Firestore 사용자 검색 결과:', {
-            email: email,
-            found: !querySnapshot.empty,
-            count: querySnapshot.size
-          });
-          
-          if (!querySnapshot.empty) {
-            querySnapshot.forEach((doc) => {
-              console.log('👤 Firestore 사용자 데이터:', {
-                id: doc.id,
-                data: doc.data()
-              });
-            });
-          } else {
-            console.log('❌ Firestore에서 사용자를 찾을 수 없음');
-          }
-          
-          // Firebase Auth에서 사용자 확인
-          console.log('🔐 Firebase Auth 사용자 확인');
-          
-          // 현재 Firebase Auth 상태 확인
-          if (window.firebaseAuth) {
-            console.log('📊 Firebase Auth 상태:', {
-              currentUser: window.firebaseAuth.currentUser ? window.firebaseAuth.currentUser.email : '없음',
-              authDomain: window.firebaseAuth.app.options.authDomain,
-              apiKey: window.firebaseAuth.app.options.apiKey ? '설정됨' : '없음'
-            });
-          } else {
-            console.log('❌ Firebase Auth가 초기화되지 않음');
-          }
-          
-          // Firestore에는 있지만 Firebase Auth에는 없는 경우
-          if (!querySnapshot.empty && (!window.firebaseAuth.currentUser || window.firebaseAuth.currentUser.email !== email)) {
-            console.log('⚠️ Firestore에는 있지만 Firebase Auth에는 없는 사용자');
-            console.log('💡 해결 방법: Firebase Auth에 사용자를 생성해야 합니다.');
-            
-            // 사용자에게 알림
-            showToast('Firestore에는 사용자가 있지만 Firebase Auth에 등록되지 않았습니다. 관리자에게 문의하세요.', 'warning');
-          }
-          
-        } catch (error) {
-          console.error('❌ Firebase 사용자 데이터 확인 실패:', error);
-        }
-      }
 
       // Firebase Auth 사용자 생성 함수 (관리자용)
       async function createFirebaseAuthUser(email, password) {

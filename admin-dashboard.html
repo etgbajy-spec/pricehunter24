@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
     <!-- Content Security Policy - Firebase iframe 허용 -->
-    <meta http-equiv="Content-Security-Policy" content="frame-src 'self' https://www.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com https://apis.google.com; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com https://*.gstatic.com https://firebasejs.com https://images.unsplash.com https://*.unsplash.com https://apis.google.com https://*.firebasejs.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://www.gstatic.com https://*.gstatic.com https://firebasejs.com https://apis.google.com; img-src 'self' data: https: http: blob:;" />
+    <meta http-equiv="Content-Security-Policy" content="frame-src 'self' https://www.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com https://apis.google.com https://accounts.google.com; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com https://*.gstatic.com https://firebasejs.com https://images.unsplash.com https://*.unsplash.com https://apis.google.com https://*.firebasejs.com https://accounts.google.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://www.gstatic.com https://*.gstatic.com https://firebasejs.com https://apis.google.com; img-src 'self' data: https: http: blob:;" />
     
     <title>관리자 대시보드 - PriceHunter</title>
     
@@ -3597,6 +3597,7 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
         // 새로운 editReview 함수를 전역으로 등록 (모달 방식)
         window.editReview = function(reviewId) {
             console.log('🔧 editReview 함수 호출됨:', { reviewId, allReviewsLength: allReviews.length });
+            console.log('📊 현재 allReviews:', allReviews);
             
             if (reviewId) {
                 // reviewId가 있으면 새로운 모달 방식 사용
@@ -3604,23 +3605,19 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 console.log('🔍 찾은 후기:', review);
                 
                 if (!review) {
-                    alert('후기 정보를 찾을 수 없습니다.');
+                    alert('후기 정보를 찾을 수 없습니다. ID: ' + reviewId);
+                    console.error('❌ 후기를 찾을 수 없음:', reviewId);
                     return;
                 }
                 console.log('✅ 모달 방식으로 후기 수정 시작');
                 editReviewWithModal(reviewId);
             } else {
-                // reviewId가 없으면 기존 방식 사용
-                console.log('📝 기존 방식으로 후기 수정 시작');
-                editReviewOld();
+                // reviewId가 없으면 경고 메시지 표시
+                console.log('📝 reviewId가 없음');
+                alert('수정할 후기를 선택해주세요.');
             }
         };
 
-        // 후기 수정 (기존 함수 제거됨 - 새로운 모달 방식 사용)
-        function editReviewOld() {
-            // 이 함수는 더 이상 사용되지 않음
-            alert('새로운 수정 방식을 사용하세요. 후기 상세보기에서 수정 버튼을 클릭하세요.');
-        }
 
         // Firebase에서 후기 업데이트
         async function updateReviewInFirebase(review) {
