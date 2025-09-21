@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
     <!-- Content Security Policy - Firebase iframe 허용 -->
-    <meta http-equiv="Content-Security-Policy" content="frame-src 'self' https://www.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com https://apis.google.com; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com https://*.gstatic.com https://firebasejs.com https://images.unsplash.com https://*.unsplash.com; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://www.gstatic.com https://*.gstatic.com https://firebasejs.com; img-src 'self' data: https: http: blob:;" />
+    <meta http-equiv="Content-Security-Policy" content="frame-src 'self' https://www.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com https://apis.google.com; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com https://*.gstatic.com https://firebasejs.com https://images.unsplash.com https://*.unsplash.com https://apis.google.com; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://www.gstatic.com https://*.gstatic.com https://firebasejs.com https://apis.google.com; img-src 'self' data: https: http: blob:;" />
     
     <title>관리자 대시보드 - PriceHunter</title>
     
@@ -2457,12 +2457,14 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 // 인덱스 오류 방지를 위해 단순 쿼리 사용
                 reviewsUnsubscribe = onSnapshot(reviewsRef, async (snapshot) => {
                 console.log('📋 후기 데이터 실시간 업데이트...');
+                console.log('📊 Firebase에서 가져온 후기 문서 수:', snapshot.docs.length);
                 
                 allReviews = [];
                 
                 // 각 후기에 대해 의뢰 건 정보도 함께 로드
                 for (const docSnapshot of snapshot.docs) {
                     const reviewData = { id: docSnapshot.id, ...docSnapshot.data() };
+                    console.log('📝 후기 데이터 로드:', reviewData.name, reviewData.productName, '승인:', reviewData.approved);
                     
                     // 데이터 구조 표준화 (기본값 설정)
                     reviewData.approved = reviewData.approved || false;
@@ -2585,6 +2587,105 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             console.log('✅ 후기 통계 UI 업데이트 완료');
         }
 
+        // 초기 후기 데이터 생성 함수
+        async function initializeReviewsData() {
+            console.log('🔄 초기 후기 데이터 생성 시작...');
+            
+            try {
+                const { collection, addDoc, serverTimestamp } = window.firebaseFirestoreFunctions;
+                const reviewsRef = collection(window.firebaseDb, 'reviews');
+                
+                // 인덱스페이지의 실제고객후기 데이터를 Firebase에 추가
+                const initialReviews = [
+                    {
+                        name: '김OO',
+                        ageGroup: '30대',
+                        occupation: '직장인',
+                        productName: '음향기기',
+                        originalPrice: '1,200,000원',
+                        finalPrice: '780,000원',
+                        savings: '420,000원',
+                        savingsPercent: 35,
+                        rating: 5,
+                        review: '요청가 120만원 → 78만원으로 구매! 음질도 좋고 배송도 빨랐어요!',
+                        country: '대한민국',
+                        shipping: '2일',
+                        method: '공장 직접구매',
+                        badge: '실제 구매자',
+                        purchaseDate: '2024-06-28',
+                        profileImage: 'https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80',
+                        category: '전자제품',
+                        photos: [],
+                        approved: true,
+                        featured: true,
+                        views: 0,
+                        createdAt: serverTimestamp()
+                    },
+                    {
+                        name: '이OO',
+                        ageGroup: '20대',
+                        occupation: '대학생',
+                        productName: '전자제품',
+                        originalPrice: '450,000원',
+                        finalPrice: '280,000원',
+                        savings: '170,000원',
+                        savingsPercent: 38,
+                        rating: 4.5,
+                        review: '요청가 45만원 → 28만원으로 절약! 해외직구보다 더 싸게 샀어요.',
+                        country: '미국',
+                        shipping: '7일',
+                        method: '도매처 연동',
+                        badge: '실제 구매자',
+                        purchaseDate: '2024-06-25',
+                        profileImage: 'https://images.unsplash.com/photo-1503602642458-232111445657?auto=format&fit=crop&w=600&q=80',
+                        category: '전자제품',
+                        photos: [],
+                        approved: true,
+                        featured: true,
+                        views: 0,
+                        createdAt: serverTimestamp()
+                    },
+                    {
+                        name: '박OO',
+                        ageGroup: '40대',
+                        occupation: '주부',
+                        productName: '한정판 상품',
+                        originalPrice: '890,000원',
+                        finalPrice: '520,000원',
+                        savings: '370,000원',
+                        savingsPercent: 42,
+                        rating: 5,
+                        review: '요청가 89만원 → 52만원으로 절약! 한정판도 공장가로 득템! 만족합니다.',
+                        country: '일본',
+                        shipping: '5일',
+                        method: '공장 직접구매',
+                        badge: '실제 구매자',
+                        purchaseDate: '2024-06-20',
+                        profileImage: 'https://images.unsplash.com/photo-1465101046530-73398c7f28ca?auto=format&fit=crop&w=600&q=80',
+                        category: '기타',
+                        photos: [],
+                        approved: true,
+                        featured: true,
+                        views: 0,
+                        createdAt: serverTimestamp()
+                    }
+                ];
+                
+                // Firebase에 후기 데이터 추가
+                for (const review of initialReviews) {
+                    await addDoc(reviewsRef, review);
+                    console.log('✅ 후기 데이터 추가:', review.name);
+                }
+                
+                console.log('🎉 초기 후기 데이터 생성 완료!');
+                alert('초기 후기 데이터가 생성되었습니다. 페이지를 새로고침해주세요.');
+                
+            } catch (error) {
+                console.error('❌ 초기 후기 데이터 생성 실패:', error);
+                alert('초기 후기 데이터 생성에 실패했습니다: ' + error.message);
+            }
+        }
+
         // 후기 테이블 표시
         function displayReviewsTable() {
             console.log('📊 후기 테이블 표시 시작:', {
@@ -2604,7 +2705,10 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 tbody.innerHTML = `
                     <tr>
                         <td colspan="8" class="px-6 py-4 text-center text-gray-500">
-                            후기가 없습니다. <button onclick="initializeReviewsData()" class="text-blue-600 hover:text-blue-800 underline">초기 데이터 생성</button>
+                            후기가 없습니다. 
+                            <button onclick="initializeReviewsData()" class="ml-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+                                초기 데이터 생성
+                            </button>
                         </td>
                     </tr>
                 `;

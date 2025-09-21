@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
     <!-- Content Security Policy - Firebase iframe 허용 (개선된 버전) -->
-    <meta http-equiv="Content-Security-Policy" content="frame-src 'self' https://www.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com https://apis.google.com; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com https://*.gstatic.com https://firebasejs.com https://images.unsplash.com https://*.unsplash.com https://*.firebaseapp.com; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://www.gstatic.com https://*.gstatic.com https://firebasejs.com; img-src 'self' data: https: http: blob:;" />
+    <meta http-equiv="Content-Security-Policy" content="frame-src 'self' https://www.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com https://apis.google.com; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com https://*.gstatic.com https://firebasejs.com https://images.unsplash.com https://*.unsplash.com https://*.firebaseapp.com https://apis.google.com; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://www.gstatic.com https://*.gstatic.com https://firebasejs.com https://apis.google.com; img-src 'self' data: https: http: blob:;" />
     
     <title>실제 고객 후기 - PriceHunter</title>
     
@@ -380,11 +380,11 @@
             
             // 인덱스 오류 방지를 위해 모든 후기를 실시간 감시하고 클라이언트에서 필터링
             reviewsUnsubscribe = onSnapshot(reviewsRef, (snapshot) => {
-                console.log('📋 리뷰페이지 후기 실시간 업데이트...');
-                
-                allReviews = [];
-                snapshot.forEach(doc => {
-                    const data = doc.data();
+                    console.log('📋 리뷰페이지 후기 실시간 업데이트...');
+                    
+                    allReviews = [];
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
                     if (data.approved === true && data && data.name && data.productName) {
                         // 데이터 구조 표준화 (기본값 설정)
                         const standardizedData = {
@@ -412,23 +412,23 @@
                     const dateB = b.createdAt?.toDate?.() || new Date(0);
                     return dateB - dateA;
                 });
+                    
+                    filteredReviews = [...allReviews];
+                    updateStatistics();
+                    displayReviews();
+                    
+                    console.log(`✅ 리뷰페이지 후기 실시간 업데이트 완료: ${allReviews.length}개`);
+                }, (error) => {
+                    console.error('❌ 리뷰페이지 후기 실시간 리스너 오류:', error);
+                    
+                    // 오류 발생 시 5초 후 재연결 시도
+                    setTimeout(() => {
+                        console.log('🔄 후기 리스너 재연결 시도...');
+                        subscribeToReviews();
+                    }, 5000);
+                });
                 
-                filteredReviews = [...allReviews];
-                updateStatistics();
-                displayReviews();
-                
-                console.log(`✅ 리뷰페이지 후기 실시간 업데이트 완료: ${allReviews.length}개`);
-            }, (error) => {
-                console.error('❌ 리뷰페이지 후기 실시간 리스너 오류:', error);
-                
-                // 오류 발생 시 5초 후 재연결 시도
-                setTimeout(() => {
-                    console.log('🔄 후기 리스너 재연결 시도...');
-                    subscribeToReviews();
-                }, 5000);
-            });
-            
-            console.log('✅ 후기 실시간 리스너 시작됨');
+                console.log('✅ 후기 실시간 리스너 시작됨');
         }
 
         // 페이지 언로드 시 리스너 정리
@@ -444,154 +444,112 @@
             allReviews = [
                 {
                     id: '1',
-                    name: '홍길동',
-                    ageGroup: '20대',
-                    occupation: '개발자',
-                    productName: '노트북',
+                    name: '김OO',
+                    ageGroup: '30대',
+                    occupation: '직장인',
+                    productName: '음향기기',
                     originalPrice: '1,200,000원',
                     finalPrice: '780,000원',
                     savings: '420,000원',
                     savingsPercent: 35,
                     rating: 5,
-                    review: '요청가 120만원 → 78만원으로 구매! 성능도 훌륭하고 정말 만족합니다.',
+                    review: '요청가 120만원 → 78만원으로 구매! 음질도 좋고 배송도 빨랐어요!',
                     country: '대한민국',
                     shipping: '2일',
                     method: '공장 직접구매',
                     badge: '실제 구매자',
-                    purchaseDate: '2024-07-01',
+                    purchaseDate: '2024-06-28',
                     profileImage: 'https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80',
                     category: '전자제품',
                     photos: []
                 },
                 {
                     id: '2',
-                    name: '김영희',
-                    ageGroup: '30대',
-                    occupation: '디자이너',
-                    productName: '모니터',
+                    name: '이OO',
+                    ageGroup: '20대',
+                    occupation: '대학생',
+                    productName: '전자제품',
                     originalPrice: '450,000원',
                     finalPrice: '280,000원',
                     savings: '170,000원',
                     savingsPercent: 38,
                     rating: 4.5,
-                    review: '요청가 45만원 → 28만원으로 절약! 화질도 좋고 가격도 만족!',
-                    country: '대한민국',
-                    shipping: '3일',
+                    review: '요청가 45만원 → 28만원으로 절약! 해외직구보다 더 싸게 샀어요.',
+                    country: '미국',
+                    shipping: '7일',
                     method: '도매처 연동',
                     badge: '실제 구매자',
-                    purchaseDate: '2024-07-02',
+                    purchaseDate: '2024-06-25',
                     profileImage: 'https://images.unsplash.com/photo-1503602642458-232111445657?auto=format&fit=crop&w=600&q=80',
                     category: '전자제품',
                     photos: []
                 },
                 {
                     id: '3',
-                    name: '이철수',
+                    name: '박OO',
                     ageGroup: '40대',
-                    occupation: '자영업자',
-                    productName: '사무용품',
+                    occupation: '주부',
+                    productName: '한정판 상품',
                     originalPrice: '890,000원',
                     finalPrice: '520,000원',
                     savings: '370,000원',
                     savingsPercent: 42,
                     rating: 5,
-                    review: '요청가 89만원 → 52만원으로 절약! 빠른 배송, 저렴한 가격!',
-                    country: '대한민국',
-                    shipping: '2일',
+                    review: '요청가 89만원 → 52만원으로 절약! 한정판도 공장가로 득템! 만족합니다.',
+                    country: '일본',
+                    shipping: '5일',
                     method: '공장 직접구매',
-                    badge: '사업자 대량구매',
-                    purchaseDate: '2024-07-03',
+                    badge: '실제 구매자',
+                    purchaseDate: '2024-06-20',
                     profileImage: 'https://images.unsplash.com/photo-1465101046530-73398c7f28ca?auto=format&fit=crop&w=600&q=80',
-                    category: '사무용품',
+                    category: '기타',
                     photos: []
                 },
                 {
                     id: '4',
-                    name: '박민수',
-                    ageGroup: '20대',
-                    occupation: '대학생',
-                    productName: '태블릿',
+                    name: '최OO',
+                    ageGroup: '50대',
+                    occupation: '자영업자',
+                    productName: '키보드',
                     originalPrice: '320,000원',
                     finalPrice: '210,000원',
                     savings: '110,000원',
                     savingsPercent: 34,
                     rating: 4.8,
-                    review: '요청가 32만원 → 21만원으로 구매! 학생 할인까지 받아서 굿!',
-                    country: '대한민국',
-                    shipping: '4일',
+                    review: '요청가 32만원 → 21만원으로 구매! 타건감 최고, 가격도 만족!',
+                    country: '중국',
+                    shipping: '8일',
                     method: '공장 직접구매',
                     badge: '실제 구매자',
-                    purchaseDate: '2024-07-04',
+                    purchaseDate: '2024-06-18',
                     profileImage: 'https://images.unsplash.com/photo-1512499617640-c2f999098c01?auto=format&fit=crop&w=600&q=80',
                     category: '전자제품',
                     photos: []
                 },
                 {
                     id: '5',
-                    name: '최지은',
-                    ageGroup: '30대',
-                    occupation: '주부',
-                    productName: '가전제품',
+                    name: '정OO',
+                    ageGroup: '20대',
+                    occupation: '신혼부부',
+                    productName: '신혼가전',
                     originalPrice: '680,000원',
                     finalPrice: '420,000원',
                     savings: '260,000원',
                     savingsPercent: 38,
                     rating: 5,
-                    review: '요청가 68만원 → 42만원으로 절약! 믿고 구매했어요.',
+                    review: '요청가 68만원 → 42만원으로 절약! 냉장고, 세탁기 모두 만족! 배송도 빠름.',
                     country: '대한민국',
                     shipping: '3일',
                     method: '도매처 연동',
                     badge: '실제 구매자',
-                    purchaseDate: '2024-07-05',
+                    purchaseDate: '2024-06-15',
                     profileImage: 'https://images.unsplash.com/photo-1515378791036-0648a3ef77b2?auto=format&fit=crop&w=600&q=80',
                     category: '가전제품',
                     photos: []
                 },
                 {
                     id: '6',
-                    name: '정우성',
-                    ageGroup: '40대',
-                    occupation: '직장인',
-                    productName: '스마트워치',
-                    originalPrice: '298,000원',
-                    finalPrice: '156,000원',
-                    savings: '142,000원',
-                    savingsPercent: 48,
-                    rating: 4.7,
-                    review: '요청가 29.8만원 → 15.6만원으로 절약! 기능도 많고 저렴!',
-                    country: '대한민국',
-                    shipping: '2일',
-                    method: '공장 직접구매',
-                    badge: '실제 구매자',
-                    purchaseDate: '2024-07-06',
-                    profileImage: 'https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80',
-                    category: '전자제품',
-                    photos: []
-                },
-                {
-                    id: '7',
-                    name: '한가영',
-                    ageGroup: '20대',
-                    occupation: '신혼부부',
-                    productName: '신혼가전',
-                    originalPrice: '1,560,000원',
-                    finalPrice: '890,000원',
-                    savings: '670,000원',
-                    savingsPercent: 43,
-                    rating: 5,
-                    review: '요청가 156만원 → 89만원으로 절약! 배송도 빠르고 만족!',
-                    country: '대한민국',
-                    shipping: '3일',
-                    method: '도매처 연동',
-                    badge: '실제 구매자',
-                    purchaseDate: '2024-07-07',
-                    profileImage: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80',
-                    category: '가전제품',
-                    photos: []
-                },
-                {
-                    id: '8',
-                    name: '오준호',
+                    name: '오OO',
                     ageGroup: '30대',
                     occupation: '1인가구',
                     productName: '생활용품',
@@ -599,41 +557,41 @@
                     finalPrice: '145,000원',
                     savings: '89,000원',
                     savingsPercent: 38,
-                    rating: 4.6,
-                    review: '요청가 23.4만원 → 14.5만원으로 절약! 혼자 사는데 딱!',
+                    rating: 4.7,
+                    review: '요청가 23.4만원 → 14.5만원으로 절약! 혼자 사는데 필요한 소형가전, 생활용품 다 싸게 샀어요.',
                     country: '대한민국',
                     shipping: '2일',
                     method: '공장 직접구매',
                     badge: '실제 구매자',
-                    purchaseDate: '2024-07-08',
+                    purchaseDate: '2024-06-10',
                     profileImage: 'https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80',
                     category: '생활용품',
                     photos: []
                 },
                 {
-                    id: '9',
-                    name: '유수진',
+                    id: '7',
+                    name: '유OO',
                     ageGroup: '60대',
                     occupation: '부모님 선물',
-                    productName: '안마기',
+                    productName: '건강용품',
                     originalPrice: '189,000원',
                     finalPrice: '67,000원',
                     savings: '122,000원',
                     savingsPercent: 65,
                     rating: 5,
-                    review: '요청가 18.9만원 → 6.7만원으로 절약! 부모님이 좋아하셨어요.',
+                    review: '요청가 18.9만원 → 6.7만원으로 절약! 안마기, 건강식품 모두 만족! 부모님이 좋아하셨어요.',
                     country: '대한민국',
                     shipping: '2일',
                     method: '공장 직접구매',
                     badge: '실제 구매자',
-                    purchaseDate: '2024-07-09',
-                    profileImage: 'https://images.unsplash.com/photo-1503602642458-232111445657?auto=format&fit=crop&w=600&q=80',
-                    category: '생활용품',
+                    purchaseDate: '2024-06-08',
+                    profileImage: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80',
+                    category: '건강용품',
                     photos: []
                 },
                 {
-                    id: '10',
-                    name: '장동건',
+                    id: '8',
+                    name: '장OO',
                     ageGroup: '10대',
                     occupation: '학생',
                     productName: '학용품, IT기기',
@@ -642,19 +600,19 @@
                     savings: '370,000원',
                     savingsPercent: 42,
                     rating: 4.9,
-                    review: '요청가 89만원 → 52만원으로 절약! 노트북, 태블릿 다 싸게 샀어요.',
+                    review: '요청가 89만원 → 52만원으로 절약! 노트북, 태블릿, 학용품 다 싸게 샀어요.',
                     country: '대한민국',
                     shipping: '2일',
                     method: '공장 직접구매',
                     badge: '실제 구매자',
-                    purchaseDate: '2024-07-10',
+                    purchaseDate: '2024-06-05',
                     profileImage: 'https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80',
                     category: '전자제품',
                     photos: []
                 },
                 {
-                    id: '11',
-                    name: '서지훈',
+                    id: '9',
+                    name: '서OO',
                     ageGroup: '30대',
                     occupation: '취미러',
                     productName: '취미용품',
@@ -663,19 +621,19 @@
                     savings: '222,000원',
                     savingsPercent: 49,
                     rating: 5,
-                    review: '요청가 45.6만원 → 23.4만원으로 절약! 기타, 캠핑용품, 운동기구까지 만족!',
+                    review: '요청가 45.6만원 → 23.4만원으로 절약! 기타, 캠핑용품, 운동기구까지 다 만족!',
                     country: '대한민국',
                     shipping: '2일',
                     method: '공장 직접구매',
                     badge: '실제 구매자',
-                    purchaseDate: '2024-07-11',
+                    purchaseDate: '2024-06-01',
                     profileImage: 'https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80',
-                    category: '생활용품',
+                    category: '취미용품',
                     photos: []
                 },
                 {
-                    id: '12',
-                    name: '문지현',
+                    id: '10',
+                    name: '문OO',
                     ageGroup: '40대',
                     occupation: '직장인',
                     productName: '패션/잡화',
@@ -684,19 +642,19 @@
                     savings: '147,000원',
                     savingsPercent: 43,
                     rating: 4.6,
-                    review: '요청가 34.5만원 → 19.8만원으로 절약! 가방, 신발, 액세서리 다 싸게 샀어요.',
+                    review: '요청가 34.5만원 → 19.8만원으로 절약! 가방, 신발, 액세서리까지 다 싸게 샀어요.',
                     country: '대한민국',
                     shipping: '2일',
                     method: '공장 직접구매',
                     badge: '실제 구매자',
-                    purchaseDate: '2024-07-12',
+                    purchaseDate: '2024-05-28',
                     profileImage: 'https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80',
-                    category: '생활용품',
+                    category: '패션잡화',
                     photos: []
                 },
                 {
-                    id: '13',
-                    name: '이하나',
+                    id: '11',
+                    name: '이OO',
                     ageGroup: '30대',
                     occupation: '프리랜서',
                     productName: '사무용품',
@@ -705,19 +663,19 @@
                     savings: '222,000원',
                     savingsPercent: 39,
                     rating: 4.8,
-                    review: '요청가 56.7만원 → 34.5만원으로 절약! 프린터, 모니터, 의자까지 만족!',
+                    review: '요청가 56.7만원 → 34.5만원으로 절약! 프린터, 모니터, 의자까지 다 만족!',
                     country: '대한민국',
                     shipping: '2일',
                     method: '공장 직접구매',
                     badge: '실제 구매자',
-                    purchaseDate: '2024-07-13',
+                    purchaseDate: '2024-05-25',
                     profileImage: 'https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80',
                     category: '사무용품',
                     photos: []
                 },
                 {
-                    id: '14',
-                    name: '최유리',
+                    id: '12',
+                    name: '최OO',
                     ageGroup: '20대',
                     occupation: '대학생',
                     productName: '전자기기',
@@ -731,14 +689,14 @@
                     shipping: '2일',
                     method: '공장 직접구매',
                     badge: '실제 구매자',
-                    purchaseDate: '2024-07-14',
+                    purchaseDate: '2024-05-20',
                     profileImage: 'https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80',
                     category: '전자제품',
                     photos: []
                 },
                 {
-                    id: '15',
-                    name: '박상민',
+                    id: '13',
+                    name: '박OO',
                     ageGroup: '40대',
                     occupation: '사업자',
                     productName: '사무실 비품',
@@ -747,14 +705,56 @@
                     savings: '890,000원',
                     savingsPercent: 38,
                     rating: 5,
-                    review: '요청가 234만원 → 145만원으로 절약! 프린터, 의자, 책상 등 대량구매도 빠르고 저렴!',
+                    review: '요청가 234만원 → 145만원으로 절약! 프린터, 의자, 책상 등 대량구매도 빠르고 저렴하게 해결!',
                     country: '대한민국',
                     shipping: '3일',
                     method: '도매처 연동',
                     badge: '사업자 대량구매',
-                    purchaseDate: '2024-07-15',
+                    purchaseDate: '2024-06-27',
                     profileImage: 'https://images.unsplash.com/photo-1515378791036-0648a3ef77b2?auto=format&fit=crop&w=600&q=80',
                     category: '사무용품',
+                    photos: []
+                },
+                {
+                    id: '14',
+                    name: '이OO',
+                    ageGroup: '30대',
+                    occupation: '온라인셀러',
+                    productName: '판매용 상품',
+                    originalPrice: '1,560,000원',
+                    finalPrice: '890,000원',
+                    savings: '670,000원',
+                    savingsPercent: 43,
+                    rating: 4.9,
+                    review: '요청가 156만원 → 89만원으로 절약! 도매가로 대량구매해서 마진이 크게 남았어요.',
+                    country: '중국',
+                    shipping: '7일',
+                    method: '공장 직접구매',
+                    badge: '사업자 대량구매',
+                    purchaseDate: '2024-06-22',
+                    profileImage: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80',
+                    category: '기타',
+                    photos: []
+                },
+                {
+                    id: '15',
+                    name: '최OO',
+                    ageGroup: '50대',
+                    occupation: '유통업자',
+                    productName: '생활용품',
+                    originalPrice: '3,450,000원',
+                    finalPrice: '2,100,000원',
+                    savings: '1,350,000원',
+                    savingsPercent: 39,
+                    rating: 5,
+                    review: '요청가 345만원 → 210만원으로 절약! 생활용품 1000개 단위로도 빠르고 안전하게 공급받았습니다.',
+                    country: '대한민국',
+                    shipping: '5일',
+                    method: '도매처 연동',
+                    badge: '사업자 대량구매',
+                    purchaseDate: '2024-06-18',
+                    profileImage: 'https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80',
+                    category: '생활용품',
                     photos: []
                 }
             ];
@@ -1159,6 +1159,6 @@
 
         // 페이지 로드 시 로그인 상태 확인
         document.addEventListener('DOMContentLoaded', checkLoginStatus);
-     </script>
- </body>
- </html>
+    </script>
+</body>
+</html>
