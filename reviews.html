@@ -518,10 +518,11 @@
                     <div class="p-6">
                         <!-- 프로필 헤더 -->
                         <div class="flex items-center mb-4">
-                            <img src="${review.profileImage || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face'}" 
-                                 alt="${review.name}" class="w-12 h-12 rounded-full object-cover mr-4">
+                            <div class="w-12 h-12 bg-gradient-to-r from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white font-bold text-lg mr-4">
+                                ${maskName(review.name)?.charAt(0) || '?'}
+                            </div>
                             <div>
-                                <h3 class="font-bold text-gray-800">${review.name}, ${review.ageGroup} ${review.occupation}</h3>
+                                <h3 class="font-bold text-gray-800">${maskName(review.name)}</h3>
                                 <div class="flex items-center">
                                     ${getStarsHtml(review.rating)}
                                     <span class="ml-2 text-sm text-gray-600">${formatDate(review.purchaseDate)}</span>
@@ -624,6 +625,18 @@
             });
         }
 
+        // 이름 마스킹 함수
+        function maskName(name) {
+            if (!name) return '익명';
+            if (name.length <= 2) return name.charAt(0) + '*';
+            if (name.length === 3) return name.charAt(0) + '*' + name.charAt(2);
+            // 4글자 이상인 경우
+            const firstChar = name.charAt(0);
+            const lastChar = name.charAt(name.length - 1);
+            const middleChars = '*'.repeat(name.length - 2);
+            return firstChar + middleChars + lastChar;
+        }
+
         // 페이지네이션 렌더링
         function renderPagination() {
             const totalPages = Math.ceil(filteredReviews.length / reviewsPerPage);
@@ -708,7 +721,7 @@
                 filtered = filtered.filter(review => 
                     review.productName.toLowerCase().includes(searchTerm) ||
                     review.review.toLowerCase().includes(searchTerm) ||
-                    review.name.toLowerCase().includes(searchTerm)
+                    maskName(review.name).toLowerCase().includes(searchTerm)
                 );
             }
 
