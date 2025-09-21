@@ -13,7 +13,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     
     <!-- Content Security Policy - Firebase iframe 허용 -->
-    <meta http-equiv="Content-Security-Policy" content="frame-src 'self' https://www.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com https://apis.google.com; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com https://*.gstatic.com https://firebasejs.com https://images.unsplash.com https://*.unsplash.com https://apis.google.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://www.gstatic.com https://*.gstatic.com https://firebasejs.com https://apis.google.com; img-src 'self' data: https: http: blob:;" />
+    <meta http-equiv="Content-Security-Policy" content="frame-src 'self' https://www.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com https://apis.google.com https://identitytoolkit.googleapis.com; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com https://*.gstatic.com https://firebasejs.com https://images.unsplash.com https://*.unsplash.com https://apis.google.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://www.gstatic.com https://*.gstatic.com https://firebasejs.com https://apis.google.com; img-src 'self' data: https: http: blob:;" />
     
     <title>PriceHunter</title>
     
@@ -970,6 +970,7 @@
 
         // 전역 함수로 노출
         window.updateReviewAccess = updateReviewAccess;
+        window.checkFirebaseUserData = checkFirebaseUserData;
         
         // 6. renderCaseSlider 함수 정의
         const adminComments = [
@@ -1186,6 +1187,7 @@
              <input type="password" id="login-password" required class="w-full px-2 py-1 text-sm rounded border border-gray-300 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-colors" aria-label="비밀번호" placeholder="비밀번호를 입력하세요" />
            </div>
            <button type="submit" class="w-full py-1 bg-blue-600 text-white font-bold rounded shadow hover:bg-blue-700 transition-colors text-sm" aria-label="로그인" title="로그인">로그인</button>
+           <button type="button" onclick="checkFirebaseUserData('etgbajy@gmail.com')" class="w-full py-1 bg-gray-500 text-white font-bold rounded shadow hover:bg-gray-600 transition-colors text-sm mt-2" aria-label="사용자 데이터 확인" title="사용자 데이터 확인">사용자 데이터 확인</button>
          </form>
         
         <!-- 아이디/비밀번호 찾기 -->
@@ -1492,6 +1494,53 @@
           console.log('✅ Firebase 로그아웃 완료');
         } catch (error) {
           console.error('❌ Firebase 로그아웃 실패:', error);
+        }
+      }
+
+      // Firebase 사용자 데이터 확인 함수
+      async function checkFirebaseUserData(email) {
+        try {
+          console.log('🔍 Firebase 사용자 데이터 확인:', email);
+          
+          // Firestore에서 사용자 데이터 확인
+          const { collection, query, where, getDocs } = window.firebaseFirestoreFunctions;
+          const usersRef = collection(window.firebaseDb, 'users');
+          const q = query(usersRef, where('email', '==', email));
+          const querySnapshot = await getDocs(q);
+          
+          console.log('📊 Firestore 사용자 검색 결과:', {
+            email: email,
+            found: !querySnapshot.empty,
+            count: querySnapshot.size
+          });
+          
+          if (!querySnapshot.empty) {
+            querySnapshot.forEach((doc) => {
+              console.log('👤 Firestore 사용자 데이터:', {
+                id: doc.id,
+                data: doc.data()
+              });
+            });
+          } else {
+            console.log('❌ Firestore에서 사용자를 찾을 수 없음');
+          }
+          
+          // Firebase Auth에서 사용자 확인
+          console.log('🔐 Firebase Auth 사용자 확인');
+          
+          // 현재 Firebase Auth 상태 확인
+          if (window.firebaseAuth) {
+            console.log('📊 Firebase Auth 상태:', {
+              currentUser: window.firebaseAuth.currentUser ? window.firebaseAuth.currentUser.email : '없음',
+              authDomain: window.firebaseAuth.app.options.authDomain,
+              apiKey: window.firebaseAuth.app.options.apiKey ? '설정됨' : '없음'
+            });
+          } else {
+            console.log('❌ Firebase Auth가 초기화되지 않음');
+          }
+          
+        } catch (error) {
+          console.error('❌ Firebase 사용자 데이터 확인 실패:', error);
         }
       }
 
@@ -2814,6 +2863,11 @@
             await waitForFirebase();
             
             console.log('🔐 Firebase Auth로 직접 로그인 시도:', email);
+            console.log('🔧 Firebase Auth 상태:', {
+              firebaseAuth: !!window.firebaseAuth,
+              signInWithEmailAndPassword: !!window.firebaseAuthFunctions?.signInWithEmailAndPassword,
+              functions: window.firebaseAuthFunctions
+            });
             
             // Firebase Auth 이메일/비밀번호 로그인
             const { signInWithEmailAndPassword } = window.firebaseAuthFunctions;
@@ -2874,11 +2928,23 @@
               errorMessage = '비밀번호가 올바르지 않습니다.';
             } else if (error.code === 'auth/invalid-email') {
               errorMessage = '이메일 형식이 올바르지 않습니다.';
+            } else if (error.code === 'auth/invalid-login-credentials') {
+              errorMessage = '이메일 또는 비밀번호가 올바르지 않습니다.';
             } else if (error.code === 'auth/too-many-requests') {
               errorMessage = '너무 많은 로그인 시도가 있었습니다. 잠시 후 다시 시도해주세요.';
+            } else if (error.code === 'auth/network-request-failed') {
+              errorMessage = '네트워크 연결을 확인해주세요.';
+            } else if (error.code === 'auth/operation-not-allowed') {
+              errorMessage = '이메일/비밀번호 로그인이 비활성화되어 있습니다.';
             }
             
             showToast(errorMessage, 'error');
+            
+            // 로그인 실패 시 Firebase 사용자 데이터 확인
+            if (email === 'etgbajy@gmail.com') {
+              console.log('🔍 etgbajy@gmail.com 로그인 실패 - 사용자 데이터 확인');
+              await checkFirebaseUserData(email);
+            }
           }
         };
         
