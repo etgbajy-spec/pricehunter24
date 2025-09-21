@@ -931,6 +931,32 @@
         
         // 로그인 상태 변경 시 후기 오버레이 업데이트
         function updateReviewAccess() {
+          // Firebase Auth 상태로만 후기 접근 권한 확인
+          const isLoggedIn = window.firebaseAuth && window.firebaseAuth.currentUser;
+          const currentUser = isLoggedIn ? window.firebaseAuth.currentUser : null;
+          
+          console.log('🔐 Firebase Auth 후기 접근 권한 확인:', {
+            isLoggedIn,
+            currentUser: currentUser ? currentUser.email : '없음',
+            loginOverlay: !!document.getElementById('login-overlay')
+          });
+          
+          if (isLoggedIn) {
+            // 로그인된 경우 오버레이 숨김
+            const loginOverlay = document.getElementById('login-overlay');
+            if (loginOverlay) {
+              loginOverlay.classList.add('hidden');
+            }
+            console.log('✅ Firebase Auth 로그인 상태: 후기 오버레이 숨김');
+          } else {
+            // 로그인되지 않은 경우 오버레이 표시
+            const loginOverlay = document.getElementById('login-overlay');
+            if (loginOverlay) {
+              loginOverlay.classList.remove('hidden');
+            }
+            console.log('🔒 Firebase Auth 비로그인 상태: 후기 오버레이 표시');
+          }
+          
           initializeReviewSystem();
         }
         
@@ -1424,12 +1450,19 @@
               console.log('✅ 일반 사용자 로그인 허용:', user.email);
             }
             
+            // Firebase Auth 상태만으로 로그인 처리 (로컬스토리지 사용 안함)
+            console.log('✅ Firebase Auth 전용 시스템 - 로컬스토리지 사용 안함');
+            
             // 로그인 상태 UI 업데이트
             updateAuthUI();
+            updateReviewAccess();
           } else {
             console.log('❌ 사용자 로그아웃됨');
+            console.log('✅ Firebase Auth 전용 시스템 - 로컬스토리지 정리 불필요');
+            
             // 로그아웃 상태 UI 업데이트
             updateAuthUI();
+            updateReviewAccess();
           }
         });
       }
@@ -1465,24 +1498,16 @@
       // 사용자 로그아웃 함수
       async function signOutUser() {
         try {
-          console.log('🚪 사용자 로그아웃 시작...');
+          console.log('🚪 Firebase Auth 로그아웃 시작...');
           
           // Firebase 로그아웃
           await signOutFromFirebase();
           
-          // localStorage 정리
-          localStorage.removeItem('loggedIn');
-          localStorage.removeItem('user');
-          localStorage.removeItem('currentUser');
-          localStorage.removeItem('loggedInEmail');
-          
-          // UI 업데이트
-          updateAuthUI();
-          updateReviewAccess(); // 후기 접근 권한 업데이트
-          
-          console.log('✅ 사용자 로그아웃 완료');
+          // Firebase Auth 상태 리스너가 자동으로 UI 업데이트 처리
+          console.log('✅ Firebase Auth 전용 시스템 - 로컬스토리지 정리 불필요');
+          console.log('✅ Firebase Auth 로그아웃 완료');
         } catch (error) {
-          console.error('❌ 사용자 로그아웃 실패:', error);
+          console.error('❌ Firebase Auth 로그아웃 실패:', error);
         }
       }
 
@@ -1490,13 +1515,15 @@
 
       // 로그인/회원가입/마이페이지/로그아웃/의뢰결과조회 버튼 제어
       function updateAuthUI() {
-        const isLoggedIn = localStorage.getItem('loggedIn') === 'true' || localStorage.getItem('currentUser');
+        // Firebase Auth 상태로만 로그인 상태 확인
+        const isLoggedIn = window.firebaseAuth && window.firebaseAuth.currentUser;
+        const currentUser = isLoggedIn ? window.firebaseAuth.currentUser : null;
         const isAdmin = validateAdminSession(); // 세션 검증 추가
         
-        console.log('🔍 로그인 상태 확인:', {
-          loggedIn: localStorage.getItem('loggedIn'),
-          currentUser: localStorage.getItem('currentUser'),
-          isLoggedIn: isLoggedIn,
+        console.log('🔍 Firebase Auth 로그인 상태 확인:', {
+          isLoggedIn,
+          currentUser: currentUser ? currentUser.email : '없음',
+          firebaseAuth: !!window.firebaseAuth,
           isAdmin: isAdmin
         });
         
@@ -2782,73 +2809,76 @@
             return;
           }
           
-          // 동기화된 사용자 데이터에서 검색
-          const allUsers = await syncUserData();
-          const user = allUsers.find(u => u.email === email && u.password === password);
-          
-          if (user) {
-            // Firebase Auth로 로그인 (이메일/비밀번호)
-            try {
-              await waitForFirebase();
-              
-              console.log('🔐 Firebase 인증으로 로그인 시도:', user.email);
-              
-              // Firebase Auth 이메일/비밀번호 로그인
-              const { signInWithEmailAndPassword } = window.firebaseAuthFunctions;
-              const authResult = await signInWithEmailAndPassword(window.firebaseAuth, user.email, user.password);
-              
-              console.log('✅ Firebase 인증 성공:', authResult.user.email);
-              
-              const userData = {
+          // Firebase Auth로 직접 로그인 시도
+          try {
+            await waitForFirebase();
+            
+            console.log('🔐 Firebase Auth로 직접 로그인 시도:', email);
+            
+            // Firebase Auth 이메일/비밀번호 로그인
+            const { signInWithEmailAndPassword } = window.firebaseAuthFunctions;
+            const authResult = await signInWithEmailAndPassword(window.firebaseAuth, email, password);
+            
+            console.log('✅ Firebase Auth 인증 성공:', authResult.user.email);
+            
+            // Firebase에서 사용자 데이터 가져오기
+            const { doc, getDoc } = window.firebaseFirestoreFunctions;
+            const userDocRef = doc(window.firebaseDb, 'users', authResult.user.uid);
+            const userDoc = await getDoc(userDocRef);
+            
+            let userData;
+            if (userDoc.exists()) {
+              // Firebase에 사용자 데이터가 있으면 사용
+              userData = { id: userDoc.id, ...userDoc.data() };
+              console.log('📊 Firebase에서 사용자 데이터 로드:', userData);
+            } else {
+              // Firebase에 사용자 데이터가 없으면 기본 데이터 생성
+              userData = {
                 uid: authResult.user.uid,
                 email: authResult.user.email,
-                displayName: authResult.user.displayName || user.name || '',
-                photoURL: authResult.user.photoURL || user.profileImage || '',
-                loginMethod: 'email'
-              };
-
-              // Firestore에 사용자 데이터 upsert
-              await upsertUser(userData, {
+                displayName: authResult.user.displayName || '',
+                photoURL: authResult.user.photoURL || '',
+                loginMethod: 'email',
+                isActive: true,
+                loginCount: 1,
+                createdAt: new Date(),
                 lastLogin: new Date(),
-                loginCount: (user.loginCount || 0) + 1
-              });
-
-              // 로그인 성공 처리
-              localStorage.setItem('loggedIn', 'true');
-              localStorage.setItem('currentUser', JSON.stringify(userData));
-              localStorage.setItem('user', JSON.stringify(userData)); // 마이페이지 호환성
-              localStorage.setItem('loggedInEmail', userData.email); // 이메일 저장
-              document.getElementById('login-modal').classList.add('hidden');
-              document.getElementById('login-error').classList.add('hidden');
-              updateAuthUI();
-              updateReviewAccess(); // 후기 접근 권한 업데이트
-              showToast('로그인 성공!', 'success');
-              
-            } catch (error) {
-              console.error('Firebase 로그인 실패:', error);
-              document.getElementById('login-error').classList.remove('hidden');
-              showToast('로그인 처리 중 오류가 발생했습니다', 'error');
+                updatedAt: new Date()
+              };
+              console.log('📝 기본 사용자 데이터 생성:', userData);
             }
             
-            // users 배열에서도 업데이트
-            const users = JSON.parse(localStorage.getItem('users') || '[]');
-            const userIndex = users.findIndex(u => u.email === email);
-            // localStorage 사용자 데이터 업데이트 제거 - Firebase 전용
-            console.log('✅ Firebase 전용 시스템 - localStorage 사용자 데이터 업데이트 불필요');
-            
-            localStorage.setItem('loggedIn', 'true');
-            localStorage.setItem('currentUser', JSON.stringify(user));
-            localStorage.setItem('user', JSON.stringify(user)); // 마이페이지 호환성
-            localStorage.setItem('loggedInEmail', user.email); // 이메일 저장
+            // Firestore에 사용자 데이터 업데이트
+            await upsertUser(userData, {
+              lastLogin: new Date(),
+              loginCount: (userData.loginCount || 0) + 1,
+              updatedAt: new Date()
+            });
+
+            // 로그인 성공 처리 (Firebase Auth 상태 리스너가 자동으로 처리)
             document.getElementById('login-modal').classList.add('hidden');
             document.getElementById('login-error').classList.add('hidden');
-            document.body.style.overflow = '';
-            updateAuthUI();
-            updateReviewAccess(); // 후기 접근 권한 업데이트
             showToast('로그인 성공!', 'success');
-          } else {
+            
+            // Firebase Auth 상태 리스너가 자동으로 updateAuthUI()와 updateReviewAccess() 호출
+            
+          } catch (error) {
+            console.error('Firebase 로그인 실패:', error);
             document.getElementById('login-error').classList.remove('hidden');
-            showToast('이메일 또는 비밀번호가 올바르지 않습니다', 'error');
+            
+            // Firebase Auth 에러 메시지 처리
+            let errorMessage = '로그인 처리 중 오류가 발생했습니다';
+            if (error.code === 'auth/user-not-found') {
+              errorMessage = '등록되지 않은 이메일입니다.';
+            } else if (error.code === 'auth/wrong-password') {
+              errorMessage = '비밀번호가 올바르지 않습니다.';
+            } else if (error.code === 'auth/invalid-email') {
+              errorMessage = '이메일 형식이 올바르지 않습니다.';
+            } else if (error.code === 'auth/too-many-requests') {
+              errorMessage = '너무 많은 로그인 시도가 있었습니다. 잠시 후 다시 시도해주세요.';
+            }
+            
+            showToast(errorMessage, 'error');
           }
         };
         
@@ -2887,9 +2917,9 @@
         var reqBtn = document.getElementById('request-v2-btn');
         if (reqBtn) {
           reqBtn.onclick = function() {
-            // 로그인 상태 확인
-            var loggedIn = localStorage.getItem('loggedIn') === 'true' || localStorage.getItem('currentUser');
-            if (loggedIn) {
+            // Firebase Auth 로그인 상태 확인
+            var isLoggedIn = window.firebaseAuth && window.firebaseAuth.currentUser;
+            if (isLoggedIn) {
               window.location.href = 'request-v2.html';
             } else {
               // 비회원 경고창
@@ -3527,61 +3557,21 @@ if (mypageBtn) {
       function showEvidence() {
         console.log('🔍 실제 후기 보기 버튼 클릭');
         
-        // 강화된 로그인 상태 확인
-        const loggedIn = localStorage.getItem('loggedIn');
-        const currentUser = localStorage.getItem('currentUser');
-        const user = localStorage.getItem('user');
-        const loggedInEmail = localStorage.getItem('loggedInEmail');
-        const userEmail = localStorage.getItem('userEmail');
-        const userData = localStorage.getItem('userData');
+        // Firebase Auth 상태로만 로그인 상태 확인
+        const isLoggedIn = window.firebaseAuth && window.firebaseAuth.currentUser;
+        const currentUser = isLoggedIn ? window.firebaseAuth.currentUser : null;
         
-        let isLoggedIn = false;
-        
-        try {
-          // 다양한 로그인 상태 체크
-          if (loggedIn === 'true') {
-            isLoggedIn = true;
-          }
-          
-          if (currentUser || user || loggedInEmail || userEmail) {
-            isLoggedIn = true;
-          }
-          
-          // JSON 형태의 사용자 데이터 체크
-          if (userData) {
-            const parsedUserData = JSON.parse(userData);
-            if (parsedUserData && (parsedUserData.email || parsedUserData.name)) {
-              isLoggedIn = true;
-            }
-          }
-          
-          // 세션 스토리지도 체크
-          if (sessionStorage.getItem('loggedIn') === 'true' || 
-              sessionStorage.getItem('currentUser') ||
-              sessionStorage.getItem('user')) {
-            isLoggedIn = true;
-          }
-          
-        } catch (error) {
-          console.warn('로그인 상태 파싱 오류:', error);
-          isLoggedIn = loggedIn === 'true' || currentUser || user || loggedInEmail || userEmail;
-        }
-        
-        console.log('🔐 로그인 상태 확인 결과:', {
-          loggedIn: loggedIn,
-          currentUser: currentUser,
-          user: user,
-          loggedInEmail: loggedInEmail,
-          userEmail: userEmail,
-          userData: userData,
-          isLoggedIn: isLoggedIn
+        console.log('🔐 Firebase Auth 로그인 상태 확인 결과:', {
+          isLoggedIn,
+          currentUser: currentUser ? currentUser.email : '없음',
+          firebaseAuth: !!window.firebaseAuth
         });
         
         if (isLoggedIn) {
-          console.log('✅ 로그인됨 - 후기 페이지로 이동');
+          console.log('✅ Firebase Auth 로그인됨 - 후기 페이지로 이동');
           window.location.href = 'reviews.html';
         } else {
-          console.log('❌ 로그인 안됨 - 로그인 모달 표시');
+          console.log('❌ Firebase Auth 로그인 안됨 - 로그인 모달 표시');
           document.getElementById('login-modal').classList.remove('hidden');
           showToast('후기를 보려면 로그인이 필요합니다.', 'info');
         }
@@ -3610,9 +3600,9 @@ if (mypageBtn) {
       }
       
       function goToRequest() {
-        // 로그인 상태 확인
-        var loggedIn = localStorage.getItem('loggedIn') === 'true' || localStorage.getItem('currentUser');
-        if (loggedIn) {
+        // Firebase Auth 로그인 상태 확인
+        var isLoggedIn = window.firebaseAuth && window.firebaseAuth.currentUser;
+        if (isLoggedIn) {
           window.location.href = 'request-v2.html';
         } else {
           // 비회원 경고창
@@ -3675,32 +3665,23 @@ if (mypageBtn) {
         
         // 후기 페이지로 이동하는 함수
         function goToReviewsPage() {
-          // 더 강화된 로그인 상태 확인
-          const loggedIn = localStorage.getItem('loggedIn');
-          const currentUser = localStorage.getItem('currentUser');
-          const user = localStorage.getItem('user');
-          const loggedInEmail = localStorage.getItem('loggedInEmail');
+          // Firebase Auth 상태로만 로그인 상태 확인
+          const isLoggedIn = window.firebaseAuth && window.firebaseAuth.currentUser;
+          const currentUser = isLoggedIn ? window.firebaseAuth.currentUser : null;
           
-          const isLoggedIn = loggedIn === 'true' || 
-                            currentUser || 
-                            user || 
-                            loggedInEmail;
-          
-          console.log('🔐 후기 페이지 접근 시도:', {
-            loggedIn: loggedIn,
-            currentUser: currentUser,
-            user: user,
-            loggedInEmail: loggedInEmail,
-            isLoggedIn: isLoggedIn
+          console.log('🔐 Firebase Auth 후기 페이지 접근 시도:', {
+            isLoggedIn,
+            currentUser: currentUser ? currentUser.email : '없음',
+            firebaseAuth: !!window.firebaseAuth
           });
           
           if (isLoggedIn) {
             // 로그인된 경우 바로 이동
-            console.log('✅ 로그인됨 - 후기 페이지로 이동');
+            console.log('✅ Firebase Auth 로그인됨 - 후기 페이지로 이동');
             window.location.href = 'reviews.html';
           } else {
             // 로그인되지 않은 경우 로그인 모달 표시
-            console.log('❌ 로그인 안됨 - 로그인 모달 표시');
+            console.log('❌ Firebase Auth 로그인 안됨 - 로그인 모달 표시');
             document.getElementById('login-modal').classList.remove('hidden');
             showToast('후기를 보려면 로그인이 필요합니다.', 'info');
           }
