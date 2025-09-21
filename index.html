@@ -86,14 +86,14 @@
     <!-- 절감왕 알림 배지 -->
     <div id="savings-badge" class="fixed top-4 right-4 z-50">
       <div class="bg-gradient-to-r from-emerald-500 to-blue-500 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-        <div class="flex items-center gap-3 px-6 py-3 font-semibold text-sm">
-          <span class="text-2xl">🏆</span>
+        <div class="flex items-center gap-2 px-4 py-2 font-semibold text-xs">
+          <span class="text-lg">🏆</span>
           <div class="text-left">
-            <div class="font-bold">이번 주<br class="sm:hidden">절감왕</div>
+            <div class="font-bold text-xs">이번 주<br class="sm:hidden">절감왕</div>
             <div class="text-yellow-300 text-xs">-42%<br class="sm:hidden">절약 성공!</div>
           </div>
-          <a href="#savings-hero" class="text-yellow-300 text-lg hover:text-yellow-200 transition-colors" onclick="document.getElementById('savings-hero').scrollIntoView({behavior: 'smooth'}); return false;">→</a>
-          <button onclick="hideSavingsBadge()" class="text-white/70 hover:text-white text-lg ml-2 transition-colors">×</button>
+          <a href="#savings-hero" class="text-yellow-300 text-sm hover:text-yellow-200 transition-colors" onclick="document.getElementById('savings-hero').scrollIntoView({behavior: 'smooth'}); return false;">→</a>
+          <button onclick="hideSavingsBadge()" class="text-white/70 hover:text-white text-sm ml-1 transition-colors">×</button>
         </div>
       </div>
     </div>
@@ -123,12 +123,12 @@
             </span>
           </h1>
           <p class="text-lg sm:text-xl md:text-2xl text-gray-600 mb-6 max-w-3xl mx-auto leading-relaxed">
-            <span id="admin-secret-trigger" class="cursor-default select-none" style="cursor: default !important;">더 이상 가격 비교로 고민하지 마세요.</span><br class="hidden sm:block">
+            <span id="admin-secret-trigger" class="cursor-default" style="cursor: default !important;">더 이상 가격 비교로 고민하지 마세요.</span><br class="hidden sm:block">
             <span class="font-semibold text-blue-600">PriceHunter</span>가 진짜 최저가를 찾아드립니다.
           </p>
         </div>
-        <div class="flex flex-col items-center w-full max-w-5xl mx-auto">
-          <div class="flex flex-col items-center w-full gap-4">
+        <div class="hero-parent-container flex flex-col items-center justify-center w-full max-w-5xl mx-auto px-4" style="margin-left: auto; margin-right: auto; display: flex; justify-content: center; align-items: center;">
+          <div id="hero-buttons-container" class="flex flex-col items-center justify-center w-full gap-4 sm:max-w-none mx-auto">
             <button id="request-v2-btn"
               class="inline-block px-6 sm:px-8 md:px-12 lg:px-20 py-4 sm:py-5 md:py-6 lg:py-8 bg-pink-500 text-white text-lg sm:text-xl md:text-2xl lg:text-4xl font-extrabold rounded-full shadow-2xl hover:bg-pink-600 hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-pink-300 animate-fadein-up text-center mb-2 w-full sm:w-auto"
               style="box-shadow:0 8px 32px 0 rgba(0,0,0,0.18);"
@@ -183,16 +183,117 @@
           transition: all 0.8s ease-out;
         }
         
-        /* 텍스트 선택 및 편집 방지 */
-        body {
-          -webkit-user-select: none;
-          -moz-user-select: none;
-          -ms-user-select: none;
-          user-select: none;
+        /* 모바일 레이아웃 중앙 정렬 */
+        html, body {
+          overflow-x: hidden;
+          max-width: 100vw;
+          margin: 0;
+          padding: 0;
         }
         
-        /* 버튼과 링크는 텍스트 선택 허용 */
-        button, a, input, textarea {
+        body {
+          -webkit-user-select: text;
+          -moz-user-select: text;
+          -ms-user-select: text;
+          user-select: text;
+        }
+        
+        /* 모든 섹션의 최대 너비 제한 */
+        section {
+          max-width: 100vw;
+          overflow-x: hidden;
+        }
+        
+        /* 컨테이너 중앙 정렬 강화 */
+        .container, .max-w-4xl, .max-w-5xl, .max-w-6xl, .max-w-7xl {
+          margin-left: auto;
+          margin-right: auto;
+          padding-left: 1rem;
+          padding-right: 1rem;
+        }
+        
+        /* 모바일에서 패딩 조정 */
+        @media (max-width: 640px) {
+          .px-4 {
+            padding-left: 1rem;
+            padding-right: 1rem;
+          }
+          
+          .mx-auto {
+            margin-left: auto;
+            margin-right: auto;
+          }
+          
+          /* 모바일에서 고정 요소들 중앙 정렬 */
+          .fixed {
+            max-width: calc(100vw - 2rem);
+          }
+          
+          /* 버튼과 입력 요소들 너비 제한 */
+          button, input, textarea {
+            max-width: 100%;
+            box-sizing: border-box;
+          }
+          
+          /* 그리드와 플렉스 컨테이너 */
+          .grid, .flex {
+            max-width: 100%;
+            overflow-x: hidden;
+          }
+          
+          /* 히어로 섹션 모바일 중앙 정렬 강화 */
+          #hero-buttons-container {
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            justify-content: center !important;
+            width: auto !important;
+            max-width: 320px !important;
+            margin: 0 auto !important;
+            padding: 0 !important;
+            text-align: center !important;
+            box-sizing: border-box !important;
+            position: relative !important;
+            left: 0 !important;
+            right: 0 !important;
+          }
+          
+          /* 부모 컨테이너 중앙 정렬 강화 */
+          .hero-parent-container {
+            display: flex !important;
+            justify-content: center !important;
+            align-items: center !important;
+            width: 100% !important;
+            margin: 0 auto !important;
+            padding: 0 1rem !important;
+            box-sizing: border-box !important;
+          }
+          
+          #hero-buttons-container button,
+          #hero-buttons-container a {
+            display: block !important;
+            margin: 0 auto !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            text-align: center !important;
+            box-sizing: border-box !important;
+            padding-left: 1rem !important;
+            padding-right: 1rem !important;
+          }
+        }
+        
+        /* Tailwind CDN 경고 숨기기 */
+        .tailwind-warning {
+          display: none !important;
+        }
+        
+        /* 콘솔 오류 방지를 위한 스타일 */
+        body {
+          font-family: system-ui, -apple-system, sans-serif;
+        }
+        
+        /* 모든 요소에서 텍스트 선택 허용 */
+        button, a, input, textarea, div, p, span, h1, h2, h3, h4, h5, h6 {
           -webkit-user-select: text;
           -moz-user-select: text;
           -ms-user-select: text;
@@ -201,10 +302,10 @@
         
         /* 관리자 진입 트리거 스타일 */
         #admin-hero-trigger {
-          -webkit-user-select: none;
-          -moz-user-select: none;
-          -ms-user-select: none;
-          user-select: none;
+          -webkit-user-select: text;
+          -moz-user-select: text;
+          -ms-user-select: text;
+          user-select: text;
           transition: all 0.2s ease;
         }
         
@@ -217,7 +318,7 @@
       <!-- 고객의 진짜 고민, 우리가 해결합니다 섹션 -->
       <section class="w-full py-20 px-4 bg-gradient-to-b from-white/80 to-blue-50 relative">
         <div class="max-w-4xl mx-auto flex flex-col items-center">
-          <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-extrabold text-blue-800 text-center mb-6 md:mb-8 lg:mb-10 drop-shadow-lg animate-fadein-up px-4">고객의 진짜 고민, <span class="text-pink-500">우리가 해결합니다</span></h2>
+          <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-extrabold text-blue-800 text-center mb-6 md:mb-8 lg:mb-10 drop-shadow-lg animate-fadein-up px-4">고객의 진짜 고민,<br><span class="text-pink-500">우리가 해결합니다</span></h2>
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 lg:gap-8 w-full">
             <!-- 스토리 카드 1 -->
                           <div class="bg-white rounded-2xl shadow-xl p-6 sm:p-8 flex flex-col items-center text-center animate-fadein-up" style="animation-delay:0.1s;">
@@ -293,9 +394,9 @@
           </div>
           
           <!-- 5단계 프로세스 -->
-          <div class="space-y-6 sm:space-y-8">
+          <div class="space-y-12 sm:space-y-16">
             <!-- 1단계: 의뢰 접수 -->
-            <div class="group relative process-step opacity-0 transform translate-y-8">
+            <div class="group relative process-step opacity-0 transform translate-y-8 mb-8 sm:mb-12">
               <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6 bg-white/80 backdrop-blur-sm rounded-2xl p-4 sm:p-6 md:p-8 shadow-xl border border-white/20 hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2">
                 <div class="flex-shrink-0 mx-auto sm:mx-0">
                   <div class="flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-2xl group-hover:scale-110 transition-transform duration-300 animate-bounce">
@@ -308,21 +409,21 @@
                     고객님이 원하는 상품의 <span class="font-semibold text-blue-600">제품명, 요청가격,<br class="sm:hidden">참고링크</span>를 입력하시면<br class="sm:hidden">전문 검증팀이 즉시<br class="sm:hidden">분석을 시작합니다.
                   </p>
                   <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
-                    <div class="bg-blue-50 rounded-lg p-3 sm:p-4 h-[70px] sm:h-[80px] flex flex-col justify-center">
+                    <div class="bg-blue-50 rounded-lg p-3 sm:p-4 min-h-[90px] sm:min-h-[100px] flex flex-col justify-center">
                       <div class="font-semibold text-blue-700 mb-1 sm:mb-2 flex items-center justify-center sm:justify-start">
                         <span class="w-2 h-2 bg-blue-500 rounded-full mr-2 animate-pulse"></span>
                         <span class="text-xs sm:text-sm">제품 정보 확인</span>
                       </div>
                       <p class="text-xs sm:text-sm text-blue-600 text-center sm:text-left">정확한 모델명과 스펙 파악</p>
                     </div>
-                    <div class="bg-blue-50 rounded-lg p-3 sm:p-4 h-[70px] sm:h-[80px] flex flex-col justify-center">
+                    <div class="bg-blue-50 rounded-lg p-3 sm:p-4 min-h-[90px] sm:min-h-[100px] flex flex-col justify-center">
                       <div class="font-semibold text-blue-700 mb-1 sm:mb-2 flex items-center justify-center sm:justify-start">
                         <span class="w-2 h-2 bg-blue-500 rounded-full mr-2 animate-pulse" style="animation-delay: 0.2s;"></span>
                         <span class="text-xs sm:text-sm">시장 가격 조사</span>
                       </div>
                       <p class="text-xs sm:text-sm text-blue-600 text-center sm:text-left">국내외 주요 판매처 가격 분석</p>
                     </div>
-                    <div class="bg-blue-50 rounded-lg p-3 sm:p-4 h-[70px] sm:h-[80px] flex flex-col justify-center">
+                    <div class="bg-blue-50 rounded-lg p-3 sm:p-4 min-h-[90px] sm:min-h-[100px] flex flex-col justify-center">
                       <div class="font-semibold text-blue-700 mb-1 sm:mb-2 flex items-center justify-center sm:justify-start">
                         <span class="w-2 h-2 bg-blue-500 rounded-full mr-2 animate-pulse" style="animation-delay: 0.4s;"></span>
                         <span class="text-xs sm:text-sm">검증 가능성 판단</span>
@@ -335,7 +436,7 @@
             </div>
 
             <!-- 2단계: 검증 시작 -->
-            <div class="group relative process-step opacity-0 transform translate-y-8" style="animation-delay: 0.2s;">
+            <div class="group relative process-step opacity-0 transform translate-y-8 mb-8 sm:mb-12" style="animation-delay: 0.2s;">
               <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6 bg-white/80 backdrop-blur-sm rounded-2xl p-4 sm:p-6 md:p-8 shadow-xl border border-white/20 hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2">
                 <div class="flex-shrink-0 mx-auto sm:mx-0">
                   <div class="flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 bg-gradient-to-r from-green-500 to-emerald-500 rounded-2xl group-hover:scale-110 transition-transform duration-300 animate-bounce" style="animation-delay: 0.3s;">
@@ -348,21 +449,21 @@
                     전문 검증팀이 <span class="font-semibold text-green-600">도매처 연동,<br class="sm:hidden">공장 직거래, 특별 경로</span> 등<br class="sm:hidden">다양한 경로를 통해<br class="sm:hidden">최저가를 찾아갑니다.
                   </p>
                   <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
-                    <div class="bg-green-50 rounded-lg p-3 sm:p-4 h-[70px] sm:h-[80px] flex flex-col justify-center">
+                    <div class="bg-green-50 rounded-lg p-3 sm:p-4 min-h-[90px] sm:min-h-[100px] flex flex-col justify-center">
                       <div class="font-semibold text-green-700 mb-1 sm:mb-2 flex items-center justify-center sm:justify-start">
                         <span class="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></span>
                         <span class="text-xs sm:text-sm">도매처 연동</span>
                       </div>
                       <p class="text-xs sm:text-sm text-green-600 text-center sm:text-left">국내외 도매업체 직접 문의</p>
                     </div>
-                    <div class="bg-green-50 rounded-lg p-3 sm:p-4 h-[70px] sm:h-[80px] flex flex-col justify-center">
+                    <div class="bg-green-50 rounded-lg p-3 sm:p-4 min-h-[90px] sm:min-h-[100px] flex flex-col justify-center">
                       <div class="font-semibold text-green-700 mb-1 sm:mb-2 flex items-center justify-center sm:justify-start">
                         <span class="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse" style="animation-delay: 0.2s;"></span>
                         <span class="text-xs sm:text-sm">공장 직거래</span>
                       </div>
                       <p class="text-xs sm:text-sm text-green-600 text-center sm:text-left">국내/해외 공장 직접 구매</p>
                     </div>
-                    <div class="bg-green-50 rounded-lg p-3 sm:p-4 h-[70px] sm:h-[80px] flex flex-col justify-center">
+                    <div class="bg-green-50 rounded-lg p-3 sm:p-4 min-h-[90px] sm:min-h-[100px] flex flex-col justify-center">
                       <div class="font-semibold text-green-700 mb-1 sm:mb-2 flex items-center justify-center sm:justify-start">
                         <span class="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse" style="animation-delay: 0.4s;"></span>
                         <span class="text-xs sm:text-sm">특별 경로 발굴</span>
@@ -375,7 +476,7 @@
             </div>
 
             <!-- 3단계: 가격 비교 -->
-            <div class="group relative process-step opacity-0 transform translate-y-8" style="animation-delay: 0.4s;">
+            <div class="group relative process-step opacity-0 transform translate-y-8 mb-8 sm:mb-12" style="animation-delay: 0.4s;">
               <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6 bg-white/80 backdrop-blur-sm rounded-2xl p-4 sm:p-6 md:p-8 shadow-xl border border-white/20 hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2">
                 <div class="flex-shrink-0 mx-auto sm:mx-0">
                   <div class="flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-2xl group-hover:scale-110 transition-transform duration-300 animate-bounce" style="animation-delay: 0.5s;">
@@ -388,21 +489,21 @@
                     수집된 모든 가격 정보를 <span class="font-semibold text-yellow-600">배송비, 관세,<br class="sm:hidden">수수료</span>를 포함하여<br class="sm:hidden">정확히 비교<br class="sm:hidden">분석합니다.
                   </p>
                   <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
-                    <div class="bg-yellow-50 rounded-lg p-3 sm:p-4 h-[70px] sm:h-[80px] flex flex-col justify-center">
+                    <div class="bg-yellow-50 rounded-lg p-3 sm:p-4 min-h-[90px] sm:min-h-[100px] flex flex-col justify-center">
                       <div class="font-semibold text-yellow-700 mb-1 sm:mb-2 flex items-center justify-center sm:justify-start">
                         <span class="w-2 h-2 bg-yellow-500 rounded-full mr-2 animate-pulse"></span>
                         <span class="text-xs sm:text-sm">배송비 계산</span>
                       </div>
                       <p class="text-xs sm:text-sm text-yellow-600 text-center sm:text-left">국내/해외 배송, 관세, 통관비용</p>
                     </div>
-                    <div class="bg-yellow-50 rounded-lg p-3 sm:p-4 h-[70px] sm:h-[80px] flex flex-col justify-center">
+                    <div class="bg-yellow-50 rounded-lg p-3 sm:p-4 min-h-[90px] sm:min-h-[100px] flex flex-col justify-center">
                       <div class="font-semibold text-yellow-700 mb-1 sm:mb-2 flex items-center justify-center sm:justify-start">
                         <span class="w-2 h-2 bg-yellow-500 rounded-full mr-2 animate-pulse" style="animation-delay: 0.2s;"></span>
                         <span class="text-xs sm:text-sm">수수료 분석</span>
                       </div>
                       <p class="text-xs sm:text-sm text-yellow-600 text-center sm:text-left">결제수수료, 중개수수료 등</p>
                     </div>
-                    <div class="bg-yellow-50 rounded-lg p-3 sm:p-4 h-[70px] sm:h-[80px] flex flex-col justify-center">
+                    <div class="bg-yellow-50 rounded-lg p-3 sm:p-4 min-h-[90px] sm:min-h-[100px] flex flex-col justify-center">
                       <div class="font-semibold text-yellow-700 mb-1 sm:mb-2 flex items-center justify-center sm:justify-start">
                         <span class="w-2 h-2 bg-yellow-500 rounded-full mr-2 animate-pulse" style="animation-delay: 0.4s;"></span>
                         <span class="text-xs sm:text-sm">최종가격 산정</span>
@@ -415,7 +516,7 @@
             </div>
 
             <!-- 4단계: 증거 수집 -->
-            <div class="group relative process-step opacity-0 transform translate-y-8" style="animation-delay: 0.6s;">
+            <div class="group relative process-step opacity-0 transform translate-y-8 mb-8 sm:mb-12" style="animation-delay: 0.6s;">
               <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6 bg-white/80 backdrop-blur-sm rounded-2xl p-4 sm:p-6 md:p-8 shadow-xl border border-white/20 hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2">
                 <div class="flex-shrink-0 mx-auto sm:mx-0">
                   <div class="flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl group-hover:scale-110 transition-transform duration-300 animate-bounce" style="animation-delay: 0.7s;">
@@ -428,21 +529,21 @@
                     최저가 발견 시 <span class="font-semibold text-purple-600">실시간 스크린샷,<br class="sm:hidden">구매링크, 검증 시점</span>을<br class="sm:hidden">모두 기록하여<br class="sm:hidden">객관적인 증거를 확보합니다.
                   </p>
                   <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
-                    <div class="bg-purple-50 rounded-lg p-3 sm:p-4 h-[70px] sm:h-[80px] flex flex-col justify-center">
+                    <div class="bg-purple-50 rounded-lg p-3 sm:p-4 min-h-[90px] sm:min-h-[100px] flex flex-col justify-center">
                       <div class="font-semibold text-purple-700 mb-1 sm:mb-2 flex items-center justify-center sm:justify-start">
                         <span class="w-2 h-2 bg-purple-500 rounded-full mr-2 animate-pulse"></span>
                         <span class="text-xs sm:text-sm">실시간 스크린샷</span>
                       </div>
                       <p class="text-xs sm:text-sm text-purple-600 text-center sm:text-left">가격 및 상품 정보 캡처</p>
                     </div>
-                    <div class="bg-purple-50 rounded-lg p-3 sm:p-4 h-[70px] sm:h-[80px] flex flex-col justify-center">
+                    <div class="bg-purple-50 rounded-lg p-3 sm:p-4 min-h-[90px] sm:min-h-[100px] flex flex-col justify-center">
                       <div class="font-semibold text-purple-700 mb-1 sm:mb-2 flex items-center justify-center sm:justify-start">
                         <span class="w-2 h-2 bg-purple-500 rounded-full mr-2 animate-pulse" style="animation-delay: 0.2s;"></span>
                         <span class="text-xs sm:text-sm">구매 링크 제공</span>
                       </div>
                       <p class="text-xs sm:text-sm text-purple-600 text-center sm:text-left">직접 구매 가능한 링크</p>
                     </div>
-                    <div class="bg-purple-50 rounded-lg p-3 sm:p-4 h-[70px] sm:h-[80px] flex flex-col justify-center">
+                    <div class="bg-purple-50 rounded-lg p-3 sm:p-4 min-h-[90px] sm:min-h-[100px] flex flex-col justify-center">
                       <div class="font-semibold text-purple-700 mb-1 sm:mb-2 flex items-center justify-center sm:justify-start">
                         <span class="w-2 h-2 bg-purple-500 rounded-full mr-2 animate-pulse" style="animation-delay: 0.4s;"></span>
                         <span class="text-xs sm:text-sm">검증 시점 기록</span>
@@ -455,7 +556,7 @@
             </div>
 
             <!-- 5단계: 결과 제공 -->
-            <div class="group relative process-step opacity-0 transform translate-y-8" style="animation-delay: 0.8s;">
+            <div class="group relative process-step opacity-0 transform translate-y-8 mb-8 sm:mb-12" style="animation-delay: 0.8s;">
               <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6 bg-white/80 backdrop-blur-sm rounded-2xl p-4 sm:p-6 md:p-8 shadow-xl border border-white/20 hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2">
                 <div class="flex-shrink-0 mx-auto sm:mx-0">
                   <div class="flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 bg-gradient-to-r from-red-500 to-pink-500 rounded-2xl group-hover:scale-110 transition-transform duration-300 animate-bounce" style="animation-delay: 0.9s;">
@@ -468,21 +569,21 @@
                     검증 완료 후 <span class="font-semibold text-red-600">최저가, 구매링크,<br class="sm:hidden">절약금액, 상세 분석</span>을<br class="sm:hidden">포함한 종합적인<br class="sm:hidden">결과를 제공합니다.
                   </p>
                   <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
-                    <div class="bg-red-50 rounded-lg p-3 sm:p-4 h-[70px] sm:h-[80px] flex flex-col justify-center">
+                    <div class="bg-red-50 rounded-lg p-3 sm:p-4 min-h-[90px] sm:min-h-[100px] flex flex-col justify-center">
                       <div class="font-semibold text-red-700 mb-1 sm:mb-2 flex items-center justify-center sm:justify-start">
                         <span class="w-2 h-2 bg-red-500 rounded-full mr-2 animate-pulse"></span>
                         <span class="text-xs sm:text-sm">최저가 정보</span>
                       </div>
                       <p class="text-xs sm:text-sm text-red-600 text-center sm:text-left">요청가 대비 절약 금액</p>
                     </div>
-                    <div class="bg-red-50 rounded-lg p-3 sm:p-4 h-[70px] sm:h-[80px] flex flex-col justify-center">
+                    <div class="bg-red-50 rounded-lg p-3 sm:p-4 min-h-[90px] sm:min-h-[100px] flex flex-col justify-center">
                       <div class="font-semibold text-red-700 mb-1 sm:mb-2 flex items-center justify-center sm:justify-start">
                         <span class="w-2 h-2 bg-red-500 rounded-full mr-2 animate-pulse" style="animation-delay: 0.2s;"></span>
                         <span class="text-xs sm:text-sm">구매 방법 안내</span>
                       </div>
                       <p class="text-xs sm:text-sm text-red-600 text-center sm:text-left">단계별 구매 가이드</p>
                     </div>
-                    <div class="bg-red-50 rounded-lg p-3 sm:p-4 h-[70px] sm:h-[80px] flex flex-col justify-center">
+                    <div class="bg-red-50 rounded-lg p-3 sm:p-4 min-h-[90px] sm:min-h-[100px] flex flex-col justify-center">
                       <div class="font-semibold text-red-700 mb-1 sm:mb-2 flex items-center justify-center sm:justify-start">
                         <span class="w-2 h-2 bg-red-500 rounded-full mr-2 animate-pulse" style="animation-delay: 0.4s;"></span>
                         <span class="text-xs sm:text-sm">추가 상담 지원</span>
@@ -573,12 +674,6 @@
                 </div>
                 
                         <div class="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full">
-          <button onclick="showEvidence()" class="w-full sm:flex-1 bg-emerald-600 text-white py-3 px-4 sm:px-6 rounded-lg font-semibold hover:bg-emerald-700 transition text-sm sm:text-base text-center" style="white-space: nowrap; box-sizing: border-box;">
-            실제 후기 보기
-          </button>
-          <a href="reviews.html" class="w-full sm:flex-1 bg-blue-600 text-white py-3 px-4 sm:px-6 rounded-lg font-semibold hover:bg-blue-700 transition text-center text-sm sm:text-base" style="white-space: nowrap; box-sizing: border-box;">
-            실제 고객 후기
-          </a>
           <button onclick="goToRequest()" class="w-full sm:flex-1 bg-pink-600 text-white py-3 px-4 sm:px-6 rounded-lg font-semibold hover:bg-pink-700 transition text-sm sm:text-base text-center" style="white-space: nowrap; box-sizing: border-box;">
             나도 의뢰해서 절약하기
           </button>
@@ -614,446 +709,6 @@
       🎛️ 관리자 대시보드
     </button>
     <button id="admin-cleanup-btn" class="fixed top-16 right-48 z-50 px-4 py-2 bg-red-600 text-white rounded-lg shadow hover:bg-red-700 transition hidden cursor-default" aria-label="테스트 데이터 정리" title="테스트 데이터 정리" onclick="cleanupTestData()">🧹 정리</button>
-    <!-- 저렴하게 구입한 사례 섹션: main 바깥, 전체 폭 -->
-    <section class="mt-24 mb-10 max-w-7xl mx-auto px-4 text-center">
-      <div class="flex flex-col items-center mb-12">
-        <h2 class="relative text-3xl md:text-4xl font-extrabold text-blue-800 text-center tracking-tight drop-shadow-lg mb-3">
-          <span class="px-6 py-2 bg-gradient-to-r from-blue-100 via-white to-emerald-100 rounded-2xl shadow-md inline-block">
-            💎 실제 고객 후기
-          </span>
-          <span class="block w-24 h-1 bg-gradient-to-r from-blue-400 via-emerald-400 to-pink-300 rounded-full mx-auto mt-4"></span>
-        </h2>
-        <p class="text-lg md:text-xl text-gray-500 font-medium mt-2 text-center">요청가 대비<br class="sm:hidden">실제 절약한 금액을<br class="sm:hidden">확인해보세요</p>
-        
-        <!-- 회원가입 안내 -->
-        <div id="signup-info" class="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-2xl p-6 mb-8 text-center max-w-2xl">
-          <div class="flex items-center justify-center gap-4 mb-4">
-            <span class="text-2xl">⭐</span>
-            <span class="text-xl font-bold text-blue-800">실제 고객 후기</span>
-            <span class="text-2xl">⭐</span>
-          </div>
-          <p class="text-gray-700 mb-4">실제 고객들의<br class="sm:hidden">절약 사례를<br class="sm:hidden">확인해보세요!</p>
-          <div class="flex justify-center items-center gap-4">
-            <a href="register.html" class="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-full font-bold hover:from-blue-700 hover:to-purple-700 transition-all duration-300 shadow-lg">
-              회원가입하고 후기 보기
-            </a>
-          </div>
-        </div>
-      </div>
-      <div id="case-slider-wrapper" class="relative w-full max-w-7xl mx-auto text-center">
-        <!-- 로그인 필요 오버레이 -->
-        <div id="login-required-overlay" class="absolute inset-0 bg-white/90 backdrop-blur-md rounded-2xl z-10 flex items-center justify-center">
-          <div class="text-center">
-            <div class="text-6xl mb-4">🔒</div>
-            <h3 class="text-2xl font-bold text-gray-800 mb-2">회원가입 후 확인하세요</h3>
-            <p class="text-gray-600 mb-4">실제 고객들의 절약 사례를 보려면 회원가입이 필요합니다.</p>
-            <a href="register.html" class="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-3 rounded-full font-bold hover:from-blue-700 hover:to-purple-700 transition-all duration-300 shadow-lg">
-              회원가입하고 후기 보기
-            </a>
-          </div>
-        </div>
-        
-        <div id="case-slider" class="flex overflow-x-auto no-scrollbar snap-x snap-mandatory gap-2 sm:gap-8 py-2 sm:py-4 transition-all duration-500">
-          <!-- 슬라이드 아이템이 JS로 렌더링됨 -->
-        </div>
-        <!-- 좌우 네비게이션 버튼 -->
-        <button id="case-prev" class="absolute left-0 top-1/2 -translate-y-1/2 bg-white/80 rounded-full shadow p-2 z-10 hidden md:block" aria-label="이전 사례 보기" title="이전 사례 보기"><svg class="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-        <button id="case-next" class="absolute right-0 top-1/2 -translate-y-1/2 bg-white/80 rounded-full shadow p-2 z-10 hidden md:block" aria-label="다음 사례 보기" title="다음 사례 보기"><svg class="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-      </div>
-      
-      <!-- 더 많은 후기 보기 버튼 -->
-      <div class="text-center mt-8">
-        <button onclick="goToReviewsPage()" class="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-3 rounded-full font-bold hover:from-blue-700 hover:to-purple-700 transition-all duration-300 shadow-lg flex items-center gap-2 mx-auto">
-          <span>⭐</span>
-          <span>더 많은 후기 보기</span>
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-          </svg>
-        </button>
-        <p class="text-sm text-gray-500 mt-2">실제 고객들의 생생한 후기를 더 자세히 확인해보세요</p>
-      </div>
-    </section>
-    <script>
-        // 1. Firebase에서 실제 후기 데이터 로드 (실시간 연동 - 개선된 버전)
-        let reviewsUnsubscribe = null;
-        let firebaseReviewsLoaded = false;
-        
-        async function loadReviewsFromFirebase() {
-          try {
-            // Firebase 초기화 확인
-            if (typeof window.firebaseDb === 'undefined' || !window.firebaseDb) {
-              console.log('Firebase가 초기화되지 않음, 기본 데이터 사용');
-              return getDefaultReviews();
-            }
-            
-            console.log('🔄 Firebase에서 실제 후기 데이터 로드 시작...');
-            
-            // Firebase 초기화 대기
-            await waitForFirebase();
-            
-            const { collection, query, where, orderBy, onSnapshot } = window.firebaseFirestoreFunctions;
-            const reviewsRef = collection(window.firebaseDb, 'reviews');
-            
-            // 승인된 후기만 가져오기 (최신순, 최대 16개)
-            try {
-                const q = query(reviewsRef, where('approved', '==', true), orderBy('createdAt', 'desc'));
-                
-                reviewsUnsubscribe = onSnapshot(q, (snapshot) => {
-                    console.log('📋 메인페이지 후기 실시간 업데이트...');
-                    
-                    const firebaseReviews = [];
-                    snapshot.forEach(doc => {
-                        const data = doc.data();
-                        if (data && data.name && data.productName) {
-                            // Firebase 데이터를 메인페이지 형식으로 변환
-                            const formattedReview = {
-                                name: `${data.name}, ${data.ageGroup} ${data.occupation}`,
-                                img: data.profileImage || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=600&q=80',
-                                originalPrice: data.originalPrice,
-                                finalPrice: data.finalPrice,
-                                savings: data.savings,
-                                savingsPercent: `${data.savingsPercent}%`,
-                                desc: data.review ? data.review.substring(0, 50) + '...' : '만족스러운 구매',
-                                review: data.review,
-                                country: data.country || '대한민국',
-                                shipping: data.shipping || '3일',
-                                method: data.method || 'PriceHunter 검증',
-                                badge: data.badge || '실제 구매자',
-                                stars: data.rating || 5,
-                                date: data.purchaseDate || data.createdAt?.toDate?.()?.toISOString().split('T')[0] || '2024-01-01'
-                            };
-                            firebaseReviews.push(formattedReview);
-                        }
-                    });
-                    
-                    // 최대 16개로 제한
-                    const limitedReviews = firebaseReviews.slice(0, 16);
-                    
-                    if (limitedReviews.length > 0) {
-                        console.log(`✅ Firebase에서 ${limitedReviews.length}개 실제 후기 로드 완료`);
-                        firebaseReviewsLoaded = true;
-                        
-                        // 로컬 스토리지에 저장
-                        localStorage.setItem('firebaseReviews', JSON.stringify(limitedReviews));
-                        
-                        // UI 업데이트
-                        renderReviewsFromFirebase(limitedReviews);
-                    } else {
-                        console.log('📝 Firebase에 승인된 후기가 없음, 기본 데이터 사용');
-                        if (!firebaseReviewsLoaded) {
-                            renderReviewsFromFirebase(getDefaultReviews());
-                        }
-                    }
-                }, (error) => {
-                    console.error('❌ Firebase 후기 로드 오류:', error);
-                    if (!firebaseReviewsLoaded) {
-                        renderReviewsFromFirebase(getDefaultReviews());
-                    }
-                });
-                
-            } catch (indexError) {
-                console.warn('⚠️ Firebase 인덱스 오류, 기본 데이터 사용:', indexError);
-                renderReviewsFromFirebase(getDefaultReviews());
-            }
-            
-          } catch (error) {
-            console.error('❌ Firebase 후기 로드 실패:', error);
-            renderReviewsFromFirebase(getDefaultReviews());
-          }
-        }
-        
-        // Firebase 초기화 대기 함수
-        function waitForFirebase() {
-            return new Promise((resolve) => {
-                const checkFirebase = () => {
-                    if (window.firebaseDb && window.firebaseFirestoreFunctions) {
-                        console.log('✅ Firebase 초기화 확인됨');
-                        resolve();
-                    } else {
-                        console.log('⏳ Firebase 초기화 대기 중...');
-                        setTimeout(checkFirebase, 100);
-                    }
-                };
-                checkFirebase();
-            });
-        }
-
-        // 후기 실시간 리스너
-        function subscribeToReviews() {
-          if (reviewsUnsubscribe) {
-            reviewsUnsubscribe();
-          }
-
-          // Firebase 초기화 확인
-          if (!window.firebaseDb || !window.firebaseFirestoreFunctions) {
-            console.warn('Firebase가 초기화되지 않아 실시간 리스너를 시작할 수 없습니다.');
-            return;
-          }
-
-          const { collection, onSnapshot, query, where, orderBy } = window.firebaseFirestoreFunctions;
-          const reviewsRef = collection(window.firebaseDb, 'reviews');
-          
-          // 승인된 후기만 실시간 감시
-          try {
-            const q = query(reviewsRef, where('approved', '==', true), orderBy('createdAt', 'desc'));
-            
-            reviewsUnsubscribe = onSnapshot(q, (snapshot) => {
-              console.log('📋 메인페이지 후기 실시간 업데이트...');
-              
-              // 후기 데이터가 변경되면 슬라이더 새로고침
-              if (typeof renderCaseSlider === 'function') {
-                renderCaseSlider();
-              }
-            }, (error) => {
-              console.error('❌ 메인페이지 후기 실시간 리스너 오류:', error);
-            });
-          } catch (indexError) {
-            console.warn('복합 인덱스 오류, 모든 후기 실시간 감시로 폴백:', indexError);
-            // 모든 후기를 실시간 감시하고 클라이언트에서 필터링
-            reviewsUnsubscribe = onSnapshot(reviewsRef, (snapshot) => {
-              console.log('📋 메인페이지 후기 실시간 업데이트 (폴백 모드)...');
-              
-              // 후기 데이터가 변경되면 슬라이더 새로고침
-              if (typeof renderCaseSlider === 'function') {
-                renderCaseSlider();
-              }
-            }, (error) => {
-              console.error('❌ 메인페이지 후기 실시간 리스너 오류 (폴백 모드):', error);
-            });
-          }
-        }
-
-
-        // 기본 후기 데이터 (Firebase 연결 실패 시 사용)
-        // 2. Firebase 후기 데이터 렌더링 함수
-        function renderReviewsFromFirebase(reviews) {
-            console.log('🎨 Firebase 후기 데이터 렌더링:', reviews.length, '개');
-            
-            // 로컬 스토리지에 저장
-            localStorage.setItem('reviews', JSON.stringify(reviews));
-            
-            // UI 업데이트
-            updateReviewAccess();
-            
-            // 슬라이더 업데이트
-            renderCaseSlider();
-        }
-        
-        function getDefaultReviews() {
-          const saved = localStorage.getItem('caseProducts');
-          if (saved) {
-            try {
-              const arr = JSON.parse(saved);
-              if (Array.isArray(arr) && arr.length > 0) return arr;
-            } catch (e) {}
-          }
-        }
-        
-        // 2. getCaseProducts 함수 (Firebase 데이터 우선 사용)
-        async function getCaseProducts() {
-          // Firebase 초기화 대기
-          await waitForFirebase();
-          
-          // Firebase에서 데이터 로드 시도
-          const firebaseReviews = await loadReviewsFromFirebase();
-          if (firebaseReviews && firebaseReviews.length > 0) {
-            return firebaseReviews;
-          }
-          
-          // Firebase 실패 시 localStorage 확인
-          const saved = localStorage.getItem('caseProducts');
-          if (saved) {
-            try {
-              const arr = JSON.parse(saved);
-              if (Array.isArray(arr) && arr.length > 0) return arr;
-            } catch (e) {}
-          }
-          // 16개 실제 고객 후기 (가격 중심)
-          const defaults = [
-            { name: "홍길동, 20대 개발자", img: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80", originalPrice: "1,200,000원", finalPrice: "780,000원", savings: "420,000원", savingsPercent: "35%", desc: "노트북을 정말 싸게 샀어요!", review: "요청가 120만원 → 78만원으로 구매! 성능도 훌륭하고 정말 만족합니다.", country: "대한민국", shipping: "2일", method: "공장 직접구매", badge: "실제 구매자", stars: 5, date: "2024-07-01" },
-            { name: "김영희, 30대 디자이너", img: "https://images.unsplash.com/photo-1503602642458-232111445657?auto=format&fit=crop&w=600&q=80", originalPrice: "450,000원", finalPrice: "280,000원", savings: "170,000원", savingsPercent: "38%", desc: "모니터를 저렴하게 득템!", review: "요청가 45만원 → 28만원으로 절약! 화질도 좋고 가격도 만족!", country: "대한민국", shipping: "3일", method: "도매처 연동", badge: "실제 구매자", stars: 4.5, date: "2024-07-02" },
-            { name: "이철수, 40대 자영업자", img: "https://images.unsplash.com/photo-1465101046530-73398c7f28ca?auto=format&fit=crop&w=600&q=80", originalPrice: "890,000원", finalPrice: "520,000원", savings: "370,000원", savingsPercent: "42%", desc: "사무용품 대량구매 성공!", review: "요청가 89만원 → 52만원으로 절약! 빠른 배송, 저렴한 가격!", country: "대한민국", shipping: "2일", method: "공장 직접구매", badge: "사업자 대량구매", stars: 5, date: "2024-07-03" },
-            { name: "박민수, 20대 대학생", img: "https://images.unsplash.com/photo-1512499617640-c2f999098c01?auto=format&fit=crop&w=600&q=80", originalPrice: "320,000원", finalPrice: "210,000원", savings: "110,000원", savingsPercent: "34%", desc: "태블릿을 싸게 샀어요!", review: "요청가 32만원 → 21만원으로 구매! 학생 할인까지 받아서 굿!", country: "대한민국", shipping: "4일", method: "공장 직접구매", badge: "실제 구매자", stars: 4.8, date: "2024-07-04" },
-            { name: "최지은, 30대 주부", img: "https://images.unsplash.com/photo-1515378791036-0648a3ef77b2?auto=format&fit=crop&w=600&q=80", originalPrice: "680,000원", finalPrice: "420,000원", savings: "260,000원", savingsPercent: "38%", desc: "가전제품 저렴하게 구입!", review: "요청가 68만원 → 42만원으로 절약! 믿고 구매했어요.", country: "대한민국", shipping: "3일", method: "도매처 연동", badge: "실제 구매자", stars: 5, date: "2024-07-05" },
-            { name: "정우성, 40대 직장인", img: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80", originalPrice: "298,000원", finalPrice: "156,000원", savings: "142,000원", savingsPercent: "48%", desc: "스마트워치 득템!", review: "요청가 29.8만원 → 15.6만원으로 절약! 기능도 많고 저렴!", country: "대한민국", shipping: "2일", method: "공장 직접구매", badge: "실제 구매자", stars: 4.7, date: "2024-07-06" },
-            { name: "한가영, 20대 신혼부부", img: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80", originalPrice: "1,560,000원", finalPrice: "890,000원", savings: "670,000원", savingsPercent: "43%", desc: "신혼가전 싸게 샀어요!", review: "요청가 156만원 → 89만원으로 절약! 배송도 빠르고 만족!", country: "대한민국", shipping: "3일", method: "도매처 연동", badge: "실제 구매자", stars: 5, date: "2024-07-07" },
-            { name: "오준호, 30대 1인가구", img: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80", originalPrice: "234,000원", finalPrice: "145,000원", savings: "89,000원", savingsPercent: "38%", desc: "생활용품 저렴하게!", review: "요청가 23.4만원 → 14.5만원으로 절약! 혼자 사는데 딱!", country: "대한민국", shipping: "2일", method: "공장 직접구매", badge: "실제 구매자", stars: 4.6, date: "2024-07-08" },
-            { name: "유수진, 60대 부모님 선물", img: "https://images.unsplash.com/photo-1503602642458-232111445657?auto=format&fit=crop&w=600&q=80", originalPrice: "189,000원", finalPrice: "67,000원", savings: "122,000원", savingsPercent: "65%", desc: "안마기 싸게 샀어요!", review: "요청가 18.9만원 → 6.7만원으로 절약! 부모님이 좋아하셨어요.", country: "대한민국", shipping: "2일", method: "공장 직접구매", badge: "실제 구매자", stars: 5, date: "2024-07-09" },
-            { name: "장동건, 10대 학생", img: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80", originalPrice: "890,000원", finalPrice: "520,000원", savings: "370,000원", savingsPercent: "42%", desc: "학용품, IT기기까지!", review: "요청가 89만원 → 52만원으로 절약! 노트북, 태블릿 다 싸게 샀어요.", country: "대한민국", shipping: "2일", method: "공장 직접구매", badge: "실제 구매자", stars: 4.9, date: "2024-07-10" },
-            { name: "서지훈, 30대 취미러", img: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80", originalPrice: "456,000원", finalPrice: "234,000원", savings: "222,000원", savingsPercent: "49%", desc: "취미용품 저렴하게!", review: "요청가 45.6만원 → 23.4만원으로 절약! 기타, 캠핑용품, 운동기구까지 만족!", country: "대한민국", shipping: "2일", method: "공장 직접구매", badge: "실제 구매자", stars: 5, date: "2024-07-11" },
-            { name: "문지현, 40대 직장인", img: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80", originalPrice: "345,000원", finalPrice: "198,000원", savings: "147,000원", savingsPercent: "43%", desc: "패션/잡화도 OK!", review: "요청가 34.5만원 → 19.8만원으로 절약! 가방, 신발, 액세서리 다 싸게 샀어요.", country: "대한민국", shipping: "2일", method: "공장 직접구매", badge: "실제 구매자", stars: 4.6, date: "2024-07-12" },
-            { name: "이하나, 30대 프리랜서", img: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80", originalPrice: "567,000원", finalPrice: "345,000원", savings: "222,000원", savingsPercent: "39%", desc: "사무용품도 최저가!", review: "요청가 56.7만원 → 34.5만원으로 절약! 프린터, 모니터, 의자까지 만족!", country: "대한민국", shipping: "2일", method: "공장 직접구매", badge: "실제 구매자", stars: 4.8, date: "2024-07-13" },
-            { name: "최유리, 20대 대학생", img: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80", originalPrice: "789,000원", finalPrice: "456,000원", savings: "333,000원", savingsPercent: "42%", desc: "전자기기도 저렴하게!", review: "요청가 78.9만원 → 45.6만원으로 절약! 스마트폰, 이어폰, 노트북 다 싸게 샀어요.", country: "대한민국", shipping: "2일", method: "공장 직접구매", badge: "실제 구매자", stars: 5, date: "2024-07-14" },
-            { name: "박상민, 40대 사업자", img: "https://images.unsplash.com/photo-1515378791036-0648a3ef77b2?auto=format&fit=crop&w=600&q=80", originalPrice: "2,340,000원", finalPrice: "1,450,000원", savings: "890,000원", savingsPercent: "38%", desc: "사무실 비품 대량구매 성공!", review: "요청가 234만원 → 145만원으로 절약! 프린터, 의자, 책상 등 대량구매도 빠르고 저렴!", country: "대한민국", shipping: "3일", method: "도매처 연동", badge: "사업자 대량구매", stars: 5, date: "2024-07-15" }
-          ];
-          localStorage.setItem('caseProducts', JSON.stringify(defaults));
-          return defaults;
-        }
-        
-        // 4. 포인트 시스템 함수들 (먼저 정의)
-        // 포인트 시스템 제거됨 - 후기 시스템으로 대체
-        
-        // 5. 포인트 시스템 초기화 및 블러 제어
-        function initializeReviewSystem() {
-          // 로그인 상태 확인하여 후기 오버레이 제어
-          const isLoggedIn = localStorage.getItem('loggedIn') === 'true' || localStorage.getItem('currentUser');
-          const loginOverlay = document.getElementById('login-required-overlay');
-          
-          console.log('🔐 후기 시스템 초기화:', {
-            loggedIn: localStorage.getItem('loggedIn'),
-            currentUser: localStorage.getItem('currentUser'),
-            isLoggedIn: isLoggedIn,
-            loginOverlay: !!loginOverlay
-          });
-          
-          if (loginOverlay) {
-            if (isLoggedIn) {
-              // 로그인된 경우 오버레이 숨김
-              loginOverlay.style.display = 'none';
-              console.log('✅ 로그인 상태: 후기 오버레이 숨김');
-            } else {
-              // 로그인되지 않은 경우 오버레이 표시
-              loginOverlay.style.display = 'flex';
-              console.log('🔒 비로그인 상태: 후기 오버레이 표시');
-            }
-          } else {
-            console.warn('⚠️ login-required-overlay 요소를 찾을 수 없습니다.');
-          }
-        }
-
-        
-        // 전역 함수로 노출
-        window.initializeReviewSystem = initializeReviewSystem;
-        
-        // 로그인 상태 변경 시 후기 오버레이 업데이트
-        function updateReviewAccess() {
-          initializeReviewSystem();
-        }
-        
-        // 페이지 언로드 시 리스너 정리
-        window.addEventListener('beforeunload', () => {
-            if (reviewsUnsubscribe) {
-                reviewsUnsubscribe();
-                console.log('🧹 메인페이지 후기 리스너 정리 완료');
-            }
-        });
-
-        // 전역 함수로 노출
-        window.updateReviewAccess = updateReviewAccess;
-        
-        // 6. renderCaseSlider 함수 정의
-        const adminComments = [
-          "이 사례는 실제 검증된 후기입니다!",
-          "관리자가 직접 확인한 구매 성공 사례입니다.",
-          "실제 구매자 인증 완료!",
-          "믿고 맡겨주셔서 감사합니다.",
-          "실제 배송/구매 내역 확인 완료!"
-        ];
-        
-        async function renderCaseSlider() {
-          const caseSamples = await getCaseProducts();
-          const slider = document.getElementById('case-slider');
-          if (!slider) return;
-          
-          slider.innerHTML = caseSamples.map((p, i) => `
-            <div class="bg-white/90 rounded-3xl shadow-2xl overflow-hidden flex flex-col items-center p-8 m-2 w-80 min-w-[320px] max-w-xs snap-center transition-transform duration-500 cursor-pointer group" data-idx="${i}">
-              <img src="${p.img}" alt="${p.name}" class="w-full h-48 object-cover rounded-2xl mb-4 shadow-2xl lazy-image" loading="lazy" />
-              <div class="flex items-center justify-center gap-2 mb-3 w-full">
-                <span class="flex-shrink-0 bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-xs font-bold text-center">${p.badge}</span>
-                <span class="text-yellow-400 text-lg flex-shrink-0">${'★'.repeat(Math.floor(p.stars))}${p.stars % 1 ? '½' : ''}</span>
-                <span class="text-gray-400 text-xs flex-shrink-0">${p.date}</span>
-              </div>
-              <div class="text-gray-800 font-bold text-xl mb-3 w-full text-center">${p.name}</div>
-              
-              <!-- 가격 정보 섹션 -->
-              <div class="w-full mb-4 bg-gray-50 rounded-xl p-4">
-                <div class="flex justify-between items-center mb-2">
-                  <span class="text-gray-500 text-sm">요청가</span>
-                  <span class="text-gray-400 line-through text-sm">${p.originalPrice}</span>
-                </div>
-                <div class="flex justify-between items-center mb-2">
-                  <span class="text-green-600 font-bold text-sm">실구매가</span>
-                  <span class="text-green-600 font-bold text-lg">${p.finalPrice}</span>
-                </div>
-                <div class="flex justify-between items-center">
-                  <span class="text-red-600 font-bold text-sm">절약금액</span>
-                  <span class="text-red-600 font-bold text-lg">${p.savings}</span>
-                </div>
-                <div class="mt-2 text-center">
-                  <span class="bg-red-100 text-red-700 px-3 py-1 rounded-full text-sm font-bold">${p.savingsPercent} 절약</span>
-                </div>
-              </div>
-              
-              <div class="text-gray-500 text-base w-full text-center mb-2">${p.desc}</div>
-              <div class="text-gray-700 text-sm w-full text-center mb-2">${p.review}</div>
-              <div class="flex flex-wrap gap-2 justify-center text-xs text-gray-500 mb-2 w-full">
-                <span>국가: ${p.country}</span>
-                <span>배송: ${p.shipping}</span>
-                <span>방법: ${p.method}</span>
-              </div>
-              <div class="text-xs text-blue-500 mt-2 mb-2 w-full text-center">💬 ${adminComments[Math.floor(Math.random()*adminComments.length)]}</div>
-              <button class="case-detail-btn px-4 py-2 bg-blue-100 text-blue-700 rounded-lg shadow hover:bg-blue-200 transition text-sm font-bold mt-auto" aria-label="사례 상세보기" title="사례 상세보기">상세보기</button>
-            </div>
-          `).join('');
-          
-          // 상세보기 버튼 이벤트 연결
-          Array.from(slider.getElementsByClassName('case-detail-btn')).forEach((btn, idx) => {
-            btn.onclick = function(e) {
-              e.stopPropagation();
-              openCaseModal(idx);
-            };
-          });
-          
-          // 카드 전체 클릭도 상세보기
-          Array.from(slider.children).forEach((card, idx) => {
-            card.onclick = function(e) {
-              if (e.target.classList.contains('case-detail-btn')) return;
-              openCaseModal(idx);
-            };
-          });
-          
-          // 슬라이더 네비게이션 버튼
-          const prevBtn = document.getElementById('case-prev');
-          const nextBtn = document.getElementById('case-next');
-          if (prevBtn && nextBtn && slider) {
-            const card = slider.querySelector('div');
-            let cardWidth = card ? card.offsetWidth + 16 : 340;
-            prevBtn.onclick = function() {
-              slider.scrollBy({ left: -cardWidth, behavior: 'smooth' });
-            };
-            nextBtn.onclick = function() {
-              slider.scrollBy({ left: cardWidth, behavior: 'smooth' });
-            };
-          }
-        }
-        
-        
-        // 5. 기존 데이터 초기화 및 renderCaseSlider() 함수 호출
-        // 기존 caseProducts 데이터 삭제 후 새로 생성
-        localStorage.removeItem('caseProducts');
-        renderCaseSlider();
-        
-        // 이미지 Lazy Loading 구현
-        function initLazyLoading() {
-          const lazyImages = document.querySelectorAll('.lazy-image');
-          
-          const imageObserver = new IntersectionObserver((entries, observer) => {
-            entries.forEach(entry => {
-              if (entry.isIntersecting) {
-                const img = entry.target;
-                img.classList.add('loaded');
-                observer.unobserve(img);
-              }
-            });
-          });
-          
-          lazyImages.forEach(img => {
-            imageObserver.observe(img);
-          });
-        }
-        
-        // 페이지 로드 시 Lazy Loading 초기화
-        window.addEventListener('load', initLazyLoading);
         </script>
     <!-- 햄버거 메뉴 버튼 -->
     <div class="fixed top-4 left-4 z-50">
@@ -1226,40 +881,6 @@
       </div>
     </div>
 
-    <!-- 구매사례 팝업 -->
-    <div id="case-modal-overlay" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden transition-opacity duration-300 p-4" role="dialog" aria-modal="true" aria-labelledby="case-modal-title">
-      <div id="case-modal" class="bg-white rounded-3xl shadow-2xl p-4 sm:p-6 md:p-8 lg:p-10 max-w-sm sm:max-w-md md:max-w-lg lg:max-w-2xl h-auto min-h-[400px] sm:min-h-[500px] w-full relative scale-95 opacity-0 transition-all duration-300 flex flex-col gap-4 overflow-y-auto max-h-[90vh] mx-auto">
-        <button id="case-modal-close" class="absolute top-4 right-4 text-2xl text-gray-400 hover:text-gray-700" aria-label="사례 상세 닫기" title="사례 상세 닫기">&times;</button>
-        <button id="case-modal-edit" class="absolute top-4 left-4 px-4 py-2 bg-yellow-300 text-gray-800 font-bold rounded-lg shadow hover:bg-yellow-400 transition hidden" aria-label="사례 수정" title="사례 수정">수정</button>
-        <h2 id="case-modal-title" class="text-2xl font-bold text-blue-700 mb-2">사례 상세</h2>
-        <img id="case-modal-img" src="" alt="제품 이미지" class="w-full max-h-[60vh] object-contain rounded-xl mb-6 bg-gray-100 border" />
-        <h2 id="case-modal-name" class="text-2xl font-bold text-blue-700 mb-4"></h2>
-        
-        <!-- 가격 정보 섹션 -->
-        <div id="case-modal-price-info" class="bg-gray-50 rounded-xl p-4 mb-4">
-          <div class="grid grid-cols-2 gap-4">
-            <div class="text-center">
-              <div class="text-gray-500 text-sm mb-1">요청가</div>
-              <div id="case-modal-original-price" class="text-gray-400 line-through text-lg"></div>
-            </div>
-            <div class="text-center">
-              <div class="text-green-600 font-bold text-sm mb-1">실구매가</div>
-              <div id="case-modal-final-price" class="text-green-600 font-bold text-2xl"></div>
-            </div>
-          </div>
-          <div class="mt-3 text-center">
-            <div class="text-red-600 font-bold text-sm mb-1">절약금액</div>
-            <div id="case-modal-savings" class="text-red-600 font-bold text-xl"></div>
-            <div id="case-modal-savings-percent" class="bg-red-100 text-red-700 px-3 py-1 rounded-full text-sm font-bold mt-2 inline-block"></div>
-          </div>
-        </div>
-        
-        <div id="case-modal-desc" class="text-gray-700 mb-3"></div>
-        <div id="case-modal-review" class="text-gray-600 mb-4 p-3 bg-blue-50 rounded-lg"></div>
-        <div class="mb-2 text-gray-600"><span id="case-modal-country"></span> | <span id="case-modal-shipping"></span></div>
-        <div class="mb-4 text-gray-800 font-semibold">최저가 확보 방법: <span id="case-modal-method"></span></div>
-      </div>
-    </div>
     <!-- 회원 탈퇴 확인 모달 -->
     <div id="withdraw-modal" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 hidden p-4" role="dialog" aria-modal="true" aria-labelledby="withdraw-modal-title">
       <div class="bg-white rounded-2xl shadow-2xl p-4 sm:p-6 md:p-8 w-full max-w-xs sm:max-w-sm relative mx-auto">
@@ -1326,7 +947,7 @@
           <span class="font-bold text-blue-700">하루 최대 2건까지만 의뢰하실 수 있습니다.</span><br>
           <span class="font-bold text-blue-700">또한 최소 의뢰 금액이 1만원 이상</span>으로 제한됩니다.<br>
         </div>
-        <label class="inline-flex items-center mb-4 cursor-pointer select-none">
+        <label class="inline-flex items-center mb-4 cursor-pointer">
           <input type="checkbox" id="hide-popup-today" class="form-checkbox h-4 w-4 text-pink-500 mr-2" />
           <span class="text-sm text-gray-600">오늘 하루 보지 않기</span>
         </label>
@@ -1334,6 +955,16 @@
       </div>
     </div>
     <script>
+      // 콘솔 경고 필터링 (Tailwind CDN 경고 제거)
+      const originalWarn = console.warn;
+      console.warn = function(...args) {
+        const message = args.join(' ');
+        if (message.includes('cdn.tailwindcss.com should not be used in production')) {
+          return; // Tailwind CDN 경고 무시
+        }
+        originalWarn.apply(console, args);
+      };
+      
       // Firebase v9 기반 공통 함수들
       let isFirebaseReady = false;
 
@@ -1765,7 +1396,6 @@
       // 사례 카드 텍스트 편집 기능
       function enableCaseTextEdit(isAdmin) {
         // 관리자 모드에서만 편집 가능하도록 설정
-        // (실제 구현은 renderCaseSlider에서 처리)
       }
       
       window.addEventListener('storage', function(e) {
@@ -2919,96 +2549,6 @@
       });
     </script>
 
-  
-    <!-- 구매사례 팝업 -->
-    <div id="case-modal-overlay" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden transition-opacity duration-300" role="dialog" aria-modal="true" aria-labelledby="case-modal-title">
-      <div id="case-modal" class="bg-white rounded-3xl shadow-2xl p-10 max-w-2xl h-auto min-h-[500px] w-full relative scale-95 opacity-0 transition-all duration-300 flex flex-col gap-4 overflow-y-auto max-h-[90vh]">
-        <button id="case-modal-close" class="absolute top-4 right-4 text-2xl text-gray-400 hover:text-gray-700" aria-label="사례 상세 닫기" title="사례 상세 닫기">&times;</button>
-        <button id="case-modal-edit" class="absolute top-4 left-4 px-4 py-2 bg-yellow-300 text-gray-800 font-bold rounded-lg shadow hover:bg-yellow-400 transition hidden" aria-label="사례 수정" title="사례 수정">수정</button>
-        <h2 id="case-modal-title" class="text-2xl font-bold text-blue-700 mb-2">사례 상세</h2>
-        <img id="case-modal-img" src="" alt="제품 이미지" class="w-full max-h-[60vh] object-contain rounded-xl mb-6 bg-gray-100 border" />
-        <h2 id="case-modal-name" class="text-2xl font-bold text-blue-700 mb-4"></h2>
-        
-        <!-- 가격 정보 섹션 -->
-        <div id="case-modal-price-info" class="bg-gray-50 rounded-xl p-4 mb-4">
-          <div class="grid grid-cols-2 gap-4">
-            <div class="text-center">
-              <div class="text-gray-500 text-sm mb-1">요청가</div>
-              <div id="case-modal-original-price" class="text-gray-400 line-through text-lg"></div>
-            </div>
-            <div class="text-center">
-              <div class="text-green-600 font-bold text-sm mb-1">실구매가</div>
-              <div id="case-modal-final-price" class="text-green-600 font-bold text-2xl"></div>
-            </div>
-          </div>
-          <div class="mt-3 text-center">
-            <div class="text-red-600 font-bold text-sm mb-1">절약금액</div>
-            <div id="case-modal-savings" class="text-red-600 font-bold text-xl"></div>
-            <div id="case-modal-savings-percent" class="bg-red-100 text-red-700 px-3 py-1 rounded-full text-sm font-bold mt-2 inline-block"></div>
-          </div>
-        </div>
-        
-        <div id="case-modal-desc" class="text-gray-700 mb-3"></div>
-        <div id="case-modal-review" class="text-gray-600 mb-4 p-3 bg-blue-50 rounded-lg"></div>
-        <div class="mb-2 text-gray-600"><span id="case-modal-country"></span> | <span id="case-modal-shipping"></span></div>
-        <div class="mb-4 text-gray-800 font-semibold">최저가 확보 방법: <span id="case-modal-method"></span></div>
-      </div>
-    </div>
-    <script>
-        function getCaseProducts() {
-  const saved = localStorage.getItem('caseProducts');
-  if (saved) {
-    try {
-      const arr = JSON.parse(saved);
-      if (Array.isArray(arr) && arr.length > 0) return arr;
-    } catch (e) {}
-  }
-  // 기본값 (가격 정보 포함)
-  const defaults = [
-    { name: "김OO, 30대 직장인", img: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80", originalPrice: "1,200,000원", finalPrice: "780,000원", savings: "420,000원", savingsPercent: "35%", desc: "정가 대비 40% 저렴하게 해외직구!", review: "요청가 120만원 → 78만원으로 구매! 음질도 좋고 배송도 빨랐어요!", country: "대한민국", shipping: "2일", method: "공장 직접구매", badge: "실제 구매자", stars: 5, date: "2024-06-28" },
-    { name: "이OO, 20대 대학생", img: "https://images.unsplash.com/photo-1503602642458-232111445657?auto=format&fit=crop&w=600&q=80", originalPrice: "450,000원", finalPrice: "280,000원", savings: "170,000원", savingsPercent: "38%", desc: "국내 최저가보다 30% 저렴!", review: "요청가 45만원 → 28만원으로 절약! 해외직구보다 더 싸게 샀어요.", country: "미국", shipping: "7일", method: "도매처 연동", badge: "실제 구매자", stars: 4.5, date: "2024-06-25" },
-    { name: "박OO, 40대 주부", img: "https://images.unsplash.com/photo-1465101046530-73398c7f28ca?auto=format&fit=crop&w=600&q=80", originalPrice: "890,000원", finalPrice: "520,000원", savings: "370,000원", savingsPercent: "42%", desc: "한정판도 저렴하게 득템!", review: "요청가 89만원 → 52만원으로 절약! 한정판도 공장가로 득템! 만족합니다.", country: "일본", shipping: "5일", method: "공장 직접구매", badge: "실제 구매자", stars: 5, date: "2024-06-20" },
-    { name: "최OO, 50대 자영업자", img: "https://images.unsplash.com/photo-1512499617640-c2f999098c01?auto=format&fit=crop&w=600&q=80", originalPrice: "320,000원", finalPrice: "210,000원", savings: "110,000원", savingsPercent: "34%", desc: "직구로 50% 절약!", review: "요청가 32만원 → 21만원으로 구매! 타건감 최고, 가격도 만족!", country: "중국", shipping: "8일", method: "공장 직접구매", badge: "실제 구매자", stars: 4.8, date: "2024-06-18" },
-    { name: "정OO, 20대 신혼부부", img: "https://images.unsplash.com/photo-1515378791036-0648a3ef77b2?auto=format&fit=crop&w=600&q=80", originalPrice: "680,000원", finalPrice: "420,000원", savings: "260,000원", savingsPercent: "38%", desc: "신혼가전도 최저가로!", review: "요청가 68만원 → 42만원으로 절약! 냉장고, 세탁기 모두 만족! 배송도 빠름.", country: "대한민국", shipping: "3일", method: "도매처 연동", badge: "실제 구매자", stars: 5, date: "2024-06-15" },
-    { name: "오OO, 30대 1인가구", img: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80", originalPrice: "234,000원", finalPrice: "145,000원", savings: "89,000원", savingsPercent: "38%", desc: "생활용품도 저렴하게!", review: "요청가 23.4만원 → 14.5만원으로 절약! 혼자 사는데 필요한 소형가전, 생활용품 다 싸게 샀어요.", country: "대한민국", shipping: "2일", method: "공장 직접구매", badge: "실제 구매자", stars: 4.7, date: "2024-06-10" },
-    { name: "유OO, 60대 부모님 선물", img: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80", originalPrice: "189,000원", finalPrice: "67,000원", savings: "122,000원", savingsPercent: "65%", desc: "부모님 건강용품도 최저가!", review: "요청가 18.9만원 → 6.7만원으로 절약! 안마기, 건강식품 모두 만족! 부모님이 좋아하셨어요.", country: "대한민국", shipping: "2일", method: "공장 직접구매", badge: "실제 구매자", stars: 5, date: "2024-06-08" },
-    { name: "장OO, 10대 학생", img: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80", originalPrice: "890,000원", finalPrice: "520,000원", savings: "370,000원", savingsPercent: "42%", desc: "학용품, IT기기까지!", review: "요청가 89만원 → 52만원으로 절약! 노트북, 태블릿, 학용품 다 싸게 샀어요.", country: "대한민국", shipping: "2일", method: "공장 직접구매", badge: "실제 구매자", stars: 4.9, date: "2024-06-05" },
-    { name: "서OO, 30대 취미러", img: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80", originalPrice: "456,000원", finalPrice: "234,000원", savings: "222,000원", savingsPercent: "49%", desc: "취미용품도 저렴하게!", review: "요청가 45.6만원 → 23.4만원으로 절약! 기타, 캠핑용품, 운동기구까지 다 만족!", country: "대한민국", shipping: "2일", method: "공장 직접구매", badge: "실제 구매자", stars: 5, date: "2024-06-01" },
-    { name: "문OO, 40대 직장인", img: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80", originalPrice: "345,000원", finalPrice: "198,000원", savings: "147,000원", savingsPercent: "43%", desc: "패션/잡화도 OK!", review: "요청가 34.5만원 → 19.8만원으로 절약! 가방, 신발, 액세서리까지 다 싸게 샀어요.", country: "대한민국", shipping: "2일", method: "공장 직접구매", badge: "실제 구매자", stars: 4.6, date: "2024-05-28" },
-    { name: "이OO, 30대 프리랜서", img: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80", originalPrice: "567,000원", finalPrice: "345,000원", savings: "222,000원", savingsPercent: "39%", desc: "사무용품도 최저가!", review: "요청가 56.7만원 → 34.5만원으로 절약! 프린터, 모니터, 의자까지 다 만족!", country: "대한민국", shipping: "2일", method: "공장 직접구매", badge: "실제 구매자", stars: 4.8, date: "2024-05-25" },
-    { name: "최OO, 20대 대학생", img: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80", originalPrice: "789,000원", finalPrice: "456,000원", savings: "333,000원", savingsPercent: "42%", desc: "전자기기도 저렴하게!", review: "요청가 78.9만원 → 45.6만원으로 절약! 스마트폰, 이어폰, 노트북 다 싸게 샀어요.", country: "대한민국", shipping: "2일", method: "공장 직접구매", badge: "실제 구매자", stars: 5, date: "2024-05-20" },
-    // 사업자/대량구매 샘플 추가
-    { name: "박OO, 40대 사업자", img: "https://images.unsplash.com/photo-1515378791036-0648a3ef77b2?auto=format&fit=crop&w=600&q=80", originalPrice: "2,340,000원", finalPrice: "1,450,000원", savings: "890,000원", savingsPercent: "38%", desc: "사무실 비품 대량구매도 최저가!", review: "요청가 234만원 → 145만원으로 절약! 프린터, 의자, 책상 등 대량구매도 빠르고 저렴하게 해결!", country: "대한민국", shipping: "3일", method: "도매처 연동", badge: "사업자 대량구매", stars: 5, date: "2024-06-27" },
-    { name: "이OO, 30대 온라인셀러", img: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80", originalPrice: "1,560,000원", finalPrice: "890,000원", savings: "670,000원", savingsPercent: "43%", desc: "온라인 판매용 상품도 대량구매 OK!", review: "요청가 156만원 → 89만원으로 절약! 도매가로 대량구매해서 마진이 크게 남았어요.", country: "중국", shipping: "7일", method: "공장 직접구매", badge: "사업자 대량구매", stars: 4.9, date: "2024-06-22" },
-    { name: "최OO, 50대 유통업자", img: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80", originalPrice: "3,450,000원", finalPrice: "2,100,000원", savings: "1,350,000원", savingsPercent: "39%", desc: "유통용 생활용품 대량구매", review: "요청가 345만원 → 210만원으로 절약! 생활용품 1000개 단위로도 빠르고 안전하게 공급받았습니다.", country: "대한민국", shipping: "5일", method: "도매처 연동", badge: "사업자 대량구매", stars: 5, date: "2024-06-18" },
-    { name: "정OO, 30대 카페운영자", img: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80", originalPrice: "234,000원", finalPrice: "145,000원", savings: "89,000원", savingsPercent: "38%", desc: "카페 소모품 대량구매도 OK!", review: "요청가 23.4만원 → 14.5만원으로 절약! 종이컵, 빨대, 냅킨 등 대량구매도 저렴하게 해결!", country: "대한민국", shipping: "2일", method: "공장 직접구매", badge: "사업자 대량구매", stars: 4.8, date: "2024-06-12" }
-  ];
-  localStorage.setItem('caseProducts', JSON.stringify(defaults));
-  return defaults;
-}
-
-
-
-
-// 버튼 이벤트 연결
-window.addEventListener('DOMContentLoaded', function() {
-  document.getElementById('case-modal-close').onclick = closeCaseModal;
-  document.getElementById('case-modal-overlay').onclick = function(e) {
-    if (e.target === this) closeCaseModal();
-  };
-});
-
-function closeCaseModal() {
-  const overlay = document.getElementById('case-modal-overlay');
-  const modal = document.getElementById('case-modal');
-  modal.classList.remove('opacity-100','scale-100');
-  modal.classList.add('opacity-0','scale-95');
-  overlay.classList.remove('opacity-100');
-  setTimeout(() => { overlay.classList.add('hidden'); }, 300);
-  document.body.style.overflow = '';
-}
-
-    </script>
     <script>
 // ... existing code ...
 // 최소주문금액 안내 팝업
@@ -3030,22 +2570,6 @@ function showMinOrderPopupIfNeeded() {
   };
 }
 document.addEventListener('DOMContentLoaded', showMinOrderPopupIfNeeded);
-// ... existing code ...
-    </script>
-    <script>
-// ... existing code ...
-// 슬라이더 아래 안내문구 추가
-const caseDots = document.getElementById('case-dots');
-if (caseDots && caseDots.parentElement) {
-  let moreGuide = document.getElementById('case-more-guide');
-  if (!moreGuide) {
-    moreGuide = document.createElement('div');
-    moreGuide.id = 'case-more-guide';
-    moreGuide.className = 'text-center text-sm text-gray-500 mt-2';
-    moreGuide.innerHTML = '더 많은 후기는 슬라이드(→) 버튼이나 ●●●●를 눌러 확인하세요!';
-    caseDots.parentElement.appendChild(moreGuide);
-  }
-}
 // ... existing code ...
     </script>
     <script>
@@ -3079,126 +2603,7 @@ if (logoutBtn) {
       <svg class="w-5 h-5 text-emerald-500 animate-bounce" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 12l2 2 4-4" stroke-linecap="round" stroke-linejoin="round"/></svg>
       <span>로그아웃 되었습니다.</span>
     </div>
-    <script>
-// 빈 배열이 저장되어 있으면 자동으로 삭제(복구)
-(function() {
-  const saved = localStorage.getItem('caseProducts');
-  if (saved) {
-    try {
-      const arr = JSON.parse(saved);
-      if (Array.isArray(arr) && arr.length === 0) {
-        localStorage.removeItem('caseProducts');
-      }
-    } catch (e) {}
-  }
-})();
-// ... 기존 코드 ...
-    </script>
-    <script>
-// ... existing code ...
-// 상세보기/수정 모달 및 수정 기능 최신화
-function openCaseModal(idx) {
-  const caseSamples = getCaseProducts();
-  const p = caseSamples[idx];
-  document.getElementById('case-modal-img').src = p.img;
-  document.getElementById('case-modal-name').textContent = p.name;
-      document.getElementById('case-modal-original-price').textContent = p.originalPrice;
-      document.getElementById('case-modal-final-price').textContent = p.finalPrice;
-      document.getElementById('case-modal-savings').textContent = p.savings;
-      document.getElementById('case-modal-savings-percent').textContent = p.savingsPercent + ' 절약';
-  document.getElementById('case-modal-desc').textContent = p.desc;
-  document.getElementById('case-modal-review').textContent = p.review;
-  document.getElementById('case-modal-country').textContent = p.country;
-  document.getElementById('case-modal-shipping').textContent = p.shipping;
-  document.getElementById('case-modal-method').textContent = p.method;
-  // 수정 버튼 노출 여부
-  const isAdmin = localStorage.getItem('isAdmin') === 'true';
-  const editBtn = document.getElementById('case-modal-edit');
-  editBtn.classList.toggle('hidden', !isAdmin);
-  // 수정 버튼 이벤트
-  editBtn.onclick = function() {
-    showCaseEditForm(idx);
-  };
-  // 모달 표시
-  const overlay = document.getElementById('case-modal-overlay');
-  const modal = document.getElementById('case-modal');
-  overlay.classList.remove('hidden');
-  setTimeout(() => {
-    overlay.classList.add('opacity-100');
-    modal.classList.remove('opacity-0','scale-95');
-    modal.classList.add('opacity-100','scale-100');
-  }, 10);
-  document.body.style.overflow = 'hidden';
-}
 
-function showCaseEditForm(idx) {
-  const caseSamples = getCaseProducts();
-  const p = caseSamples[idx];
-  const modal = document.getElementById('case-modal');
-  // 기존 상세정보 숨기기
-  Array.from(modal.children).forEach(el => { if (el.id && el.id.startsWith('case-modal-')) el.style.display = 'none'; });
-  // 기존 폼 제거
-  let form = modal.querySelector('form');
-  if (form) form.remove();
-  form = document.createElement('form');
-  form.className = 'flex flex-col gap-4';
-  form.innerHTML = `
-    <label>이미지
-      <div class="flex flex-col gap-2 items-center">
-        <img id="case-edit-img-preview" src="${p.img}" alt="미리보기" class="w-40 h-40 object-contain rounded-xl border bg-gray-100" />
-        <input type="file" accept="image/*" class="w-full" id="case-edit-img-input" />
-      </div>
-    </label>
-    <label>이름<input type="text" class="w-full px-4 py-2 min-h-[44px] text-sm sm:text-base md:text-lg rounded border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none" value="${p.name}" required></label>
-    <label>설명<input type="text" class="w-full px-4 py-2 min-h-[44px] text-sm sm:text-base md:text-lg rounded border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none" value="${p.desc}" required></label>
-    <label>후기<input type="text" class="w-full px-4 py-2 min-h-[44px] text-sm sm:text-base md:text-lg rounded border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none" value="${p.review}" required></label>
-    <label>국가<input type="text" class="w-full px-4 py-2 min-h-[44px] text-sm sm:text-base md:text-lg rounded border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none" value="${p.country}" required></label>
-    <label>배송<input type="text" class="w-full px-4 py-2 min-h-[44px] text-sm sm:text-base md:text-lg rounded border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none" value="${p.shipping}" required></label>
-    <label>방법<input type="text" class="w-full px-4 py-2 min-h-[44px] text-sm sm:text-base md:text-lg rounded border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none" value="${p.method}" required></label>
-    <div class="flex gap-2 mt-2">
-      <button type="submit" class="flex-1 py-2 min-h-[44px] text-base bg-blue-500 text-white rounded font-bold">저장</button>
-      <button type="button" class="flex-1 py-2 min-h-[44px] text-base bg-gray-200 text-gray-600 rounded font-bold" id="case-edit-cancel">취소</button>
-    </div>
-  `;
-  modal.appendChild(form);
-  // 이미지 파일 첨부 및 미리보기
-  const imgInput = form.querySelector('#case-edit-img-input');
-  const imgPreview = form.querySelector('#case-edit-img-preview');
-  let newImgBase64 = null;
-  imgInput.addEventListener('change', function(e) {
-    const file = e.target.files && e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = function(ev) {
-        imgPreview.src = ev.target.result;
-        newImgBase64 = ev.target.result;
-      };
-      reader.readAsDataURL(file);
-    }
-  });
-  // 저장 이벤트
-  form.onsubmit = function(e) {
-    e.preventDefault();
-    // 이미지가 새로 선택된 경우에만 p.img를 변경
-    if (newImgBase64 !== null) {
-      p.img = newImgBase64;
-    }
-    p.name = form.children[1].querySelector('input').value;
-    p.desc = form.children[2].querySelector('input').value;
-    p.review = form.children[3].querySelector('input').value;
-    p.country = form.children[4].querySelector('input').value;
-    p.shipping = form.children[5].querySelector('input').value;
-    p.method = form.children[6].querySelector('input').value;
-    localStorage.setItem('caseProducts', JSON.stringify(caseSamples));
-    renderCaseSlider();
-    openCaseModal(idx);
-  };
-  // 취소 이벤트
-  form.querySelector('#case-edit-cancel').onclick = function() {
-    form.remove();
-    Array.from(modal.children).forEach(el => { if (el.id && el.id.startsWith('case-modal-')) el.style.display = ''; });
-  };
-}
 // ... 기존 코드 ...
     </script>
     <script>
@@ -3217,152 +2622,6 @@ function showToast(msg, type = 'success') {
   setTimeout(() => { toast.classList.add('opacity-0'); }, 1500);
 }
 
-// 2. 모달/팝업 esc로 닫기, 포커스 이동, transition 보강
-window.addEventListener('keydown', function(e) {
-  const overlay = document.getElementById('case-modal-overlay');
-  if (!overlay || overlay.classList.contains('hidden')) return;
-  if (e.key === 'Escape') closeCaseModal();
-});
-function openCaseModal(idx) {
-  const caseSamples = getCaseProducts();
-  const p = caseSamples[idx];
-  document.getElementById('case-modal-img').src = p.img;
-  document.getElementById('case-modal-img').alt = p.name + ' 이미지';
-  document.getElementById('case-modal-name').textContent = p.name;
-      document.getElementById('case-modal-original-price').textContent = p.originalPrice;
-      document.getElementById('case-modal-final-price').textContent = p.finalPrice;
-      document.getElementById('case-modal-savings').textContent = p.savings;
-      document.getElementById('case-modal-savings-percent').textContent = p.savingsPercent + ' 절약';
-  document.getElementById('case-modal-desc').textContent = p.desc;
-  document.getElementById('case-modal-review').textContent = p.review;
-  document.getElementById('case-modal-country').textContent = p.country;
-  document.getElementById('case-modal-shipping').textContent = p.shipping;
-  document.getElementById('case-modal-method').textContent = p.method;
-  // 수정 버튼 노출 여부
-  const isAdmin = localStorage.getItem('isAdmin') === 'true';
-  const editBtn = document.getElementById('case-modal-edit');
-  editBtn.classList.toggle('hidden', !isAdmin);
-  editBtn.setAttribute('aria-label', '사례 수정');
-  editBtn.setAttribute('title', '사례 수정');
-  // 수정 버튼 이벤트
-  editBtn.onclick = function() {
-    showCaseEditForm(idx);
-  };
-  // 모달 표시
-  const overlay = document.getElementById('case-modal-overlay');
-  const modal = document.getElementById('case-modal');
-  overlay.classList.remove('hidden');
-  setTimeout(() => {
-    overlay.classList.add('opacity-100');
-    modal.classList.remove('opacity-0','scale-95');
-    modal.classList.add('opacity-100','scale-100');
-    // 포커스 이동
-    modal.setAttribute('tabindex', '-1');
-    modal.focus();
-  }, 10);
-  document.body.style.overflow = 'hidden';
-}
-function closeCaseModal() {
-  const overlay = document.getElementById('case-modal-overlay');
-  const modal = document.getElementById('case-modal');
-  modal.classList.remove('opacity-100','scale-100');
-  modal.classList.add('opacity-0','scale-95');
-  overlay.classList.remove('opacity-100');
-  setTimeout(() => { overlay.classList.add('hidden'); }, 300);
-  document.body.style.overflow = '';
-}
-// 3. 수정 폼 접근성/모바일/피드백 보강
-function showCaseEditForm(idx) {
-  const caseSamples = getCaseProducts();
-  const p = caseSamples[idx];
-  const modal = document.getElementById('case-modal');
-  Array.from(modal.children).forEach(el => { if (el.id && el.id.startsWith('case-modal-')) el.style.display = 'none'; });
-  let form = modal.querySelector('form');
-  if (form) form.remove();
-  form = document.createElement('form');
-  form.className = 'flex flex-col gap-4';
-  form.setAttribute('aria-label', '사례 수정 폼');
-  form.innerHTML = `
-    <label>이미지
-      <div class="flex flex-col gap-2 items-center">
-        <img id="case-edit-img-preview" src="${p.img}" alt="미리보기" class="w-40 h-40 object-contain rounded-xl border bg-gray-100" />
-        <input type="file" accept="image/*" class="w-full min-h-[44px]" id="case-edit-img-input" aria-label="이미지 첨부" />
-      </div>
-    </label>
-    <label>이름<input type="text" class="w-full px-4 py-2 min-h-[44px] text-base sm:text-lg rounded border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none" value="${p.name}" required aria-label="이름" /></label>
-    <label>설명<input type="text" class="w-full px-4 py-2 min-h-[44px] text-base sm:text-lg rounded border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none" value="${p.desc}" required aria-label="설명" /></label>
-    <label>후기<input type="text" class="w-full px-4 py-2 min-h-[44px] text-base sm:text-lg rounded border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none" value="${p.review}" required aria-label="후기" /></label>
-    <label>국가<input type="text" class="w-full px-4 py-2 min-h-[44px] text-base sm:text-lg rounded border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none" value="${p.country}" required aria-label="국가" /></label>
-    <label>배송<input type="text" class="w-full px-4 py-2 min-h-[44px] text-base sm:text-lg rounded border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none" value="${p.shipping}" required aria-label="배송" /></label>
-    <label>방법<input type="text" class="w-full px-4 py-2 min-h-[44px] text-base sm:text-lg rounded border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none" value="${p.method}" required aria-label="방법" /></label>
-    <div class="flex gap-2 mt-2">
-      <button type="submit" class="flex-1 py-2 min-h-[44px] text-base bg-blue-500 text-white rounded font-bold" aria-label="저장">저장</button>
-      <button type="button" class="flex-1 py-2 min-h-[44px] text-base bg-gray-200 text-gray-600 rounded font-bold" id="case-edit-cancel" aria-label="취소">취소</button>
-    </div>
-  `;
-  modal.appendChild(form);
-  // 이미지 파일 첨부 및 미리보기
-  const imgInput = form.querySelector('#case-edit-img-input');
-  const imgPreview = form.querySelector('#case-edit-img-preview');
-  let newImgBase64 = null;
-  imgInput.addEventListener('change', function(e) {
-    const file = e.target.files && e.target.files[0];
-    if (file) {
-      if (!file.type.startsWith('image/')) {
-        showToast('이미지 파일만 첨부 가능합니다.', 'error');
-        imgInput.value = '';
-        return;
-      }
-      if (file.size > 2 * 1024 * 1024) { // 2MB 제한
-        showToast('2MB 이하 이미지만 첨부 가능합니다.', 'error');
-        imgInput.value = '';
-        return;
-      }
-      const reader = new FileReader();
-      reader.onload = function(ev) {
-        imgPreview.src = ev.target.result;
-        newImgBase64 = ev.target.result;
-      };
-      reader.readAsDataURL(file);
-    }
-  });
-  // 저장 이벤트
-  form.onsubmit = function(e) {
-    e.preventDefault();
-    // 필수값 검증
-    let valid = true;
-    Array.from(form.querySelectorAll('input[type=text]')).forEach(input => {
-      if (!input.value.trim()) {
-        input.classList.add('border-red-500');
-        valid = false;
-      } else {
-        input.classList.remove('border-red-500');
-      }
-    });
-    if (!valid) {
-      showToast('모든 항목을 입력해 주세요.', 'error');
-      return;
-    }
-    if (newImgBase64 !== null) {
-      p.img = newImgBase64;
-    }
-    p.name = form.children[1].querySelector('input').value;
-    p.desc = form.children[2].querySelector('input').value;
-    p.review = form.children[3].querySelector('input').value;
-    p.country = form.children[4].querySelector('input').value;
-    p.shipping = form.children[5].querySelector('input').value;
-    p.method = form.children[6].querySelector('input').value;
-    localStorage.setItem('caseProducts', JSON.stringify(caseSamples));
-    renderCaseSlider();
-    openCaseModal(idx);
-    showToast('저장되었습니다!');
-  };
-  // 취소 이벤트
-  form.querySelector('#case-edit-cancel').onclick = function() {
-    form.remove();
-    Array.from(modal.children).forEach(el => { if (el.id && el.id.startsWith('case-modal-')) el.style.display = ''; });
-  };
-}
 // ... 기존 코드 ...
     </script>
     <script>
@@ -3507,69 +2766,6 @@ if (mypageBtn) {
         }
       }
       
-      // 절감왕 섹션 버튼 함수들 (개선된 로그인 체크)
-      function showEvidence() {
-        console.log('🔍 실제 후기 보기 버튼 클릭');
-        
-        // 강화된 로그인 상태 확인
-        const loggedIn = localStorage.getItem('loggedIn');
-        const currentUser = localStorage.getItem('currentUser');
-        const user = localStorage.getItem('user');
-        const loggedInEmail = localStorage.getItem('loggedInEmail');
-        const userEmail = localStorage.getItem('userEmail');
-        const userData = localStorage.getItem('userData');
-        
-        let isLoggedIn = false;
-        
-        try {
-          // 다양한 로그인 상태 체크
-          if (loggedIn === 'true') {
-            isLoggedIn = true;
-          }
-          
-          if (currentUser || user || loggedInEmail || userEmail) {
-            isLoggedIn = true;
-          }
-          
-          // JSON 형태의 사용자 데이터 체크
-          if (userData) {
-            const parsedUserData = JSON.parse(userData);
-            if (parsedUserData && (parsedUserData.email || parsedUserData.name)) {
-              isLoggedIn = true;
-            }
-          }
-          
-          // 세션 스토리지도 체크
-          if (sessionStorage.getItem('loggedIn') === 'true' || 
-              sessionStorage.getItem('currentUser') ||
-              sessionStorage.getItem('user')) {
-            isLoggedIn = true;
-          }
-          
-        } catch (error) {
-          console.warn('로그인 상태 파싱 오류:', error);
-          isLoggedIn = loggedIn === 'true' || currentUser || user || loggedInEmail || userEmail;
-        }
-        
-        console.log('🔐 로그인 상태 확인 결과:', {
-          loggedIn: loggedIn,
-          currentUser: currentUser,
-          user: user,
-          loggedInEmail: loggedInEmail,
-          userEmail: userEmail,
-          userData: userData,
-          isLoggedIn: isLoggedIn
-        });
-        
-        if (isLoggedIn) {
-          console.log('✅ 로그인됨 - 후기 페이지로 이동');
-          window.location.href = 'reviews.html';
-        } else {
-          console.log('❌ 로그인 안됨 - 로그인 모달 표시');
-          document.getElementById('login-modal').classList.remove('hidden');
-          showToast('후기를 보려면 로그인이 필요합니다.', 'info');
-        }
-      }
       
       // 포인트 시스템 함수들은 위에서 이미 정의됨
       
@@ -3657,41 +2853,6 @@ if (mypageBtn) {
           });
         }
         
-        // 후기 페이지로 이동하는 함수
-        function goToReviewsPage() {
-          // 더 강화된 로그인 상태 확인
-          const loggedIn = localStorage.getItem('loggedIn');
-          const currentUser = localStorage.getItem('currentUser');
-          const user = localStorage.getItem('user');
-          const loggedInEmail = localStorage.getItem('loggedInEmail');
-          
-          const isLoggedIn = loggedIn === 'true' || 
-                            currentUser || 
-                            user || 
-                            loggedInEmail;
-          
-          console.log('🔐 후기 페이지 접근 시도:', {
-            loggedIn: loggedIn,
-            currentUser: currentUser,
-            user: user,
-            loggedInEmail: loggedInEmail,
-            isLoggedIn: isLoggedIn
-          });
-          
-          if (isLoggedIn) {
-            // 로그인된 경우 바로 이동
-            console.log('✅ 로그인됨 - 후기 페이지로 이동');
-            window.location.href = 'reviews.html';
-          } else {
-            // 로그인되지 않은 경우 로그인 모달 표시
-            console.log('❌ 로그인 안됨 - 로그인 모달 표시');
-            document.getElementById('login-modal').classList.remove('hidden');
-            showToast('후기를 보려면 로그인이 필요합니다.', 'info');
-          }
-        }
-        
-        // 전역 함수로 노출
-        window.goToReviewsPage = goToReviewsPage;
       }
     </script>
 
@@ -3711,9 +2872,6 @@ if (mypageBtn) {
         // 페이지 로드 후 1초 뒤에 시작
         setTimeout(showNext, 1000);
         
-        // 후기 시스템 초기화 및 렌더링
-        initializeReviewSystem();
-        renderCaseSlider();
         
         // 햄버거 메뉴 초기화
         initHamburgerMenu();
@@ -3724,7 +2882,7 @@ if (mypageBtn) {
     <footer class="bg-gray-900 text-white mt-20">
       <div class="max-w-6xl mx-auto px-4 py-12">
         <!-- 메인 푸터 콘텐츠 -->
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 mb-8">
           <!-- 회사 정보 -->
           <div class="col-span-1 md:col-span-2">
             <div class="flex items-center gap-3 mb-4">
@@ -3748,26 +2906,25 @@ if (mypageBtn) {
           </div>
           
           <!-- 서비스 -->
-          <div>
-            <h4 class="text-lg font-semibold mb-4 text-gray-200">서비스</h4>
-            <ul class="space-y-2 text-gray-400">
-              <li><a href="request-v2.html" class="hover:text-blue-400 transition">최저가 검증 의뢰</a></li>
-              <li><a href="gallery.html" class="hover:text-blue-400 transition">실제 고객 후기</a></li>
-              <li><a href="about.html" class="hover:text-blue-400 transition">회사 소개</a></li>
-              <li><a href="support.html" class="hover:text-blue-400 transition">고객 지원</a></li>
+          <div class="w-full sm:w-auto">
+            <h4 class="text-lg font-semibold mb-4 text-gray-200 text-center sm:text-left">서비스</h4>
+            <ul class="space-y-3 text-gray-400 text-center sm:text-left">
+              <li><a href="request-v2.html" class="hover:text-blue-400 transition block py-1">최저가 검증 의뢰</a></li>
+              <li><a href="about.html" class="hover:text-blue-400 transition block py-1">회사 소개</a></li>
+              <li><a href="support.html" class="hover:text-blue-400 transition block py-1">고객 지원</a></li>
             </ul>
           </div>
           
           <!-- 연락처 -->
-          <div>
-            <h4 class="text-lg font-semibold mb-4 text-gray-200">연락처</h4>
-            <ul class="space-y-2 text-gray-400">
-              <li><a href="contact.html" class="hover:text-blue-400 transition">1:1 문의</a></li>
-              <li class="flex items-center gap-2">
-                <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div class="w-full sm:w-auto">
+            <h4 class="text-lg font-semibold mb-4 text-gray-200 text-center sm:text-left">연락처</h4>
+            <ul class="space-y-3 text-gray-400 text-center sm:text-left">
+              <li><a href="contact.html" class="hover:text-blue-400 transition block py-1">1:1 문의</a></li>
+              <li class="flex items-center justify-center sm:justify-start gap-2 py-1">
+                <svg class="w-4 h-4 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
                 </svg>
-                <span>support@pricehunter.co.kr</span>
+                <span class="break-all">support@pricehunter.co.kr</span>
               </li>
             </ul>
           </div>
