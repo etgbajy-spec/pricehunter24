@@ -321,6 +321,7 @@
                             featured: data.featured || false,
                             rating: data.rating || 5,
                             views: data.views || 0,
+                            thumbnail: data.thumbnail || null,
                             country: data.country || '대한민국',
                             shipping: data.shipping || '3일',
                             method: data.method || 'PriceHunter 검증',
@@ -394,6 +395,7 @@
                             featured: data.featured || false,
                             rating: data.rating || 5,
                             views: data.views || 0,
+                            thumbnail: data.thumbnail || null,
                             country: data.country || '대한민국',
                             shipping: data.shipping || '3일',
                             method: data.method || 'PriceHunter 검증',
@@ -793,17 +795,14 @@
                             <!-- 썸네일 이미지 표시 -->
                             ${review.thumbnail ? `
                                 <div class="w-20 h-20 flex-shrink-0">
-                                    <img src="${review.thumbnail}" alt="${review.productName}" class="w-full h-full object-cover rounded-lg border-2 border-gray-200" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                                    <div class="w-full h-full bg-gradient-to-r from-blue-400 to-purple-500 rounded-lg flex items-center justify-center text-white font-bold text-2xl" style="display: none;">
-                                        ${review.name?.charAt(0) || '?'}
-                                    </div>
+                                    <img src="${review.thumbnail}" alt="${review.productName}" class="w-full h-full object-cover rounded-lg border-2 border-gray-200" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=&quot;w-full h-full bg-gradient-to-r from-blue-400 to-purple-500 rounded-lg flex items-center justify-center text-white font-bold text-xl&quot;>${review.name?.charAt(0) || '?'}</div>';">
                                 </div>
                             ` : review.photos && review.photos.length > 0 ? `
                                 <div class="w-20 h-20 flex-shrink-0">
-                                    <img src="${review.photos[0]}" alt="${review.productName}" class="w-full h-full object-cover rounded-lg">
+                                    <img src="${review.photos[0]}" alt="${review.productName}" class="w-full h-full object-cover rounded-lg" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=&quot;w-full h-full bg-gradient-to-r from-blue-400 to-purple-500 rounded-lg flex items-center justify-center text-white font-bold text-xl&quot;>${review.name?.charAt(0) || '?'}</div>';">
                                 </div>
                             ` : `
-                                <div class="w-20 h-20 flex-shrink-0 bg-gradient-to-r from-blue-400 to-purple-500 rounded-lg flex items-center justify-center text-white font-bold text-2xl">
+                                <div class="w-20 h-20 flex-shrink-0 bg-gradient-to-r from-blue-400 to-purple-500 rounded-lg flex items-center justify-center text-white font-bold text-xl">
                                     ${review.name?.charAt(0) || '?'}
                                 </div>
                             `}

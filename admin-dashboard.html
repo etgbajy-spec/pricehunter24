@@ -6255,10 +6255,10 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                             <td class="px-6 py-4 whitespace-nowrap">
                                 ${review.thumbnail ? 
                                     `<img src="${review.thumbnail}" alt="후기 썸네일" class="w-12 h-12 rounded-lg object-cover border-2 border-gray-200" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                                     <div class="w-12 h-12 bg-gradient-to-r from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white font-bold text-lg" style="display: none;">
+                                     <div class="w-12 h-12 bg-gradient-to-r from-blue-400 to-purple-500 rounded-lg flex items-center justify-center text-white font-bold text-lg" style="display: none;">
                                         ${review.name?.charAt(0) || '?'}
                                      </div>` :
-                                    `<div class="w-12 h-12 bg-gradient-to-r from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                                    `<div class="w-12 h-12 bg-gradient-to-r from-blue-400 to-purple-500 rounded-lg flex items-center justify-center text-white font-bold text-lg">
                                         ${review.name?.charAt(0) || '?'}
                                      </div>`
                                 }
@@ -6631,11 +6631,24 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             
             // 썸네일 미리보기
             previewThumbnail() {
-                const thumbnailUrl = document.getElementById('edit-thumbnail').value;
+                const thumbnailUrl = document.getElementById('edit-thumbnail').value.trim();
                 const previewDiv = document.getElementById('thumbnail-preview');
                 
                 if (thumbnailUrl) {
-                    previewDiv.innerHTML = `<img src="${thumbnailUrl}" alt="썸네일 미리보기" style="max-width: 200px; max-height: 150px; border-radius: 8px; border: 1px solid #d1d5db;" onerror="this.parentElement.innerHTML='<p style=&quot;color: #ef4444; font-size: 14px;&quot;>이미지를 불러올 수 없습니다</p>'">`;
+                    // URL 유효성 검사
+                    try {
+                        new URL(thumbnailUrl);
+                        previewDiv.innerHTML = `
+                            <div style="text-align: center;">
+                                <img src="${thumbnailUrl}" alt="썸네일 미리보기" 
+                                     style="max-width: 200px; max-height: 150px; border-radius: 8px; border: 1px solid #d1d5db; margin-bottom: 8px;" 
+                                     onerror="this.parentElement.innerHTML='<p style=&quot;color: #ef4444; font-size: 14px;&quot;>❌ 이미지를 불러올 수 없습니다</p>'">
+                                <p style="color: #10b981; font-size: 12px; margin: 0;">✅ 이미지 로드 성공</p>
+                            </div>
+                        `;
+                    } catch (error) {
+                        previewDiv.innerHTML = '<p style="color: #ef4444; font-size: 14px;">❌ 올바른 URL을 입력해주세요</p>';
+                    }
                 } else {
                     previewDiv.innerHTML = '<p style="color: #6b7280; font-size: 14px;">이미지 미리보기가 여기에 표시됩니다</p>';
                 }
