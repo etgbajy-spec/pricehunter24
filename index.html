@@ -1412,11 +1412,16 @@
           if (user) {
             console.log('✅ 사용자 로그인됨:', user.email);
             
-            // 관리자 계정인 경우 자동 로그아웃
+            // 관리자 계정인 경우 자동 로그아웃 (etgbajy@gmail.com은 일반 사용자로 허용)
             if (user.email === 'admin@pricehunter.com') {
               console.log('🚫 관리자 계정 감지 - 자동 로그아웃');
               signOutUser();
               return;
+            }
+            
+            // etgbajy@gmail.com은 일반 사용자로 허용
+            if (user.email === 'etgbajy@gmail.com') {
+              console.log('✅ 일반 사용자 로그인 허용:', user.email);
             }
             
             // 로그인 상태 UI 업데이트
