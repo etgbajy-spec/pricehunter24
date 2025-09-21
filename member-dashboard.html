@@ -828,31 +828,12 @@
       }
     }
 
-    // Firebase 초기화 대기 함수
-    function waitForFirebase() {
-      return new Promise((resolve) => {
-        const checkFirebase = () => {
-          if (window.firebaseDb && window.firebaseFirestoreFunctions) {
-            console.log('✅ Firebase 초기화 확인됨 (member-dashboard)');
-            resolve();
-          } else {
-            console.log('⏳ Firebase 초기화 대기 중... (member-dashboard)');
-            setTimeout(checkFirebase, 100);
-          }
-        };
-        checkFirebase();
-      });
-    }
-
     // 의뢰 내역 목록 렌더링 (Firebase + 로컬스토리지 통합)
     async function renderMyRequestList() {
       const requestList = document.getElementById('my-request-list');
       let requests = [];
       
       try {
-        // Firebase 초기화 대기
-        await waitForFirebase();
-        
         // 1. Firebase에서 데이터 가져오기 시도
         const firebaseRequests = await getRequestsFromFirebase();
         if (firebaseRequests.length > 0) {
@@ -869,29 +850,6 @@
       }
       
       // 로컬스토리지 함수 제거됨 - Firebase 전용 사용
-      
-      // 현재 사용자 정보 가져오기
-      const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-      
-      // Firebase에서 사용자의 리뷰 데이터 가져오기
-      let userReviews = [];
-      try {
-        if (window.firebaseDb && window.firebaseFirestoreFunctions && currentUser.uid) {
-          const { collection, query, where, getDocs } = window.firebaseFirestoreFunctions;
-          const reviewsRef = collection(window.firebaseDb, 'reviews');
-          const userReviewsQuery = query(reviewsRef, where('userId', '==', currentUser.uid));
-          const userReviewsSnapshot = await getDocs(userReviewsQuery);
-          
-          userReviews = [];
-          userReviewsSnapshot.forEach(doc => {
-            userReviews.push({ id: doc.id, ...doc.data() });
-          });
-          
-          console.log('✅ 사용자 리뷰 데이터 로드:', userReviews.length, '개');
-        }
-      } catch (error) {
-        console.warn('⚠️ 사용자 리뷰 데이터 로드 실패:', error);
-      }
       
       // 날짜순으로 정렬 (최신순)
       requests.sort((a, b) => {
@@ -921,48 +879,12 @@
         
         const listItem = document.createElement('li');
         listItem.className = 'p-4 hover:bg-blue-100 cursor-pointer transition-colors';
-        // 의뢰완료 상태 확인 및 리뷰 작성 상태 체크
-        const isCompleted = requestStatus === '답변완료' || requestStatus === '완료';
-        
-        // Firebase 리뷰 데이터에서 해당 의뢰 건의 리뷰 찾기
-        const relatedReview = userReviews.find(review => review.requestId === (request.id || reqNum));
-        const reviewStatus = relatedReview ? 
-          (relatedReview.approved ? 'approved' : 'pending') : 'none';
-        
         listItem.innerHTML = `
           <div class="flex justify-between items-start">
             <div class="flex-1">
               <div class="font-semibold text-gray-800">${reqNum}</div>
               <div class="text-sm text-gray-600">${userName} | ${formattedDate}</div>
               <div class="text-sm text-gray-500 mt-1">${productName}</div>
-              ${isCompleted ? `
-                <div class="mt-2 flex gap-2">
-                  <button onclick="event.stopPropagation(); goToBestPrice('${request.id || reqNum}')" 
-                          class="px-3 py-1 bg-blue-500 text-white text-xs rounded-full hover:bg-blue-600 transition">
-                    🔗 최저가링크바로가기
-                  </button>
-                  ${reviewStatus === 'none' ? `
-                    <button onclick="event.stopPropagation(); goToWriteReview('${request.id || reqNum}')" 
-                            class="px-3 py-1 bg-green-500 text-white text-xs rounded-full hover:bg-green-600 transition">
-                      ✍️ 리뷰작성하러가기
-                    </button>
-                  ` : reviewStatus === 'pending' ? `
-                    <span class="px-3 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">
-                      ⏳ 리뷰승인대기중
-                    </span>
-                  ` : reviewStatus === 'approved' ? `
-                    <div class="flex gap-2">
-                      <span class="px-3 py-1 bg-green-100 text-green-800 text-xs rounded-full">
-                        ✅ 리뷰승인완료
-                      </span>
-                      <button onclick="event.stopPropagation(); window.open('reviews.html', '_blank')" 
-                              class="px-3 py-1 bg-purple-500 text-white text-xs rounded-full hover:bg-purple-600 transition">
-                        📖 리뷰보기
-                      </button>
-                    </div>
-                  ` : ''}
-                </div>
-              ` : ''}
             </div>
             <div class="ml-4 text-right">
               ${requestStatus === '답변완료' ? 
@@ -2658,19 +2580,6 @@
     function closeRequestDetailModal() {
       document.getElementById('request-detail-modal').classList.add('hidden');
       document.body.style.overflow = 'auto';
-    }
-
-    // 최저가링크바로가기 함수
-    function goToBestPrice(requestId) {
-      // 의뢰 상세보기 모달을 열어서 관리자 답변의 링크로 이동
-      showRequestDetailModal({ id: requestId });
-    }
-
-    // 리뷰작성하러가기 함수
-    function goToWriteReview(requestId) {
-      // 의뢰 정보를 localStorage에 저장하고 리뷰 작성 페이지로 이동
-      localStorage.setItem('selectedRequestForReview', requestId);
-      window.location.href = 'write-review.html';
     }
 
     // 모달 이벤트 리스너 등록

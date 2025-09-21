@@ -387,17 +387,6 @@
                     return;
                 }
 
-                // 중복 후기 작성 방지 체크
-                const { collection, getDocs, query, where } = window.firebaseFirestoreFunctions;
-                const reviewsRef = collection(window.firebaseDb, 'reviews');
-                const duplicateCheck = query(reviewsRef, where('requestId', '==', selectedRequestId), where('userId', '==', currentUser.uid));
-                const duplicateSnapshot = await getDocs(duplicateCheck);
-                
-                if (!duplicateSnapshot.empty) {
-                    alert('이미 이 의뢰 건에 대한 후기를 작성하셨습니다. 한 의뢰 건당 하나의 후기만 작성할 수 있습니다.');
-                    return;
-                }
-
                 // 후기 데이터 준비
                 const reviewData = {
                     name: currentUser.name || '익명',
@@ -418,13 +407,11 @@
                     purchaseDate: document.getElementById('purchase-date').value,
                     profileImage: currentUser.profileImage || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
                     approved: false, // 관리자 승인 대기
-                    featured: false, // 인덱스페이지 노출 여부 (관리자가 설정)
                     views: 0,
                     createdAt: serverTimestamp(),
                     updatedAt: serverTimestamp(),
                     userId: currentUser.uid || 'anonymous',
-                    requestId: selectedRequestId, // 의뢰 건과 연동
-                    category: '일반' // 카테고리 추가
+                    requestId: selectedRequestId // 의뢰 건과 연동
                 };
                 
                 // Firebase에 후기 저장
@@ -440,9 +427,6 @@
                     reviewCreatedAt: serverTimestamp(),
                     updatedAt: serverTimestamp()
                 });
-                
-                console.log('✅ 후기 등록 완료:', reviewDoc.id);
-                console.log('📊 관리자 대시보드에 실시간 동기화됩니다.');
                 
                 alert('후기가 성공적으로 등록되었습니다! 관리자 승인 후 리뷰 페이지에 게시됩니다.');
                 window.location.href = 'reviews.html';
@@ -494,15 +478,6 @@
             // 오늘 날짜를 기본값으로 설정
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('purchase-date').value = today;
-            
-            // 회원 대시보드에서 전달된 의뢰 건 ID 확인
-            const selectedRequestId = localStorage.getItem('selectedRequestForReview');
-            if (selectedRequestId) {
-                // 선택된 의뢰 건이 있으면 자동으로 선택하고 정보 로드
-                document.getElementById('request-select').value = selectedRequestId;
-                await loadRequestDetails(selectedRequestId);
-                localStorage.removeItem('selectedRequestForReview'); // 사용 후 제거
-            }
             
             // 사용자의 의뢰 건 로드
             await loadUserRequestsForSelect();
