@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
     <!-- Content Security Policy - Firebase iframe 허용 -->
-    <meta http-equiv="Content-Security-Policy" content="frame-src 'self' https://www.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com https://apis.google.com; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com https://*.gstatic.com https://firebasejs.com https://images.unsplash.com https://*.unsplash.com https://apis.google.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://www.gstatic.com https://*.gstatic.com https://firebasejs.com https://apis.google.com; img-src 'self' data: https: http: blob:;" />
+    <meta http-equiv="Content-Security-Policy" content="frame-src 'self' https://www.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com https://apis.google.com; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com https://*.gstatic.com https://firebasejs.com https://images.unsplash.com https://*.unsplash.com https://apis.google.com https://*.firebasejs.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://www.gstatic.com https://*.gstatic.com https://firebasejs.com https://apis.google.com; img-src 'self' data: https: http: blob:;" />
     
     <title>관리자 대시보드 - PriceHunter</title>
     
@@ -2665,8 +2665,6 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                                 <div class="bg-gray-50 p-4 rounded-lg">
                                     <h4 class="font-semibold text-gray-700 mb-2">👤 작성자 정보</h4>
                                     <div class="flex items-center space-x-3">
-                                        <img src="${review.profileImage || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=100&q=80'}" 
-                                             alt="${review.name}" class="w-12 h-12 rounded-full object-cover">
                                         <div>
                                             <p class="font-medium">${review.name}</p>
                                             <p class="text-sm text-gray-600">${review.ageGroup} ${review.occupation}</p>
@@ -3053,7 +3051,6 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                         method: '도매처 연동',
                         badge: '실제 구매자',
                         purchaseDate: '2024-01-28',
-                        profileImage: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?auto=format&fit=crop&w=600&q=80',
                         category: '가전제품',
                         photos: [
                             'https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?auto=format&fit=crop&w=400&q=80',
@@ -3080,7 +3077,6 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                         method: '공장 직접구매',
                         badge: '실제 구매자',
                         purchaseDate: '2024-01-15',
-                        profileImage: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=600&q=80',
                         category: '전자제품',
                         photos: [
                             'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&w=400&q=80',
@@ -3134,7 +3130,6 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                         method: '공장 직접구매',
                         badge: '사업자 대량구매',
                         purchaseDate: '2024-01-20',
-                        profileImage: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=600&q=80',
                         category: '전자제품',
                         photos: [
                             'https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?auto=format&fit=crop&w=400&q=80',
@@ -3161,7 +3156,6 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                         method: '공장 직접구매',
                         badge: '실제 구매자',
                         purchaseDate: '2024-01-25',
-                        profileImage: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=600&q=80',
                         category: '전자제품',
                         photos: [
                             'https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?auto=format&fit=crop&w=400&q=80',
@@ -3227,8 +3221,9 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 return `
                     <tr class="hover:bg-gray-50">
                         <td class="px-6 py-4 whitespace-nowrap">
-                            <img src="${review.profileImage || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=100&q=80'}" 
-                                 alt="${review.name}" class="w-10 h-10 rounded-full object-cover">
+                            <div class="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
+                                <span class="text-gray-600 font-medium">${review.name.charAt(0)}</span>
+                            </div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="text-sm font-medium text-gray-900">${review.name}</div>
@@ -3312,8 +3307,9 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                     
                     <div class="space-y-6">
                         <div class="flex items-center space-x-4">
-                            <img src="${review.profileImage || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=100&q=80'}" 
-                                 alt="${review.name}" class="w-16 h-16 rounded-full object-cover">
+                            <div class="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center">
+                                <span class="text-gray-600 font-medium text-xl">${review.name.charAt(0)}</span>
+                            </div>
                             <div>
                                 <h3 class="text-lg font-semibold text-gray-900">${review.name}</h3>
                                 <p class="text-gray-500">${review.ageGroup} • ${review.occupation}</p>
@@ -3742,7 +3738,6 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                         name: "최지은",
                         ageGroup: "30대",
                         occupation: "주부",
-                        profileImage: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=100&q=80",
                         productName: "다이슨 V15 무선청소기",
                         category: "생활용품",
                         brand: "Dyson",
@@ -5480,7 +5475,6 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                         method: 'PriceHunter 검증',
                         badge: '실제 구매자',
                         purchaseDate: document.getElementById('review-purchase-date').value,
-                        profileImage: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
                         approved: document.getElementById('review-approved').value === 'true',
                         featured: document.getElementById('review-featured').value === 'true',
                         views: 0,
@@ -5631,8 +5625,9 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                     
                     <div class="space-y-6">
                         <div class="flex items-center space-x-4">
-                            <img src="${review.profileImage || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face'}" 
-                                 alt="${review.name}" class="w-16 h-16 rounded-full object-cover">
+                            <div class="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center">
+                                <span class="text-gray-600 font-medium text-xl">${review.name.charAt(0)}</span>
+                            </div>
                             <div>
                                 <h3 class="text-lg font-semibold">${review.name}, ${review.ageGroup} ${review.occupation}</h3>
                                 <p class="text-gray-600">${review.productName}</p>

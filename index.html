@@ -13,7 +13,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     
     <!-- Content Security Policy - Firebase iframe 허용 -->
-    <meta http-equiv="Content-Security-Policy" content="frame-src 'self' https://www.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com https://apis.google.com https://identitytoolkit.googleapis.com; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com https://*.gstatic.com https://firebasejs.com https://images.unsplash.com https://*.unsplash.com https://apis.google.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://www.gstatic.com https://*.gstatic.com https://firebasejs.com https://apis.google.com; img-src 'self' data: https: http: blob:;" />
+    <meta http-equiv="Content-Security-Policy" content="frame-src 'self' https://www.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com https://apis.google.com https://identitytoolkit.googleapis.com; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com https://*.gstatic.com https://firebasejs.com https://images.unsplash.com https://*.unsplash.com https://apis.google.com https://*.firebasejs.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://www.gstatic.com https://*.gstatic.com https://firebasejs.com https://apis.google.com; img-src 'self' data: https: http: blob:;" />
     
     <title>PriceHunter</title>
     
@@ -968,20 +968,55 @@
             }
         });
 
+        // Firebase 사용자 데이터 확인 함수
+        async function checkFirebaseUserData(email) {
+          try {
+            console.log('🔍 Firebase 사용자 데이터 확인:', email);
+            
+            // Firestore에서 사용자 데이터 확인
+            const { collection, query, where, getDocs } = window.firebaseFirestoreFunctions;
+            
+            if (!window.firebaseDb || !window.firebaseFirestoreFunctions) {
+              console.error('❌ Firebase가 초기화되지 않았습니다.');
+              alert('Firebase가 초기화되지 않았습니다. 페이지를 새로고침해주세요.');
+              return;
+            }
+            
+            const usersRef = collection(window.firebaseDb, 'users');
+            const q = query(usersRef, where('email', '==', email));
+            const querySnapshot = await getDocs(q);
+            
+            if (querySnapshot.empty) {
+              console.log('❌ 사용자 데이터를 찾을 수 없습니다:', email);
+              alert(`사용자 데이터를 찾을 수 없습니다: ${email}`);
+              return;
+            }
+            
+            querySnapshot.forEach((doc) => {
+              const userData = doc.data();
+              console.log('✅ 사용자 데이터 확인:', userData);
+              alert(`사용자 데이터 확인 완료:\n\n이메일: ${userData.email}\n이름: ${userData.name || userData.displayName || 'N/A'}\n전화번호: ${userData.phone || 'N/A'}\n가입일: ${userData.createdAt || 'N/A'}`);
+            });
+            
+          } catch (error) {
+            console.error('❌ Firebase 사용자 데이터 확인 실패:', error);
+            alert('사용자 데이터 확인에 실패했습니다: ' + error.message);
+          }
+        }
+
         // 전역 함수로 노출
         window.updateReviewAccess = updateReviewAccess;
         window.checkFirebaseUserData = checkFirebaseUserData;
         
         // 6. renderCaseSlider 함수 정의
-        const adminComments = [
-          "이 사례는 실제 검증된 후기입니다!",
-          "관리자가 직접 확인한 구매 성공 사례입니다.",
-          "실제 구매자 인증 완료!",
-          "믿고 맡겨주셔서 감사합니다.",
-          "실제 배송/구매 내역 확인 완료!"
-        ];
-        
         async function renderCaseSlider() {
+            const adminComments = [
+              "이 사례는 실제 검증된 후기입니다!",
+              "관리자가 직접 확인한 구매 성공 사례입니다.",
+              "실제 구매자 인증 완료!",
+              "믿고 맡겨주셔서 감사합니다.",
+              "실제 배송/구매 내역 확인 완료!"
+            ];
           const caseSamples = await getCaseProducts();
           const slider = document.getElementById('case-slider');
           if (!slider) return;
