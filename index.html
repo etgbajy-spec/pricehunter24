@@ -47,7 +47,7 @@
     <script type="module">
       import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
       import { getAuth, signInWithCustomToken, onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
-      import { getFirestore, doc, setDoc, getDoc, collection, query, orderBy, onSnapshot, getDocs, where, serverTimestamp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
+      import { getFirestore, doc, setDoc, getDoc, collection, query, orderBy, onSnapshot, getDocs, where, serverTimestamp, updateDoc } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
       
       // Firebase 설정
       const firebaseConfig = {
@@ -71,7 +71,7 @@
         window.firebaseAuth = auth;
         window.firebaseDb = db;
         window.firebaseAuthFunctions = { signInWithCustomToken, onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword };
-        window.firebaseFirestoreFunctions = { doc, setDoc, getDoc, collection, query, orderBy, onSnapshot, getDocs, where, serverTimestamp };
+        window.firebaseFirestoreFunctions = { doc, setDoc, getDoc, collection, query, orderBy, onSnapshot, getDocs, where, serverTimestamp, updateDoc };
         
         console.log('✅ Firebase v9 초기화 완료');
       } catch (error) {
@@ -81,7 +81,7 @@
         window.firebaseAuth = null;
         window.firebaseDb = null;
         window.firebaseAuthFunctions = { signInWithCustomToken: () => {}, onAuthStateChanged: () => {}, signOut: () => {}, signInWithEmailAndPassword: () => {}, createUserWithEmailAndPassword: () => {} };
-        window.firebaseFirestoreFunctions = { doc: () => {}, setDoc: () => {}, getDoc: () => {}, collection: () => {}, query: () => {}, orderBy: () => {}, onSnapshot: () => {}, getDocs: () => {}, where: () => {}, serverTimestamp: () => {} };
+        window.firebaseFirestoreFunctions = { doc: () => {}, setDoc: () => {}, getDoc: () => {}, collection: () => {}, query: () => {}, orderBy: () => {}, onSnapshot: () => {}, getDocs: () => {}, where: () => {}, serverTimestamp: () => {}, updateDoc: () => {} };
       }
     </script>
 
@@ -998,7 +998,6 @@
         // 전역 함수로 노출
         window.updateReviewAccess = updateReviewAccess;
         window.checkFirebaseUserData = checkFirebaseUserData;
-        window.createFirebaseAuthUser = createFirebaseAuthUser;
         
         // 6. renderCaseSlider 함수 정의
         async function renderCaseSlider() {
@@ -1525,47 +1524,6 @@
       }
 
 
-      // Firebase Auth 사용자 생성 함수 (관리자용)
-      async function createFirebaseAuthUser(email, password) {
-        try {
-          console.log('🔄 Firebase Auth 사용자 생성 시도:', email);
-          
-          // Firebase 초기화 대기
-          await waitForFirebase();
-          
-          const { createUserWithEmailAndPassword } = window.firebaseAuthFunctions;
-          const authResult = await createUserWithEmailAndPassword(window.firebaseAuth, email, password);
-          
-          console.log('✅ Firebase Auth 사용자 생성 성공:', authResult.user.email);
-          
-          // Firestore 사용자 데이터와 UID 동기화
-          const { collection, query, where, getDocs, doc, updateDoc } = window.firebaseFirestoreFunctions;
-          const usersRef = collection(window.firebaseDb, 'users');
-          const q = query(usersRef, where('email', '==', email));
-          const querySnapshot = await getDocs(q);
-          
-          if (!querySnapshot.empty) {
-            const userDoc = querySnapshot.docs[0];
-            await updateDoc(doc(window.firebaseDb, 'users', userDoc.id), {
-              uid: authResult.user.uid,
-              updatedAt: new Date()
-            });
-            console.log('✅ Firestore 사용자 데이터 UID 동기화 완료');
-          }
-          
-          showToast('Firebase Auth 사용자 생성 완료! 이제 로그인할 수 있습니다.', 'success');
-          
-        } catch (error) {
-          console.error('❌ Firebase Auth 사용자 생성 실패:', error);
-          if (error.code === 'auth/email-already-in-use') {
-            showToast('이미 Firebase Auth에 등록된 이메일입니다.', 'error');
-          } else if (error.code === 'auth/weak-password') {
-            showToast('비밀번호가 너무 약합니다. 6자 이상 입력해주세요.', 'error');
-          } else {
-            showToast('사용자 생성에 실패했습니다: ' + error.message, 'error');
-          }
-        }
-      }
 
       // 사용자 로그아웃 함수
       async function signOutUser() {
@@ -2914,17 +2872,28 @@
               throw new Error('비밀번호가 올바르지 않습니다.');
             }
             
+            // 사용자 상태 확인
+            if (userData.isActive === false) {
+              throw new Error('비활성화된 계정입니다. 관리자에게 문의하세요.');
+            }
+            
             // 로그인 성공 처리
             console.log('✅ Firestore 로그인 성공:', userData);
             
             // 로그인 횟수 및 마지막 로그인 시간 업데이트
             const { doc, updateDoc } = window.firebaseFirestoreFunctions;
             const userDocRef = doc(window.firebaseDb, 'users', userDocId);
+            const currentLoginCount = userData.loginCount || 0;
             await updateDoc(userDocRef, {
               lastLogin: new Date(),
-              loginCount: (userData.loginCount || 0) + 1,
+              loginCount: currentLoginCount + 1,
               updatedAt: new Date()
             });
+            
+            // 로컬 사용자 데이터에도 업데이트된 정보 반영
+            userData.lastLogin = new Date();
+            userData.loginCount = currentLoginCount + 1;
+            userData.updatedAt = new Date();
             
             // 로컬 스토리지에 사용자 정보 저장
             localStorage.setItem('loggedIn', 'true');
@@ -2960,6 +2929,8 @@
               errorMessage = '비밀번호가 올바르지 않습니다.';
             } else if (error.message === '사용자 데이터를 찾을 수 없습니다.') {
               errorMessage = '사용자 데이터를 찾을 수 없습니다.';
+            } else if (error.message === '비활성화된 계정입니다. 관리자에게 문의하세요.') {
+              errorMessage = '비활성화된 계정입니다. 관리자에게 문의하세요.';
             } else if (error.message.includes('Firebase')) {
               errorMessage = '네트워크 연결을 확인해주세요.';
             }
