@@ -375,15 +375,11 @@
           }
           console.log('📋 localStorage 중복 확인 결과: 중복 없음');
           
-          // 사용자 데이터 저장 (로그인 시스템과 호환되는 필드들 추가)
+          // 사용자 데이터 저장
           console.log('💾 Firebase에 사용자 데이터 저장 중...');
           const docRef = await addDoc(usersRef, {
-            ...userData,
-            loginCount: 0,
-            lastLogin: null,
-            isActive: true,
-            status: 'active',
-            createdAt: serverTimestamp(),
+          ...userData,
+          createdAt: serverTimestamp(),
             updatedAt: serverTimestamp()
           });
           

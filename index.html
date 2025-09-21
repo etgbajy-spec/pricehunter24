@@ -13,19 +13,15 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     
     <!-- Content Security Policy - Firebase iframe 허용 -->
-    <meta http-equiv="Content-Security-Policy" content="frame-src 'self' https://www.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com https://apis.google.com https://identitytoolkit.googleapis.com https://accounts.google.com; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com https://*.gstatic.com https://firebasejs.com https://images.unsplash.com https://*.unsplash.com https://apis.google.com https://*.firebasejs.com https://accounts.google.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://www.gstatic.com https://*.gstatic.com https://firebasejs.com https://apis.google.com; img-src 'self' data: https: http: blob:;" />
+    <meta http-equiv="Content-Security-Policy" content="frame-src 'self' https://www.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com https://apis.google.com; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com https://*.gstatic.com;" />
     
     <title>PriceHunter</title>
     
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🔍%3C/text%3E%3C/svg%3E">
     
-  <!-- Tailwind CSS CDN (개발용 - 프로덕션에서는 로컬 파일 사용 권장) -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    // Tailwind CSS 개발용 경고 무시
-    console.log('🎨 Tailwind CSS 로드됨 (개발용 CDN)');
-  </script>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
     
     <!-- 모바일 여백 제거 CSS -->
     <link rel="stylesheet" href="mobile-fix.css">
@@ -46,8 +42,8 @@
     <!-- Firebase v9 SDK (모듈식) -->
     <script type="module">
       import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
-      import { getAuth, signInWithCustomToken, onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
-      import { getFirestore, doc, setDoc, getDoc, collection, query, orderBy, onSnapshot, getDocs, where, serverTimestamp, updateDoc } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
+      import { getAuth, signInWithCustomToken, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
+      import { getFirestore, doc, setDoc, getDoc, collection, query, orderBy, onSnapshot, getDocs, where, serverTimestamp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
       
       // Firebase 설정
       const firebaseConfig = {
@@ -70,8 +66,8 @@
         window.firebaseApp = app;
         window.firebaseAuth = auth;
         window.firebaseDb = db;
-        window.firebaseAuthFunctions = { signInWithCustomToken, onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword };
-        window.firebaseFirestoreFunctions = { doc, setDoc, getDoc, collection, query, orderBy, onSnapshot, getDocs, where, serverTimestamp, updateDoc };
+        window.firebaseAuthFunctions = { signInWithCustomToken, onAuthStateChanged, signOut };
+        window.firebaseFirestoreFunctions = { doc, setDoc, getDoc, collection, query, orderBy, onSnapshot, getDocs, where, serverTimestamp };
         
         console.log('✅ Firebase v9 초기화 완료');
       } catch (error) {
@@ -80,8 +76,8 @@
         window.firebaseApp = null;
         window.firebaseAuth = null;
         window.firebaseDb = null;
-        window.firebaseAuthFunctions = { signInWithCustomToken: () => {}, onAuthStateChanged: () => {}, signOut: () => {}, signInWithEmailAndPassword: () => {}, createUserWithEmailAndPassword: () => {} };
-        window.firebaseFirestoreFunctions = { doc: () => {}, setDoc: () => {}, getDoc: () => {}, collection: () => {}, query: () => {}, orderBy: () => {}, onSnapshot: () => {}, getDocs: () => {}, where: () => {}, serverTimestamp: () => {}, updateDoc: () => {} };
+        window.firebaseAuthFunctions = { signInWithCustomToken: () => {}, onAuthStateChanged: () => {}, signOut: () => {} };
+        window.firebaseFirestoreFunctions = { doc: () => {}, setDoc: () => {}, getDoc: () => {}, collection: () => {}, query: () => {}, orderBy: () => {}, onSnapshot: () => {}, getDocs: () => {}, where: () => {}, serverTimestamp: () => {} };
       }
     </script>
 
@@ -618,7 +614,7 @@
       🎛️ 관리자 대시보드
     </button>
     <button id="admin-cleanup-btn" class="fixed top-16 right-48 z-50 px-4 py-2 bg-red-600 text-white rounded-lg shadow hover:bg-red-700 transition hidden cursor-default" aria-label="테스트 데이터 정리" title="테스트 데이터 정리" onclick="cleanupTestData()">🧹 정리</button>
-    <!-- 새로운 실제 고객 후기 섹션 (Firebase 연동) -->
+    <!-- 저렴하게 구입한 사례 섹션: main 바깥, 전체 폭 -->
     <section class="mt-24 mb-10 max-w-7xl mx-auto px-4 text-center">
       <div class="flex flex-col items-center mb-12">
         <h2 class="relative text-3xl md:text-4xl font-extrabold text-blue-800 text-center tracking-tight drop-shadow-lg mb-3">
@@ -627,43 +623,47 @@
           </span>
           <span class="block w-24 h-1 bg-gradient-to-r from-blue-400 via-emerald-400 to-pink-300 rounded-full mx-auto mt-4"></span>
         </h2>
-        <p class="text-lg md:text-xl text-gray-500 font-medium mt-2 text-center">실제 고객들의<br class="sm:hidden">생생한 절약 후기를<br class="sm:hidden">확인해보세요</p>
+        <p class="text-lg md:text-xl text-gray-500 font-medium mt-2 text-center">요청가 대비<br class="sm:hidden">실제 절약한 금액을<br class="sm:hidden">확인해보세요</p>
         
-        <!-- 통계 정보 -->
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 max-w-4xl">
-          <div class="bg-white rounded-xl p-4 shadow-lg">
-            <div class="text-2xl font-bold text-blue-600" id="total-reviews-count">0</div>
-            <div class="text-sm text-gray-600">총 후기</div>
+        <!-- 회원가입 안내 -->
+        <div id="signup-info" class="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-2xl p-6 mb-8 text-center max-w-2xl">
+          <div class="flex items-center justify-center gap-4 mb-4">
+            <span class="text-2xl">⭐</span>
+            <span class="text-xl font-bold text-blue-800">실제 고객 후기</span>
+            <span class="text-2xl">⭐</span>
           </div>
-          <div class="bg-white rounded-xl p-4 shadow-lg">
-            <div class="text-2xl font-bold text-green-600" id="total-savings-count">0원</div>
-            <div class="text-sm text-gray-600">총 절약금액</div>
-          </div>
-          <div class="bg-white rounded-xl p-4 shadow-lg">
-            <div class="text-2xl font-bold text-purple-600" id="avg-rating-count">0.0</div>
-            <div class="text-sm text-gray-600">평균 평점</div>
-          </div>
-          <div class="bg-white rounded-xl p-4 shadow-lg">
-            <div class="text-2xl font-bold text-orange-600" id="avg-savings-count">0%</div>
-            <div class="text-sm text-gray-600">평균 절약률</div>
+          <p class="text-gray-700 mb-4">실제 고객들의<br class="sm:hidden">절약 사례를<br class="sm:hidden">확인해보세요!</p>
+          <div class="flex justify-center items-center gap-4">
+            <a href="register.html" class="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-full font-bold hover:from-blue-700 hover:to-purple-700 transition-all duration-300 shadow-lg">
+              회원가입하고 후기 보기
+            </a>
           </div>
         </div>
       </div>
-
-      <!-- 로딩 스피너 -->
-      <div id="reviews-loading" class="text-center py-12">
-        <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-        <p class="mt-4 text-gray-600">후기를 불러오는 중...</p>
+      <div id="case-slider-wrapper" class="relative w-full max-w-7xl mx-auto text-center">
+        <!-- 로그인 필요 오버레이 -->
+        <div id="login-required-overlay" class="absolute inset-0 bg-white/90 backdrop-blur-md rounded-2xl z-10 flex items-center justify-center">
+          <div class="text-center">
+            <div class="text-6xl mb-4">🔒</div>
+            <h3 class="text-2xl font-bold text-gray-800 mb-2">회원가입 후 확인하세요</h3>
+            <p class="text-gray-600 mb-4">실제 고객들의 절약 사례를 보려면 회원가입이 필요합니다.</p>
+            <a href="register.html" class="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-3 rounded-full font-bold hover:from-blue-700 hover:to-purple-700 transition-all duration-300 shadow-lg">
+              회원가입하고 후기 보기
+            </a>
+          </div>
+        </div>
+        
+        <div id="case-slider" class="flex overflow-x-auto no-scrollbar snap-x snap-mandatory gap-2 sm:gap-8 py-2 sm:py-4 transition-all duration-500">
+          <!-- 슬라이드 아이템이 JS로 렌더링됨 -->
+        </div>
+        <!-- 좌우 네비게이션 버튼 -->
+        <button id="case-prev" class="absolute left-0 top-1/2 -translate-y-1/2 bg-white/80 rounded-full shadow p-2 z-10 hidden md:block" aria-label="이전 사례 보기" title="이전 사례 보기"><svg class="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <button id="case-next" class="absolute right-0 top-1/2 -translate-y-1/2 bg-white/80 rounded-full shadow p-2 z-10 hidden md:block" aria-label="다음 사례 보기" title="다음 사례 보기"><svg class="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
       </div>
-
-      <!-- 후기 그리드 -->
-      <div id="new-reviews-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8 hidden">
-        <!-- 후기 카드들이 여기에 동적으로 생성됩니다 -->
-      </div>
-
-      <!-- 더보기 버튼 -->
-      <div class="text-center">
-        <a href="reviews.html" class="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-3 rounded-full font-bold hover:from-blue-700 hover:to-purple-700 transition-all duration-300 shadow-lg inline-flex items-center gap-2">
+      
+      <!-- 더 많은 후기 보기 버튼 -->
+      <div class="text-center mt-8">
+        <button onclick="goToReviewsPage()" class="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-3 rounded-full font-bold hover:from-blue-700 hover:to-purple-700 transition-all duration-300 shadow-lg flex items-center gap-2 mx-auto">
           <span>⭐</span>
           <span>더 많은 후기 보기</span>
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -674,247 +674,109 @@
       </div>
     </section>
     <script>
-        // 새로운 Firebase 연동 후기 시스템
-        let indexReviewsUnsubscribe = null;
-        let indexReviewsLoaded = false;
-        let indexReviews = [];
+        // 1. Firebase에서 실제 후기 데이터 로드 (실시간 연동 - 개선된 버전)
+        let reviewsUnsubscribe = null;
+        let firebaseReviewsLoaded = false;
         
-        // 인덱스 페이지용 후기 로드 함수
-        async function loadIndexReviews() {
+        async function loadReviewsFromFirebase() {
           try {
             // Firebase 초기화 확인
             if (typeof window.firebaseDb === 'undefined' || !window.firebaseDb) {
               console.log('Firebase가 초기화되지 않음, 기본 데이터 사용');
-              loadDefaultIndexReviews();
-              return;
+              return getDefaultReviews();
             }
             
-            console.log('🔄 인덱스 페이지 - Firebase에서 후기 데이터 로드 시작...');
+            console.log('🔄 Firebase에서 실제 후기 데이터 로드 시작...');
             
             // Firebase 초기화 대기
             await waitForFirebase();
             
-            const { collection, query, where, orderBy, onSnapshot, limit } = window.firebaseFirestoreFunctions;
+            const { collection, query, where, orderBy, onSnapshot } = window.firebaseFirestoreFunctions;
             const reviewsRef = collection(window.firebaseDb, 'reviews');
             
-            // 승인된 후기만 가져오기 (최대 6개)
-            const q = query(
-              reviewsRef, 
-              where('approved', '==', true),
-              orderBy('createdAt', 'desc'),
-              limit(6)
-            );
-            
-            indexReviewsUnsubscribe = onSnapshot(q, (snapshot) => {
-                console.log('📋 인덱스 페이지 - 후기 실시간 업데이트...');
+            // 승인된 후기만 가져오기 (최신순, 최대 16개)
+            try {
+                const q = query(reviewsRef, where('approved', '==', true), orderBy('createdAt', 'desc'));
                 
-                indexReviews = [];
-                snapshot.forEach(doc => {
-                    const data = doc.data();
-                    // 승인된 후기만 표시
-                    if (data.approved) {
-                        indexReviews.push({
-                            id: doc.id,
-                            ...data
-                        });
+                reviewsUnsubscribe = onSnapshot(q, (snapshot) => {
+                    console.log('📋 메인페이지 후기 실시간 업데이트...');
+                    
+                    const firebaseReviews = [];
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        if (data && data.name && data.productName) {
+                            // Firebase 데이터를 메인페이지 형식으로 변환
+                            const formattedReview = {
+                                name: `${data.name}, ${data.ageGroup} ${data.occupation}`,
+                                img: data.profileImage || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=600&q=80',
+                                originalPrice: data.originalPrice,
+                                finalPrice: data.finalPrice,
+                                savings: data.savings,
+                                savingsPercent: `${data.savingsPercent}%`,
+                                desc: data.review ? data.review.substring(0, 50) + '...' : '만족스러운 구매',
+                                review: data.review,
+                                country: data.country || '대한민국',
+                                shipping: data.shipping || '3일',
+                                method: data.method || 'PriceHunter 검증',
+                                badge: data.badge || '실제 구매자',
+                                stars: data.rating || 5,
+                                date: data.purchaseDate || data.createdAt?.toDate?.()?.toISOString().split('T')[0] || '2024-01-01'
+                            };
+                            firebaseReviews.push(formattedReview);
+                        }
+                    });
+                    
+                    // 최대 16개로 제한
+                    const limitedReviews = firebaseReviews.slice(0, 16);
+                    
+                    if (limitedReviews.length > 0) {
+                        console.log(`✅ Firebase에서 ${limitedReviews.length}개 실제 후기 로드 완료`);
+                        firebaseReviewsLoaded = true;
+                        
+                        // 로컬 스토리지에 저장
+                        localStorage.setItem('firebaseReviews', JSON.stringify(limitedReviews));
+                        
+                        // UI 업데이트
+                        renderReviewsFromFirebase(limitedReviews);
+                    } else {
+                        console.log('📝 Firebase에 승인된 후기가 없음, 기본 데이터 사용');
+                        if (!firebaseReviewsLoaded) {
+                            renderReviewsFromFirebase(getDefaultReviews());
+                        }
+                    }
+                }, (error) => {
+                    console.error('❌ Firebase 후기 로드 오류:', error);
+                    if (!firebaseReviewsLoaded) {
+                        renderReviewsFromFirebase(getDefaultReviews());
                     }
                 });
                 
-                console.log(`✅ 인덱스 페이지 - ${indexReviews.length}개 후기 로드 완료`);
-                indexReviewsLoaded = true;
-                
-                // 통계 업데이트
-                updateIndexStatistics();
-                
-                // 후기 카드 렌더링
-                renderIndexReviews();
-                
-            }, (error) => {
-                console.error('❌ 인덱스 페이지 - 후기 로드 실패:', error);
-                loadDefaultIndexReviews();
-            });
+            } catch (indexError) {
+                console.warn('⚠️ Firebase 인덱스 오류, 기본 데이터 사용:', indexError);
+                renderReviewsFromFirebase(getDefaultReviews());
+            }
             
           } catch (error) {
-            console.error('❌ 인덱스 페이지 - Firebase 연결 실패:', error);
-            loadDefaultIndexReviews();
+            console.error('❌ Firebase 후기 로드 실패:', error);
+            renderReviewsFromFirebase(getDefaultReviews());
           }
         }
         
-        // 기본 후기 데이터 로드 (Firebase 연결 실패 시)
-        function loadDefaultIndexReviews() {
-          console.log('📋 인덱스 페이지 - 기본 후기 데이터 로드');
-          indexReviews = [
-            {
-              id: 'default-1',
-              name: '김영희',
-              ageGroup: '30대',
-              occupation: '디자이너',
-              productName: 'MacBook Pro 14인치',
-              originalPrice: 2890000,
-              finalPrice: 1890000,
-              savings: 1000000,
-              savingsPercent: 35,
-              rating: 5,
-              review: '정말 싸게 구매했습니다! 성능도 훌륭하고 배송도 빠르네요.',
-              thumbnail: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&w=400&q=80',
-              approved: true,
-              featured: true,
-              createdAt: new Date()
-            },
-            {
-              id: 'default-2',
-              name: '이철수',
-              ageGroup: '40대',
-              occupation: '자영업자',
-              productName: '삼성 갤럭시 S24',
-              originalPrice: 1200000,
-              finalPrice: 800000,
-              savings: 400000,
-              savingsPercent: 33,
-              rating: 5,
-              review: '요청가 대비 정말 많이 절약했어요. 추천합니다!',
-              thumbnail: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=400&q=80',
-              approved: true,
-              featured: true,
-              createdAt: new Date()
-            },
-            {
-              id: 'default-3',
-              name: '박민수',
-              ageGroup: '20대',
-              occupation: '대학생',
-              productName: 'iPad Pro 12.9인치',
-              originalPrice: 1500000,
-              finalPrice: 1100000,
-              savings: 400000,
-              savingsPercent: 27,
-              rating: 4,
-              review: '학생 할인까지 받아서 정말 저렴하게 샀어요!',
-              thumbnail: 'https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?auto=format&fit=crop&w=400&q=80',
-              approved: true,
-              featured: true,
-              createdAt: new Date()
-            }
-          ];
-          
-          updateIndexStatistics();
-          renderIndexReviews();
+        // Firebase 초기화 대기 함수
+        function waitForFirebase() {
+            return new Promise((resolve) => {
+                const checkFirebase = () => {
+                    if (window.firebaseDb && window.firebaseFirestoreFunctions) {
+                        console.log('✅ Firebase 초기화 확인됨');
+                        resolve();
+                    } else {
+                        console.log('⏳ Firebase 초기화 대기 중...');
+                        setTimeout(checkFirebase, 100);
+                    }
+                };
+                checkFirebase();
+            });
         }
-        
-        // 통계 업데이트
-        function updateIndexStatistics() {
-          const totalReviews = indexReviews.length;
-          const totalSavings = indexReviews.reduce((sum, review) => sum + (review.savings || 0), 0);
-          const avgRating = indexReviews.length > 0 ? 
-            (indexReviews.reduce((sum, review) => sum + (review.rating || 5), 0) / indexReviews.length).toFixed(1) : 0;
-          const avgSavings = indexReviews.length > 0 ? 
-            (indexReviews.reduce((sum, review) => sum + (review.savingsPercent || 0), 0) / indexReviews.length).toFixed(1) : 0;
-          
-          document.getElementById('total-reviews-count').textContent = totalReviews;
-          document.getElementById('total-savings-count').textContent = totalSavings.toLocaleString() + '원';
-          document.getElementById('avg-rating-count').textContent = avgRating;
-          document.getElementById('avg-savings-count').textContent = avgSavings + '%';
-        }
-        
-        // 후기 카드 렌더링
-        function renderIndexReviews() {
-          const reviewsGrid = document.getElementById('new-reviews-grid');
-          const loadingDiv = document.getElementById('reviews-loading');
-          
-          if (!reviewsGrid) return;
-          
-          if (indexReviews.length === 0) {
-            reviewsGrid.innerHTML = `
-              <div class="col-span-full text-center py-12">
-                <div class="text-6xl mb-4">📝</div>
-                <h3 class="text-xl font-bold text-gray-800 mb-2">아직 후기가 없습니다</h3>
-                <p class="text-gray-600">첫 번째 후기를 작성해보세요!</p>
-              </div>
-            `;
-          } else {
-            reviewsGrid.innerHTML = indexReviews.map((review, index) => `
-              <div class="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1" style="animation-delay: ${index * 0.1}s">
-                <div class="p-6">
-                  <!-- 썸네일 이미지와 프로필 -->
-                  <div class="flex items-start space-x-4 mb-4">
-                    ${review.thumbnail ? `
-                      <div class="w-20 h-20 flex-shrink-0">
-                        <img src="${review.thumbnail}" alt="${review.productName}" class="w-full h-full object-cover rounded-lg border-2 border-gray-200" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                        <div class="w-full h-full bg-gradient-to-r from-blue-400 to-purple-500 rounded-lg flex items-center justify-center text-white font-bold text-2xl" style="display: none;">
-                          ${review.name?.charAt(0) || '?'}
-                        </div>
-                      </div>
-                    ` : `
-                      <div class="w-20 h-20 flex-shrink-0 bg-gradient-to-r from-blue-400 to-purple-500 rounded-lg flex items-center justify-center text-white font-bold text-2xl">
-                        ${review.name?.charAt(0) || '?'}
-                      </div>
-                    `}
-                    
-                    <div class="flex-1">
-                      <h3 class="font-bold text-gray-900 text-lg">${review.name || '익명'}</h3>
-                      <p class="text-sm text-gray-600">${review.ageGroup || ''} • ${review.occupation || ''}</p>
-                      <div class="flex items-center mt-1">
-                        ${'★'.repeat(review.rating || 5)}${'☆'.repeat(5 - (review.rating || 5))}
-                        <span class="text-sm text-gray-500 ml-2">${review.rating || 5}/5</span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <!-- 상품 정보 -->
-                  <div class="mb-4">
-                    <h4 class="font-semibold text-gray-800 text-lg mb-2">${review.productName || '상품명 없음'}</h4>
-                    <div class="flex items-center justify-between text-sm">
-                      <span class="text-gray-500">원가: <span class="line-through">${(review.originalPrice || 0).toLocaleString()}원</span></span>
-                      <span class="text-green-600 font-bold">절약: ${(review.savings || 0).toLocaleString()}원</span>
-                    </div>
-                    <div class="text-right">
-                      <span class="text-2xl font-bold text-blue-600">${(review.finalPrice || 0).toLocaleString()}원</span>
-                      <span class="text-sm text-gray-500 ml-2">(${review.savingsPercent || 0}% 절약)</span>
-                    </div>
-                  </div>
-                  
-                  <!-- 후기 내용 -->
-                  <div class="bg-gray-50 rounded-lg p-3">
-                    <p class="text-gray-700 text-sm leading-relaxed">${review.review || '후기 내용이 없습니다.'}</p>
-                  </div>
-                </div>
-              </div>
-            `).join('');
-          }
-          
-          // 로딩 숨기고 그리드 표시
-          if (loadingDiv) loadingDiv.classList.add('hidden');
-          reviewsGrid.classList.remove('hidden');
-        }
-        
-        // updateReviewAccess 함수 정의
-        function updateReviewAccess() {
-          // Firebase Auth 상태로만 후기 접근 권한 확인
-          const isLoggedIn = window.firebaseAuth && window.firebaseAuth.currentUser;
-          const currentUser = isLoggedIn ? window.firebaseAuth.currentUser : null;
-          
-          console.log('🔍 후기 접근 권한 확인:', {
-            isLoggedIn: !!isLoggedIn,
-            currentUser: currentUser ? currentUser.email : '없음',
-            firebaseAuth: !!window.firebaseAuth
-          });
-          
-          // 로그인 필요 오버레이 표시/숨김
-          const loginOverlay = document.getElementById('login-required-overlay');
-          if (loginOverlay) {
-            if (isLoggedIn) {
-              loginOverlay.style.display = 'none';
-              console.log('✅ 후기 접근 허용 - 로그인됨');
-            } else {
-              loginOverlay.style.display = 'flex';
-              console.log('🔒 후기 접근 제한 - 로그인 필요');
-            }
-          }
-        }
-        
-        // 전역 함수로 노출
-        window.updateReviewAccess = updateReviewAccess;
-        
 
         // 후기 실시간 리스너
         function subscribeToReviews() {
@@ -1063,8 +925,10 @@
         // 전역 함수로 노출
         window.initializeReviewSystem = initializeReviewSystem;
         
-        // 로그인 상태 변경 시 후기 오버레이 업데이트 (중복 제거)
-        // updateReviewAccess 함수는 이미 위에서 정의됨
+        // 로그인 상태 변경 시 후기 오버레이 업데이트
+        function updateReviewAccess() {
+          initializeReviewSystem();
+        }
         
         // 페이지 언로드 시 리스너 정리
         window.addEventListener('beforeunload', () => {
@@ -1074,61 +938,19 @@
             }
         });
 
-        // Firebase 사용자 데이터 확인 함수
-        async function checkFirebaseUserData(email) {
-          try {
-            console.log('🔍 Firebase 사용자 데이터 확인:', email);
-            
-            // Firestore에서 사용자 데이터 확인
-            const { collection, query, where, getDocs } = window.firebaseFirestoreFunctions;
-            
-            if (!window.firebaseDb || !window.firebaseFirestoreFunctions) {
-              console.error('❌ Firebase가 초기화되지 않았습니다.');
-              alert('Firebase가 초기화되지 않았습니다. 페이지를 새로고침해주세요.');
-              return;
-            }
-            
-            const usersRef = collection(window.firebaseDb, 'users');
-            const q = query(usersRef, where('email', '==', email));
-            const querySnapshot = await getDocs(q);
-            
-            if (querySnapshot.empty) {
-              console.log('❌ 사용자 데이터를 찾을 수 없습니다:', email);
-              alert(`사용자 데이터를 찾을 수 없습니다: ${email}`);
-              return;
-            }
-            
-            let userData = null;
-            querySnapshot.forEach((doc) => {
-              userData = doc.data();
-              console.log('✅ 사용자 데이터 확인:', userData);
-            });
-            
-            if (userData) {
-              // Firestore 사용자 데이터 확인 완료
-              console.log('✅ Firestore 사용자 데이터 확인 완료');
-              alert(`사용자 데이터 확인 완료:\n\n이메일: ${userData.email}\n이름: ${userData.name || userData.displayName || 'N/A'}\n전화번호: ${userData.phone || 'N/A'}\n가입일: ${userData.createdAt || 'N/A'}\n\n이제 Firestore 기반 로그인을 사용하여 로그인할 수 있습니다.`);
-            }
-            
-          } catch (error) {
-            console.error('❌ Firebase 사용자 데이터 확인 실패:', error);
-            alert('사용자 데이터 확인에 실패했습니다: ' + error.message);
-          }
-        }
-
         // 전역 함수로 노출
         window.updateReviewAccess = updateReviewAccess;
-        window.checkFirebaseUserData = checkFirebaseUserData;
         
         // 6. renderCaseSlider 함수 정의
+        const adminComments = [
+          "이 사례는 실제 검증된 후기입니다!",
+          "관리자가 직접 확인한 구매 성공 사례입니다.",
+          "실제 구매자 인증 완료!",
+          "믿고 맡겨주셔서 감사합니다.",
+          "실제 배송/구매 내역 확인 완료!"
+        ];
+        
         async function renderCaseSlider() {
-            const adminComments = [
-              "이 사례는 실제 검증된 후기입니다!",
-              "관리자가 직접 확인한 구매 성공 사례입니다.",
-              "실제 구매자 인증 완료!",
-              "믿고 맡겨주셔서 감사합니다.",
-              "실제 배송/구매 내역 확인 완료!"
-            ];
           const caseSamples = await getCaseProducts();
           const slider = document.getElementById('case-slider');
           if (!slider) return;
@@ -1334,7 +1156,6 @@
              <input type="password" id="login-password" required class="w-full px-2 py-1 text-sm rounded border border-gray-300 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-colors" aria-label="비밀번호" placeholder="비밀번호를 입력하세요" />
            </div>
            <button type="submit" class="w-full py-1 bg-blue-600 text-white font-bold rounded shadow hover:bg-blue-700 transition-colors text-sm" aria-label="로그인" title="로그인">로그인</button>
-           <button type="button" onclick="checkFirebaseUserData('etgbajy@gmail.com')" class="w-full py-1 bg-gray-500 text-white font-bold rounded shadow hover:bg-gray-600 transition-colors text-sm mt-2" aria-label="사용자 데이터 확인" title="사용자 데이터 확인">사용자 데이터 확인</button>
          </form>
         
         <!-- 아이디/비밀번호 찾기 -->
@@ -1516,40 +1337,35 @@
       // Firebase v9 기반 공통 함수들
       let isFirebaseReady = false;
 
-      // Firebase 준비 상태 확인 (개선된 버전)
+      // Firebase 준비 상태 확인
       function waitForFirebase() {
         return new Promise((resolve, reject) => {
           console.log('🔄 Firebase 초기화 상태 확인:', {
             firebaseAuth: !!window.firebaseAuth,
             firebaseDb: !!window.firebaseDb,
-            firebaseFirestoreFunctions: !!window.firebaseFirestoreFunctions,
-            firebaseApp: !!window.firebaseApp
+            firebaseFirestoreFunctions: !!window.firebaseFirestoreFunctions
           });
           
-          if (window.firebaseAuth && window.firebaseDb && window.firebaseFirestoreFunctions && window.firebaseApp) {
+          if (window.firebaseAuth && window.firebaseDb && window.firebaseFirestoreFunctions) {
             isFirebaseReady = true;
-            console.log('✅ Firebase 초기화 완료 - 모든 컴포넌트 준비됨');
+            console.log('✅ Firebase 초기화 완료');
             resolve();
           } else {
-            let attempts = 0;
-            const maxAttempts = 100; // 10초 (100 * 100ms)
-            
             const checkInterval = setInterval(() => {
-              attempts++;
-              console.log(`🔄 Firebase 초기화 대기 중... (${attempts}/${maxAttempts})`);
-              
-              if (window.firebaseAuth && window.firebaseDb && window.firebaseFirestoreFunctions && window.firebaseApp) {
+              if (window.firebaseAuth && window.firebaseDb && window.firebaseFirestoreFunctions) {
                 clearInterval(checkInterval);
                 isFirebaseReady = true;
-                console.log('✅ Firebase 초기화 완료 - 모든 컴포넌트 준비됨');
-                resolve();
-              } else if (attempts >= maxAttempts) {
-                clearInterval(checkInterval);
-                console.error('❌ Firebase 초기화 타임아웃 - 기본 데이터 사용');
-                // 타임아웃 시에도 기본 데이터로 진행
+                console.log('✅ Firebase 초기화 완료');
                 resolve();
               }
             }, 100);
+            
+            // 10초 후 타임아웃
+            setTimeout(() => {
+              clearInterval(checkInterval);
+              console.error('❌ Firebase 초기화 타임아웃');
+              reject(new Error('Firebase 초기화 실패'));
+            }, 10000);
           }
         });
       }
@@ -1592,31 +1408,19 @@
           if (user) {
             console.log('✅ 사용자 로그인됨:', user.email);
             
-            // 관리자 계정인 경우 자동 로그아웃 (etgbajy@gmail.com은 일반 사용자로 허용)
+            // 관리자 계정인 경우 자동 로그아웃
             if (user.email === 'admin@pricehunter.com') {
               console.log('🚫 관리자 계정 감지 - 자동 로그아웃');
               signOutUser();
               return;
             }
             
-            // etgbajy@gmail.com은 일반 사용자로 허용
-            if (user.email === 'etgbajy@gmail.com') {
-              console.log('✅ 일반 사용자 로그인 허용:', user.email);
-            }
-            
-            // Firebase Auth 상태만으로 로그인 처리 (로컬스토리지 사용 안함)
-            console.log('✅ Firebase Auth 전용 시스템 - 로컬스토리지 사용 안함');
-            
             // 로그인 상태 UI 업데이트
             updateAuthUI();
-            updateReviewAccess();
           } else {
             console.log('❌ 사용자 로그아웃됨');
-            console.log('✅ Firebase Auth 전용 시스템 - 로컬스토리지 정리 불필요');
-            
             // 로그아웃 상태 UI 업데이트
             updateAuthUI();
-            updateReviewAccess();
           }
         });
       }
@@ -1649,21 +1453,27 @@
         }
       }
 
-
-
       // 사용자 로그아웃 함수
       async function signOutUser() {
         try {
-          console.log('🚪 Firebase Auth 로그아웃 시작...');
+          console.log('🚪 사용자 로그아웃 시작...');
           
           // Firebase 로그아웃
           await signOutFromFirebase();
           
-          // Firebase Auth 상태 리스너가 자동으로 UI 업데이트 처리
-          console.log('✅ Firebase Auth 전용 시스템 - 로컬스토리지 정리 불필요');
-          console.log('✅ Firebase Auth 로그아웃 완료');
+          // localStorage 정리
+          localStorage.removeItem('loggedIn');
+          localStorage.removeItem('user');
+          localStorage.removeItem('currentUser');
+          localStorage.removeItem('loggedInEmail');
+          
+          // UI 업데이트
+          updateAuthUI();
+          updateReviewAccess(); // 후기 접근 권한 업데이트
+          
+          console.log('✅ 사용자 로그아웃 완료');
         } catch (error) {
-          console.error('❌ Firebase Auth 로그아웃 실패:', error);
+          console.error('❌ 사용자 로그아웃 실패:', error);
         }
       }
 
@@ -1671,15 +1481,13 @@
 
       // 로그인/회원가입/마이페이지/로그아웃/의뢰결과조회 버튼 제어
       function updateAuthUI() {
-        // Firebase Auth 상태로만 로그인 상태 확인
-        const isLoggedIn = window.firebaseAuth && window.firebaseAuth.currentUser;
-        const currentUser = isLoggedIn ? window.firebaseAuth.currentUser : null;
+        const isLoggedIn = localStorage.getItem('loggedIn') === 'true' || localStorage.getItem('currentUser');
         const isAdmin = validateAdminSession(); // 세션 검증 추가
         
-        console.log('🔍 Firebase Auth 로그인 상태 확인:', {
-          isLoggedIn,
-          currentUser: currentUser ? currentUser.email : '없음',
-          firebaseAuth: !!window.firebaseAuth,
+        console.log('🔍 로그인 상태 확인:', {
+          loggedIn: localStorage.getItem('loggedIn'),
+          currentUser: localStorage.getItem('currentUser'),
+          isLoggedIn: isLoggedIn,
           isAdmin: isAdmin
         });
         
@@ -2965,103 +2773,66 @@
             return;
           }
           
-          // Firestore 기반 로그인 시도
-          try {
-            await waitForFirebase();
-            
-            console.log('🔐 Firestore 기반 로그인 시도:', email);
-            
-            // Firestore에서 사용자 데이터 검색
-            const { collection, query, where, getDocs } = window.firebaseFirestoreFunctions;
-            const usersRef = collection(window.firebaseDb, 'users');
-            const q = query(usersRef, where('email', '==', email));
-            const querySnapshot = await getDocs(q);
-            
-            if (querySnapshot.empty) {
-              throw new Error('등록되지 않은 이메일입니다.');
+          // 동기화된 사용자 데이터에서 검색
+          const allUsers = await syncUserData();
+          const user = allUsers.find(u => u.email === email && u.password === password);
+          
+          if (user) {
+            // Firebase Auth로 로그인 (이메일/비밀번호)
+            try {
+              await waitForFirebase();
+              
+              // 임시: Firebase Auth 이메일/비밀번호 로그인 대신 커스텀 토큰 사용
+              const userData = {
+                uid: user.uid || `email_${user.email.replace('@', '_').replace('.', '_')}`,
+                email: user.email,
+                displayName: user.name || user.nickname || '',
+                photoURL: user.profileImage || '',
+                loginMethod: 'email'
+              };
+
+              // Firestore에 사용자 데이터 upsert
+              await upsertUser(userData, {
+                lastLogin: new Date(),
+                loginCount: (user.loginCount || 0) + 1
+              });
+
+              // 로그인 성공 처리
+              localStorage.setItem('loggedIn', 'true');
+              localStorage.setItem('currentUser', JSON.stringify(userData));
+              localStorage.setItem('user', JSON.stringify(userData)); // 마이페이지 호환성
+              localStorage.setItem('loggedInEmail', userData.email); // 이메일 저장
+              document.getElementById('login-modal').classList.add('hidden');
+              document.getElementById('login-error').classList.add('hidden');
+              updateAuthUI();
+              updateReviewAccess(); // 후기 접근 권한 업데이트
+              showToast('로그인 성공!', 'success');
+              
+            } catch (error) {
+              console.error('Firebase 로그인 실패:', error);
+              document.getElementById('login-error').classList.remove('hidden');
+              showToast('로그인 처리 중 오류가 발생했습니다', 'error');
             }
             
-            // 사용자 데이터 확인
-            let userData = null;
-            let userDocId = null;
-            querySnapshot.forEach((doc) => {
-              userData = doc.data();
-              userDocId = doc.id;
-            });
+            // users 배열에서도 업데이트
+            const users = JSON.parse(localStorage.getItem('users') || '[]');
+            const userIndex = users.findIndex(u => u.email === email);
+            // localStorage 사용자 데이터 업데이트 제거 - Firebase 전용
+            console.log('✅ Firebase 전용 시스템 - localStorage 사용자 데이터 업데이트 불필요');
             
-            if (!userData) {
-              throw new Error('사용자 데이터를 찾을 수 없습니다.');
-            }
-            
-            // 비밀번호 확인
-            if (userData.password !== password) {
-              throw new Error('비밀번호가 올바르지 않습니다.');
-            }
-            
-            // 사용자 상태 확인
-            if (userData.isActive === false) {
-              throw new Error('비활성화된 계정입니다. 관리자에게 문의하세요.');
-            }
-            
-            // 로그인 성공 처리
-            console.log('✅ Firestore 로그인 성공:', userData);
-            
-            // 로그인 횟수 및 마지막 로그인 시간 업데이트
-            const { doc, updateDoc } = window.firebaseFirestoreFunctions;
-            const userDocRef = doc(window.firebaseDb, 'users', userDocId);
-            const currentLoginCount = userData.loginCount || 0;
-            await updateDoc(userDocRef, {
-              lastLogin: new Date(),
-              loginCount: currentLoginCount + 1,
-              updatedAt: new Date()
-            });
-            
-            // 로컬 사용자 데이터에도 업데이트된 정보 반영
-            userData.lastLogin = new Date();
-            userData.loginCount = currentLoginCount + 1;
-            userData.updatedAt = new Date();
-            
-            // 로컬 스토리지에 사용자 정보 저장
             localStorage.setItem('loggedIn', 'true');
-            localStorage.setItem('currentUser', JSON.stringify(userData));
-            localStorage.setItem('user', JSON.stringify(userData));
-            localStorage.setItem('loggedInEmail', email);
-            localStorage.setItem('userEmail', email);
-            localStorage.setItem('userData', JSON.stringify(userData));
-            
-            // 세션 스토리지에도 저장
-            sessionStorage.setItem('loggedIn', 'true');
-            sessionStorage.setItem('currentUser', JSON.stringify(userData));
-            sessionStorage.setItem('user', JSON.stringify(userData));
-            
-            // 로그인 성공 UI 업데이트
-            updateAuthUI();
-            updateReviewAccess();
-            
-            // 로그인 모달 닫기
+            localStorage.setItem('currentUser', JSON.stringify(user));
+            localStorage.setItem('user', JSON.stringify(user)); // 마이페이지 호환성
+            localStorage.setItem('loggedInEmail', user.email); // 이메일 저장
             document.getElementById('login-modal').classList.add('hidden');
             document.getElementById('login-error').classList.add('hidden');
+            document.body.style.overflow = '';
+            updateAuthUI();
+            updateReviewAccess(); // 후기 접근 권한 업데이트
             showToast('로그인 성공!', 'success');
-            
-          } catch (error) {
-            console.error('Firestore 로그인 실패:', error);
+          } else {
             document.getElementById('login-error').classList.remove('hidden');
-            
-            // 에러 메시지 처리
-            let errorMessage = '로그인 처리 중 오류가 발생했습니다';
-            if (error.message === '등록되지 않은 이메일입니다.') {
-              errorMessage = '등록되지 않은 이메일입니다.';
-            } else if (error.message === '비밀번호가 올바르지 않습니다.') {
-              errorMessage = '비밀번호가 올바르지 않습니다.';
-            } else if (error.message === '사용자 데이터를 찾을 수 없습니다.') {
-              errorMessage = '사용자 데이터를 찾을 수 없습니다.';
-            } else if (error.message === '비활성화된 계정입니다. 관리자에게 문의하세요.') {
-              errorMessage = '비활성화된 계정입니다. 관리자에게 문의하세요.';
-            } else if (error.message.includes('Firebase')) {
-              errorMessage = '네트워크 연결을 확인해주세요.';
-            }
-            
-            showToast(errorMessage, 'error');
+            showToast('이메일 또는 비밀번호가 올바르지 않습니다', 'error');
           }
         };
         
@@ -3100,9 +2871,9 @@
         var reqBtn = document.getElementById('request-v2-btn');
         if (reqBtn) {
           reqBtn.onclick = function() {
-            // Firebase Auth 로그인 상태 확인
-            var isLoggedIn = window.firebaseAuth && window.firebaseAuth.currentUser;
-            if (isLoggedIn) {
+            // 로그인 상태 확인
+            var loggedIn = localStorage.getItem('loggedIn') === 'true' || localStorage.getItem('currentUser');
+            if (loggedIn) {
               window.location.href = 'request-v2.html';
             } else {
               // 비회원 경고창
@@ -3740,25 +3511,61 @@ if (mypageBtn) {
       function showEvidence() {
         console.log('🔍 실제 후기 보기 버튼 클릭');
         
-        // Firebase Auth 상태로만 로그인 상태 확인
-        const isLoggedIn = window.firebaseAuth && window.firebaseAuth.currentUser;
-        const currentUser = isLoggedIn ? window.firebaseAuth.currentUser : null;
+        // 강화된 로그인 상태 확인
+        const loggedIn = localStorage.getItem('loggedIn');
+        const currentUser = localStorage.getItem('currentUser');
+        const user = localStorage.getItem('user');
+        const loggedInEmail = localStorage.getItem('loggedInEmail');
+        const userEmail = localStorage.getItem('userEmail');
+        const userData = localStorage.getItem('userData');
         
-        console.log('🔐 Firebase Auth 로그인 상태 확인 결과:', {
-          isLoggedIn,
-          currentUser: currentUser ? currentUser.email : '없음',
-          firebaseAuth: !!window.firebaseAuth
+        let isLoggedIn = false;
+        
+        try {
+          // 다양한 로그인 상태 체크
+          if (loggedIn === 'true') {
+            isLoggedIn = true;
+          }
+          
+          if (currentUser || user || loggedInEmail || userEmail) {
+            isLoggedIn = true;
+          }
+          
+          // JSON 형태의 사용자 데이터 체크
+          if (userData) {
+            const parsedUserData = JSON.parse(userData);
+            if (parsedUserData && (parsedUserData.email || parsedUserData.name)) {
+              isLoggedIn = true;
+            }
+          }
+          
+          // 세션 스토리지도 체크
+          if (sessionStorage.getItem('loggedIn') === 'true' || 
+              sessionStorage.getItem('currentUser') ||
+              sessionStorage.getItem('user')) {
+            isLoggedIn = true;
+          }
+          
+        } catch (error) {
+          console.warn('로그인 상태 파싱 오류:', error);
+          isLoggedIn = loggedIn === 'true' || currentUser || user || loggedInEmail || userEmail;
+        }
+        
+        console.log('🔐 로그인 상태 확인 결과:', {
+          loggedIn: loggedIn,
+          currentUser: currentUser,
+          user: user,
+          loggedInEmail: loggedInEmail,
+          userEmail: userEmail,
+          userData: userData,
+          isLoggedIn: isLoggedIn
         });
         
         if (isLoggedIn) {
-          console.log('✅ Firebase Auth 로그인됨 - 후기 섹션으로 스크롤');
-          // 후기 섹션으로 스크롤
-          const reviewsSection = document.querySelector('section');
-          if (reviewsSection) {
-            reviewsSection.scrollIntoView({ behavior: 'smooth' });
-          }
+          console.log('✅ 로그인됨 - 후기 페이지로 이동');
+          window.location.href = 'reviews.html';
         } else {
-          console.log('❌ Firebase Auth 로그인 안됨 - 로그인 모달 표시');
+          console.log('❌ 로그인 안됨 - 로그인 모달 표시');
           document.getElementById('login-modal').classList.remove('hidden');
           showToast('후기를 보려면 로그인이 필요합니다.', 'info');
         }
@@ -3787,9 +3594,9 @@ if (mypageBtn) {
       }
       
       function goToRequest() {
-        // Firebase Auth 로그인 상태 확인
-        var isLoggedIn = window.firebaseAuth && window.firebaseAuth.currentUser;
-        if (isLoggedIn) {
+        // 로그인 상태 확인
+        var loggedIn = localStorage.getItem('loggedIn') === 'true' || localStorage.getItem('currentUser');
+        if (loggedIn) {
           window.location.href = 'request-v2.html';
         } else {
           // 비회원 경고창
@@ -3852,23 +3659,32 @@ if (mypageBtn) {
         
         // 후기 페이지로 이동하는 함수
         function goToReviewsPage() {
-          // Firebase Auth 상태로만 로그인 상태 확인
-          const isLoggedIn = window.firebaseAuth && window.firebaseAuth.currentUser;
-          const currentUser = isLoggedIn ? window.firebaseAuth.currentUser : null;
+          // 더 강화된 로그인 상태 확인
+          const loggedIn = localStorage.getItem('loggedIn');
+          const currentUser = localStorage.getItem('currentUser');
+          const user = localStorage.getItem('user');
+          const loggedInEmail = localStorage.getItem('loggedInEmail');
           
-          console.log('🔐 Firebase Auth 후기 페이지 접근 시도:', {
-            isLoggedIn,
-            currentUser: currentUser ? currentUser.email : '없음',
-            firebaseAuth: !!window.firebaseAuth
+          const isLoggedIn = loggedIn === 'true' || 
+                            currentUser || 
+                            user || 
+                            loggedInEmail;
+          
+          console.log('🔐 후기 페이지 접근 시도:', {
+            loggedIn: loggedIn,
+            currentUser: currentUser,
+            user: user,
+            loggedInEmail: loggedInEmail,
+            isLoggedIn: isLoggedIn
           });
           
           if (isLoggedIn) {
             // 로그인된 경우 바로 이동
-            console.log('✅ Firebase Auth 로그인됨 - 후기 페이지로 이동');
+            console.log('✅ 로그인됨 - 후기 페이지로 이동');
             window.location.href = 'reviews.html';
           } else {
             // 로그인되지 않은 경우 로그인 모달 표시
-            console.log('❌ Firebase Auth 로그인 안됨 - 로그인 모달 표시');
+            console.log('❌ 로그인 안됨 - 로그인 모달 표시');
             document.getElementById('login-modal').classList.remove('hidden');
             showToast('후기를 보려면 로그인이 필요합니다.', 'info');
           }
@@ -3895,8 +3711,9 @@ if (mypageBtn) {
         // 페이지 로드 후 1초 뒤에 시작
         setTimeout(showNext, 1000);
         
-        // 새로운 후기 시스템 초기화
-        loadIndexReviews();
+        // 후기 시스템 초기화 및 렌더링
+        initializeReviewSystem();
+        renderCaseSlider();
         
         // 햄버거 메뉴 초기화
         initHamburgerMenu();
