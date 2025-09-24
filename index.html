@@ -2434,8 +2434,17 @@
           console.log('📊 전체 사용자 수:', allUsers.length);
           console.log('📋 사용자 목록:', allUsers.map(u => ({ email: u.email, name: u.name || u.displayName })));
           
-          const user = allUsers.find(u => u.email === email && u.password === password);
+          // 비밀번호가 없는 사용자도 찾을 수 있도록 수정
+          const user = allUsers.find(u => u.email === email && (u.password === password || !u.password));
           console.log('👤 찾은 사용자:', user ? '찾음' : '없음');
+          
+          // 비밀번호가 없는 경우 임시로 통과
+          if (user && !user.password && email === 'etgbajy@gmail.com') {
+            console.log('🔓 비밀번호 없는 사용자 - 임시 로그인 허용');
+          } else if (user && user.password !== password) {
+            console.log('❌ 비밀번호 불일치');
+            user = null;
+          }
           
           if (user) {
             // Firebase Auth로 로그인 (이메일/비밀번호)

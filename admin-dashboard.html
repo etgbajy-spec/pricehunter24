@@ -729,19 +729,39 @@
             }
         }
 
-        // 즉시 중복 문서 삭제 함수 (긴급용)
-        async function immediateDuplicateCleanup() {
+        // 올바른 사용자 문서 다시 생성 함수
+        async function recreateCorrectUser() {
             try {
-                console.log('🚨 즉시 중복 문서 삭제 시작...');
+                console.log('🔄 올바른 사용자 문서 생성 시작...');
                 
-                const { deleteDoc, doc } = window.firebaseFirestoreFunctions;
+                const { doc, setDoc } = window.firebaseFirestoreFunctions;
                 const db = window.firebaseDb;
                 
-                // 오래된 문서 삭제
-                await deleteDoc(doc(db, 'users', 'ffG0D4HTZ39gYiw0VNHO'));
-                console.log('✅ 오래된 문서 삭제 완료: ffG0D4HTZ39gYiw0VNHO');
+                // 올바른 문서 생성 (비밀번호 포함)
+                const correctUserData = {
+                    uid: 'ffG0D4HTZ39gYiw0VNHO',
+                    email: 'etgbajy@gmail.com',
+                    name: '허진영',
+                    displayName: '허진영',
+                    phone: '010-7714-6654',
+                    password: 'znznektm1@',
+                    emailVerification: 'etgbajy@gmail.com',
+                    agreeTerms: true,
+                    agreePrivacy: true,
+                    agreeMarketing: false,
+                    loginMethod: 'email',
+                    isActive: true,
+                    createdAt: new Date('2025-09-21T16:01:37.000Z'),
+                    updatedAt: new Date(),
+                    lastLogin: new Date(),
+                    loginCount: 4
+                };
                 
-                alert('✅ 중복 문서 삭제 완료!\n\n- 삭제된 문서: ffG0D4HTZ39gYiw0VNHO (오래된 것)\n- 유지된 문서: email_etgbajy_gmail_com (최신)\n\n이제 총 회원 수가 1명으로 정확히 표시됩니다.');
+                const userRef = doc(db, 'users', 'ffG0D4HTZ39gYiw0VNHO');
+                await setDoc(userRef, correctUserData);
+                
+                console.log('✅ 올바른 사용자 문서 생성 완료');
+                alert('✅ 올바른 사용자 문서가 생성되었습니다!\n\n이제 etgbajy@gmail.com으로 로그인할 수 있습니다.');
                 
                 // 페이지 새로고침
                 setTimeout(() => {
@@ -751,8 +771,8 @@
                 return true;
                 
             } catch (error) {
-                console.error('❌ 즉시 중복 문서 삭제 실패:', error);
-                alert('❌ 삭제 실패: ' + error.message);
+                console.error('❌ 올바른 사용자 문서 생성 실패:', error);
+                alert('❌ 문서 생성 실패: ' + error.message);
                 throw error;
             }
         }
@@ -4500,14 +4520,11 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                     <div class="flex justify-between items-center mb-6">
                         <h2 class="text-2xl font-bold text-gray-800">👥 회원 관리</h2>
                         <div class="flex gap-2">
-                            <button onclick="immediateDuplicateCleanup()" class="px-4 py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition animate-pulse">
-                                🚨 즉시 해결!
-                            </button>
                             <button onclick="cleanupDuplicateUsers().then(count => { alert(`중복 사용자 ${count}명이 정리되었습니다.`); setTimeout(() => subscribeToUsers(), 1000); })" class="px-4 py-2 bg-red-500 text-white rounded-lg font-semibold hover:bg-red-600 transition">
                                 🧹 중복 사용자 정리
                             </button>
-                            <button onclick="deleteSpecificUser('ffG0D4HTZ39gYiw0VNHO').then(() => { alert('오래된 중복 사용자 문서가 삭제되었습니다.\n\n유지된 문서: email_etgbajy_gmail_com (최신)\n삭제된 문서: ffG0D4HTZ39gYiw0VNHO (오래된 것)'); setTimeout(() => { subscribeToUsers(); location.reload(); }, 2000); }).catch(error => alert('삭제 실패: ' + error.message))" class="px-4 py-2 bg-purple-500 text-white rounded-lg font-semibold hover:bg-purple-600 transition">
-                                🗑️ 오래된 중복 삭제
+                            <button onclick="deleteSpecificUser('email_etgbajy_gmail_com').then(() => recreateCorrectUser())" class="px-4 py-2 bg-purple-500 text-white rounded-lg font-semibold hover:bg-purple-600 transition">
+                                🗑️ 잘못된 문서 삭제 후 올바른 문서 생성
                             </button>
                             <button onclick="loadLocalStorageUsers()" class="px-4 py-2 bg-orange-500 text-white rounded-lg font-semibold hover:bg-orange-600 transition">
                                 🔄 localStorage 새로고침
