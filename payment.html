@@ -344,18 +344,50 @@
         paymentBtn.disabled = true;
         paymentBtn.textContent = '결제 처리 중...';
 
-        // 토스페이먼츠 결제 초기화
-        const clientKey = 'test_ck_D5GePWvyJnrK0W0k6q8gLzN97Eoq'; // 테스트 키 (실제 운영시에는 live_로 시작하는 키 사용)
+        // 토스페이먼츠 결제 초기화 (환경변수 사용)
+        const clientKey = process.env.TOSS_CLIENT_KEY || 'test_ck_D5GePWvyJnrK0W0k6q8gLzN97Eoq'; // 테스트 키 (실제 운영시에는 live_로 시작하는 키 사용)
         const tossPayments = TossPayments(clientKey);
 
         // 주문 번호 생성
         const orderNumber = 'PH-' + Date.now();
         
+        // 서버에서 결제 금액 검증
+        const productPrice = parseInt(document.getElementById('product-price').textContent.replace(/[^0-9]/g, ''));
+        const productName = document.getElementById('product-name').textContent;
+        
+        try {
+          const validationResponse = await fetch('/api/validate-payment', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              productName: productName,
+              amount: productPrice,
+              orderId: orderNumber
+            })
+          });
+          
+          const validationResult = await validationResponse.json();
+          
+          if (!validationResponse.ok || !validationResult.valid) {
+            throw new Error(validationResult.error || '결제 검증에 실패했습니다.');
+          }
+          
+          console.log('✅ 결제 정보 서버 검증 완료');
+        } catch (error) {
+          console.error('❌ 결제 검증 실패:', error);
+          alert('결제 정보 검증에 실패했습니다. 다시 시도해주세요.');
+          paymentBtn.disabled = false;
+          paymentBtn.textContent = '결제하기';
+          return;
+        }
+
         // 결제 정보 설정
         const paymentData = {
-          amount: parseInt(document.getElementById('product-price').textContent.replace(/[^0-9]/g, '')),
+          amount: productPrice,
           orderId: orderNumber,
-          orderName: document.getElementById('product-name').textContent,
+          orderName: productName,
           customerName: document.getElementById('payer-name').value,
           customerEmail: document.getElementById('payer-email').value,
           customerMobilePhone: document.getElementById('payer-phone').value,

@@ -64,7 +64,7 @@
         };
         
         // 사용자에게 알림
-        alert('Firebase 초기화에 실패했습니다. 페이지를 새로고침해주세요.');
+        alert('시스템 초기화에 실패했습니다. 페이지를 새로고침해주세요.');
       }
     </script>
     
@@ -174,6 +174,28 @@
             console.log('- window.editReview:', typeof window.editReview);
             console.log('- window.editReviewWithModal:', typeof window.editReviewWithModal);
             console.log('- window.closeEditReviewModal:', typeof window.closeEditReviewModal);
+            
+            // Firebase 상태 모니터링 추가
+            if (window.firebaseAuthFunctions && window.firebaseAuthFunctions.onAuthStateChanged) {
+                window.firebaseAuthFunctions.onAuthStateChanged(window.firebaseAuth, async (user) => {
+                    console.log('🔐 Firebase Auth 상태 변경:', user ? user.email : '로그아웃됨');
+                    
+                    if (!user) {
+                        // 로그아웃 상태 - 로그인 섹션 표시
+                        showLoginSection();
+                    } else {
+                        // 로그인 상태 - 관리자 권한 확인 후 대시보드 표시
+                        const isAdmin = await checkAdminPermission(user);
+                        if (isAdmin) {
+                            document.getElementById('login-section').classList.add('hidden');
+                            document.getElementById('dashboard-section').classList.remove('hidden');
+                            loadDashboardData();
+                        } else {
+                            showLoginSection();
+                        }
+                    }
+                });
+            }
             
             // Firebase 준비 대기 후 실시간 구독 시작
             setTimeout(async () => {
@@ -290,6 +312,30 @@
             console.log('✅ 관리자 대시보드 설정 완료');
         }
         
+        // 관리자 권한 확인 함수
+        async function checkAdminPermission(user) {
+            try {
+                if (!user || !user.uid) return false;
+                
+                // Firestore에서 관리자 권한 확인
+                const { doc, getDoc } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js');
+                const adminDoc = await getDoc(doc(window.firebaseDb, 'admins', user.uid));
+                
+                if (adminDoc.exists()) {
+                    const adminData = adminDoc.data();
+                    return adminData.role === 'admin' || adminData.permissions?.includes('admin');
+                }
+                
+                // 기본 관리자 이메일 확인 (임시)
+                const adminEmails = ['admin@pricehunter.com', 'admin@example.com'];
+                return adminEmails.includes(user.email);
+                
+            } catch (error) {
+                console.error('❌ 관리자 권한 확인 실패:', error);
+                return false;
+            }
+        }
+
         // 관리자 로그인 함수
         window.adminLogin = async function() {
             console.log('🔐 관리자 로그인 시도...');
@@ -310,7 +356,7 @@
             
             if (!window.firebaseAuth) {
                 console.error('❌ Firebase Auth가 초기화되지 않았습니다.');
-                alert('Firebase Auth 초기화에 실패했습니다. 페이지를 새로고침해주세요.');
+                alert('인증 시스템 초기화에 실패했습니다. 페이지를 새로고침해주세요.');
                 return;
             }
             
@@ -319,7 +365,19 @@
                 // Firebase v9에서는 signInWithEmailAndPassword를 직접 import해야 함
                 const { signInWithEmailAndPassword } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js');
                 const userCredential = await signInWithEmailAndPassword(window.firebaseAuth, email, password);
-                console.log('✅ 관리자 로그인 성공:', userCredential.user.email);
+                console.log('✅ 로그인 성공:', userCredential.user.email);
+                
+                // 관리자 권한 확인
+                const isAdmin = await checkAdminPermission(userCredential.user);
+                if (!isAdmin) {
+                    alert('관리자 권한이 없습니다. 관리자 계정으로 로그인해주세요.');
+                    // 로그아웃
+                    const { signOut } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js');
+                    await signOut(window.firebaseAuth);
+                    return;
+                }
+                
+                console.log('✅ 관리자 권한 확인됨');
                 
                 // 로그인 성공 시 대시보드 표시
                 document.getElementById('login-section').classList.add('hidden');
@@ -354,7 +412,7 @@
                         errorMessage = error.message;
                 }
                 
-                alert(errorMessage);
+                alert('로그인에 실패했습니다. 다시 시도해주세요.');
             }
         };
         
@@ -364,7 +422,7 @@
                 console.log('🔧 테스트 관리자 계정 생성 시작...');
                 
                 if (!firebase.auth) { 
-                    alert("Firebase Auth 초기화 실패"); 
+                    alert("인증 시스템 초기화 실패"); 
                     throw new Error("Auth not initialized"); 
                 }
                 
@@ -406,7 +464,7 @@
                     document.getElementById('admin-email').value = 'admin@pricehunter.com';
                     document.getElementById('admin-password').value = 'admin1234';
                 } else {
-                    alert('계정 생성 실패: ' + error.message);
+                    alert('계정 생성에 실패했습니다. 다시 시도해주세요.');
                 }
             }
         };
@@ -772,7 +830,7 @@
                 
             } catch (error) {
                 console.error('❌ 올바른 사용자 문서 생성 실패:', error);
-                alert('❌ 문서 생성 실패: ' + error.message);
+                alert('문서 생성에 실패했습니다. 다시 시도해주세요.');
                 throw error;
             }
         }
@@ -1634,9 +1692,36 @@
             }
         }
 
+        // 로그인 섹션 표시 함수
+        function showLoginSection() {
+            document.getElementById('login-section').classList.remove('hidden');
+            document.getElementById('dashboard-section').classList.add('hidden');
+            
+            // 로그아웃 처리
+            if (window.firebaseAuth) {
+                window.firebaseAuth.signOut().catch(error => {
+                    console.error('❌ 로그아웃 실패:', error);
+                });
+            }
+        }
+
         // 대시보드 데이터 로드 함수
-        function loadDashboardData() {
+        async function loadDashboardData() {
             console.log('📊 대시보드 데이터 로드 시작...');
+            
+            // 관리자 권한 재확인
+            if (!window.firebaseAuth || !window.firebaseAuth.currentUser) {
+                console.error('❌ 인증되지 않은 사용자입니다.');
+                showLoginSection();
+                return;
+            }
+            
+            const isAdmin = await checkAdminPermission(window.firebaseAuth.currentUser);
+            if (!isAdmin) {
+                console.error('❌ 관리자 권한이 없습니다.');
+                showLoginSection();
+                return;
+            }
             
             if (!window.firebaseDb) {
                 console.error('❌ Firestore가 초기화되지 않았습니다.');
@@ -1716,7 +1801,7 @@
                           '4. FIREBASE_SECURITY_RULES.md 파일 참고하여 규칙 수정\n' +
                           '5. 게시 버튼 클릭');
                 } else {
-                    alert('❌ Firebase 연결 테스트 실패!\n\n오류: ' + error.message + '\n\n코드: ' + (error.code || 'N/A'));
+                    alert('시스템 연결 테스트에 실패했습니다. 다시 시도해주세요.');
                 }
                 
                 return false;
