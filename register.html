@@ -381,8 +381,8 @@
           const docRef = await addDoc(usersRef, {
             uid: uid,
             email: userData.email,
-            name: userData.name,
-            displayName: userData.name,
+            name: userData.name.trim(), // 이름 공백 제거
+            displayName: userData.name.trim(), // 이름 공백 제거
             phone: userData.phone,
             password: userData.password,
             emailVerification: userData.emailVerification,
@@ -400,28 +400,10 @@
       } catch (error) {
           console.error('❌ Firebase 저장 실패:', error);
           
-          // 권한 오류인 경우 localStorage로 폴백
+          // Firebase 저장 실패 시 오류 메시지와 함께 throw
           if (error.message.includes('Missing or insufficient permissions') || 
               error.message.includes('permission-denied')) {
-            console.log('🔄 Firebase 권한 오류 감지 - localStorage로 폴백');
-            
-            // localStorage에서 중복 확인
-            console.log('🔍 localStorage에서 이메일 중복 확인 중...', userData.email);
-            const existingUsers = JSON.parse(localStorage.getItem('users') || '[]');
-            const duplicateEmail = existingUsers.find(user => user.email === userData.email);
-            if (duplicateEmail) {
-              throw new Error('이미 가입된 이메일입니다.');
-            }
-            
-            console.log('🔍 localStorage에서 휴대폰 번호 중복 확인 중...', userData.phone);
-            const duplicatePhone = existingUsers.find(user => user.phone === userData.phone);
-            if (duplicatePhone) {
-              throw new Error('이미 가입된 휴대폰 번호입니다.');
-            }
-            console.log('📋 localStorage 중복 확인 결과: 중복 없음');
-            
-            console.log('✅ 사용자 데이터가 localStorage에 저장됩니다');
-            return 'localStorage_fallback';
+            throw new Error('Firebase 권한 오류가 발생했습니다. 관리자에게 문의하세요.');
           }
           
           // 다른 오류는 그대로 throw
@@ -724,19 +706,19 @@
             // localStorage 백업 저장 제거 - Firebase 전용
             
             // 현재 사용자 정보를 user 키로도 저장 (마이페이지 호환성)
-            localStorage.setItem('user', JSON.stringify(formData));
-            localStorage.setItem('currentUser', JSON.stringify(formData));
+            const userDataForStorage = {
+              ...formData,
+              name: formData.name.trim() // 이름 공백 제거
+            };
+            localStorage.setItem('user', JSON.stringify(userDataForStorage));
+            localStorage.setItem('currentUser', JSON.stringify(userDataForStorage));
             localStorage.setItem('loggedIn', 'true');
             localStorage.setItem('loggedInEmail', formData.email); // 이메일 저장
             
             // 포인트 시스템 제거됨
             
             // 성공 메시지 표시
-            if (firebaseResult === 'localStorage_fallback') {
-              alert('회원가입이 완료되었습니다!\n(데이터는 로컬에 저장되었습니다)\n\n실제 고객 후기를 확인해보세요!');
-            } else {
-              alert('회원가입이 완료되었습니다!\n데이터가 Firebase 서버에 안전하게 저장되었습니다.\n\n실제 고객 후기를 확인해보세요!');
-            }
+            alert('회원가입이 완료되었습니다!\n데이터가 Firebase 서버에 안전하게 저장되었습니다.\n\n실제 고객 후기를 확인해보세요!');
             
             // 후기 페이지로 이동
             window.location.href = 'reviews.html';

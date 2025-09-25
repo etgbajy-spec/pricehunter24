@@ -314,11 +314,10 @@
       } catch (error) {
         console.error('❌ Firebase 문의 저장 실패:', error);
         
-        // 권한 오류인 경우 localStorage로 폴백
+        // Firebase 저장 실패 시 오류 메시지와 함께 throw
         if (error.message.includes('Missing or insufficient permissions') || 
             error.message.includes('permission-denied')) {
-          console.log('🔄 Firebase 권한 오류 - localStorage로 폴백');
-          return 'localStorage_fallback';
+          throw new Error('Firebase 권한 오류가 발생했습니다. 관리자에게 문의하세요.');
         }
         
         throw error;

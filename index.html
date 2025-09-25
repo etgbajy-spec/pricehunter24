@@ -2303,8 +2303,8 @@
           const name = sanitizeInput(document.getElementById('find-id-name').value.trim());
           const phone = sanitizeInput(document.getElementById('find-id-phone').value.trim());
           
-          // 동기화된 사용자 데이터에서 검색
-          const allUsers = await syncUserData();
+          // Firebase에서 사용자 데이터 검색
+          const allUsers = await getUsersFromFirebase();
           const foundUser = allUsers.find(user => 
             user.name === name && user.phone === phone
           );
@@ -2330,8 +2330,8 @@
           const email = sanitizeInput(document.getElementById('find-password-email').value.trim());
           const name = sanitizeInput(document.getElementById('find-password-name').value.trim());
           
-          // 동기화된 사용자 데이터에서 검색
-          const allUsers = await syncUserData();
+          // Firebase에서 사용자 데이터 검색
+          const allUsers = await getUsersFromFirebase();
           const foundUser = allUsers.find(user => 
             user.email === email && user.name === name
           );
@@ -2364,7 +2364,7 @@
         };
 
         // 사용자 데이터 동기화 함수
-        async function syncUserData() {
+        async function getUsersFromFirebase() {
           try {
             console.log('🔄 사용자 데이터 동기화 시작...');
             
@@ -2389,43 +2389,13 @@
               }
             }
             
-            // localStorage 데이터 가져오기
-            const localUsers = JSON.parse(localStorage.getItem('users') || '[]');
-            console.log('📊 localStorage에서 가져온 사용자:', localUsers.length, '명');
+            // Firebase 전용 - localStorage 의존성 제거
+            console.log('📊 Firebase 전용 시스템 - localStorage 의존성 제거됨');
             
-            // 모든 사용자 데이터 병합 (Firebase 우선)
-            const userMap = new Map();
-            
-            // localStorage 사용자 먼저 추가
-            localUsers.forEach(user => {
-              if (user.email) {
-                userMap.set(user.email, { ...user, source: 'localStorage' });
-              }
-            });
-            
-            // Firebase 사용자 추가 (같은 이메일이 있으면 덮어쓰기)
-            firebaseUsers.forEach(user => {
-              if (user.email) {
-                userMap.set(user.email, { ...user, source: 'Firebase' });
-              }
-            });
-            
-            const allUsers = Array.from(userMap.values());
-            console.log('📊 최종 동기화된 사용자:', allUsers.length, '명');
-            console.log('📋 사용자 상세:', allUsers.map(u => ({ 
-              email: u.email, 
-              name: u.name || u.displayName, 
-              source: u.source,
-              hasPassword: !!u.password
-            })));
-            
-            return allUsers;
+            return firebaseUsers;
           } catch (error) {
-            console.error('❌ 사용자 데이터 동기화 실패:', error);
-            // 오류 시 localStorage 데이터만 반환
-            const localUsers = JSON.parse(localStorage.getItem('users') || '[]');
-            console.log('🔄 localStorage 데이터만 반환:', localUsers.length, '명');
-            return localUsers;
+            console.error('❌ Firebase 사용자 데이터 가져오기 실패:', error);
+            return [];
           }
         }
 
@@ -2447,8 +2417,8 @@
             return;
           }
           
-          // 동기화된 사용자 데이터에서 검색
-          const allUsers = await syncUserData();
+          // Firebase에서 사용자 데이터 검색
+          const allUsers = await getUsersFromFirebase();
           console.log('🔍 로그인 시도 - 검색할 이메일:', email);
           console.log('📊 전체 사용자 수:', allUsers.length);
           console.log('📋 사용자 목록:', allUsers.map(u => ({ email: u.email, name: u.name || u.displayName })));

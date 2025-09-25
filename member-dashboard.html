@@ -668,7 +668,17 @@
           document.getElementById('contact-name').value = userData.name || '';
           document.getElementById('contact-email').value = userData.email || '';
         } else {
-          console.error('사용자 정보를 찾을 수 없습니다.');
+          console.error('Firebase에서 사용자 정보를 찾을 수 없습니다.');
+          document.getElementById('mypage-name').textContent = '사용자 정보 없음';
+          document.getElementById('mypage-email').textContent = '이메일 없음';
+          document.getElementById('info-name').value = '';
+          document.getElementById('info-email').value = '';
+          document.getElementById('info-phone').value = '';
+          document.getElementById('info-kakao').value = '';
+          
+          // 문의 폼에도 빈 값으로 설정
+          document.getElementById('contact-name').value = '';
+          document.getElementById('contact-email').value = '';
         }
       } catch (error) {
         console.error('사용자 정보 로드 실패:', error);
@@ -1919,23 +1929,55 @@
       });
       
       // 정보수정 폼 저장
-      document.getElementById('info-form').addEventListener('submit', function(e) {
+      document.getElementById('info-form').addEventListener('submit', async function(e) {
         e.preventDefault();
         
-        // 기존 사용자 정보 가져오기 (이메일 수정 방지)
-        const originalUser = JSON.parse(localStorage.getItem('user') || '{}');
-        
-        const user = {
-          name: originalUser.name, // 이름 수정 불가
-          email: originalUser.email, // 이메일 수정 불가
-          phone: originalUser.phone, // 휴대폰 수정 불가
-          kakao: document.getElementById('info-kakao').value // 카카오ID만 수정 가능
-        };
-        
-        // 사용자 정보는 Firebase에만 저장 (로컬스토리지 제거)
-        renderMyInfo();
-        document.getElementById('info-form-container').classList.add('hidden');
-        alert('카카오ID가 저장되었습니다! (이름, 이메일, 휴대폰은 수정할 수 없습니다)');
+        try {
+          // 기존 사용자 정보 가져오기
+          const originalUser = JSON.parse(localStorage.getItem('user') || '{}');
+          const loggedInEmail = getUserEmail();
+          
+          if (!loggedInEmail) {
+            alert('로그인 정보를 찾을 수 없습니다.');
+            return;
+          }
+          
+          const updatedUser = {
+            ...originalUser,
+            kakao: document.getElementById('info-kakao').value.trim() // 카카오ID만 수정 가능
+          };
+          
+          // localStorage 업데이트
+          localStorage.setItem('user', JSON.stringify(updatedUser));
+          localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+          
+          // Firebase 업데이트
+          await waitForFirebase();
+          const { collection, query, where, getDocs, updateDoc, doc } = window.firebaseFirestoreFunctions;
+          const db = window.firebaseDb;
+          
+          const usersRef = collection(db, 'users');
+          const q = query(usersRef, where('email', '==', loggedInEmail));
+          const querySnapshot = await getDocs(q);
+          
+          if (!querySnapshot.empty) {
+            const userDoc = querySnapshot.docs[0];
+            await updateDoc(doc(db, 'users', userDoc.id), {
+              kakao: updatedUser.kakao,
+              updatedAt: new Date()
+            });
+            console.log('✅ Firebase 사용자 정보 업데이트 완료');
+          }
+          
+          // UI 업데이트
+          renderMyInfo();
+          document.getElementById('info-form-container').classList.add('hidden');
+          alert('카카오ID가 저장되었습니다!');
+          
+        } catch (error) {
+          console.error('정보 저장 실패:', error);
+          alert('정보 저장 중 오류가 발생했습니다: ' + error.message);
+        }
       });
       
       // 검색 기능
