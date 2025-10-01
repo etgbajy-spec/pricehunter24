@@ -312,32 +312,53 @@
             console.log('✅ 관리자 대시보드 설정 완료');
         }
         
-        // 관리자 권한 확인 함수
+        // 관리자 권한 확인 함수 (성능 측정 포함)
         async function checkAdminPermission(user) {
+            const permissionStartTime = performance.now();
             try {
-                if (!user || !user.uid) return false;
+                if (!user || !user.uid) {
+                    const permissionTime = performance.now() - permissionStartTime;
+                    console.log(`🔍 관리자 권한 확인 실패 (사용자 없음): ${permissionTime.toFixed(2)}ms`);
+                    return false;
+                }
+                
+                console.log('🔍 Firestore에서 관리자 권한 확인 시작');
+                const firestoreStartTime = performance.now();
                 
                 // Firestore에서 관리자 권한 확인
                 const { doc, getDoc } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js');
                 const adminDoc = await getDoc(doc(window.firebaseDb, 'admins', user.uid));
                 
+                const firestoreTime = performance.now() - firestoreStartTime;
+                console.log(`🔍 Firestore 쿼리 완료: ${firestoreTime.toFixed(2)}ms`);
+                
                 if (adminDoc.exists()) {
                     const adminData = adminDoc.data();
-                    return adminData.role === 'admin' || adminData.permissions?.includes('admin');
+                    const isAdmin = adminData.role === 'admin' || adminData.permissions?.includes('admin');
+                    const totalPermissionTime = performance.now() - permissionStartTime;
+                    console.log(`🔍 Firestore 관리자 권한 확인: ${isAdmin ? '승인' : '거부'} (${totalPermissionTime.toFixed(2)}ms)`);
+                    return isAdmin;
                 }
                 
                 // 기본 관리자 이메일 확인 (임시)
+                const emailCheckStartTime = performance.now();
                 const adminEmails = ['admin@pricehunter.com', 'admin@example.com'];
-                return adminEmails.includes(user.email);
+                const isEmailAdmin = adminEmails.includes(user.email);
+                const emailCheckTime = performance.now() - emailCheckStartTime;
+                const totalPermissionTime = performance.now() - permissionStartTime;
+                console.log(`🔍 이메일 관리자 권한 확인: ${isEmailAdmin ? '승인' : '거부'} (${emailCheckTime.toFixed(2)}ms, 총 ${totalPermissionTime.toFixed(2)}ms)`);
+                return isEmailAdmin;
                 
             } catch (error) {
-                console.error('❌ 관리자 권한 확인 실패:', error);
+                const totalPermissionTime = performance.now() - permissionStartTime;
+                console.error(`❌ 관리자 권한 확인 실패: ${totalPermissionTime.toFixed(2)}ms`, error);
                 return false;
             }
         }
 
-        // 관리자 로그인 함수
+        // 관리자 로그인 함수 (성능 측정 포함)
         window.adminLogin = async function() {
+            const adminLoginStartTime = performance.now();
             console.log('🔐 관리자 로그인 시도...');
             
             const email = document.getElementById('admin-email').value;
@@ -361,15 +382,31 @@
             }
             
             try {
-                console.log('🔥 로그인 시도:', email);
+                console.log('🔥 관리자 로그인 시도:', email);
+                
+                // Firebase Auth 로그인
+                const authStartTime = performance.now();
+                console.log('🔐 Firebase Auth 로그인 시작');
+                
                 // Firebase v9에서는 signInWithEmailAndPassword를 직접 import해야 함
                 const { signInWithEmailAndPassword } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js');
                 const userCredential = await signInWithEmailAndPassword(window.firebaseAuth, email, password);
-                console.log('✅ 로그인 성공:', userCredential.user.email);
+                
+                const authTime = performance.now() - authStartTime;
+                console.log(`✅ Firebase Auth 로그인 성공: ${userCredential.user.email} (${authTime.toFixed(2)}ms)`);
                 
                 // 관리자 권한 확인
+                const permissionStartTime = performance.now();
+                console.log('🔍 관리자 권한 확인 시작');
+                
                 const isAdmin = await checkAdminPermission(userCredential.user);
+                
+                const permissionTime = performance.now() - permissionStartTime;
+                console.log(`🔍 관리자 권한 확인 완료: ${isAdmin ? '승인' : '거부'} (${permissionTime.toFixed(2)}ms)`);
+                
                 if (!isAdmin) {
+                    const totalTime = performance.now() - adminLoginStartTime;
+                    console.log(`❌ 관리자 권한 없음: ${totalTime.toFixed(2)}ms`);
                     alert('관리자 권한이 없습니다. 관리자 계정으로 로그인해주세요.');
                     // 로그아웃
                     const { signOut } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js');
@@ -380,6 +417,7 @@
                 console.log('✅ 관리자 권한 확인됨');
                 
                 // 로그인 성공 시 대시보드 표시
+                const uiStartTime = performance.now();
                 document.getElementById('login-section').classList.add('hidden');
                 document.getElementById('dashboard-section').classList.remove('hidden');
                 
@@ -388,11 +426,22 @@
                     document.getElementById('admin-info').textContent = userCredential.user.email;
                 }
                 
+                const uiTime = performance.now() - uiStartTime;
+                console.log(`🎨 UI 업데이트 완료: ${uiTime.toFixed(2)}ms`);
+                
                 // 대시보드 데이터 로드
-                loadDashboardData();
+                const dataLoadStartTime = performance.now();
+                console.log('📊 대시보드 데이터 로드 시작');
+                await loadDashboardData();
+                const dataLoadTime = performance.now() - dataLoadStartTime;
+                console.log(`📊 대시보드 데이터 로드 완료: ${dataLoadTime.toFixed(2)}ms`);
+                
+                const totalAdminLoginTime = performance.now() - adminLoginStartTime;
+                console.log(`🎉 관리자 로그인 성공! 총 소요시간: ${totalAdminLoginTime.toFixed(2)}ms`);
                 
             } catch (error) {
-                console.error('❌ 로그인 실패:', error);
+                const totalAdminLoginTime = performance.now() - adminLoginStartTime;
+                console.error(`❌ 관리자 로그인 실패: ${totalAdminLoginTime.toFixed(2)}ms`, error);
                 let errorMessage = '로그인에 실패했습니다.';
                 
                 switch (error.code) {
@@ -1705,11 +1754,13 @@
             }
         }
 
-        // 대시보드 데이터 로드 함수
+        // 대시보드 데이터 로드 함수 (성능 측정 포함)
         async function loadDashboardData() {
+            const dashboardLoadStartTime = performance.now();
             console.log('📊 대시보드 데이터 로드 시작...');
             
             // 관리자 권한 재확인
+            const authCheckStartTime = performance.now();
             if (!window.firebaseAuth || !window.firebaseAuth.currentUser) {
                 console.error('❌ 인증되지 않은 사용자입니다.');
                 showLoginSection();
@@ -1717,6 +1768,9 @@
             }
             
             const isAdmin = await checkAdminPermission(window.firebaseAuth.currentUser);
+            const authCheckTime = performance.now() - authCheckStartTime;
+            console.log(`🔍 관리자 권한 재확인 완료: ${authCheckTime.toFixed(2)}ms`);
+            
             if (!isAdmin) {
                 console.error('❌ 관리자 권한이 없습니다.');
                 showLoginSection();
@@ -1729,21 +1783,33 @@
             }
             
             // 실시간 구독 시작 (이미 시작되어 있으면 무시)
+            const subscriptionStartTime = performance.now();
             if (!requestsUnsubscribe) {
+                console.log('📡 의뢰 데이터 실시간 구독 시작');
                 subscribeToRequests();
             }
             if (!inquiriesUnsubscribe) {
+                console.log('📡 문의 데이터 실시간 구독 시작');
                 subscribeToInquiries();
             }
+            const subscriptionTime = performance.now() - subscriptionStartTime;
+            console.log(`📡 실시간 구독 설정 완료: ${subscriptionTime.toFixed(2)}ms`);
             
             // 초기 데이터 로드 (호환성 유지)
+            const renderStartTime = performance.now();
             renderRequestList();
             renderInquiryList();
+            const renderTime = performance.now() - renderStartTime;
+            console.log(`🎨 데이터 렌더링 완료: ${renderTime.toFixed(2)}ms`);
             
             // 통계 업데이트
+            const statsStartTime = performance.now();
             updateDashboardStats();
+            const statsTime = performance.now() - statsStartTime;
+            console.log(`📊 통계 업데이트 완료: ${statsTime.toFixed(2)}ms`);
             
-            console.log('✅ 대시보드 데이터 로드 완료');
+            const totalDashboardLoadTime = performance.now() - dashboardLoadStartTime;
+            console.log(`✅ 대시보드 데이터 로드 완료: ${totalDashboardLoadTime.toFixed(2)}ms`);
         }
         
         // Firebase 연결 테스트 함수
