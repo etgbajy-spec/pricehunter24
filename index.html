@@ -13,8 +13,8 @@
     <meta name="robots" content="noindex, nofollow" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     
-    <!-- Content Security Policy - Firebase iframe 허용 -->
-    <meta http-equiv="Content-Security-Policy" content="frame-src 'self' https://www.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com https://apis.google.com; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com https://*.gstatic.com;" />
+    <!-- Content Security Policy - Firebase iframe 허용 (source map 포함) -->
+    <meta http-equiv="Content-Security-Policy" content="frame-src 'self' https://www.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com https://apis.google.com; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com https://*.gstatic.com https://firebasejs.com https://*.firebasejs.com;" />
     
     <title>PriceHunter</title>
     
@@ -434,6 +434,10 @@
       const firebaseVersion = '9.23.0';
       const cacheBuster = Date.now();
       
+      // Firebase 함수들을 전역 스코프에서 선언
+      let initializeApp, getAuth, signInWithCustomToken, onAuthStateChanged, signOut;
+      let getFirestore, doc, setDoc, getDoc, collection, query, orderBy, onSnapshot, getDocs, where, serverTimestamp;
+      
       try {
         // 병렬 import로 로딩 시간 단축
         const [appModule, authModule, firestoreModule] = await Promise.all([
@@ -442,18 +446,26 @@
           import(`https://www.gstatic.com/firebasejs/${firebaseVersion}/firebase-firestore.js?v=${cacheBuster}`)
         ]);
         
-        const { initializeApp } = appModule;
-        const { getAuth, signInWithCustomToken, onAuthStateChanged, signOut } = authModule;
-        const { getFirestore, doc, setDoc, getDoc, collection, query, orderBy, onSnapshot, getDocs, where, serverTimestamp } = firestoreModule;
+        // 전역 스코프에 할당
+        ({ initializeApp } = appModule);
+        ({ getAuth, signInWithCustomToken, onAuthStateChanged, signOut } = authModule);
+        ({ getFirestore, doc, setDoc, getDoc, collection, query, orderBy, onSnapshot, getDocs, where, serverTimestamp } = firestoreModule);
         
         console.log('✅ Firebase v9 모듈 병렬 로드 완료');
       } catch (error) {
         console.error('❌ Firebase 병렬 로드 실패, 순차 로드로 전환:', error);
         
         // 폴백: 순차 로드
-        const { initializeApp } = await import(`https://www.gstatic.com/firebasejs/${firebaseVersion}/firebase-app.js`);
-        const { getAuth, signInWithCustomToken, onAuthStateChanged, signOut } = await import(`https://www.gstatic.com/firebasejs/${firebaseVersion}/firebase-auth.js`);
-        const { getFirestore, doc, setDoc, getDoc, collection, query, orderBy, onSnapshot, getDocs, where, serverTimestamp } = await import(`https://www.gstatic.com/firebasejs/${firebaseVersion}/firebase-firestore.js`);
+        const appModule = await import(`https://www.gstatic.com/firebasejs/${firebaseVersion}/firebase-app.js`);
+        const authModule = await import(`https://www.gstatic.com/firebasejs/${firebaseVersion}/firebase-auth.js`);
+        const firestoreModule = await import(`https://www.gstatic.com/firebasejs/${firebaseVersion}/firebase-firestore.js`);
+        
+        // 전역 스코프에 할당
+        ({ initializeApp } = appModule);
+        ({ getAuth, signInWithCustomToken, onAuthStateChanged, signOut } = authModule);
+        ({ getFirestore, doc, setDoc, getDoc, collection, query, orderBy, onSnapshot, getDocs, where, serverTimestamp } = firestoreModule);
+        
+        console.log('✅ Firebase v9 모듈 순차 로드 완료');
       }
       
       // Firebase 설정
