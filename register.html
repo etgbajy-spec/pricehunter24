@@ -12,6 +12,10 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
+    
+    <!-- Content Security Policy - Firebase iframe 허용 -->
+    <meta http-equiv="Content-Security-Policy" content="frame-src 'self' https://www.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com https://apis.google.com; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com https://*.gstatic.com;" />
+    
     <meta name="cache-buster" content="v3.2-20241220" />
     <script>
       // 강제 캐시 무효화 및 디버깅
@@ -150,33 +154,33 @@
   </header>
 
   <!-- 메인 콘텐츠 -->
-    <main class="max-w-4xl mx-auto px-4 py-12">
+    <main class="max-w-4xl mx-auto px-4 py-12 mx-4">
       <div class="text-center mb-12 fade-in-up">
         <h1 class="text-4xl font-bold text-gray-900 mb-4">회원가입</h1>
-        <p class="text-lg text-gray-600">PriceHunter에 오신 것을 환영합니다!</p>
+        <p class="text-lg text-gray-600">PriceHunter에<br class="sm:hidden">오신 것을 환영합니다!</p>
     </div>
 
       <!-- 회원가입 옵션 -->
-      <div class="max-w-md mx-auto mb-12">
+      <div class="max-w-xs sm:max-w-sm md:max-w-md mx-auto mb-12 mx-4">
         <!-- 일반 회원가입 -->
         <div class="bg-white rounded-2xl shadow-lg p-8 text-center fade-in-up">
       <div class="mb-6">
             <div class="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
               <span class="text-2xl">📧</span>
           </div>
-            <h3 class="text-xl font-semibold text-gray-900 mb-2">일반 회원가입</h3>
-            <p class="text-gray-600">이메일로 직접 가입하세요</p>
+            <h3 class="text-xl font-semibold text-gray-900 mb-2">일반<br class="sm:hidden">회원가입</h3>
+            <p class="text-gray-600">이메일로<br class="sm:hidden">직접 가입하세요</p>
       </div>
-          <button id="normal-register" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg transition duration-200 flex items-center justify-center">
+          <button id="normal-register" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 sm:py-3 px-4 sm:px-6 rounded-lg transition duration-200 flex items-center justify-center text-sm sm:text-base">
             <span class="mr-2">📧</span>
-            이메일로 가입하기
+            이메일로<br class="sm:hidden">가입하기
         </button>
-          <p class="text-sm text-green-600 mt-3">🎉 가입 시 50포인트 지급!</p>
+          <p class="text-sm text-green-600 mt-3">🎉 가입 후<br class="sm:hidden">실제 고객 후기를<br class="sm:hidden">확인하세요!</p>
       </div>
     </div>
 
     <!-- 일반 회원가입 폼 (숨김) -->
-    <div id="register-form" class="max-w-md mx-auto bg-white rounded-2xl shadow-lg p-8 hidden">
+    <div id="register-form" class="max-w-xs sm:max-w-sm md:max-w-md mx-auto bg-white rounded-2xl shadow-lg p-4 sm:p-6 md:p-8 hidden mx-4">
         <div class="flex justify-between items-center mb-6">
           <h2 class="text-2xl font-bold text-gray-900">회원가입</h2>
           <button id="close-form" class="text-gray-400 hover:text-gray-600">
@@ -191,31 +195,31 @@
         <div>
             <label for="name" class="block text-sm font-medium text-gray-700 mb-2">이름</label>
             <input type="text" id="name" name="name" required
-                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">
+                   class="w-full px-3 py-2 sm:px-4 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent text-sm sm:text-base">
         </div>
 
         <!-- 휴대폰 번호 -->
         <div>
             <label for="phone" class="block text-sm font-medium text-gray-700 mb-2">휴대폰 번호</label>
             <input type="tel" id="phone" name="phone" required placeholder="010-1234-5678"
-                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">
+                   class="w-full px-3 py-2 sm:px-4 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent text-sm sm:text-base">
         </div>
 
         <!-- 이메일 인증 -->
         <div>
             <label for="email-verification" class="block text-sm font-medium text-gray-700 mb-2">이메일 인증</label>
-            <div class="flex space-x-2">
+            <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
               <input type="email" id="email-verification" name="email-verification" required placeholder="example@email.com"
-                     class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">
-              <button type="button" id="send-email" class="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition">
+                     class="flex-1 px-3 py-2 sm:px-4 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent text-sm sm:text-base">
+              <button type="button" id="send-email" class="px-4 py-2 sm:px-6 sm:py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition text-sm sm:text-base whitespace-nowrap">
                 인증번호 발송
               </button>
           </div>
             <div id="email-verification-code" class="mt-2 hidden">
-              <div class="flex space-x-2">
+              <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
                 <input type="text" id="email-code" placeholder="인증번호 입력"
-                       class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">
-                <button type="button" id="verify-email" class="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition">
+                       class="flex-1 px-3 py-2 sm:px-4 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent text-sm sm:text-base">
+                <button type="button" id="verify-email" class="px-4 py-2 sm:px-6 sm:py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition text-sm sm:text-base whitespace-nowrap">
                   인증
                 </button>
         </div>
@@ -227,7 +231,7 @@
         <div>
             <label for="password" class="block text-sm font-medium text-gray-700 mb-2">비밀번호</label>
             <input type="password" id="password" name="password" required
-                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">
+                   class="w-full px-3 py-2 sm:px-4 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent text-sm sm:text-base">
             <div id="password-strength" class="mt-2 text-sm"></div>
         </div>
 
@@ -235,7 +239,7 @@
         <div>
             <label for="confirm-password" class="block text-sm font-medium text-gray-700 mb-2">비밀번호 확인</label>
             <input type="password" id="confirm-password" name="confirm-password" required
-                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">
+                   class="w-full px-3 py-2 sm:px-4 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent text-sm sm:text-base">
             <div id="password-match" class="mt-2 text-sm"></div>
         </div>
 
@@ -272,24 +276,17 @@
 
         <!-- 가입 버튼 -->
           <button type="submit" id="signup-button" disabled
-                  class="w-full bg-gray-400 text-white font-semibold py-3 px-6 rounded-lg transition duration-200">
+                  class="w-full bg-gray-400 text-white font-semibold py-2 sm:py-3 px-4 sm:px-6 rounded-lg transition duration-200 text-sm sm:text-base">
             회원가입
         </button>
       </form>
     </div>
 
-    <!-- 로그인 링크 및 Firebase 테스트 -->
-    <div class="max-w-md mx-auto text-center mt-8">
+    <!-- 로그인 링크 -->
+    <div class="max-w-xs sm:max-w-sm md:max-w-md mx-auto text-center mt-8 mx-4">
       <p class="text-gray-600 mb-4">이미 계정이 있으신가요?</p>
       <a href="index.html#login" class="inline-block bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 transition">로그인하기</a>
       
-      <!-- Firebase 연결 테스트 버튼 (개발용) -->
-      <div class="mt-6 p-4 bg-gray-100 rounded-lg">
-        <p class="text-sm text-gray-600 mb-2">Firebase 연결 테스트</p>
-        <button onclick="testFirebaseConnection()" class="text-sm bg-gray-600 text-white py-2 px-4 rounded hover:bg-gray-700 transition">
-          Firebase 연결 테스트
-        </button>
-      </div>
     </div>
   </main>
 
@@ -307,15 +304,28 @@
             firebaseApps: firebase ? firebase.apps.length : 0,
             windowFirebaseApp: !!window.firebaseApp,
             windowFirebaseDb: !!window.firebaseDb,
-            windowFirebaseAuth: !!window.firebaseAuth
+            windowFirebaseAuth: !!window.firebaseAuth,
+            firebaseFirestoreFunctions: !!window.firebaseFirestoreFunctions
           });
           
-          if (window.firebaseApp && window.firebaseDb && window.firebaseAuth) {
+          if (window.firebaseApp && window.firebaseDb && window.firebaseAuth && window.firebaseFirestoreFunctions) {
             console.log('✅ Firebase v9 준비됨');
             resolve();
           } else {
-            console.log('⏳ Firebase v9 대기 중... 100ms 후 재시도');
-            setTimeout(() => waitForFirebase().then(resolve).catch(reject), 100);
+            const checkInterval = setInterval(() => {
+              if (window.firebaseApp && window.firebaseDb && window.firebaseAuth && window.firebaseFirestoreFunctions) {
+                clearInterval(checkInterval);
+                console.log('✅ Firebase v9 준비됨');
+                resolve();
+              }
+            }, 100);
+            
+            // 10초 후 타임아웃
+            setTimeout(() => {
+              clearInterval(checkInterval);
+              console.error('❌ Firebase 초기화 타임아웃');
+              reject(new Error('Firebase 초기화 실패'));
+            }, 10000);
           }
         });
       }
@@ -365,11 +375,23 @@
           }
           console.log('📋 localStorage 중복 확인 결과: 중복 없음');
           
-          // 사용자 데이터 저장
+          // 사용자 데이터 저장 (일관된 형식으로)
           console.log('💾 Firebase에 사용자 데이터 저장 중...');
+          const uid = `email_${userData.email.replace('@', '_').replace('.', '_')}`;
           const docRef = await addDoc(usersRef, {
-          ...userData,
-          createdAt: serverTimestamp(),
+            uid: uid,
+            email: userData.email,
+            name: userData.name.trim(), // 이름 공백 제거
+            displayName: userData.name.trim(), // 이름 공백 제거
+            phone: userData.phone,
+            password: userData.password,
+            emailVerification: userData.emailVerification,
+            agreeTerms: userData.agreeTerms,
+            agreePrivacy: userData.agreePrivacy,
+            agreeMarketing: userData.agreeMarketing,
+            loginMethod: 'email',
+            isActive: true,
+            createdAt: serverTimestamp(),
             updatedAt: serverTimestamp()
           });
           
@@ -378,28 +400,10 @@
       } catch (error) {
           console.error('❌ Firebase 저장 실패:', error);
           
-          // 권한 오류인 경우 localStorage로 폴백
+          // Firebase 저장 실패 시 오류 메시지와 함께 throw
           if (error.message.includes('Missing or insufficient permissions') || 
               error.message.includes('permission-denied')) {
-            console.log('🔄 Firebase 권한 오류 감지 - localStorage로 폴백');
-            
-            // localStorage에서 중복 확인
-            console.log('🔍 localStorage에서 이메일 중복 확인 중...', userData.email);
-            const existingUsers = JSON.parse(localStorage.getItem('users') || '[]');
-            const duplicateEmail = existingUsers.find(user => user.email === userData.email);
-            if (duplicateEmail) {
-              throw new Error('이미 가입된 이메일입니다.');
-            }
-            
-            console.log('🔍 localStorage에서 휴대폰 번호 중복 확인 중...', userData.phone);
-            const duplicatePhone = existingUsers.find(user => user.phone === userData.phone);
-            if (duplicatePhone) {
-              throw new Error('이미 가입된 휴대폰 번호입니다.');
-            }
-            console.log('📋 localStorage 중복 확인 결과: 중복 없음');
-            
-            console.log('✅ 사용자 데이터가 localStorage에 저장됩니다');
-            return 'localStorage_fallback';
+            throw new Error('Firebase 권한 오류가 발생했습니다. 관리자에게 문의하세요.');
           }
           
           // 다른 오류는 그대로 throw
@@ -409,35 +413,12 @@
 
       // localStorage에 사용자 데이터 저장
       function saveUserToLocalStorage(userData) {
-        try {
-          const users = JSON.parse(localStorage.getItem('users') || '[]');
-          users.push(userData);
-          localStorage.setItem('users', JSON.stringify(users));
-          console.log('✅ localStorage에 사용자 저장 완료');
-        } catch (error) {
-          console.error('❌ localStorage 저장 실패:', error);
-        }
+        // localStorage 저장 제거 - Firebase 전용
+        console.log('✅ Firebase에만 사용자 데이터 저장');
         }
         
         // 포인트 추가
-      function addPoints(userEmail, points = 50) {
-        try {
-          const pointsData = JSON.parse(localStorage.getItem('userPoints') || '{}');
-          if (!pointsData[userEmail]) {
-            pointsData[userEmail] = { total: 0, history: [] };
-          }
-        pointsData[userEmail].total += points;
-        pointsData[userEmail].history.push({
-          points: points,
-            reason: '회원가입 보너스',
-            date: new Date().toISOString()
-        });
-        localStorage.setItem('userPoints', JSON.stringify(pointsData));
-          console.log(`✅ ${points}포인트 추가 완료`);
-      } catch (error) {
-          console.error('❌ 포인트 추가 실패:', error);
-        }
-      }
+      // 포인트 시스템 제거됨
 
       // EmailJS 초기화
       function initEmailJS() {
@@ -468,12 +449,8 @@
             return user.email && user.password && user.name && user.phone;
           });
           
-          if (cleanedUsers.length !== existingUsers.length) {
-            localStorage.setItem('users', JSON.stringify(cleanedUsers));
-            console.log('✅ 사용자 데이터 정리 완료:', cleanedUsers.length, '명');
-          } else {
-            console.log('✅ 사용자 데이터가 이미 정리되어 있습니다.');
-          }
+          // localStorage 사용자 데이터 정리 제거 - Firebase 전용
+          console.log('✅ Firebase 전용 시스템 - localStorage 사용자 데이터 정리 불필요');
           
           return cleanedUsers;
         } catch (error) {
@@ -482,64 +459,6 @@
         }
       }
 
-      // Firebase 연결 테스트 함수
-      async function testFirebaseConnection() {
-        try {
-          console.log('🧪 Firebase 연결 테스트 시작...');
-          await waitForFirebase();
-          
-          const db = window.firebaseDb;
-          const { collection, addDoc, serverTimestamp, getDoc, deleteDoc } = window.firebaseFirestoreFunctions;
-          const testRef = collection(db, 'test');
-          
-          // 테스트 데이터 쓰기
-          console.log('📝 테스트 데이터 쓰기 중...');
-          const testDoc = await addDoc(testRef, {
-            test: true,
-            timestamp: serverTimestamp(),
-            message: 'Firebase 연결 테스트',
-            testTime: new Date().toISOString()
-          });
-          
-          console.log('✅ Firebase 쓰기 테스트 성공:', testDoc.id);
-          
-          // 테스트 데이터 읽기
-          console.log('📖 테스트 데이터 읽기 중...');
-          const testData = await getDoc(testDoc);
-          console.log('✅ Firebase 읽기 테스트 성공:', testData.data());
-          
-          // 테스트 데이터 삭제
-          console.log('🗑️ 테스트 데이터 삭제 중...');
-          await deleteDoc(testDoc);
-          console.log('✅ Firebase 삭제 테스트 성공');
-          
-          alert('✅ Firebase 연결 테스트 성공!\n\n모든 작업(읽기/쓰기/삭제)이 정상적으로 작동합니다.\n\n문서 ID: ' + testDoc.id);
-          return true;
-          
-        } catch (error) {
-          console.error('❌ Firebase 연결 테스트 실패:', error);
-          console.error('오류 상세:', {
-            message: error.message,
-            code: error.code,
-            stack: error.stack
-          });
-          
-          if (error.message.includes('Missing or insufficient permissions') || error.code === 'permission-denied') {
-            alert('❌ Firebase 연결 테스트 실패!\n\n' +
-                  'Firebase 보안 규칙 오류가 발생했습니다.\n\n' +
-                  '해결 방법:\n' +
-                  '1. Firebase 콘솔 접속: https://console.firebase.google.com/\n' +
-                  '2. pricehunter-99a1b 프로젝트 선택\n' +
-                  '3. Firestore Database → 규칙\n' +
-                  '4. FIREBASE_SECURITY_RULES.md 파일 참고하여 규칙 수정\n' +
-                  '5. 게시 버튼 클릭');
-          } else {
-            alert('❌ Firebase 연결 테스트 실패!\n\n오류: ' + error.message + '\n\n코드: ' + (error.code || 'N/A'));
-          }
-          
-          return false;
-        }
-      }
 
       // 실제 이메일 인증번호 발송
       async function sendEmailVerification() {
@@ -784,20 +703,25 @@
             // Firebase에 저장 (권한 오류 시 localStorage로 폴백)
             const firebaseResult = await saveUserToFirebase(formData);
             
-            // localStorage에도 백업 저장
-            saveUserToLocalStorage(formData);
+            // localStorage 백업 저장 제거 - Firebase 전용
             
-            // 포인트 추가
-            addPoints(formData.email, 50);
+            // 현재 사용자 정보를 user 키로도 저장 (마이페이지 호환성)
+            const userDataForStorage = {
+              ...formData,
+              name: formData.name.trim() // 이름 공백 제거
+            };
+            localStorage.setItem('user', JSON.stringify(userDataForStorage));
+            localStorage.setItem('currentUser', JSON.stringify(userDataForStorage));
+            localStorage.setItem('loggedIn', 'true');
+            localStorage.setItem('loggedInEmail', formData.email); // 이메일 저장
+            
+            // 포인트 시스템 제거됨
             
             // 성공 메시지 표시
-            if (firebaseResult === 'localStorage_fallback') {
-              alert('회원가입이 완료되었습니다! 50포인트가 지급되었습니다.\n(데이터는 로컬에 저장되었습니다)');
-            } else {
-              alert('회원가입이 완료되었습니다! 50포인트가 지급되었습니다.\n데이터가 Firebase 서버에 안전하게 저장되었습니다.');
-            }
+            alert('회원가입이 완료되었습니다!\n데이터가 Firebase 서버에 안전하게 저장되었습니다.\n\n실제 고객 후기를 확인해보세요!');
             
-            window.location.href = 'index.html';
+            // 후기 페이지로 이동
+            window.location.href = 'reviews.html';
 
       } catch (error) {
             console.error('회원가입 실패:', error);

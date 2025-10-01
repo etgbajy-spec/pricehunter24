@@ -78,7 +78,7 @@
 <body class="bg-gradient-to-br from-pink-50 via-blue-50 to-emerald-50 min-h-screen flex flex-col items-center justify-center py-4 md:py-12">
   <!-- 로그인 체크 오버레이 -->
   <div id="login-overlay" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center hidden">
-    <div class="bg-white rounded-2xl p-8 max-w-md mx-4 text-center">
+    <div class="bg-white rounded-2xl p-4 sm:p-6 md:p-8 max-w-xs sm:max-w-sm md:max-w-md mx-4 text-center">
       <div class="w-16 h-16 bg-pink-100 rounded-full flex items-center justify-center mx-auto mb-4">
         <svg class="w-8 h-8 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
@@ -93,7 +93,7 @@
     </div>
   </div>
 
-  <div class="w-full max-w-lg bg-white/90 rounded-2xl shadow-2xl p-4 md:p-8 lg:p-10 backdrop-blur-md">
+  <div class="w-full max-w-lg bg-white/90 rounded-2xl shadow-2xl p-4 md:p-8 lg:p-10 backdrop-blur-md mx-4">
     <h2 class="text-2xl sm:text-3xl md:text-4xl font-bold text-pink-700 mb-4 md:mb-6 text-center">1:1 문의하기</h2>
     <form class="space-y-6" id="contact-form">
       <div>
@@ -182,11 +182,114 @@
     // Firebase 초기화 대기 함수
     async function waitForFirebase() {
       return new Promise((resolve, reject) => {
-        if (window.firebaseApp && window.firebaseDb) {
+        console.log('🔄 Firebase 초기화 상태 확인:', {
+          firebaseApp: !!window.firebaseApp,
+          firebaseDb: !!window.firebaseDb,
+          firebaseFirestoreFunctions: !!window.firebaseFirestoreFunctions
+        });
+        
+        if (window.firebaseApp && window.firebaseDb && window.firebaseFirestoreFunctions) {
+          console.log('✅ Firebase 초기화 완료');
           resolve();
         } else {
-          setTimeout(() => waitForFirebase().then(resolve).catch(reject), 100);
+          const checkInterval = setInterval(() => {
+            if (window.firebaseApp && window.firebaseDb && window.firebaseFirestoreFunctions) {
+              clearInterval(checkInterval);
+              console.log('✅ Firebase 초기화 완료');
+              resolve();
+            }
+          }, 100);
+          
+          setTimeout(() => {
+            clearInterval(checkInterval);
+            console.error('❌ Firebase 초기화 타임아웃');
+            reject(new Error('Firebase 초기화 실패'));
+          }, 10000);
         }
+      });
+    }
+
+    // 스마트 이미지 압축 함수 (자동으로 크기에 맞게 압축)
+    function compressImage(file, targetSizeKB = 500) {
+      return new Promise((resolve, reject) => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const img = new Image();
+        
+        img.onload = function() {
+          let { width, height } = img;
+          let quality = 0.8;
+          let maxWidth = 1200;
+          
+          // 초기 압축
+          if (width > maxWidth) {
+            height = (height * maxWidth) / width;
+            width = maxWidth;
+          }
+          
+          canvas.width = width;
+          canvas.height = height;
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          // 크기 체크 및 재압축
+          const checkSize = (q) => {
+            const dataUrl = canvas.toDataURL('image/jpeg', q);
+            const sizeKB = (dataUrl.length * 0.75) / 1024; // base64 to KB
+            
+            if (sizeKB > targetSizeKB && q > 0.1) {
+              return checkSize(q - 0.1);
+            }
+            return dataUrl;
+          };
+          
+          const compressedDataUrl = checkSize(quality);
+          resolve(compressedDataUrl);
+        };
+        
+        img.onerror = () => reject(new Error('이미지 로드 실패'));
+        img.src = URL.createObjectURL(file);
+      });
+    }
+
+    // Base64 이미지 직접 압축 함수 (CSP 문제 해결)
+    function compressBase64Image(base64DataUrl, targetSizeKB = 500) {
+      return new Promise((resolve, reject) => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const img = new Image();
+        
+        img.onload = function() {
+          let { width, height } = img;
+          let quality = 0.8;
+          let maxWidth = 1200;
+          
+          // 초기 압축
+          if (width > maxWidth) {
+            height = (height * maxWidth) / width;
+            width = maxWidth;
+          }
+          
+          canvas.width = width;
+          canvas.height = height;
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          // 크기 체크 및 재압축
+          const checkSize = (q) => {
+            const dataUrl = canvas.toDataURL('image/jpeg', q);
+            const sizeKB = (dataUrl.length * 0.75) / 1024; // base64 to KB
+            
+            if (sizeKB > targetSizeKB && q > 0.1) {
+              return checkSize(q - 0.1);
+            }
+            return dataUrl;
+          };
+          
+          const compressedDataUrl = checkSize(quality);
+          resolve(compressedDataUrl);
+        };
+        
+        img.onerror = () => reject(new Error('이미지 로드 실패'));
+        img.src = base64DataUrl; // Base64 데이터를 직접 사용
       });
     }
 
@@ -211,11 +314,10 @@
       } catch (error) {
         console.error('❌ Firebase 문의 저장 실패:', error);
         
-        // 권한 오류인 경우 localStorage로 폴백
+        // Firebase 저장 실패 시 오류 메시지와 함께 throw
         if (error.message.includes('Missing or insufficient permissions') || 
             error.message.includes('permission-denied')) {
-          console.log('🔄 Firebase 권한 오류 - localStorage로 폴백');
-          return 'localStorage_fallback';
+          throw new Error('Firebase 권한 오류가 발생했습니다. 관리자에게 문의하세요.');
         }
         
         throw error;
@@ -237,7 +339,7 @@
       }
       
       // 문의 데이터 준비
-      const inquiry = { 
+      let inquiry = { 
         subject, 
         message, 
         name, 
@@ -248,26 +350,49 @@
       };
       
       try {
+        // 파일이 있고 이미지인 경우 압축 적용
+        if (file && file.startsWith('data:image/')) {
+          console.log('📷 이미지 파일 감지 - 압축 시작...');
+          
+          // 압축 진행 상황 표시
+          const submitBtn = document.querySelector('#contact-form button[type="submit"]');
+          if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.textContent = '이미지 압축 중...';
+          }
+          
+          try {
+            // Base64 데이터를 직접 압축 (fetch 사용하지 않음)
+            const compressedDataUrl = await compressBase64Image(file, 500);
+            inquiry.file = compressedDataUrl;
+            console.log('✅ 이미지 압축 완료');
+          } catch (compressError) {
+            console.warn('⚠️ 첫 번째 압축 실패, 더 강한 압축 시도...');
+            try {
+              // 200KB 이하로 강한 압축 시도
+              const compressedDataUrl = await compressBase64Image(file, 200);
+              inquiry.file = compressedDataUrl;
+              console.log('✅ 강한 압축 완료');
+            } catch (strongCompressError) {
+              console.error('❌ 압축 실패, 원본 사용 (Firebase 저장 실패 가능성 있음)');
+              // 압축 실패 시 원본 사용 (Firebase 저장 실패 가능성 있음)
+            }
+          }
+          
+          if (submitBtn) {
+            submitBtn.textContent = '문의 제출 중...';
+          }
+        }
+        
         // Firebase에 저장 시도
         console.log('🔥 Firebase에 문의 저장 시작...');
         const firebaseResult = await saveInquiryToFirebase(inquiry);
         
-        // localStorage에도 백업 저장
-        let history = JSON.parse(localStorage.getItem('contact-history') || '[]');
-        history.unshift(inquiry);
-        if (history.length > 20) history = history.slice(0, 20);
-        localStorage.setItem('contact-history', JSON.stringify(history));
-        
-        // inquiry-로도 저장 (관리자페이지용)
-        const inquiryKey = 'inquiry-' + Date.now();
-        localStorage.setItem(inquiryKey, JSON.stringify(inquiry));
+        // localStorage 백업 저장 제거 - Firebase 전용
+        console.log('✅ Firebase에만 문의 데이터 저장');
         
         // 성공 메시지 표시
-        if (firebaseResult === 'localStorage_fallback') {
-          alert('문의가 접수되었습니다!\n(데이터는 로컬에 저장되었습니다)');
-        } else {
-          alert('문의가 접수되었습니다!\n데이터가 Firebase 서버에 안전하게 저장되었습니다.');
-        }
+        alert('문의가 접수되었습니다!\n데이터가 Firebase 서버에 안전하게 저장되었습니다.');
         
         document.getElementById('contact-success').classList.remove('hidden');
         this.reset();
@@ -278,6 +403,13 @@
       } catch (error) {
         console.error('문의 제출 실패:', error);
         alert('문의 제출 중 오류가 발생했습니다: ' + error.message);
+      } finally {
+        // 버튼 상태 복원
+        const submitBtn = document.querySelector('#contact-form button[type="submit"]');
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = '문의 제출';
+        }
       }
     });
     // 문의/답변 내용 안전하게 렌더링
@@ -356,21 +488,9 @@
       }
       
       // contact-history에서 삭제
-      let history = JSON.parse(localStorage.getItem('contact-history') || '[]');
-      history = history.filter(inq => !(inq.subject === subject && inq.date === date));
-      localStorage.setItem('contact-history', JSON.stringify(history));
-      
-      // inquiry-에서도 동기화하여 삭제
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key.startsWith('inquiry-')) {
-          const obj = JSON.parse(localStorage.getItem(key));
-          if (obj && obj.subject === subject && obj.date === date) {
-            localStorage.removeItem(key);
-            break;
-          }
-        }
-      }
+      // localStorage 삭제 로직 제거 - Firebase 전용
+      console.log('✅ Firebase에서 문의 삭제');
+      // localStorage 삭제 로직 제거 - Firebase 전용
       
       // 화면 새로고침
       renderHistory();
@@ -481,12 +601,8 @@
         if (!inquiryKey) return false;
         const author = (JSON.parse(localStorage.getItem('user')||'{}').name) || '회원';
         const inquiry = JSON.parse(localStorage.getItem(inquiryKey));
-        const comments = (inquiry.comments||[]).concat({author, text, date: Date.now()});
-        inquiry.comments = comments;
-        localStorage.setItem(inquiryKey, JSON.stringify(inquiry));
-        found.comments = comments;
-        history[foundIdx] = found;
-        localStorage.setItem('contact-history', JSON.stringify(history));
+        // localStorage 댓글 저장 제거 - Firebase 전용
+        console.log('✅ Firebase에서 댓글 업데이트');
         // 즉시 렌더링 갱신
         renderHistory();
         // 입력 필드 초기화

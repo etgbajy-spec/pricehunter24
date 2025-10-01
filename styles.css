@@ -216,6 +216,133 @@ svg {
   .text-4xl { font-size: 2rem; line-height: 2.5rem; }
   .p-6 { padding: 1rem; }
   .px-4 { padding-left: 0.75rem; padding-right: 0.75rem; }
+  
+  /* 모바일에서 모달과 메뉴 최적화 */
+  .modal-content {
+    margin: 1rem;
+    max-width: calc(100vw - 2rem);
+  }
+  
+  /* 모바일 메뉴 최적화 */
+  .mobile-menu {
+    width: 280px;
+    max-width: 85vw;
+  }
+  
+  /* 메뉴 패널 추가 최적화 */
+  #menu-panel {
+    width: 288px !important; /* w-72 = 18rem = 288px */
+    max-width: 85vw;
+    overflow-x: hidden;
+  }
+  
+  /* 메뉴 패널 내부 컨테이너 */
+  #menu-panel > div {
+    width: 100%;
+    overflow-x: hidden;
+  }
+  
+  /* 메뉴 항목 텍스트 줄바꿈 방지 */
+  #menu-panel nav a,
+  #menu-panel nav button {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  /* 회원가입 버튼 특별 처리 */
+  #signup-btn {
+    min-width: 0;
+    flex-shrink: 1;
+  }
+  
+  /* 모든 w-full 버튼 최적화 */
+  button.w-full,
+  a.w-full {
+    box-sizing: border-box;
+    max-width: 100%;
+    overflow: hidden;
+  }
+  
+  /* 모달 최적화 */
+  .modal-container {
+    max-width: 384px; /* max-w-sm */
+    width: 100%;
+    margin: 0 auto;
+  }
+  
+  /* 모달 헤더 최적화 */
+  .modal-header {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #f3f4f6;
+  }
+  
+  /* 모달 본문 최적화 */
+  .modal-body {
+    padding: 1rem 1.5rem;
+  }
+  
+  /* 모달 입력창 최적화 */
+  .modal-input {
+    padding: 0.75rem;
+    font-size: 0.875rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  
+  /* 모달 버튼 최적화 */
+  .modal-button {
+    padding: 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    border-radius: 0.5rem;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  
+  /* 메뉴 내 버튼들 특별 처리 */
+  #menu-panel button,
+  #menu-panel a {
+    min-width: 0;
+    flex-shrink: 1;
+  }
+  
+  /* 입력창 모바일 최적화 */
+  input[type="text"], input[type="email"], input[type="tel"], input[type="password"] {
+    font-size: 16px; /* iOS 줌 방지 */
+    padding: 0.75rem 0.875rem;
+  }
+  
+  /* 버튼 모바일 최적화 */
+  button {
+    min-height: 44px; /* 터치 타겟 최소 크기 */
+  }
+}
+
+/* 매우 작은 화면 (320px 이하) */
+@media (max-width: 320px) {
+  #menu-panel {
+    width: 280px !important;
+    max-width: 90vw;
+  }
+  
+  #menu-panel .p-3 {
+    padding: 0.5rem;
+  }
+  
+  #menu-panel nav a,
+  #menu-panel nav button {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+  }
+  
+  #menu-panel nav a svg,
+  #menu-panel nav button svg {
+    width: 1rem;
+    height: 1rem;
+  }
 }
 
 body {

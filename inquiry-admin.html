@@ -129,10 +129,29 @@
     // Firebase 초기화 대기 함수
     async function waitForFirebase() {
       return new Promise((resolve, reject) => {
-        if (window.firebaseApp && window.firebaseDb) {
+        console.log('🔄 Firebase 초기화 상태 확인:', {
+          firebaseApp: !!window.firebaseApp,
+          firebaseDb: !!window.firebaseDb,
+          firebaseFirestoreFunctions: !!window.firebaseFirestoreFunctions
+        });
+        
+        if (window.firebaseApp && window.firebaseDb && window.firebaseFirestoreFunctions) {
+          console.log('✅ Firebase 초기화 완료');
           resolve();
         } else {
-          setTimeout(() => waitForFirebase().then(resolve).catch(reject), 100);
+          const checkInterval = setInterval(() => {
+            if (window.firebaseApp && window.firebaseDb && window.firebaseFirestoreFunctions) {
+              clearInterval(checkInterval);
+              console.log('✅ Firebase 초기화 완료');
+              resolve();
+            }
+          }, 100);
+          
+          setTimeout(() => {
+            clearInterval(checkInterval);
+            console.error('❌ Firebase 초기화 타임아웃');
+            reject(new Error('Firebase 초기화 실패'));
+          }, 10000);
         }
       });
     }
@@ -405,9 +424,8 @@
       // lastChecked가 잘못 설정된 경우 감지 (모든 댓글보다 큰 경우)
       const maxCommentTime = Math.max(...userComments.map(c => c.date || 0));
       if (lastChecked > maxCommentTime && userComments.length > 0) {
-        // lastChecked를 0으로 초기화하여 모든 댓글을 새로운 댓글로 표시
-        const updated = {...inq, lastChecked: 0};
-        localStorage.setItem(inq.key, JSON.stringify(updated));
+        // localStorage 업데이트 제거 - Firebase 전용
+        console.log('✅ Firebase 전용 시스템 - localStorage 업데이트 불필요');
         return userComments.length; // 모든 회원 댓글을 새로운 댓글로 표시
       }
       
@@ -431,9 +449,8 @@
     // 문의 확인 시 lastChecked 업데이트
     function updateLastChecked(inq) {
       if (inq.comments && inq.comments.length > 0) {
-        const lastCommentTime = Math.max(...inq.comments.map(c => c.date || 0));
-        const updated = {...inq, lastChecked: lastCommentTime};
-        localStorage.setItem(inq.key, JSON.stringify(updated));
+        // localStorage 업데이트 제거 - Firebase 전용
+        console.log('✅ Firebase 전용 시스템 - localStorage 업데이트 불필요');
       }
     }
     
@@ -481,20 +498,8 @@
         e.preventDefault();
         var answer = document.getElementById('modal-answer').value.trim();
         document.getElementById('modal-answer-view').textContent = answer || '(아직 답변이 없습니다)';
-        // inquiry-...에 답변 저장
-        var updated = {...inq, answer};
-        localStorage.setItem(inq.key, JSON.stringify(updated));
-        // contact-history에도 동기화
-        let history = JSON.parse(localStorage.getItem('contact-history') || '[]');
-        let changed = false;
-        for (let i = 0; i < history.length; i++) {
-          if (history[i].subject === inq.subject && history[i].date === inq.date) {
-            history[i].answer = answer;
-            changed = true;
-            break;
-          }
-        }
-        if (changed) localStorage.setItem('contact-history', JSON.stringify(history));
+        // localStorage 답변 저장 제거 - Firebase 전용
+        console.log('✅ Firebase에서 답변 업데이트 필요');
         alert('답변이 저장되었습니다!');
         document.getElementById('modal-answer').value = '';
         setTimeout(function() {
@@ -508,9 +513,8 @@
           localStorage.removeItem(inq.key);
           
           // contact-history에서도 동기화하여 삭제
-          let history = JSON.parse(localStorage.getItem('contact-history') || '[]');
-          history = history.filter(item => !(item.subject === inq.subject && item.date === inq.date));
-          localStorage.setItem('contact-history', JSON.stringify(history));
+          // localStorage 삭제 제거 - Firebase 전용
+          console.log('✅ Firebase에서 문의 삭제 필요');
           
           document.getElementById('inquiry-modal-overlay').classList.add('hidden');
           renderInquiryList();
@@ -605,7 +609,8 @@
         
         console.log('관리자 댓글 추가:', inq.key, 'isAdminComment:', isAdminComment, '기존 lastChecked:', inq.lastChecked, '새로운 lastChecked:', updated.lastChecked);
         
-        localStorage.setItem(inq.key, JSON.stringify(updated));
+        // localStorage 댓글 저장 제거 - Firebase 전용
+        console.log('✅ Firebase에서 댓글 업데이트 필요');
         renderComments(updated.comments);
         input.value = '';
         

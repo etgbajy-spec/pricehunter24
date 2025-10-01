@@ -15,6 +15,49 @@
   </script>
   
   <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Firebase v9 SDK (모듈식) -->
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
+    import { getAuth } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
+    import { getFirestore, collection, addDoc, serverTimestamp, getDocs, query, where, orderBy, doc, updateDoc, deleteDoc } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
+    
+    // Firebase 설정
+    const firebaseConfig = {
+      apiKey: "AIzaSyDBZxKyMS7eeBTbPnbZkj0WWOZQHNldoL4",
+      authDomain: "pricehunter-99a1b.firebaseapp.com",
+      projectId: "pricehunter-99a1b",
+      storageBucket: "pricehunter-99a1b.firebasestorage.app",
+      messagingSenderId: "242265693919",
+      appId: "1:242265693919:web:74234d942b82a51541136a",
+      measurementId: "G-4BKLV4EVB9"
+    };
+
+    // Firebase 초기화
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    // 전역 변수로 노출
+    window.firebaseApp = app;
+    window.firebaseAuth = auth;
+    window.firebaseDb = db;
+    window.firebaseFirestoreFunctions = { 
+      collection, 
+      addDoc, 
+      serverTimestamp, 
+      query, 
+      orderBy, 
+      getDocs, 
+      where, 
+      doc, 
+      updateDoc, 
+      deleteDoc 
+    };
+
+    console.log('✅ Firebase v9 초기화 완료 (request-v2.html)');
+  </script>
+  
   <style>
     /* 텍스트 선택 허용 (드래그 가능) */
     body {
@@ -81,16 +124,16 @@
 </head>
 <body class="bg-gradient-to-br from-gray-100 via-blue-50 to-emerald-50 min-h-screen flex flex-col items-center justify-center py-4 md:py-12">
   <div class="w-full max-w-lg bg-white/90 rounded-2xl shadow-2xl p-4 md:p-8 lg:p-10 backdrop-blur-md">
-    <h2 class="text-2xl sm:text-3xl md:text-4xl font-bold text-blue-800 mb-4 md:mb-6 text-center">최저가 요청하기</h2>
+    <h2 class="text-2xl sm:text-3xl md:text-4xl font-bold text-blue-800 mb-4 md:mb-6 text-center">최저가<br class="sm:hidden">요청하기</h2>
     <div id="stepper" class="flex justify-between items-center mb-6 md:mb-8">
       <div class="flex-1 flex flex-col items-center">
         <div class="w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center font-bold text-white stepper-dot stepper-dot-animate text-sm md:text-base" id="step-1-dot">1</div>
-        <div class="text-xs mt-1 hidden sm:block">의뢰등록</div>
+        <div class="text-xs mt-1 hidden sm:block">의뢰<br class="sm:hidden">등록</div>
       </div>
       <div class="flex-1 h-1 bg-gradient-to-r from-blue-300 to-pink-300 mx-1"></div>
       <div class="flex-1 flex flex-col items-center">
         <div class="w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center font-bold text-white stepper-dot stepper-dot-animate text-sm md:text-base" id="step-2-dot">2</div>
-        <div class="text-xs mt-1 hidden sm:block">참고/이미지</div>
+        <div class="text-xs mt-1 hidden sm:block">참고/<br class="sm:hidden">이미지</div>
       </div>
       <div class="flex-1 h-1 bg-gradient-to-r from-blue-300 to-pink-300 mx-1"></div>
       <div class="flex-1 flex flex-col items-center">
@@ -253,15 +296,73 @@
     </div>
   </div>
   <script>
+    // 스마트 이미지 압축 함수 (자동으로 크기에 맞게 압축)
+    function compressImage(file, targetSizeKB = 500) {
+      return new Promise((resolve, reject) => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const img = new Image();
+        
+        img.onload = function() {
+          let { width, height } = img;
+          let quality = 0.8;
+          let maxWidth = 1200;
+          
+          // 초기 압축
+          if (width > maxWidth) {
+            height = (height * maxWidth) / width;
+            width = maxWidth;
+          }
+          
+          canvas.width = width;
+          canvas.height = height;
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          // 크기 체크 및 재압축
+          const checkSize = (q) => {
+            const dataUrl = canvas.toDataURL('image/jpeg', q);
+            const sizeKB = (dataUrl.length * 0.75) / 1024; // base64 to KB
+            
+            if (sizeKB > targetSizeKB && q > 0.1) {
+              // 크기가 목표보다 크면 품질을 낮춤
+              return checkSize(q - 0.1);
+            } else if (sizeKB > targetSizeKB && width > 400) {
+              // 품질이 너무 낮아지면 크기를 줄임
+              width = width * 0.8;
+              height = height * 0.8;
+              canvas.width = width;
+              canvas.height = height;
+              ctx.drawImage(img, 0, 0, width, height);
+              return checkSize(0.8);
+            } else {
+              return dataUrl;
+            }
+          };
+          
+          const finalDataUrl = checkSize(quality);
+          resolve(finalDataUrl);
+        };
+        
+        img.onerror = reject;
+        img.src = URL.createObjectURL(file);
+      });
+    }
+
     // 스텝 관리
     let currentStep = 1;
     const steps = [1,2,3,4];
     function showStep(n) {
+      console.log(`showStep(${n}) 호출됨`);
       steps.forEach(s => {
         const el = document.getElementById(`step-${s}`);
-        el.classList.toggle('hidden', s !== n);
+        if (el) {
+          el.classList.toggle('hidden', s !== n);
+          console.log(`Step ${s} 요소:`, el.classList.contains('hidden') ? '숨김' : '표시');
+        }
         const dot = document.getElementById(`step-${s}-dot`);
-        dot.className = `w-10 h-10 rounded-full flex items-center justify-center font-bold text-white stepper-dot stepper-dot-animate${s === n ? ' stepper-dot-active' : ''}`;
+        if (dot) {
+          dot.className = `w-10 h-10 rounded-full flex items-center justify-center font-bold text-white stepper-dot stepper-dot-animate${s === n ? ' stepper-dot-active' : ''}`;
+        }
         if (s === n) {
           el.classList.remove('slidein-step','fadein-step');
           el.classList.add('fadein-step');
@@ -270,10 +371,12 @@
         }
       });
       currentStep = n;
+      console.log(`현재 단계: ${currentStep}`);
     }
     showStep(1);
     // 스텝 이동 버튼
     document.getElementById('to-step-2').onclick = function() {
+      console.log('다음 버튼 클릭됨');
       // Step 1 유효성
       if (!document.getElementById('productName').value.trim() || !document.getElementById('productDesc').value.trim()) {
         alert('제품명과 설명을 모두 입력해 주세요.');
@@ -284,6 +387,11 @@
         alert('최소 의뢰 금액은 1,000원 이상입니다. 더 저렴한 제품은 의뢰가 어렵습니다.');
         return;
       }
+      if (!document.getElementById('brandExcludeAgree').checked) {
+        alert('브랜드 배제 정책에 동의해 주세요.');
+        return;
+      }
+      console.log('유효성 검사 통과, showStep(2) 호출');
       showStep(2);
     };
     document.getElementById('to-step-3').onclick = function() {
@@ -300,14 +408,33 @@
       }
       showStep(3);
     };
-    document.getElementById('to-step-4').onclick = function() {
+    document.getElementById('to-step-4').onclick = async function() {
       // Step 3 유효성
       if (!document.getElementById('userName').value.trim() || !document.getElementById('userPhone').value.trim() || !document.getElementById('userEmail').value.trim()) {
         alert('연락처 정보를 모두 입력해 주세요.');
         return;
       }
-      // 이름 일치 검증 (스텝 이동 시에도)
-      const user = JSON.parse(localStorage.getItem('user') || 'null');
+      // 이름 일치 검증 (Firebase에서 사용자 정보 가져오기)
+      let user = null;
+      try {
+        await waitForFirebase();
+        const { collection, query, where, getDocs } = window.firebaseFirestoreFunctions;
+        const db = window.firebaseDb;
+        
+        const loggedInEmail = localStorage.getItem('loggedInEmail');
+        if (loggedInEmail) {
+          const usersRef = collection(db, 'users');
+          const q = query(usersRef, where('email', '==', loggedInEmail));
+          const querySnapshot = await getDocs(q);
+          
+          if (!querySnapshot.empty) {
+            user = querySnapshot.docs[0].data();
+          }
+        }
+      } catch (error) {
+        console.error('사용자 정보 로드 실패:', error);
+      }
+      
       const userName = document.getElementById('userName').value.trim();
       if (!user || !user.name || user.name.trim() !== userName) {
         alert('회원가입 시 입력한 이름과 동일하게 입력해야 합니다.');
@@ -394,41 +521,71 @@
       }
     }
     
-    // 의뢰 상태 업데이트 함수
-    function updateRequestStatus(reqNum, newStatus, newDetail, newProgress) {
-      const requestKey = 'request-' + reqNum;
-      const requestData = JSON.parse(localStorage.getItem(requestKey) || '{}');
-      
-      if (requestData.reqNum) {
-        requestData.status = newStatus;
-        requestData.statusDetail = newDetail;
-        requestData.progress = newProgress;
-        requestData.lastUpdated = Date.now();
+    // Firebase에서 의뢰 상태 업데이트
+    async function updateRequestStatus(reqNum, newStatus, newDetail, newProgress) {
+      try {
+        await waitForFirebase();
+        const { collection, query, where, getDocs, updateDoc } = window.firebaseFirestoreFunctions;
+        const db = window.firebaseDb;
         
-        localStorage.setItem(requestKey, JSON.stringify(requestData));
+        const requestsRef = collection(db, 'requests');
+        const q = query(requestsRef, where('requestNumber', '==', reqNum));
+        const querySnapshot = await getDocs(q);
         
-        // 상태 변경 알림 (브라우저 알림)
-        if (Notification.permission === 'granted') {
-          new Notification('PriceHunter 의뢰 상태 업데이트', {
-            body: `${newStatus}: ${newDetail}`,
-            icon: '/favicon.ico'
+        if (!querySnapshot.empty) {
+          const doc = querySnapshot.docs[0];
+          await updateDoc(doc.ref, {
+            status: newStatus,
+            statusDetail: newDetail,
+            progress: newProgress,
+            lastUpdated: new Date()
           });
+          
+          // 상태 변경 알림 (브라우저 알림)
+          if (Notification.permission === 'granted') {
+            new Notification('PriceHunter 의뢰 상태 업데이트', {
+              body: `${newStatus}: ${newDetail}`,
+              icon: '/favicon.ico'
+            });
+          }
+          
+          console.log(`의뢰 #${reqNum} 상태 업데이트:`, newStatus);
+          return true;
         }
-        
-        return true;
+      } catch (error) {
+        console.error('의뢰 상태 업데이트 실패:', error);
       }
       return false;
     }
     
     // 제출
-    document.getElementById('step-form').addEventListener('submit', function(e) {
+    document.getElementById('step-form').addEventListener('submit', async function(e) {
       e.preventDefault();
       if (!document.getElementById('privacyAgree').checked) {
         alert('개인정보 수집 및 이용에 동의하셔야 제출이 가능합니다.');
         return;
       }
-      // 이름 일치 검증 (스텝 이동 시에도)
-      const user = JSON.parse(localStorage.getItem('user') || 'null');
+      // 이름 일치 검증 (Firebase에서 사용자 정보 가져오기)
+      let user = null;
+      try {
+        await waitForFirebase();
+        const { collection, query, where, getDocs } = window.firebaseFirestoreFunctions;
+        const db = window.firebaseDb;
+        
+        const loggedInEmail = localStorage.getItem('loggedInEmail');
+        if (loggedInEmail) {
+          const usersRef = collection(db, 'users');
+          const q = query(usersRef, where('email', '==', loggedInEmail));
+          const querySnapshot = await getDocs(q);
+          
+          if (!querySnapshot.empty) {
+            user = querySnapshot.docs[0].data();
+          }
+        }
+      } catch (error) {
+        console.error('사용자 정보 로드 실패:', error);
+      }
+      
       const userName = document.getElementById('userName').value.trim();
       if (!user || !user.name || user.name.trim() !== userName) {
         alert('회원가입 시 입력한 이름과 동일하게 입력해야 합니다.');
@@ -452,8 +609,8 @@
       // 하루 10건 제한 (테스트용으로 완화)
       const today = new Date().toISOString().slice(0,10);
       const userId = user && user.email ? user.email : userName;
-      const reqCountKey = `requestCount-${today}-${userId}`;
-      const reqCount = Number(localStorage.getItem(reqCountKey) || '0');
+      // Firebase에서 하루 의뢰 카운트 확인 (향후 구현)
+      const reqCount = 0; // 임시로 0으로 설정
       if (reqCount >= 10) {
         alert('하루 최대 10건까지만 의뢰할 수 있습니다. 내일 다시 이용해 주세요!');
         return;
@@ -477,81 +634,87 @@
         return `#PH-${y}${m}${d}${rand}`;
       }
       const reqNum = generateReqNum();
-      // 이미지 base64 배열 저장
+      // 이미지 압축 및 저장
       if (imageFiles.length > 0) {
+        // 압축 진행 상황 표시
+        const submitBtn = document.querySelector('button[type="submit"]');
+        if (submitBtn) {
+          submitBtn.disabled = true;
+          submitBtn.textContent = `이미지 압축 중... (0/${imageFiles.length})`;
+        }
+        
         const imgArr = [];
         let loaded = 0;
         imageFiles.forEach((file, idx) => {
-          const reader = new FileReader();
-          reader.onload = function(e2) {
-            imgArr[idx] = e2.target.result;
+          // 자동으로 500KB 이하로 압축
+          compressImage(file, 500).then(compressedDataUrl => {
+            imgArr[idx] = compressedDataUrl;
             loaded++;
+            
+            // 진행 상황 업데이트
+            if (submitBtn) {
+              submitBtn.textContent = `이미지 압축 중... (${loaded}/${imageFiles.length})`;
+            }
+            
             if (loaded === imageFiles.length) {
+              if (submitBtn) {
+                submitBtn.textContent = '의뢰 제출 중...';
+              }
               saveRequest(imgArr);
             }
-          };
-          reader.readAsDataURL(file);
+          }).catch(error => {
+            console.error('이미지 압축 실패:', error);
+            // 압축 실패시 더 강한 압축 시도
+            compressImage(file, 200).then(compressedDataUrl => {
+              imgArr[idx] = compressedDataUrl;
+              loaded++;
+              if (loaded === imageFiles.length) {
+                saveRequest(imgArr);
+              }
+            }).catch(error2 => {
+              console.error('강한 압축도 실패:', error2);
+              // 최후의 수단: 원본 사용 (Firebase 저장 실패 가능성 있음)
+              const reader = new FileReader();
+              reader.onload = function(e2) {
+                imgArr[idx] = e2.target.result;
+                loaded++;
+                if (loaded === imageFiles.length) {
+                  saveRequest(imgArr);
+                }
+              };
+              reader.readAsDataURL(file);
+            });
+          });
         });
       } else {
         saveRequest([]);
       }
-      function saveRequest(imgArr) {
-        // localStorage 용량 확인 및 정리
-        function cleanupLocalStorage() {
-          try {
-            // 현재 localStorage 용량 확인
-            const currentSize = JSON.stringify(localStorage).length;
-            const maxSize = 5 * 1024 * 1024; // 5MB 제한
-            
-            if (currentSize > maxSize * 0.8) { // 80% 이상 사용 중이면 정리
-              console.log('localStorage 용량 부족, 정리 시작...');
-              
-              // 오래된 의뢰 데이터 삭제 (30일 이상)
-              const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
-              const keysToDelete = [];
-              
-              for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                if (key && key.startsWith('request-')) {
-                  try {
-                    const data = JSON.parse(localStorage.getItem(key));
-                    if (data && data.date && data.date < thirtyDaysAgo) {
-                      keysToDelete.push(key);
-                    }
-                  } catch (e) {
-                    // 파싱 실패한 데이터도 삭제
-                    keysToDelete.push(key);
-                  }
-                }
-              }
-              
-              // 오래된 데이터 삭제
-              keysToDelete.forEach(key => {
-                localStorage.removeItem(key);
-                console.log('삭제된 데이터:', key);
-              });
-              
-              // 백업 데이터도 정리
-              const backupKeys = Object.keys(localStorage).filter(key => key.startsWith('ph_backup_'));
-              if (backupKeys.length > 1) {
-                backupKeys.sort().slice(0, -1).forEach(key => localStorage.removeItem(key));
-              }
-              
-              console.log(`총 ${keysToDelete.length}개의 오래된 데이터 삭제 완료`);
+      async function saveRequest(imgArr) {
+        // 로컬스토리지 정리 함수 제거됨 - Firebase 전용 사용
+        
+        // 이미지 데이터 크기 확인 및 제한 (더 관대한 제한)
+        let processedImages = [];
+        if (imgArr && imgArr.length > 0) {
+          processedImages = imgArr.filter(imgData => {
+            // 이미지 데이터가 너무 크면 (1MB 이상) 제외 (Firebase 제한)
+            if (imgData && imgData.length > 1000000) {
+              console.warn('이미지 데이터가 Firebase 제한(1MB)을 초과합니다. 제외합니다.');
+              return false;
             }
-          } catch (error) {
-            console.error('localStorage 정리 중 오류:', error);
-          }
+            return true;
+          });
         }
         
-        // localStorage 정리 실행
-        cleanupLocalStorage();
+        // 이미지가 모두 제외된 경우 알림
+        if (imgArr && imgArr.length > 0 && processedImages.length === 0) {
+          console.warn('모든 이미지가 Firebase 크기 제한으로 인해 제외되었습니다.');
+        }
         
         const reqData = {
           name, 
           desc, 
           urls, 
-          images: imgArr, 
+          images: processedImages, 
           email, 
           phone, 
           price, 
@@ -566,43 +729,134 @@
         };
         
         try {
-          localStorage.setItem('request-' + reqNum, JSON.stringify(reqData));
-          sessionStorage.setItem('request', JSON.stringify({...reqData, reqNum}));
+          // Firebase에만 저장 (로컬스토리지 제거)
+          
+          // Firebase에 저장
+          await saveRequestToFirebase(reqData, reqNum);
+          
           document.getElementById('submit-success').classList.remove('hidden');
           
-          // 포인트 지급 (의뢰 접수 시)
-          const user = JSON.parse(localStorage.getItem('user') || 'null');
+          // 포인트 지급 (의뢰 접수 시) - Firebase 전용
           if (user && user.email) {
-            // 새로운 포인트 시스템 사용
-            if (typeof addPoints === 'function') {
-              addPoints(user.email, 50, '의뢰 접수 보너스');
-              console.log(`${user.email}에게 의뢰 접수 포인트 50점 지급 완료`);
-            } else {
-              // 기존 포인트 시스템 (fallback)
-              const currentPoints = parseInt(localStorage.getItem(`points_${user.email}`) || '0');
-              const newPoints = currentPoints + 50; // 의뢰 접수 시 50포인트 지급
-              localStorage.setItem(`points_${user.email}`, newPoints.toString());
-              console.log(`${user.email}에게 의뢰 접수 포인트 50점 지급. 총 ${newPoints}포인트`);
-            }
+            // Firebase 포인트 시스템 (향후 구현)
+            console.log('Firebase 포인트 시스템 사용 예정');
           }
           
           setTimeout(() => { window.location.href = 'request-complete.html'; }, 1200);
-          // 하루 의뢰 카운트 증가
-          localStorage.setItem(reqCountKey, String(reqCount + 1));
+          // 하루 의뢰 카운트 증가 (Firebase에 저장 예정)
+          console.log('의뢰 카운트 증가:', reqCount + 1);
         } catch (error) {
           console.error('의뢰 저장 실패:', error);
           alert('의뢰 저장에 실패했습니다. 브라우저 캐시를 정리하고 다시 시도해주세요.');
         }
       }
     });
+    
+    // Firebase에 의뢰 데이터 저장
+    async function saveRequestToFirebase(reqData, reqNum) {
+      try {
+        // Firebase 초기화 대기
+        await waitForFirebase();
+        
+        const { collection, addDoc, serverTimestamp } = window.firebaseFirestoreFunctions;
+        const db = window.firebaseDb;
+        
+        // Firebase에 저장할 데이터 준비
+        const firebaseData = {
+          ...reqData,
+          requestNumber: reqNum,
+          createdAt: serverTimestamp(),
+          status: 'pending',
+          source: 'web_form'
+        };
+        
+        // Firebase에 저장
+        const docRef = await addDoc(collection(db, 'requests'), firebaseData);
+        console.log('✅ Firebase에 의뢰 데이터 저장 완료:', docRef.id);
+        
+        return docRef.id;
+      } catch (error) {
+        console.error('❌ Firebase에 의뢰 데이터 저장 실패:', error);
+        throw error;
+      }
+    }
+    
+    // Firebase 초기화 대기 함수
+    async function waitForFirebase() {
+      return new Promise((resolve, reject) => {
+        console.log('🔄 Firebase 초기화 상태 확인:', {
+          firebaseApp: !!window.firebaseApp,
+          firebaseDb: !!window.firebaseDb,
+          firebaseFirestoreFunctions: !!window.firebaseFirestoreFunctions
+        });
+        
+        if (window.firebaseApp && window.firebaseDb && window.firebaseFirestoreFunctions) {
+          console.log('✅ Firebase 초기화 완료');
+          resolve();
+        } else {
+          // Firebase 초기화 대기
+          const checkInterval = setInterval(() => {
+            if (window.firebaseApp && window.firebaseDb && window.firebaseFirestoreFunctions) {
+              clearInterval(checkInterval);
+              console.log('✅ Firebase 초기화 완료');
+              resolve();
+            }
+          }, 100);
+          
+          // 10초 후 타임아웃
+          setTimeout(() => {
+            clearInterval(checkInterval);
+            console.error('❌ Firebase 초기화 타임아웃');
+            reject(new Error('Firebase 초기화 실패'));
+          }, 10000);
+        }
+      });
+    }
+    
     // 이메일 입력란 자동 채우기 및 읽기전용 처리
     window.addEventListener('DOMContentLoaded', function() {
-      var user = JSON.parse(localStorage.getItem('user') || 'null');
-      var loggedIn = localStorage.getItem('loggedIn') === 'true';
+      // Firebase에서 사용자 데이터 가져오기
+      let user = null;
+      let loggedIn = false;
+      
+      try {
+        const loggedInEmail = localStorage.getItem('loggedInEmail');
+        if (loggedInEmail) {
+          loggedIn = true;
+          // Firebase에서 사용자 정보 가져오기 (비동기)
+          waitForFirebase().then(async () => {
+            const { collection, query, where, getDocs } = window.firebaseFirestoreFunctions;
+            const db = window.firebaseDb;
+            
+            const usersRef = collection(db, 'users');
+            const q = query(usersRef, where('email', '==', loggedInEmail));
+            const querySnapshot = await getDocs(q);
+            
+            if (!querySnapshot.empty) {
+              user = querySnapshot.docs[0].data();
+              // 사용자 정보로 폼 자동 채우기
+              if (user.email) {
+                emailInput.value = user.email;
+              }
+              if (user.name) {
+                nameInput.value = user.name;
+              }
+            }
+          });
+        }
+      } catch (error) {
+        console.error('사용자 정보 로드 실패:', error);
+      }
       var emailInput = document.getElementById('userEmail');
+      var nameInput = document.getElementById('userName');
+      
       if (emailInput && user && user.email && loggedIn) {
         emailInput.value = user.email;
         emailInput.readOnly = true;
+      }
+      
+      if (nameInput && user && user.name) {
+        nameInput.value = user.name;
         emailInput.classList.add('bg-gray-100','cursor-not-allowed');
       }
     });

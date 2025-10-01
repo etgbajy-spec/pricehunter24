@@ -6,15 +6,15 @@ if (window.firebaseConfigLoaded) {
   console.log('🔥 Firebase 설정 파일 로딩 시작...');
   window.firebaseConfigLoaded = true;
 
-  // Firebase 설정 - 단일 진실 소스
+  // Firebase 설정 - 단일 진실 소스 (환경변수 사용)
   const firebaseConfig = {
-    apiKey: "AIzaSyDBZxKyMS7eeBTbPnbZkj0WWOZQHNldoL4",
-    authDomain: "pricehunter-99a1b.firebaseapp.com",
-    projectId: "pricehunter-99a1b",
-    storageBucket: "pricehunter-99a1b.firebasestorage.app",
-    messagingSenderId: "242265693919",
-    appId: "1:242265693919:web:74234d942b82a51541136a",
-    measurementId: "G-4BKLV4EVB9"
+    apiKey: process.env.FIREBASE_API_KEY || "AIzaSyDBZxKyMS7eeBTbPnbZkj0WWOZQHNldoL4",
+    authDomain: process.env.FIREBASE_AUTH_DOMAIN || "pricehunter-99a1b.firebaseapp.com",
+    projectId: process.env.FIREBASE_PROJECT_ID || "pricehunter-99a1b",
+    storageBucket: process.env.FIREBASE_STORAGE_BUCKET || "pricehunter-99a1b.firebasestorage.app",
+    messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID || "242265693919",
+    appId: process.env.FIREBASE_APP_ID || "1:242265693919:web:74234d942b82a51541136a",
+    measurementId: process.env.FIREBASE_MEASUREMENT_ID || "G-4BKLV4EVB9"
   };
 
 // Firebase 초기화 상태 추적

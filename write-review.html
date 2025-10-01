@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- Content Security Policy - Firebase iframe 허용 -->
+    <meta http-equiv="Content-Security-Policy" content="frame-src 'self' https://www.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com https://apis.google.com; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com https://*.gstatic.com https://firebasejs.com;" />
+    
+    <title>후기 작성 - PriceHunter</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🔍%3C/text%3E%3C/svg%3E">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in-up { animation: fadeInUp 0.6s ease-out; }
+        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- 헤더 -->
+    <header class="gradient-bg text-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 py-6">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <a href="index.html" class="flex items-center space-x-2 hover:opacity-80 transition">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                        </svg>
+                        <span class="text-xl font-bold">PriceHunter</span>
+                    </a>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span class="text-sm opacity-90">후기 작성</span>
+                    <div class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- 메인 콘텐츠 -->
+    <main class="max-w-4xl mx-auto px-4 py-8">
+        <!-- 페이지 제목 -->
+        <div class="text-center mb-8 animate-fade-in-up">
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-800 mb-4">
+                ✍️ <span class="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">후기<br class="sm:hidden">작성하기</span>
+            </h1>
+            <p class="text-lg text-gray-600">
+                구매하신 제품에 대한<br class="sm:hidden">솔직한 후기를 남겨주세요
+            </p>
+        </div>
+
+        <!-- 후기 작성 폼 -->
+        <div class="bg-white rounded-2xl shadow-lg p-8">
+            <form id="review-form" class="space-y-6">
+                <!-- 의뢰 건 선택 -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">의뢰 건 선택 *</label>
+                    <select id="request-select" required
+                            class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <option value="">의뢰하신 건을 선택하세요</option>
+                    </select>
+                    <p class="text-sm text-gray-500 mt-1">의뢰하신 건에서만 후기를 작성할 수 있습니다.</p>
+                </div>
+
+                <!-- 구매 정보 -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">제품명 *</label>
+                        <input type="text" id="product-name" required
+                               class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                               placeholder="구매하신 제품명을 입력하세요">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">구매일 *</label>
+                        <input type="date" id="purchase-date" required
+                               class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                </div>
+
+                <!-- 가격 정보 -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">원래 가격 *</label>
+                        <input type="text" id="original-price" required
+                               class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                               placeholder="예: 500,000원">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">실제 구매 가격 *</label>
+                        <input type="text" id="final-price" required
+                               class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                               placeholder="예: 350,000원">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">절약 금액</label>
+                        <input type="text" id="savings" readonly
+                               class="w-full p-3 border border-gray-300 rounded-lg bg-gray-50"
+                               placeholder="자동 계산됩니다">
+                    </div>
+                </div>
+
+                <!-- 평점 -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">만족도 *</label>
+                    <div class="flex space-x-2" id="rating-stars">
+                        <button type="button" class="text-3xl text-gray-300 hover:text-yellow-400 transition" data-rating="1">⭐</button>
+                        <button type="button" class="text-3xl text-gray-300 hover:text-yellow-400 transition" data-rating="2">⭐</button>
+                        <button type="button" class="text-3xl text-gray-300 hover:text-yellow-400 transition" data-rating="3">⭐</button>
+                        <button type="button" class="text-3xl text-gray-300 hover:text-yellow-400 transition" data-rating="4">⭐</button>
+                        <button type="button" class="text-3xl text-gray-300 hover:text-yellow-400 transition" data-rating="5">⭐</button>
+                    </div>
+                    <input type="hidden" id="rating" required>
+                </div>
+
+                <!-- 후기 내용 -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">후기 내용 *</label>
+                    <textarea id="review-content" required rows="5"
+                              class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              placeholder="제품에 대한 솔직한 후기를 작성해주세요. 구매 과정, 제품 품질, 배송 등에 대해 자유롭게 작성하세요."></textarea>
+                </div>
+
+                <!-- 사진 업로드 -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">제품 사진 (선택사항)</label>
+                    <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                        <input type="file" id="photo-upload" multiple accept="image/*" class="hidden">
+                        <button type="button" onclick="document.getElementById('photo-upload').click()" 
+                                class="text-blue-600 hover:text-blue-700 font-medium">
+                            📷 사진 업로드하기
+                        </button>
+                        <p class="text-sm text-gray-500 mt-2">최대 5장까지 업로드 가능합니다</p>
+                    </div>
+                    <div id="photo-preview" class="grid grid-cols-2 md:grid-cols-5 gap-4 mt-4 hidden">
+                        <!-- 업로드된 사진 미리보기가 여기에 표시됩니다 -->
+                    </div>
+                </div>
+
+                <!-- 개인정보 -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">나이대</label>
+                        <select id="age-group" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <option value="">선택하세요</option>
+                            <option value="10대">10대</option>
+                            <option value="20대">20대</option>
+                            <option value="30대">30대</option>
+                            <option value="40대">40대</option>
+                            <option value="50대">50대</option>
+                            <option value="60대 이상">60대 이상</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">직업</label>
+                        <input type="text" id="occupation"
+                               class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                               placeholder="예: 직장인, 학생, 프리랜서">
+                    </div>
+                </div>
+
+                <!-- 제출 버튼 -->
+                <div class="flex justify-center pt-6">
+                    <button type="submit" 
+                            class="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-12 py-3 rounded-full font-bold hover:from-blue-700 hover:to-purple-700 transition-all duration-300 shadow-lg">
+                        후기 등록하기
+                    </button>
+                </div>
+            </form>
+        </div>
+    </main>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
+        import { getFirestore, collection, addDoc, serverTimestamp, getDocs, query, where, orderBy } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
+
+        // Firebase 설정
+        const firebaseConfig = {
+            apiKey: "AIzaSyBvQZvQZvQZvQZvQZvQZvQZvQZvQZvQZvQ",
+            authDomain: "pricehunter-99a1b.firebaseapp.com",
+            projectId: "pricehunter-99a1b",
+            storageBucket: "pricehunter-99a1b.appspot.com",
+            messagingSenderId: "123456789012",
+            appId: "1:123456789012:web:abcdefghijklmnopqrstuv"
+        };
+
+        // Firebase 초기화
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        
+        // 전역 Firebase 설정
+        window.firebaseDb = db;
+        window.firebaseFirestoreFunctions = {
+            collection,
+            addDoc,
+            doc,
+            updateDoc,
+            getDocs,
+            query,
+            where,
+            orderBy,
+            serverTimestamp
+        };
+        
+        // Firebase 초기화 대기 함수
+        async function waitForFirebase() {
+            return new Promise((resolve, reject) => {
+                const checkFirebase = () => {
+                    if (window.firebaseDb && window.firebaseFirestoreFunctions) {
+                        console.log('✅ Firebase 초기화 완료');
+                        resolve();
+                    } else {
+                        console.log('⏳ Firebase 초기화 대기 중...');
+                        setTimeout(checkFirebase, 100);
+                    }
+                };
+                checkFirebase();
+                
+                // 10초 타임아웃
+                setTimeout(() => {
+                    reject(new Error('Firebase 초기화 타임아웃'));
+                }, 10000);
+            });
+        }
+
+        // 전역 변수
+        let selectedRating = 0;
+        let uploadedPhotos = [];
+
+        // 로그인 상태 확인
+        function checkLoginStatus() {
+            const isLoggedIn = localStorage.getItem('loggedIn') === 'true' || localStorage.getItem('currentUser');
+            if (!isLoggedIn) {
+                alert('로그인이 필요합니다.');
+                window.location.href = 'register.html';
+                return false;
+            }
+            return true;
+        }
+
+        // 사용자의 의뢰 건 조회
+        async function loadUserRequests() {
+            try {
+                const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+                if (!currentUser.uid) {
+                    alert('사용자 정보를 찾을 수 없습니다.');
+                    return [];
+                }
+
+                const { collection, getDocs, query, where } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js');
+                const requestsRef = collection(db, 'requests');
+                const q = query(requestsRef, where('userId', '==', currentUser.uid));
+                const snapshot = await getDocs(q);
+                
+                const requests = [];
+                snapshot.forEach(doc => {
+                    requests.push({ id: doc.id, ...doc.data() });
+                });
+                
+                return requests;
+            } catch (error) {
+                console.error('의뢰 건 조회 실패:', error);
+                return [];
+            }
+        }
+
+        // 평점 선택
+        document.querySelectorAll('#rating-stars button').forEach((star, index) => {
+            star.addEventListener('click', () => {
+                selectedRating = index + 1;
+                document.getElementById('rating').value = selectedRating;
+                
+                // 별점 시각적 업데이트
+                document.querySelectorAll('#rating-stars button').forEach((s, i) => {
+                    if (i < selectedRating) {
+                        s.classList.remove('text-gray-300');
+                        s.classList.add('text-yellow-400');
+                    } else {
+                        s.classList.remove('text-yellow-400');
+                        s.classList.add('text-gray-300');
+                    }
+                });
+            });
+        });
+
+        // 절약 금액 자동 계산
+        function calculateSavings() {
+            const originalPrice = document.getElementById('original-price').value.replace(/[^0-9]/g, '');
+            const finalPrice = document.getElementById('final-price').value.replace(/[^0-9]/g, '');
+            
+            if (originalPrice && finalPrice) {
+                const savings = parseInt(originalPrice) - parseInt(finalPrice);
+                const savingsPercent = Math.round((savings / parseInt(originalPrice)) * 100);
+                document.getElementById('savings').value = `${savings.toLocaleString()}원 (${savingsPercent}%)`;
+            }
+        }
+
+        document.getElementById('original-price').addEventListener('input', calculateSavings);
+        document.getElementById('final-price').addEventListener('input', calculateSavings);
+
+        // 사진 업로드 처리
+        document.getElementById('photo-upload').addEventListener('change', function(e) {
+            const files = Array.from(e.target.files);
+            const preview = document.getElementById('photo-preview');
+            
+            if (files.length > 0) {
+                preview.classList.remove('hidden');
+                preview.innerHTML = '';
+                
+                files.slice(0, 5).forEach((file, index) => {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const photoDiv = document.createElement('div');
+                        photoDiv.className = 'relative';
+                        photoDiv.innerHTML = `
+                            <img src="${e.target.result}" alt="업로드된 사진" class="w-full h-24 object-cover rounded-lg">
+                            <button type="button" onclick="removePhoto(${index})" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 text-sm">×</button>
+                        `;
+                        preview.appendChild(photoDiv);
+                    };
+                    reader.readAsDataURL(file);
+                });
+                
+                uploadedPhotos = files.slice(0, 5);
+            }
+        });
+
+        // 사진 제거
+        window.removePhoto = function(index) {
+            uploadedPhotos.splice(index, 1);
+            const preview = document.getElementById('photo-preview');
+            preview.innerHTML = '';
+            
+            if (uploadedPhotos.length > 0) {
+                uploadedPhotos.forEach((file, i) => {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const photoDiv = document.createElement('div');
+                        photoDiv.className = 'relative';
+                        photoDiv.innerHTML = `
+                            <img src="${e.target.result}" alt="업로드된 사진" class="w-full h-24 object-cover rounded-lg">
+                            <button type="button" onclick="removePhoto(${i})" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 text-sm">×</button>
+                        `;
+                        preview.appendChild(photoDiv);
+                    };
+                    reader.readAsDataURL(file);
+                });
+            } else {
+                preview.classList.add('hidden');
+            }
+        };
+
+        // 폼 제출
+        document.getElementById('review-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            if (!checkLoginStatus()) return;
+            
+            if (selectedRating === 0) {
+                alert('만족도를 선택해주세요.');
+                return;
+            }
+            
+            try {
+                // Firebase 초기화 대기
+                await waitForFirebase();
+                // 현재 사용자 정보 가져오기
+                const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+                
+                // 사진 URL 배열 생성 (실제로는 Firebase Storage에 업로드해야 함)
+                const photoUrls = uploadedPhotos.map((file, index) => 
+                    `https://images.unsplash.com/photo-${1500000000000 + index}?w=400&h=300&fit=crop`
+                );
+                
+                // 선택된 의뢰 건 ID 확인
+                const selectedRequestId = document.getElementById('request-select').value;
+                if (!selectedRequestId) {
+                    alert('의뢰 건을 선택해주세요.');
+                    return;
+                }
+
+                // 후기 데이터 준비
+                const reviewData = {
+                    name: currentUser.name || '익명',
+                    ageGroup: document.getElementById('age-group').value || '미입력',
+                    occupation: document.getElementById('occupation').value || '미입력',
+                    productName: document.getElementById('product-name').value,
+                    originalPrice: document.getElementById('original-price').value,
+                    finalPrice: document.getElementById('final-price').value,
+                    savings: document.getElementById('savings').value.split(' ')[0],
+                    savingsPercent: parseInt(document.getElementById('savings').value.match(/\d+%/)?.[0] || '0'),
+                    rating: selectedRating,
+                    review: document.getElementById('review-content').value,
+                    photos: photoUrls,
+                    country: '대한민국',
+                    shipping: '3일',
+                    method: 'PriceHunter 검증',
+                    badge: '실제 구매자',
+                    purchaseDate: document.getElementById('purchase-date').value,
+                    profileImage: currentUser.profileImage || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
+                    approved: false, // 관리자 승인 대기
+                    views: 0,
+                    createdAt: serverTimestamp(),
+                    updatedAt: serverTimestamp(),
+                    userId: currentUser.uid || 'anonymous',
+                    requestId: selectedRequestId // 의뢰 건과 연동
+                };
+                
+                // Firebase에 후기 저장
+                const { collection, addDoc, doc, updateDoc, serverTimestamp } = window.firebaseFirestoreFunctions;
+                const reviewsRef = collection(window.firebaseDb, 'reviews');
+                const reviewDoc = await addDoc(reviewsRef, reviewData);
+                
+                // 의뢰 건에 후기 작성 상태 업데이트
+                const requestRef = doc(window.firebaseDb, 'requests', selectedRequestId);
+                await updateDoc(requestRef, {
+                    reviewId: reviewDoc.id,
+                    reviewStatus: 'pending', // pending, approved, rejected
+                    reviewCreatedAt: serverTimestamp(),
+                    updatedAt: serverTimestamp()
+                });
+                
+                alert('후기가 성공적으로 등록되었습니다! 관리자 승인 후 리뷰 페이지에 게시됩니다.');
+                window.location.href = 'reviews.html';
+                
+            } catch (error) {
+                console.error('후기 등록 실패:', error);
+                alert('후기 등록에 실패했습니다. 다시 시도해주세요.');
+            }
+        });
+
+        // 의뢰 건 선택 시 정보 자동 입력
+        document.getElementById('request-select').addEventListener('change', function() {
+            const selectedRequestId = this.value;
+            if (selectedRequestId) {
+                // 선택된 의뢰 건의 정보를 폼에 자동 입력
+                loadRequestDetails(selectedRequestId);
+            }
+        });
+
+        // 의뢰 건 상세 정보 로드
+        async function loadRequestDetails(requestId) {
+            try {
+                const { doc, getDoc } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js');
+                const requestRef = doc(db, 'requests', requestId);
+                const requestSnap = await getDoc(requestRef);
+                
+                if (requestSnap.exists()) {
+                    const requestData = requestSnap.data();
+                    
+                    // 폼에 정보 자동 입력
+                    document.getElementById('product-name').value = requestData.productName || '';
+                    document.getElementById('original-price').value = requestData.originalPrice || '';
+                    document.getElementById('final-price').value = requestData.finalPrice || '';
+                    
+                    // 절약 금액 자동 계산
+                    calculateSavings();
+                }
+            } catch (error) {
+                console.error('의뢰 건 정보 로드 실패:', error);
+            }
+        }
+
+        // 페이지 로드 시 로그인 상태 확인 및 의뢰 건 로드
+        document.addEventListener('DOMContentLoaded', async function() {
+            if (!checkLoginStatus()) {
+                return;
+            }
+            
+            // 오늘 날짜를 기본값으로 설정
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('purchase-date').value = today;
+            
+            // 사용자의 의뢰 건 로드
+            await loadUserRequestsForSelect();
+        });
+
+        // 의뢰 건 선택 옵션 로드
+        async function loadUserRequestsForSelect() {
+            const requests = await loadUserRequests();
+            const selectElement = document.getElementById('request-select');
+            
+            // 기존 옵션 제거 (첫 번째 옵션 제외)
+            while (selectElement.children.length > 1) {
+                selectElement.removeChild(selectElement.lastChild);
+            }
+            
+            if (requests.length === 0) {
+                const option = document.createElement('option');
+                option.value = '';
+                option.textContent = '의뢰하신 건이 없습니다. 먼저 의뢰를 진행해주세요.';
+                option.disabled = true;
+                selectElement.appendChild(option);
+                return;
+            }
+            
+            // 의뢰 건 옵션 추가
+            requests.forEach(request => {
+                const option = document.createElement('option');
+                option.value = request.id;
+                option.textContent = `${request.productName} - ${request.originalPrice} → ${request.finalPrice}`;
+                selectElement.appendChild(option);
+            });
+        }
+    </script>
+</body>
+</html>
