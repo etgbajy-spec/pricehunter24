@@ -12,8 +12,8 @@
     <meta name="robots" content="noindex, nofollow" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     
-    <!-- Content Security Policy - Firebase iframe 허용 -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://www.gstatic.com https://*.gstatic.com https://www.googleapis.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com https://*.gstatic.com https://firebase.googleapis.com https://*.firebase.googleapis.com https://firebaseappcheck.googleapis.com https://*.firebaseappcheck.googleapis.com https://*.googleapis.com https://*.firebaseapp.com; frame-src 'self' https://www.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com https://apis.google.com https://firebaseapp.com https://*.firebaseapp.com https://*.firebaseapp.com;" />
+    <!-- Content Security Policy - 임시로 완전 제거하여 Firebase 연결 문제 해결 -->
+    <!-- <meta http-equiv="Content-Security-Policy" content="..." /> -->
     
     <title>PriceHunter</title>
     
@@ -39,9 +39,9 @@
       }
     </script>
     
-    <!-- Firebase v9 SDK (모듈식) -->
+    <!-- Firebase v9 SDK (즉시 로딩) -->
     <script type="module">
-      // Firebase v9 모듈 import (안정적인 버전)
+      // Firebase v9 모듈 import (즉시 로딩)
       import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
       import { getAuth, signInWithCustomToken, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
       import { getFirestore, doc, setDoc, getDoc, collection, query, orderBy, onSnapshot, getDocs, where, limit, serverTimestamp, enableNetwork, disableNetwork } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
@@ -57,44 +57,39 @@
         measurementId: "G-4BKLV4EVB9"
       };
 
-      // Firebase 초기화 (v9 모듈식)
-      try {
-        console.log('🔥 Firebase v9 초기화 시작...');
-        
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
+      // Firebase 즉시 초기화 (성능 최적화)
+      console.log('🚀 Firebase 즉시 초기화 시작...');
+      
+      const app = initializeApp(firebaseConfig);
+      const auth = getAuth(app);
+      const db = getFirestore(app);
 
-        // 성능 최적화 설정
-        console.log('⚙️ Firebase 성능 최적화 설정 적용');
-        
-        // 전역으로 노출
-        window.firebaseApp = app;
-        window.firebaseAuth = auth;
-        window.firebaseDb = db;
-        window.firebaseAuthFunctions = { signInWithCustomToken, onAuthStateChanged, signOut };
-        window.firebaseFirestoreFunctions = { doc, setDoc, getDoc, collection, query, orderBy, onSnapshot, getDocs, where, limit, serverTimestamp, enableNetwork, disableNetwork };
-        
-        console.log('✅ Firebase v9 초기화 완료');
-        
-        // 연결 테스트 (간단한 테스트)
-        console.log('🔍 Firebase 연결 테스트 시작...');
-        const testRef = doc(db, 'test', 'connection');
-        getDoc(testRef).then(() => {
-          console.log('✅ Firebase 연결 테스트 성공');
-        }).catch(error => {
-          console.log('⚠️ Firebase 연결 테스트 (예상된 오류):', error.code);
-        });
-        
-      } catch (error) {
-        console.error('❌ Firebase 초기화 실패:', error);
-        // 초기화 실패시에도 기본 객체들을 생성하여 오류 방지
-        window.firebaseApp = null;
-        window.firebaseAuth = null;
-        window.firebaseDb = null;
-        window.firebaseAuthFunctions = { signInWithCustomToken: () => {}, onAuthStateChanged: () => {}, signOut: () => {} };
-        window.firebaseFirestoreFunctions = { doc: () => {}, setDoc: () => {}, getDoc: () => {}, collection: () => {}, query: () => {}, orderBy: () => {}, onSnapshot: () => {}, getDocs: () => {}, where: () => {}, serverTimestamp: () => {} };
-      }
+      // 네트워크 최적화 설정
+      console.log('⚡ Firebase 네트워크 최적화 적용');
+      
+      // 전역으로 즉시 노출
+      window.firebaseApp = app;
+      window.firebaseAuth = auth;
+      window.firebaseDb = db;
+      window.firebaseAuthFunctions = { signInWithCustomToken, onAuthStateChanged, signOut };
+      window.firebaseFirestoreFunctions = { doc, setDoc, getDoc, collection, query, orderBy, onSnapshot, getDocs, where, limit, serverTimestamp, enableNetwork, disableNetwork };
+      
+      // Firebase 준비 상태 즉시 설정
+      window.isFirebaseReady = true;
+      
+      console.log('✅ Firebase 즉시 초기화 완료 - 모든 함수 사용 가능');
+      
+      // 백그라운드에서 연결 테스트
+      setTimeout(async () => {
+        try {
+          console.log('🔍 백그라운드 Firebase 연결 테스트...');
+          const testRef = doc(db, 'test', 'connection');
+          await getDoc(testRef);
+          console.log('✅ Firebase 백그라운드 연결 테스트 성공');
+        } catch (error) {
+          console.log('⚠️ Firebase 백그라운드 테스트 (예상된 오류):', error.code);
+        }
+      }, 100);
     </script>
 
   </head>
@@ -998,54 +993,19 @@
       };
       
       // Firebase v9 기반 공통 함수들
-      let isFirebaseReady = false;
-
-      // Firebase 준비 상태 확인
-      function waitForFirebase() {
-        return new Promise((resolve, reject) => {
-          // 이미 초기화된 경우 즉시 반환
-          if (isFirebaseReady && window.firebaseAuth && window.firebaseDb && window.firebaseFirestoreFunctions) {
-            resolve();
-            return;
-          }
-
-          console.log('🔄 Firebase 초기화 상태 확인:', {
-            firebaseAuth: !!window.firebaseAuth,
-            firebaseDb: !!window.firebaseDb,
-            firebaseFirestoreFunctions: !!window.firebaseFirestoreFunctions
-          });
-          
-          if (window.firebaseAuth && window.firebaseDb && window.firebaseFirestoreFunctions) {
-            isFirebaseReady = true;
-            console.log('✅ Firebase 초기화 완료');
-            resolve();
-          } else {
-            const checkInterval = setInterval(() => {
-              if (window.firebaseAuth && window.firebaseDb && window.firebaseFirestoreFunctions) {
-                clearInterval(checkInterval);
-                isFirebaseReady = true;
-                console.log('✅ Firebase 초기화 완료');
-                resolve();
-              }
-            }, 50); // 100ms -> 50ms로 단축
-            
-            // 5초 타임아웃 (10초 -> 5초로 단축)
-            setTimeout(() => {
-              clearInterval(checkInterval);
-              console.error('❌ Firebase 초기화 타임아웃');
-              reject(new Error('Firebase 초기화 실패'));
-            }, 5000);
-          }
-        });
+      // Firebase 즉시 사용 함수 (waitForFirebase 제거)
+      function ensureFirebaseReady() {
+        if (!window.firebaseAuth || !window.firebaseDb || !window.firebaseFirestoreFunctions) {
+          console.error('❌ Firebase가 초기화되지 않았습니다.');
+          return false;
+        }
+        return true;
       }
 
       // 사용자 데이터 upsert 함수 (모든 로그인 경로에서 공통 사용)
       async function upsertUser(userData, extra = {}) {
         try {
-          await waitForFirebase();
-          
-          if (!window.firebaseDb || !window.firebaseFirestoreFunctions) {
-            console.error('❌ Firebase가 초기화되지 않았습니다.');
+          if (!ensureFirebaseReady()) {
             return false;
           }
           
@@ -2402,7 +2362,7 @@
 
         async function getUsersFromFirebase() {
           try {
-            // 캐시 확인
+            // 캐시 확인 (더 긴 캐시 시간)
             const now = Date.now();
             if (userCache.size > 0 && (now - cacheTimestamp) < CACHE_DURATION) {
               console.log('📊 캐시된 사용자 데이터 사용:', userCache.size, '명');
@@ -2411,46 +2371,56 @@
 
             console.log('🔄 사용자 데이터 동기화 시작...');
             
-            // Firebase 데이터 가져오기 (v9 모듈식)
+            // Firebase 데이터 가져오기 (v9 모듈식 + 타임아웃)
             let firebaseUsers = [];
-            if (window.firebaseDb && window.firebaseFirestoreFunctions) {
-              try {
-                console.log('🔍 Firebase users 컬렉션에 접근 시도...');
-                
-                const { collection, getDocs } = window.firebaseFirestoreFunctions;
-                const usersRef = collection(window.firebaseDb, 'users');
-                const snapshot = await getDocs(usersRef);
-                console.log('📊 Firebase 쿼리 성공, 문서 수:', snapshot.size);
-                
-                // 캐시 초기화
-                userCache.clear();
-                
-                snapshot.forEach(doc => {
-                  const userData = doc.data();
-                  const user = {
-                    id: doc.id,
-                    ...userData
-                  };
-                  firebaseUsers.push(user);
-                  userCache.set(user.email, user); // 이메일로 캐시
-                });
-                
-                cacheTimestamp = now;
-                console.log('📊 Firebase에서 가져온 사용자:', firebaseUsers.length, '명 (캐시됨)');
-              } catch (error) {
-                console.error('❌ Firebase 사용자 데이터 가져오기 실패:', error);
-                console.error('❌ 오류 상세:', error.message);
-                console.error('❌ 오류 코드:', error.code);
-                
-                // 권한 오류인 경우 빈 배열 반환 (localStorage 사용 금지)
-                if (error.code === 'permission-denied' || error.message.includes('permissions')) {
-                  console.log('🔄 권한 오류 감지 - 빈 배열 반환');
-                  return [];
-                }
-              }
-            } else {
+            if (!ensureFirebaseReady()) {
               console.log('⚠️ Firebase 초기화되지 않음');
               return [];
+            }
+
+            try {
+              console.log('🔍 Firebase users 컬렉션에 접근 시도...');
+              
+              const { collection, getDocs } = window.firebaseFirestoreFunctions;
+              const usersRef = collection(window.firebaseDb, 'users');
+              
+              // 타임아웃 설정 (5초)
+              const timeoutPromise = new Promise((_, reject) => {
+                setTimeout(() => reject(new Error('Firebase 쿼리 타임아웃')), 5000);
+              });
+              
+              const snapshot = await Promise.race([
+                getDocs(usersRef),
+                timeoutPromise
+              ]);
+              
+              console.log('📊 Firebase 쿼리 성공, 문서 수:', snapshot.size);
+              
+              // 캐시 초기화
+              userCache.clear();
+              
+              snapshot.forEach(doc => {
+                const userData = doc.data();
+                const user = {
+                  id: doc.id,
+                  ...userData
+                };
+                firebaseUsers.push(user);
+                userCache.set(user.email, user); // 이메일로 캐시
+              });
+              
+              cacheTimestamp = now;
+              console.log('📊 Firebase에서 가져온 사용자:', firebaseUsers.length, '명 (캐시됨)');
+            } catch (error) {
+              console.error('❌ Firebase 사용자 데이터 가져오기 실패:', error);
+              console.error('❌ 오류 상세:', error.message);
+              console.error('❌ 오류 코드:', error.code);
+              
+              // 타임아웃이나 권한 오류인 경우 빈 배열 반환
+              if (error.message.includes('타임아웃') || error.code === 'permission-denied' || error.message.includes('permissions')) {
+                console.log('🔄 오류 감지 - 빈 배열 반환');
+                return [];
+              }
             }
             
             return firebaseUsers;
@@ -2460,7 +2430,7 @@
           }
         }
 
-        // 특정 이메일로 사용자 찾기 (v9 모듈식 최적화 + 성능 측정)
+        // 특정 이메일로 사용자 찾기 (새로운 접근 방식 - 즉시 반환)
         async function findUserByEmail(email) {
           const startTime = performance.now();
           try {
@@ -2471,47 +2441,21 @@
               return userCache.get(email);
             }
 
-            // Firebase에서 직접 쿼리 (v9 모듈식)
-            if (window.firebaseDb && window.firebaseFirestoreFunctions) {
-              try {
-                console.log(`🔍 Firebase에서 특정 사용자 쿼리 시작: ${email}`);
-                const queryStartTime = performance.now();
-                
-                const { collection, query, where, limit, getDocs } = window.firebaseFirestoreFunctions;
-                const usersRef = collection(window.firebaseDb, 'users');
-                const q = query(usersRef, where('email', '==', email), limit(1));
-                const snapshot = await getDocs(q);
-                
-                const queryTime = performance.now() - queryStartTime;
-                console.log(`🔍 Firebase 쿼리 완료: ${queryTime.toFixed(2)}ms, 결과: ${snapshot.size}개`);
-                
-                if (!snapshot.empty) {
-                  const doc = snapshot.docs[0];
-                  const userData = doc.data();
-                  const user = {
-                    id: doc.id,
-                    ...userData
-                  };
-                  
-                  // 캐시에 저장
-                  userCache.set(email, user);
-                  const totalTime = performance.now() - startTime;
-                  console.log(`📊 Firebase에서 사용자 찾음 및 캐시됨: ${email} (총 ${totalTime.toFixed(2)}ms)`);
-                  return user;
-                }
-              } catch (error) {
-                const errorTime = performance.now() - startTime;
-                console.error(`❌ Firebase 특정 사용자 쿼리 실패: ${errorTime.toFixed(2)}ms`, error);
-                console.error('❌ 오류 상세:', error.message, error.code);
-                
-                // 쿼리 실패시 즉시 null 반환 (전체 데이터 폴백 제거)
-                console.log('❌ 쿼리 실패로 인한 즉시 반환');
-                return null;
-              }
+            // 새로운 접근: 전체 사용자 데이터를 한 번만 가져와서 캐시
+            console.log(`🔄 전체 사용자 데이터 로딩 시작: ${email}`);
+            const allUsers = await getUsersFromFirebase();
+            const user = allUsers.find(u => u.email === email);
+            
+            if (user) {
+              // 캐시에 저장
+              userCache.set(email, user);
+              const totalTime = performance.now() - startTime;
+              console.log(`📊 전체 데이터에서 사용자 찾음: ${email} (총 ${totalTime.toFixed(2)}ms)`);
+              return user;
             }
 
-            // Firebase가 초기화되지 않은 경우
-            console.log('⚠️ Firebase가 초기화되지 않음');
+            const totalTime = performance.now() - startTime;
+            console.log(`❌ 사용자를 찾을 수 없음: ${email} (총 ${totalTime.toFixed(2)}ms)`);
             return null;
           } catch (error) {
             const totalTime = performance.now() - startTime;
@@ -2566,7 +2510,9 @@
               const authStartTime = performance.now();
               console.log('🔐 Firebase Auth 처리 시작');
               
-              await waitForFirebase();
+              if (!ensureFirebaseReady()) {
+                throw new Error('Firebase가 초기화되지 않았습니다.');
+              }
               
               // 임시: Firebase Auth 이메일/비밀번호 로그인 대신 커스텀 토큰 사용
               const userData = {
