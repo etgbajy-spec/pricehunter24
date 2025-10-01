@@ -14,7 +14,7 @@
     <meta http-equiv="Expires" content="0" />
     
     <!-- Content Security Policy - Firebase iframe 허용 -->
-    <meta http-equiv="Content-Security-Policy" content="frame-src 'self' https://www.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com https://apis.google.com; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com https://*.gstatic.com;" />
+    <meta http-equiv="Content-Security-Policy" content="frame-src 'self' https://www.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com https://apis.google.com https://*.firebaseapp.com; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com https://*.gstatic.com https://apis.google.com https://*.googleapis.com;" />
     
     <meta name="cache-buster" content="v1.0-20241220" />
     <script>
@@ -80,7 +80,8 @@
       query, 
       deleteDoc,
       getDoc,
-      setDoc
+      setDoc,
+      doc
     };
     window.firebase = {
       firestore: () => db,
@@ -198,6 +199,13 @@
       <!-- 오류 메시지 -->
       <div id="login-error" class="text-red-500 text-center mt-4 hidden">
         <span>이메일 또는 비밀번호가 올바르지 않습니다.</span>
+      </div>
+      
+      <!-- 테스트 사용자 생성 버튼 (개발용) -->
+      <div class="mt-4 text-center">
+        <button id="create-test-user" class="text-xs text-gray-500 hover:text-gray-700 underline">
+          테스트 사용자 생성
+        </button>
       </div>
     </div>
 
@@ -415,6 +423,16 @@
             console.log('🔍 로그인 시도 - 검색할 이메일:', email);
             const user = await findUserByEmail(email);
             
+            // 디버깅을 위한 사용자 정보 출력
+            if (user) {
+              console.log('👤 찾은 사용자 정보:', {
+                email: user.email,
+                name: user.name,
+                hasPassword: !!user.password,
+                uid: user.uid
+              });
+            }
+            
             if (!user) {
               console.log('❌ 사용자를 찾을 수 없음');
               document.getElementById('login-error').classList.remove('hidden');
@@ -424,13 +442,22 @@
             }
             
             // 비밀번호 검증
-            if (user.password && user.password !== password) {
+            console.log('🔍 비밀번호 검증:', {
+              hasPassword: !!user.password,
+              userPassword: user.password ? '***' : 'null',
+              inputPassword: password ? '***' : 'null',
+              passwordMatch: user.password === password
+            });
+            
+            // 비밀번호 검증 (회원가입 시 비밀번호는 필수이므로 반드시 있어야 함)
+            if (user.password !== password) {
               console.log('❌ 비밀번호 불일치');
               document.getElementById('login-error').classList.remove('hidden');
               recordLoginAttempt(false);
               showToast('이메일 또는 비밀번호가 올바르지 않습니다.', 'error');
               return;
             }
+            console.log('✅ 비밀번호 일치');
             
             // 로그인 성공 처리
             const userData = {
@@ -473,6 +500,61 @@
             loginButton.disabled = false;
             loginButton.textContent = '로그인';
             loginButton.classList.remove('loading');
+          }
+        });
+        
+        // 테스트 사용자 생성 버튼
+        document.getElementById('create-test-user').addEventListener('click', async function() {
+          const testEmail = 'test@example.com';
+          const testPassword = '123456';
+          
+          try {
+            await waitForFirebase();
+            
+            const db = window.firebaseDb;
+            const { collection, addDoc, serverTimestamp } = window.firebaseFirestoreFunctions;
+            const usersRef = collection(db, 'users');
+            
+            // 테스트 사용자 데이터
+            const testUserData = {
+              uid: `email_${testEmail.replace('@', '_').replace('.', '_')}`,
+              email: testEmail,
+              name: '테스트 사용자',
+              displayName: '테스트 사용자',
+              phone: '010-1234-5678',
+              password: testPassword,
+              emailVerification: testEmail,
+              agreeTerms: true,
+              agreePrivacy: true,
+              agreeMarketing: false,
+              loginMethod: 'email',
+              isActive: true,
+              createdAt: serverTimestamp(),
+              updatedAt: serverTimestamp()
+            };
+            
+            // 중복 확인
+            const { query, where, getDocs } = window.firebaseFirestoreFunctions;
+            const emailQuery = query(usersRef, where('email', '==', testEmail));
+            const emailSnapshot = await getDocs(emailQuery);
+            
+            if (!emailSnapshot.empty) {
+              showToast('테스트 사용자가 이미 존재합니다.', 'info');
+              return;
+            }
+            
+            // 테스트 사용자 생성
+            await addDoc(usersRef, testUserData);
+            
+            showToast('테스트 사용자가 생성되었습니다!\n이메일: test@example.com\n비밀번호: 123456', 'success');
+            
+            // 폼에 테스트 데이터 입력
+            document.getElementById('email').value = testEmail;
+            document.getElementById('password').value = testPassword;
+            
+          } catch (error) {
+            console.error('테스트 사용자 생성 실패:', error);
+            showToast('테스트 사용자 생성에 실패했습니다.', 'error');
           }
         });
       });
