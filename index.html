@@ -487,6 +487,7 @@
           // 미리보기 모드
           const previewData = {
             name: urlParams.get('name') || '김민수',
+            product: urlParams.get('product') || '모듈쇼파',
             amount: parseInt(urlParams.get('amount')) || 420000,
             rate: parseInt(urlParams.get('rate')) || 42,
             image: urlParams.get('image') || 'https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80'
@@ -500,6 +501,7 @@
         const defaultData = {
           image: 'https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80',
           name: '김민수',
+          product: '모듈쇼파',
           amount: 420000,
           rate: 42
         };
@@ -558,13 +560,19 @@
           // 상품명
           const productName = popup.querySelector('.absolute.bottom-2.left-2');
           if (productName) {
-            productName.textContent = '절약왕 상품';
+            productName.textContent = data.product || '절약왕 상품';
           }
           
           // 이름
           const nameElement = document.getElementById('popup-name');
           if (nameElement) {
             nameElement.textContent = `${data.name}님`;
+          }
+          
+          // 제품명
+          const productElement = document.getElementById('popup-product');
+          if (productElement) {
+            productElement.textContent = data.product || '모듈쇼파';
           }
           
           // 절약 금액
@@ -593,7 +601,7 @@
           const heroImg = heroSection.querySelector('img');
           if (heroImg) {
             heroImg.src = data.image;
-            heroImg.alt = '절약왕 상품';
+            heroImg.alt = data.product || '절약왕 상품';
           }
           
           // 절약 정보 업데이트 (올바른 계산 로직)
@@ -695,7 +703,7 @@
                 <span class="text-yellow-200" id="popup-name">김민수님</span>이
               </div>
               <div class="text-lg sm:text-xl md:text-3xl font-bold mb-2">
-                <span class="text-white">모듈쇼파</span>를
+                <span class="text-white" id="popup-product">모듈쇼파</span>를
               </div>
               <div class="text-lg sm:text-2xl md:text-4xl font-extrabold text-yellow-200 mb-2">
                 <span class="block sm:inline">의뢰하신 가격보다</span>

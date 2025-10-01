@@ -4817,6 +4817,10 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                                     <label class="block text-sm font-medium text-gray-700 mb-2">절약왕 이름</label>
                                     <input type="text" id="savings-king-name" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent" placeholder="김민수" oninput="updateSavingsKingPreview()">
                                 </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">제품명</label>
+                                    <input type="text" id="savings-king-product" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent" placeholder="모듈쇼파" oninput="updateSavingsKingPreview()">
+                                </div>
                             </div>
                             <div class="space-y-4">
                                 <div>
@@ -7003,6 +7007,7 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             // 폼에 데이터 설정
             document.getElementById('savings-king-image').value = data.image;
             document.getElementById('savings-king-name').value = data.name;
+            document.getElementById('savings-king-product').value = data.product || '모듈쇼파';
             document.getElementById('savings-king-amount').value = data.amount;
             document.getElementById('savings-king-rate').value = data.rate;
             
@@ -7027,6 +7032,7 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             const data = {
                 image: document.getElementById('savings-king-image').value,
                 name: document.getElementById('savings-king-name').value,
+                product: document.getElementById('savings-king-product').value,
                 amount: parseInt(document.getElementById('savings-king-amount').value) || 0,
                 rate: parseInt(document.getElementById('savings-king-rate').value) || 0
             };
@@ -7039,6 +7045,13 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 console.log('❌ 유효성 검사 실패: 이름이 비어있음');
                 addSavingsKingLog('❌ 유효성 검사 실패: 이름이 비어있음', 'error');
                 alert('❌ 절약왕 이름을 입력해주세요.');
+                return;
+            }
+            
+            if (!data.product.trim()) {
+                console.log('❌ 유효성 검사 실패: 제품명이 비어있음');
+                addSavingsKingLog('❌ 유효성 검사 실패: 제품명이 비어있음', 'error');
+                alert('❌ 제품명을 입력해주세요.');
                 return;
             }
             
@@ -7157,6 +7170,7 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             const data = {
                 image: document.getElementById('savings-king-image').value,
                 name: document.getElementById('savings-king-name').value,
+                product: document.getElementById('savings-king-product').value,
                 amount: parseInt(document.getElementById('savings-king-amount').value) || 0,
                 rate: parseInt(document.getElementById('savings-king-rate').value) || 0
             };
@@ -7181,6 +7195,7 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             const data = {
                 image: document.getElementById('savings-king-image').value,
                 name: document.getElementById('savings-king-name').value,
+                product: document.getElementById('savings-king-product').value,
                 amount: parseInt(document.getElementById('savings-king-amount').value) || 0,
                 rate: parseInt(document.getElementById('savings-king-rate').value) || 0
             };
@@ -7189,6 +7204,7 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             const mainPageUrl = new URL('index.html', window.location.origin);
             mainPageUrl.searchParams.set('preview', 'savings-king');
             mainPageUrl.searchParams.set('name', data.name);
+            mainPageUrl.searchParams.set('product', data.product);
             mainPageUrl.searchParams.set('amount', data.amount);
             mainPageUrl.searchParams.set('rate', data.rate);
             mainPageUrl.searchParams.set('image', data.image);
@@ -7201,6 +7217,7 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 // 기본값으로 리셋
                 document.getElementById('savings-king-image').value = 'https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80';
                 document.getElementById('savings-king-name').value = '김민수';
+                document.getElementById('savings-king-product').value = '모듈쇼파';
                 document.getElementById('savings-king-amount').value = '420000';
                 document.getElementById('savings-king-rate').value = '42';
                 
