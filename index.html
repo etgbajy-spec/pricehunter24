@@ -3,18 +3,17 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <!-- 캐시 최적화: Firebase 성능 개선을 위한 적응형 캐시 정책 -->
-    <meta http-equiv="Cache-Control" content="public, max-age=300, must-revalidate" />
-    <meta http-equiv="Pragma" content="cache" />
-    <meta http-equiv="Expires" content="300" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
     
     <!-- Chrome 중간 웹사이트 상태 삭제 문제 해결 -->
     <meta name="referrer" content="no-referrer-when-downgrade" />
     <meta name="robots" content="noindex, nofollow" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     
-    <!-- Content Security Policy - Firebase iframe 허용 (source map 포함) -->
-    <meta http-equiv="Content-Security-Policy" content="frame-src 'self' https://www.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com https://apis.google.com; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com https://*.gstatic.com https://firebasejs.com https://*.firebasejs.com;" />
+    <!-- Content Security Policy - Firebase iframe 허용 -->
+    <meta http-equiv="Content-Security-Policy" content="frame-src 'self' https://www.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com https://apis.google.com; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com https://*.gstatic.com;" />
     
     <title>PriceHunter</title>
     
@@ -428,45 +427,11 @@
       document.head.appendChild(style);
     </script>
     
-    <!-- Firebase v9 SDK (모듈식) - 성능 최적화 -->
+    <!-- Firebase v9 SDK (모듈식) -->
     <script type="module">
-      // 캐시 버스터와 병렬 로딩으로 성능 개선
-      const firebaseVersion = '9.23.0';
-      const cacheBuster = Date.now();
-      
-      // Firebase 함수들을 전역 스코프에서 선언
-      let initializeApp, getAuth, signInWithCustomToken, onAuthStateChanged, signOut;
-      let getFirestore, doc, setDoc, getDoc, collection, query, orderBy, onSnapshot, getDocs, where, serverTimestamp;
-      
-      try {
-        // 병렬 import로 로딩 시간 단축
-        const [appModule, authModule, firestoreModule] = await Promise.all([
-          import(`https://www.gstatic.com/firebasejs/${firebaseVersion}/firebase-app.js?v=${cacheBuster}`),
-          import(`https://www.gstatic.com/firebasejs/${firebaseVersion}/firebase-auth.js?v=${cacheBuster}`),
-          import(`https://www.gstatic.com/firebasejs/${firebaseVersion}/firebase-firestore.js?v=${cacheBuster}`)
-        ]);
-        
-        // 전역 스코프에 할당
-        ({ initializeApp } = appModule);
-        ({ getAuth, signInWithCustomToken, onAuthStateChanged, signOut } = authModule);
-        ({ getFirestore, doc, setDoc, getDoc, collection, query, orderBy, onSnapshot, getDocs, where, serverTimestamp } = firestoreModule);
-        
-        console.log('✅ Firebase v9 모듈 병렬 로드 완료');
-      } catch (error) {
-        console.error('❌ Firebase 병렬 로드 실패, 순차 로드로 전환:', error);
-        
-        // 폴백: 순차 로드
-        const appModule = await import(`https://www.gstatic.com/firebasejs/${firebaseVersion}/firebase-app.js`);
-        const authModule = await import(`https://www.gstatic.com/firebasejs/${firebaseVersion}/firebase-auth.js`);
-        const firestoreModule = await import(`https://www.gstatic.com/firebasejs/${firebaseVersion}/firebase-firestore.js`);
-        
-        // 전역 스코프에 할당
-        ({ initializeApp } = appModule);
-        ({ getAuth, signInWithCustomToken, onAuthStateChanged, signOut } = authModule);
-        ({ getFirestore, doc, setDoc, getDoc, collection, query, orderBy, onSnapshot, getDocs, where, serverTimestamp } = firestoreModule);
-        
-        console.log('✅ Firebase v9 모듈 순차 로드 완료');
-      }
+      import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
+      import { getAuth, signInWithCustomToken, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
+      import { getFirestore, doc, setDoc, getDoc, collection, query, orderBy, onSnapshot, getDocs, where, serverTimestamp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
       
       // Firebase 설정
       const firebaseConfig = {
@@ -494,14 +459,8 @@
         
         console.log('✅ Firebase v9 초기화 완료');
         
-        // 성능 최적화: DOM 로드 완료 후 데이터 로드
-        if (document.readyState === 'loading') {
-          document.addEventListener('DOMContentLoaded', () => {
-            setTimeout(loadSavingsKingData, 100); // 100ms 지연으로 UI 렌더링 우선
-          });
-        } else {
-          setTimeout(loadSavingsKingData, 100);
-        }
+        // 절약왕 데이터 로드
+        loadSavingsKingData();
         
       } catch (error) {
         console.error('❌ Firebase 초기화 실패:', error);
@@ -512,23 +471,13 @@
         window.firebaseAuthFunctions = { signInWithCustomToken: () => {}, onAuthStateChanged: () => {}, signOut: () => {} };
         window.firebaseFirestoreFunctions = { doc: () => {}, setDoc: () => {}, getDoc: () => {}, collection: () => {}, query: () => {}, orderBy: () => {}, onSnapshot: () => {}, getDocs: () => {}, where: () => {}, serverTimestamp: () => {} };
         
-        // Firebase 초기화 실패 시에도 기본 절약왕 데이터 로드 (지연)
-        setTimeout(loadSavingsKingData, 200);
+        // Firebase 초기화 실패 시에도 기본 절약왕 데이터 로드
+        loadSavingsKingData();
       }
       
-      // 절약왕 데이터 로드 함수 (성능 최적화)
+      // 절약왕 데이터 로드 함수
       async function loadSavingsKingData() {
         console.log('🏆 절약왕 데이터 로드 시작');
-        
-        // 브라우저별 성능 최적화
-        const isChrome = /Chrome/.test(navigator.userAgent) && /Google Inc/.test(navigator.vendor);
-        const isIncognito = isChrome && (navigator.storage && navigator.storage.estimate && navigator.storage.estimate().quota < 120000000);
-        
-        if (isChrome && !isIncognito) {
-          console.log('🔧 Chrome 브라우저 감지 - 성능 최적화 적용');
-          // Chrome에서 추가 지연으로 안정성 향상
-          await new Promise(resolve => setTimeout(resolve, 150));
-        }
         
         // URL 파라미터에서 미리보기 데이터 확인
         const urlParams = new URLSearchParams(window.location.search);
