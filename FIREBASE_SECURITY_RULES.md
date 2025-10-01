@@ -18,28 +18,62 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // 관리자 권한 확인 함수
+    function isAdmin() {
+      return request.auth != null && 
+             exists(/databases/$(database)/documents/admins/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
     // users 컬렉션에 대한 규칙 (회원 데이터)
     match /users/{userId} {
-      // 읽기: 모든 사용자 허용
-      allow read: if true;
-      // 쓰기: 모든 사용자 허용 (회원가입용)
-      allow write: if true;
+      // 읽기: 인증된 사용자만 허용
+      allow read: if isAuthenticated();
+      // 쓰기: 회원가입(생성)은 모든 사용자 허용, 수정은 본인만
+      allow create: if true; // 회원가입 허용
+      allow update: if isAuthenticated() && request.auth.uid == userId; // 본인 데이터만 수정 가능
     }
     
     // inquiries 컬렉션에 대한 규칙 (문의 데이터)
     match /inquiries/{inquiryId} {
+      // 읽기: 인증된 사용자만 허용
+      allow read: if isAuthenticated();
+      // 쓰기: 인증된 사용자만 허용
+      allow write: if isAuthenticated();
+    }
+    
+    // admins 컬렉션에 대한 규칙 (관리자 데이터)
+    match /admins/{adminId} {
+      // 읽기/쓰기: 관리자만 허용
+      allow read, write: if isAdmin();
+    }
+    
+    // reviews 컬렉션에 대한 규칙 (후기 데이터)
+    match /reviews/{reviewId} {
       // 읽기: 모든 사용자 허용
       allow read: if true;
-      // 쓰기: 모든 사용자 허용 (문의 제출용)
-      allow write: if true;
+      // 쓰기: 인증된 사용자만 허용
+      allow write: if isAuthenticated();
+    }
+    
+    // requests 컬렉션에 대한 규칙 (요청 데이터)
+    match /requests/{requestId} {
+      // 읽기: 인증된 사용자만 허용
+      allow read: if isAuthenticated();
+      // 쓰기: 인증된 사용자만 허용
+      allow write: if isAuthenticated();
     }
     
     // 다른 컬렉션들에 대한 기본 규칙
     match /{document=**} {
-      // 읽기: 모든 사용자 허용
-      allow read: if true;
-      // 쓰기: 모든 사용자 허용
-      allow write: if true;
+      // 읽기: 인증된 사용자만 허용
+      allow read: if isAuthenticated();
+      // 쓰기: 인증된 사용자만 허용
+      allow write: if isAuthenticated();
     }
   }
 }
