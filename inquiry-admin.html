@@ -126,9 +126,20 @@
     let currentFilter = 'all';
     let allInquiries = [];
     
-    // Firebase 초기화 대기 함수
+    // Firebase 초기화 대기 함수 (중복 호출 방지)
+    let firebaseInitPromise = null;
     async function waitForFirebase() {
-      return new Promise((resolve, reject) => {
+      // 이미 초기화가 완료된 경우 즉시 반환
+      if (window.firebaseApp && window.firebaseDb && window.firebaseFirestoreFunctions) {
+        return Promise.resolve();
+      }
+      
+      // 이미 초기화 중인 경우 같은 Promise 반환
+      if (firebaseInitPromise) {
+        return firebaseInitPromise;
+      }
+      
+      firebaseInitPromise = new Promise((resolve, reject) => {
         console.log('🔄 Firebase 초기화 상태 확인:', {
           firebaseApp: !!window.firebaseApp,
           firebaseDb: !!window.firebaseDb,
@@ -142,7 +153,7 @@
           const checkInterval = setInterval(() => {
             if (window.firebaseApp && window.firebaseDb && window.firebaseFirestoreFunctions) {
               clearInterval(checkInterval);
-              console.log('✅ Firebase 초기화 완료');
+              console.log('✅ Firebase 초기화 완료 (대기 후)');
               resolve();
             }
           }, 100);
@@ -154,6 +165,8 @@
           }, 10000);
         }
       });
+      
+      return firebaseInitPromise;
     }
 
     // Firebase에서 문의 목록 조회
