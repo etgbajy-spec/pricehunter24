@@ -12,8 +12,8 @@
     <meta name="robots" content="noindex, nofollow" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     
-    <!-- Content Security Policy - 임시로 완전 제거하여 Firebase 연결 문제 해결 -->
-    <!-- <meta http-equiv="Content-Security-Policy" content="..." /> -->
+    <!-- Content Security Policy - Firebase iframe 허용 -->
+    <meta http-equiv="Content-Security-Policy" content="frame-src 'self' https://www.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com https://apis.google.com; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com https://*.gstatic.com;" />
     
     <title>PriceHunter</title>
     
@@ -25,6 +25,290 @@
     
     <!-- 모바일 여백 제거 CSS -->
     <link rel="stylesheet" href="mobile-fix.css">
+    
+    <!-- 스크롤 애니메이션 CSS -->
+    <style>
+      /* 최적화된 히어로 애니메이션 */
+      .hero-element {
+        transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        will-change: transform, opacity;
+      }
+      
+      /* 팝업 애니메이션 효과 */
+      #savings-popup {
+        animation: fadeIn 0.5s ease-out;
+      }
+      
+      .popup-card {
+        animation: popupEntrance 1.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+        animation-delay: 0.3s;
+      }
+      
+      .success-icon {
+        animation: iconBounce 2s ease-in-out infinite;
+        animation-delay: 1s;
+      }
+      
+      .savings-highlight {
+        animation: highlightPulse 3s ease-in-out infinite;
+        animation-delay: 1.5s;
+      }
+      
+      .product-thumbnail {
+        animation: thumbnailEntrance 2s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+        animation-delay: 0.8s;
+        opacity: 0;
+        transform: scale(0);
+      }
+      
+      .product-thumbnail img {
+        transition: all 0.3s ease;
+      }
+      
+      .product-thumbnail:hover img {
+        transform: scale(1.05);
+        box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+      }
+      
+      .particle {
+        animation: particleFloat 4s ease-in-out infinite;
+      }
+      
+      .particle-1 {
+        top: 20%;
+        left: 10%;
+        animation-delay: 0s;
+      }
+      
+      .particle-2 {
+        top: 30%;
+        right: 15%;
+        animation-delay: 0.5s;
+      }
+      
+      .particle-3 {
+        bottom: 25%;
+        left: 20%;
+        animation-delay: 1s;
+      }
+      
+      .particle-4 {
+        top: 60%;
+        right: 25%;
+        animation-delay: 1.5s;
+      }
+      
+      .particle-5 {
+        bottom: 40%;
+        right: 10%;
+        animation-delay: 2s;
+      }
+      
+      /* 키프레임 애니메이션 */
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      
+      @keyframes popupEntrance {
+        0% {
+          transform: scale(0) rotate(-180deg);
+          opacity: 0;
+        }
+        50% {
+          transform: scale(1.1) rotate(-90deg);
+          opacity: 0.8;
+        }
+        100% {
+          transform: scale(1) rotate(0deg);
+          opacity: 1;
+        }
+      }
+      
+      @keyframes iconBounce {
+        0%, 20%, 50%, 80%, 100% {
+          transform: translateY(0) scale(1);
+        }
+        40% {
+          transform: translateY(-20px) scale(1.1);
+        }
+        60% {
+          transform: translateY(-10px) scale(1.05);
+        }
+      }
+      
+      @keyframes highlightPulse {
+        0%, 100% {
+          transform: scale(1);
+          box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+        }
+        50% {
+          transform: scale(1.02);
+          box-shadow: 0 0 40px rgba(255, 255, 255, 0.6);
+        }
+      }
+      
+      @keyframes thumbnailEntrance {
+        0% {
+          opacity: 0;
+          transform: scale(0);
+        }
+        50% {
+          opacity: 0.8;
+          transform: scale(1.1);
+        }
+        100% {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+      
+      @keyframes particleFloat {
+        0%, 100% {
+          transform: translateY(0px) rotate(0deg);
+          opacity: 0.7;
+        }
+        25% {
+          transform: translateY(-20px) rotate(90deg);
+          opacity: 1;
+        }
+        50% {
+          transform: translateY(-10px) rotate(180deg);
+          opacity: 0.8;
+        }
+        75% {
+          transform: translateY(-30px) rotate(270deg);
+          opacity: 0.9;
+        }
+      }
+      
+      /* 기존 애니메이션 개선 */
+      .animate-float {
+        animation: float 3s ease-in-out infinite;
+      }
+      
+      .animate-float-delayed {
+        animation: float 3s ease-in-out infinite;
+        animation-delay: 1s;
+      }
+      
+      .animate-float-slow {
+        animation: float 4s ease-in-out infinite;
+        animation-delay: 2s;
+      }
+      
+      @keyframes float {
+        0%, 100% {
+          transform: translateY(0px);
+        }
+        50% {
+          transform: translateY(-20px);
+        }
+      }
+      
+      /* 반응형 팝업 디자인 */
+      @media (max-width: 768px) {
+        .popup-container {
+          padding: 1rem;
+        }
+        
+        .popup-card {
+          padding: 1.5rem;
+        }
+        
+        .success-icon .inline-flex {
+          width: 4rem;
+          height: 4rem;
+        }
+        
+        .success-icon svg {
+          width: 2rem;
+          height: 2rem;
+        }
+        
+        .savings-highlight {
+          padding: 1rem;
+        }
+        
+        .particle {
+          display: none; /* 모바일에서는 파티클 효과 제거 */
+        }
+        
+        .product-thumbnail img {
+          width: 12rem;
+          height: 8rem;
+        }
+      }
+      
+      @media (max-width: 480px) {
+        .popup-card {
+          padding: 1rem;
+          margin: 0.5rem;
+        }
+        
+        .savings-highlight {
+          padding: 0.75rem;
+        }
+        
+        #popup-continue-btn {
+          padding: 0.75rem 1.5rem;
+          font-size: 1rem;
+        }
+        
+        .product-thumbnail img {
+          width: 10rem;
+          height: 6rem;
+        }
+        
+        #popup-close-btn {
+          width: 2rem;
+          height: 2rem;
+          font-size: 1rem;
+        }
+      }
+      
+      /* 히어로 요소들 초기 상태 */
+      #hero-logo,
+      #hero-title,
+      #hero-buttons-container {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+      }
+      
+      /* 부드러운 스크롤 효과 */
+      html {
+        scroll-behavior: smooth;
+      }
+      
+      /* 추가 애니메이션 키프레임 */
+      @keyframes fadeInUp {
+        from {
+          opacity: 0;
+          transform: translateY(30px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      
+      @keyframes slideDown {
+        from {
+          transform: translateY(-50px);
+        }
+        to {
+          transform: translateY(0);
+        }
+      }
+      
+      .animate-fadeInUp {
+        animation: fadeInUp 0.8s ease-out;
+      }
+      
+      .animate-slideDown {
+        animation: slideDown 0.6s ease-out;
+      }
+    </style>
     <script>
       // Tailwind CSS 설정 - CSP 오류 방지
       if (typeof tailwind !== 'undefined') {
@@ -37,14 +321,117 @@
           }
         }
       }
+      
+      // 팝업 애니메이션 제어
+      document.addEventListener('DOMContentLoaded', function() {
+        const popup = document.getElementById('savings-popup');
+        const heroSection = document.getElementById('hero-section');
+        const popupContinueBtn = document.getElementById('popup-continue-btn');
+        const popupCloseBtn = document.getElementById('popup-close-btn');
+        const popupHideTodayBtn = document.getElementById('popup-hide-today-btn');
+        
+        // 팝업을 닫는 공통 함수
+        function closePopup() {
+          popup.style.animation = 'fadeOut 0.8s ease-out forwards';
+          
+          setTimeout(() => {
+            popup.style.display = 'none';
+            
+            // 히어로섹션 페이드인 애니메이션
+            heroSection.style.transition = 'all 1.2s cubic-bezier(0.4, 0, 0.2, 1)';
+            heroSection.style.opacity = '1';
+            heroSection.style.transform = 'translateY(0)';
+            
+            // 히어로 요소들 순차적 애니메이션
+            setTimeout(() => {
+              const heroElements = document.querySelectorAll('.hero-element');
+              heroElements.forEach((element, index) => {
+                setTimeout(() => {
+                  element.style.transition = 'all 0.8s cubic-bezier(0.4, 0, 0.2, 1)';
+                  element.style.transform = 'translateY(0) scale(1)';
+                  element.style.opacity = '1';
+                }, index * 200);
+              });
+            }, 300);
+          }, 800);
+        }
+        
+        // 오늘 하루 안보기 함수
+        function hideForToday() {
+          const today = new Date().toDateString();
+          localStorage.setItem('popupHiddenDate', today);
+          closePopup();
+        }
+        
+        // 페이지 로드 시 팝업 표시 (오늘 하루 안보기 체크)
+        const hiddenDate = localStorage.getItem('popupHiddenDate');
+        const today = new Date().toDateString();
+        
+        if (hiddenDate !== today) {
+          setTimeout(() => {
+            popup.style.display = 'flex';
+          }, 500);
+        } else {
+          // 오늘 이미 안보기로 설정했다면 팝업 숨기고 바로 히어로섹션 표시
+          popup.style.display = 'none';
+          heroSection.style.opacity = '1';
+          heroSection.style.transform = 'translateY(0)';
+          
+          // 히어로 요소들도 바로 표시
+          setTimeout(() => {
+            const heroElements = document.querySelectorAll('.hero-element');
+            heroElements.forEach((element, index) => {
+              setTimeout(() => {
+                element.style.transition = 'all 0.8s cubic-bezier(0.4, 0, 0.2, 1)';
+                element.style.transform = 'translateY(0) scale(1)';
+                element.style.opacity = '1';
+              }, index * 200);
+            });
+          }, 300);
+        }
+        
+        // 버튼 이벤트 리스너
+        popupContinueBtn.addEventListener('click', closePopup);
+        popupCloseBtn.addEventListener('click', closePopup);
+        popupHideTodayBtn.addEventListener('click', hideForToday);
+        
+        // ESC 키로 팝업 닫기
+        document.addEventListener('keydown', function(e) {
+          if (e.key === 'Escape' && popup.style.display === 'flex') {
+            closePopup();
+          }
+        });
+        
+        // 팝업 외부 클릭으로 닫기
+        popup.addEventListener('click', function(e) {
+          if (e.target === popup) {
+            closePopup();
+          }
+        });
+      });
+      
+      // 페이드아웃 애니메이션 추가
+      const style = document.createElement('style');
+      style.textContent = `
+        @keyframes fadeOut {
+          from { 
+            opacity: 1; 
+            transform: scale(1);
+          }
+          to { 
+            opacity: 0; 
+            transform: scale(0.8);
+          }
+        }
+      `;
+      document.head.appendChild(style);
     </script>
     
-    <!-- Firebase v9 SDK (즉시 로딩) -->
+    <!-- Firebase v9 SDK (모듈식) -->
     <script type="module">
-      // Firebase v9 모듈 import (즉시 로딩)
       import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
       import { getAuth, signInWithCustomToken, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
-      import { getFirestore, doc, setDoc, getDoc, collection, query, orderBy, onSnapshot, getDocs, where, limit, serverTimestamp, enableNetwork, disableNetwork } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
+      import { getFirestore, doc, setDoc, getDoc, collection, query, orderBy, onSnapshot, getDocs, where, serverTimestamp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
       
       // Firebase 설정
       const firebaseConfig = {
@@ -57,136 +444,428 @@
         measurementId: "G-4BKLV4EVB9"
       };
 
-      // Firebase 즉시 초기화 (성능 최적화)
-      console.log('🚀 Firebase 즉시 초기화 시작...');
-      
-      const app = initializeApp(firebaseConfig);
-      const auth = getAuth(app);
-      const db = getFirestore(app);
+      // Firebase 초기화
+      try {
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
 
-      // 네트워크 최적화 설정
-      console.log('⚡ Firebase 네트워크 최적화 적용');
+        // 전역으로 노출
+        window.firebaseApp = app;
+        window.firebaseAuth = auth;
+        window.firebaseDb = db;
+        window.firebaseAuthFunctions = { signInWithCustomToken, onAuthStateChanged, signOut };
+        window.firebaseFirestoreFunctions = { doc, setDoc, getDoc, collection, query, orderBy, onSnapshot, getDocs, where, serverTimestamp };
+        
+        console.log('✅ Firebase v9 초기화 완료');
+        
+        // 절약왕 데이터 로드
+        loadSavingsKingData();
+        
+      } catch (error) {
+        console.error('❌ Firebase 초기화 실패:', error);
+        // 초기화 실패시에도 기본 객체들을 생성하여 오류 방지
+        window.firebaseApp = null;
+        window.firebaseAuth = null;
+        window.firebaseDb = null;
+        window.firebaseAuthFunctions = { signInWithCustomToken: () => {}, onAuthStateChanged: () => {}, signOut: () => {} };
+        window.firebaseFirestoreFunctions = { doc: () => {}, setDoc: () => {}, getDoc: () => {}, collection: () => {}, query: () => {}, orderBy: () => {}, onSnapshot: () => {}, getDocs: () => {}, where: () => {}, serverTimestamp: () => {} };
+        
+        // Firebase 초기화 실패 시에도 기본 절약왕 데이터 로드
+        loadSavingsKingData();
+      }
       
-      // 전역으로 즉시 노출
-      window.firebaseApp = app;
-      window.firebaseAuth = auth;
-      window.firebaseDb = db;
-      window.firebaseAuthFunctions = { signInWithCustomToken, onAuthStateChanged, signOut };
-      window.firebaseFirestoreFunctions = { doc, setDoc, getDoc, collection, query, orderBy, onSnapshot, getDocs, where, limit, serverTimestamp, enableNetwork, disableNetwork };
-      
-      // Firebase 준비 상태 즉시 설정
-      window.isFirebaseReady = true;
-      
-      console.log('✅ Firebase 즉시 초기화 완료 - 모든 함수 사용 가능');
-      
-      // Firebase 연결 상태 진단
-      setTimeout(async () => {
-        try {
-          console.log('🔍 Firebase 연결 상태 진단 시작...');
-          
-          // 1. 기본 연결 테스트
-          console.log('📡 1. 기본 연결 테스트...');
-          const testRef = doc(db, 'test', 'connection');
-          const testDoc = await getDoc(testRef);
-          console.log('✅ 기본 연결 테스트 성공:', testDoc.exists());
-          
-          // 2. users 컬렉션 접근 테스트
-          console.log('📡 2. users 컬렉션 접근 테스트...');
-          const usersRef = collection(db, 'users');
-          const usersSnapshot = await getDocs(usersRef);
-          console.log('✅ users 컬렉션 접근 성공, 문서 수:', usersSnapshot.size);
-          
-          // 3. 네트워크 상태 확인
-          console.log('📡 3. 네트워크 상태 확인...');
-          console.log('🌐 온라인 상태:', navigator.onLine);
-          console.log('🔗 연결 타입:', navigator.connection?.effectiveType || 'unknown');
-          
-          // 4. Firebase 앱 정보
-          console.log('📡 4. Firebase 앱 정보...');
-          console.log('🔥 앱 이름:', app.name);
-          console.log('🔥 프로젝트 ID:', app.options.projectId);
-          console.log('🔥 Auth 도메인:', app.options.authDomain);
-          
-        } catch (error) {
-          console.error('❌ Firebase 연결 진단 실패:', error);
-          console.error('❌ 오류 코드:', error.code);
-          console.error('❌ 오류 메시지:', error.message);
-          console.error('❌ 오류 스택:', error.stack);
+      // 절약왕 데이터 로드 함수
+      async function loadSavingsKingData() {
+        console.log('🏆 절약왕 데이터 로드 시작');
+        
+        // URL 파라미터에서 미리보기 데이터 확인
+        const urlParams = new URLSearchParams(window.location.search);
+        const isPreview = urlParams.get('preview') === 'savings-king';
+        
+        if (isPreview) {
+          // 미리보기 모드
+          const previewData = {
+            name: urlParams.get('name') || '김민수',
+            amount: parseInt(urlParams.get('amount')) || 420000,
+            rate: parseInt(urlParams.get('rate')) || 42,
+            image: urlParams.get('image') || 'https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80'
+          };
+          updateSavingsKingUI(previewData);
+          console.log('✅ 미리보기 절약왕 데이터 로드:', previewData);
+          return;
         }
-      }, 1000);
+        
+        // 기본값 설정
+        const defaultData = {
+          image: 'https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80',
+          name: '김민수',
+          amount: 420000,
+          rate: 42
+        };
+        
+        let data = { ...defaultData };
+        
+        try {
+          // Firebase에서 데이터 로드 시도
+          if (window.firebaseDb) {
+            const { collection, doc, getDoc } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js');
+            
+            const savingsKingRef = doc(collection(window.firebaseDb, 'adminSettings'), 'savingsKing');
+            const docSnap = await getDoc(savingsKingRef);
+            
+            if (docSnap.exists()) {
+              const firebaseData = docSnap.data();
+              data = { ...defaultData, ...firebaseData };
+              console.log('✅ Firebase에서 절약왕 데이터 로드 성공:', data);
+            } else {
+              console.log('⚠️ Firebase에 절약왕 데이터가 없음, 기본값 사용');
+            }
+          }
+        } catch (error) {
+          console.error('❌ Firebase에서 절약왕 데이터 로드 실패:', error);
+          
+          // Firebase 실패 시 localStorage에서 로드
+          const savingsKingData = JSON.parse(localStorage.getItem('savingsKingData') || '{}');
+          data = { ...defaultData, ...savingsKingData };
+          console.log('📱 localStorage에서 절약왕 데이터 로드:', data);
+        }
+        
+        // UI 업데이트
+        updateSavingsKingUI(data);
+        
+        console.log('✅ 절약왕 데이터 로드 완료:', data);
+      }
+      
+      // 절약왕 UI 업데이트 함수
+      function updateSavingsKingUI(data) {
+        // 절약왕 배지 업데이트
+        const badgeRateElement = document.getElementById('badge-rate');
+        if (badgeRateElement) {
+          badgeRateElement.innerHTML = `-${data.rate}%<br class="sm:hidden">절약 성공!`;
+        }
+        
+        // 절약왕 팝업 업데이트
+        const popup = document.getElementById('savings-popup');
+        if (popup) {
+          // 썸네일 이미지
+          const thumbnailImg = popup.querySelector('.product-thumbnail img');
+          if (thumbnailImg) {
+            thumbnailImg.src = data.image;
+            thumbnailImg.alt = '절약왕 상품';
+          }
+          
+          // 상품명
+          const productName = popup.querySelector('.absolute.bottom-2.left-2');
+          if (productName) {
+            productName.textContent = '절약왕 상품';
+          }
+          
+          // 이름
+          const nameElement = document.getElementById('popup-name');
+          if (nameElement) {
+            nameElement.textContent = `${data.name}님`;
+          }
+          
+          // 절약 금액
+          const amountElement = document.getElementById('popup-amount');
+          if (amountElement) {
+            amountElement.textContent = `₩${data.amount.toLocaleString()}`;
+          }
+          
+          // 절약률
+          const rateElement = document.getElementById('popup-rate');
+          if (rateElement) {
+            rateElement.textContent = `${data.rate}%`;
+          }
+          
+          // 총 절약금액
+          const totalAmountElement = document.getElementById('popup-total-amount');
+          if (totalAmountElement) {
+            totalAmountElement.textContent = `₩${data.amount.toLocaleString()}`;
+          }
+        }
+        
+        // 절약왕 히어로 섹션 업데이트
+        const heroSection = document.getElementById('savings-hero');
+        if (heroSection) {
+          // 히어로 섹션 이미지
+          const heroImg = heroSection.querySelector('img');
+          if (heroImg) {
+            heroImg.src = data.image;
+            heroImg.alt = '절약왕 상품';
+          }
+          
+          // 절약 정보 업데이트 (올바른 계산 로직)
+          const originalPriceElement = heroSection.querySelector('.bg-gray-50 .text-lg');
+          if (originalPriceElement) {
+            // 원래 가격 = 절약금액 / (절약률 / 100)
+            const originalPrice = Math.round(data.amount / (data.rate / 100));
+            originalPriceElement.textContent = `${originalPrice.toLocaleString()}원`;
+          }
+          
+          const finalPriceElement = heroSection.querySelector('.bg-emerald-50 .text-xl');
+          if (finalPriceElement) {
+            // 최종 가격 = 원래 가격 - 절약금액
+            const originalPrice = Math.round(data.amount / (data.rate / 100));
+            const finalPrice = originalPrice - data.amount;
+            finalPriceElement.textContent = `${finalPrice.toLocaleString()}원`;
+          }
+          
+          const savingsAmountElement = heroSection.querySelector('.bg-red-50 .text-xl');
+          if (savingsAmountElement) {
+            savingsAmountElement.textContent = `${data.amount.toLocaleString()}원 절약`;
+          }
+          
+          const savingsRateElement = heroSection.querySelector('.bg-red-100');
+          if (savingsRateElement) {
+            savingsRateElement.textContent = `-${data.rate}% 절감`;
+          }
+          
+          // 사용자 정보
+          const userElement = heroSection.querySelector('.text-sm.font-semibold');
+          if (userElement) {
+            userElement.textContent = `${data.name}, 30대 직장인`;
+          }
+        }
+      }
+      
+      // 전역 함수로 등록
+      window.loadSavingsKingData = loadSavingsKingData;
+      window.updateSavingsKingUI = updateSavingsKingUI;
     </script>
 
   </head>
   <body class="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-700 min-h-screen">
     <!-- 절감왕 알림 배지 -->
-    <div id="savings-badge" class="fixed top-4 right-4 z-50">
+    <div id="savings-badge" class="fixed top-2 right-4 z-50">
       <div class="bg-gradient-to-r from-emerald-500 to-blue-500 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
         <div class="flex items-center gap-2 px-4 py-2 font-semibold text-xs">
           <span class="text-lg">🏆</span>
           <div class="text-left">
             <div class="font-bold text-xs">이번 주<br class="sm:hidden">절감왕</div>
-            <div class="text-yellow-300 text-xs">-42%<br class="sm:hidden">절약 성공!</div>
+            <div class="text-yellow-300 text-xs" id="badge-rate">-42%<br class="sm:hidden">절약 성공!</div>
           </div>
           <a href="#savings-hero" class="text-yellow-300 text-sm hover:text-yellow-200 transition-colors" onclick="document.getElementById('savings-hero').scrollIntoView({behavior: 'smooth'}); return false;">→</a>
           <button onclick="hideSavingsBadge()" class="text-white/70 hover:text-white text-sm ml-1 transition-colors">×</button>
         </div>
       </div>
     </div>
-    <section class="relative w-full min-h-[70vh] flex flex-col items-center justify-center text-center px-4 py-20 bg-gradient-to-br from-gray-900 to-gray-700 overflow-hidden">
-      <!-- 배경 그래픽/블러 효과 -->
-      <div class="absolute inset-0 pointer-events-none z-0">
-        <div class="absolute -top-32 -left-32 w-96 h-96 bg-yellow-400 opacity-20 rounded-full blur-3xl"></div>
-        <div class="absolute bottom-0 right-0 w-80 h-80 bg-pink-400 opacity-20 rounded-full blur-2xl"></div>
+    <!-- 강력한 애니메이션 팝업 -->
+    <div id="savings-popup" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+      <div class="popup-container relative max-w-4xl mx-auto px-4">
+        <!-- 메인 팝업 카드 -->
+        <div class="popup-card bg-gradient-to-br from-yellow-400 via-orange-500 to-red-500 rounded-3xl p-8 md:p-12 shadow-2xl transform scale-0 opacity-0 transition-all duration-1000 relative">
+          <!-- 닫기 버튼 -->
+          <button id="popup-close-btn" class="absolute top-4 right-4 w-8 h-8 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center text-white text-xl font-bold transition-all duration-300 hover:scale-110 backdrop-blur-sm">
+            ×
+          </button>
+          <!-- 성공 아이콘 -->
+          <div class="success-icon text-center mb-6">
+            <div class="inline-flex items-center justify-center w-20 h-20 md:w-24 md:h-24 bg-white rounded-full shadow-lg animate-bounce">
+              <svg class="w-10 h-10 md:w-12 md:h-12 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
+              </svg>
+            </div>
+          </div>
+          
+          <!-- 메인 메시지 -->
+          <div class="text-center text-white">
+            <h2 class="text-lg sm:text-2xl md:text-4xl font-bold mb-4 animate-pulse leading-tight">
+              <span class="block sm:inline">🎉 이번 주 절약왕 등장! 🎉</span>
+            </h2>
+            
+            <!-- 상품 썸네일 -->
+            <div class="product-thumbnail mb-6">
+              <div class="relative inline-block">
+                <img src="https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=300&h=200&fit=crop&crop=center" 
+                     alt="모듈쇼파" 
+                     class="w-48 h-32 md:w-64 md:h-40 object-cover rounded-xl shadow-2xl border-4 border-white/30">
+                <div class="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full animate-bounce">
+                  절약왕!
+                </div>
+                <div class="absolute bottom-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
+                  모듈쇼파
+                </div>
+              </div>
+            </div>
+            
+            <div class="savings-highlight bg-white/20 rounded-2xl p-4 sm:p-6 mb-6 backdrop-blur-sm">
+              <div class="text-base sm:text-lg md:text-2xl font-semibold mb-2">
+                <span class="text-yellow-200" id="popup-name">김민수님</span>이
+              </div>
+              <div class="text-lg sm:text-xl md:text-3xl font-bold mb-2">
+                <span class="text-white">모듈쇼파</span>를
+              </div>
+              <div class="text-lg sm:text-2xl md:text-4xl font-extrabold text-yellow-200 mb-2">
+                <span class="block sm:inline">네이버 최저가보다</span>
+              </div>
+              <div class="text-2xl sm:text-3xl md:text-5xl font-black text-white animate-pulse">
+                <span class="text-red-200" id="popup-amount">₩450,000</span>
+                <span class="block sm:inline">저렴하게!</span>
+              </div>
+              <div class="text-base sm:text-lg md:text-xl font-semibold mt-2 text-yellow-200">
+                절약률 <span class="text-xl sm:text-2xl font-bold text-white" id="popup-rate">42%</span>
+              </div>
+            </div>
+            
+            <!-- 추가 효과 -->
+            <div class="celebration-effects">
+              <div class="text-base sm:text-lg md:text-xl font-semibold mb-4 text-yellow-200">
+                <span class="block sm:inline">💰 총 절약금액:</span>
+                <span class="text-xl sm:text-2xl font-bold text-white" id="popup-total-amount">₩450,000</span>
+              </div>
+              <div class="text-sm sm:text-base md:text-lg text-yellow-100">
+                <span class="block sm:inline">PriceHunter로</span>
+                <span class="block sm:inline">진짜 최저가를 찾았습니다!</span>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 하단 버튼들 -->
+          <div class="text-center mt-8 space-y-3">
+            <button id="popup-continue-btn" class="bg-white text-orange-600 px-8 py-4 rounded-full font-bold text-lg md:text-xl hover:bg-yellow-50 transition-all duration-300 transform hover:scale-105 shadow-lg block w-full sm:w-auto mx-auto">
+              나도 절약해보기 →
+            </button>
+            <button id="popup-hide-today-btn" class="bg-transparent border-2 border-white/50 text-white px-6 py-2 rounded-full font-medium text-sm md:text-base hover:bg-white/10 transition-all duration-300 block w-full sm:w-auto mx-auto">
+              오늘 하루 안보기
+            </button>
+          </div>
+        </div>
+        
+        <!-- 파티클 효과 -->
+        <div class="particles absolute inset-0 pointer-events-none">
+          <div class="particle particle-1 absolute w-4 h-4 bg-yellow-300 rounded-full animate-float"></div>
+          <div class="particle particle-2 absolute w-3 h-3 bg-orange-300 rounded-full animate-float-delayed"></div>
+          <div class="particle particle-3 absolute w-5 h-5 bg-red-300 rounded-full animate-float-slow"></div>
+          <div class="particle particle-4 absolute w-2 h-2 bg-yellow-200 rounded-full animate-float"></div>
+          <div class="particle particle-5 absolute w-4 h-4 bg-orange-200 rounded-full animate-float-delayed"></div>
+        </div>
       </div>
+    </div>
+
+    <section id="hero-section" class="relative w-full min-h-screen flex flex-col items-center justify-center text-center px-4 pt-4 pb-20 overflow-hidden" style="opacity: 0; transform: translateY(50px);">
+      <!-- 동적 배경 레이어들 -->
+      <div class="absolute inset-0 pointer-events-none z-0">
+        <!-- 기본 그라데이션 배경 -->
+        <div id="hero-bg-base" class="absolute inset-0 bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 transition-all duration-1000"></div>
+        
+        <!-- 동적 배경 요소들 -->
+        <div id="hero-bg-layer1" class="absolute inset-0 opacity-30 transition-all duration-1000">
+          <div class="absolute -top-32 -left-32 w-96 h-96 bg-yellow-400 rounded-full blur-3xl animate-pulse"></div>
+          <div class="absolute bottom-0 right-0 w-80 h-80 bg-pink-400 rounded-full blur-2xl animate-pulse"></div>
+          <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-blue-400 rounded-full blur-2xl animate-pulse"></div>
+        </div>
+        
+        <!-- 스크롤에 따른 추가 배경 레이어 -->
+        <div id="hero-bg-layer2" class="absolute inset-0 opacity-0 transition-all duration-1000">
+          <div class="absolute top-20 left-20 w-32 h-32 bg-emerald-400 rounded-full blur-xl"></div>
+          <div class="absolute bottom-20 right-20 w-40 h-40 bg-orange-400 rounded-full blur-xl"></div>
+          <div class="absolute top-1/3 right-1/3 w-24 h-24 bg-cyan-400 rounded-full blur-lg"></div>
+        </div>
+        
+        <!-- 파티클 효과 -->
+        <div id="hero-particles" class="absolute inset-0 opacity-60">
+          <div class="particle absolute w-2 h-2 bg-white rounded-full animate-float"></div>
+          <div class="particle absolute w-1 h-1 bg-yellow-300 rounded-full animate-float-delayed"></div>
+          <div class="particle absolute w-3 h-3 bg-pink-300 rounded-full animate-float-slow"></div>
+          <div class="particle absolute w-1.5 h-1.5 bg-blue-300 rounded-full animate-float"></div>
+          <div class="particle absolute w-2.5 h-2.5 bg-purple-300 rounded-full animate-float-delayed"></div>
+        </div>
+        
+        <!-- 추가 시각적 효과 -->
+        <div id="hero-visual-effects" class="absolute inset-0 pointer-events-none z-0">
+          <!-- 빛나는 선들 -->
+          <div class="absolute top-1/4 left-0 w-full h-px bg-gradient-to-r from-transparent via-blue-400 to-transparent opacity-30 animate-pulse"></div>
+          <div class="absolute top-1/2 left-0 w-full h-px bg-gradient-to-r from-transparent via-purple-400 to-transparent opacity-20 animate-pulse" style="animation-delay: 1s;"></div>
+          <div class="absolute top-3/4 left-0 w-full h-px bg-gradient-to-r from-transparent via-pink-400 to-transparent opacity-25 animate-pulse" style="animation-delay: 2s;"></div>
+          
+          <!-- 회전하는 기하학적 모양들 -->
+          <div class="absolute top-20 right-20 w-16 h-16 border border-blue-400/30 rounded-full animate-spin" style="animation-duration: 20s;"></div>
+          <div class="absolute bottom-20 left-20 w-12 h-12 border border-purple-400/30 rounded-full animate-spin" style="animation-duration: 15s; animation-direction: reverse;"></div>
+          <div class="absolute top-1/2 right-10 w-8 h-8 border border-pink-400/30 rounded-full animate-spin" style="animation-duration: 25s;"></div>
+          
+          <!-- 떠다니는 도형들 -->
+          <div class="absolute top-1/3 left-1/4 w-4 h-4 bg-blue-400/20 rotate-45 animate-float"></div>
+          <div class="absolute top-2/3 right-1/3 w-6 h-6 bg-purple-400/20 rotate-12 animate-float-delayed"></div>
+          <div class="absolute bottom-1/4 left-1/2 w-3 h-3 bg-pink-400/20 rotate-45 animate-float-slow"></div>
+        </div>
+      </div>
+      
       <!-- Hero 콘텐츠 -->
-      <div class="relative z-10 max-w-7xl mx-auto flex flex-col items-center justify-center animate-fadein-up w-full text-center">
-        <!-- 아이콘/일러스트 -->
-        <div class="mb-10 animate-bounce-slow w-full flex justify-center items-center gap-4 mt-16 sm:mt-20 md:mt-24">
-          <span class="text-3xl md:text-5xl font-extrabold text-blue-400 drop-shadow-lg">PriceHunter</span>
-          <svg class="w-24 h-24 md:w-40 md:h-40 text-yellow-300 drop-shadow-xl" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 48 48" aria-hidden="true">
-            <circle cx="22" cy="22" r="12" stroke="currentColor" />
-            <line x1="34" y1="34" x2="44" y2="44" stroke="currentColor" stroke-linecap="round"/>
-          </svg>
+      <div class="relative z-10 max-w-7xl mx-auto flex flex-col items-center justify-center w-full text-center min-h-screen">
+        <!-- 동적 아이콘/로고 -->
+        <div id="hero-logo" class="hero-element mb-8 w-full flex justify-center items-center gap-4">
+          <span class="text-3xl md:text-5xl font-extrabold text-blue-400 drop-shadow-lg transition-all duration-1000">PriceHunter</span>
+          <div id="hero-icon" class="transition-all duration-1000">
+            <svg class="w-24 h-24 md:w-40 md:h-40 text-yellow-300 drop-shadow-xl transition-all duration-1000" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 48 48" aria-hidden="true">
+              <circle cx="22" cy="22" r="12" stroke="currentColor" />
+              <line x1="34" y1="34" x2="44" y2="44" stroke="currentColor" stroke-linecap="round"/>
+            </svg>
+          </div>
         </div>
 
-        <!-- 메인 타이틀 -->
-        <div class="text-center mb-8">
-          <h1 class="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold text-gray-800 mb-4 leading-tight">
-            <span class="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+        <!-- 동적 메인 타이틀 -->
+        <div id="hero-title" class="hero-element text-center mb-6">
+          <h1 class="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold text-white mb-4 leading-tight transition-all duration-1000">
+            <span id="hero-title-text" class="bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent transition-all duration-1000">
               최저가 검증의<br class="sm:hidden">
               <span class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl">새로운<br class="sm:hidden">기준</span>
             </span>
           </h1>
-          <p class="text-lg sm:text-xl md:text-2xl text-gray-600 mb-6 max-w-3xl mx-auto leading-relaxed">
+          <p id="hero-subtitle" class="text-lg sm:text-xl md:text-2xl text-gray-300 mb-6 max-w-3xl mx-auto leading-relaxed transition-all duration-1000">
             <span id="admin-secret-trigger" class="cursor-default" style="cursor: default !important;">더 이상 가격 비교로 고민하지 마세요.</span><br class="hidden sm:block">
-            <span class="font-semibold text-blue-600">PriceHunter</span>가 진짜 최저가를 찾아드립니다.
+            <span class="font-semibold text-blue-400">PriceHunter</span>가 진짜 최저가를 찾아드립니다.
           </p>
         </div>
         <div class="hero-parent-container flex flex-col items-center justify-center w-full max-w-5xl mx-auto px-4" style="margin-left: auto; margin-right: auto; display: flex; justify-content: center; align-items: center;">
-          <div id="hero-buttons-container" class="flex flex-col items-center justify-center w-full gap-4 sm:max-w-none mx-auto">
+          <div id="hero-buttons-container" class="hero-element flex flex-col items-center justify-center w-full gap-4 sm:max-w-none mx-auto">
             <button id="request-v2-btn"
-              class="inline-block px-6 sm:px-8 md:px-12 lg:px-20 py-4 sm:py-5 md:py-6 lg:py-8 bg-pink-500 text-white text-lg sm:text-xl md:text-2xl lg:text-4xl font-extrabold rounded-full shadow-2xl hover:bg-pink-600 hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-pink-300 animate-fadein-up text-center mb-2 w-full sm:w-auto"
-              style="box-shadow:0 8px 32px 0 rgba(0,0,0,0.18);"
+              class="hero-main-btn inline-block px-6 sm:px-8 md:px-12 lg:px-20 py-4 sm:py-5 md:py-6 lg:py-8 text-white text-lg sm:text-xl md:text-2xl lg:text-4xl font-extrabold rounded-full shadow-2xl hover:scale-105 transition-all duration-500 focus:outline-none focus:ring-4 focus:ring-pink-300 animate-fadein-up text-center mb-2 w-full sm:w-auto relative overflow-hidden group"
+              style="background: linear-gradient(135deg, #ec4899 0%, #be185d 50%, #9d174d 100%); box-shadow: 0 20px 40px rgba(236, 72, 153, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.1);"
                       aria-label="최저가 검증 시작하기">
-              🚀 최저가 요청하기
+              <span class="relative z-10 flex items-center justify-center gap-2">
+                <span class="animate-pulse">🚀</span>
+                <span>최저가 요청하기</span>
+                <span class="group-hover:translate-x-1 transition-transform duration-300">→</span>
+              </span>
+              <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
             </button>
             <a href="support.html"
-              class="inline-block px-4 sm:px-6 md:px-8 lg:px-12 py-3 sm:py-4 md:py-4 lg:py-6 bg-yellow-200 text-pink-700 text-sm sm:text-base md:text-lg lg:text-2xl font-bold rounded-full shadow-xl hover:bg-yellow-300 hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-yellow-300 animate-fadein-up text-center border-2 border-pink-300 w-full sm:w-auto"
-              aria-label="구매 전 필독사항 읽기">
-              📢 구매 전 <span class="underline">필독사항</span> 읽기
+              class="hero-secondary-btn inline-block px-4 sm:px-6 md:px-8 lg:px-12 py-3 sm:py-4 md:py-4 lg:py-6 text-pink-700 text-sm sm:text-base md:text-lg lg:text-2xl font-bold rounded-full shadow-xl hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-yellow-300 animate-fadein-up text-center border-2 w-full sm:w-auto relative overflow-hidden group"
+              style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 50%, #fcd34d 100%); border-color: #f59e0b; box-shadow: 0 10px 25px rgba(245, 158, 11, 0.3);"
+              aria-label="최저가 요청 전 필독사항 읽기">
+              <span class="relative z-10 flex items-center justify-center gap-2">
+                <span class="animate-bounce">📢</span>
+                <span>최저가 요청 전 <span class="underline font-extrabold">필독사항</span> 읽기</span>
+              </span>
             </a>
             <a href="notice.html"
-              class="inline-block px-4 sm:px-6 md:px-8 lg:px-12 py-3 sm:py-4 md:py-4 lg:py-6 bg-blue-100 text-blue-800 text-sm sm:text-base md:text-lg lg:text-2xl font-bold rounded-full shadow-xl hover:bg-blue-200 hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-blue-300 animate-fadein-up text-center border-2 border-blue-300 mt-2 w-full sm:w-auto"
+              class="hero-tertiary-btn inline-block px-4 sm:px-6 md:px-8 lg:px-12 py-3 sm:py-4 md:py-4 lg:py-6 text-blue-800 text-sm sm:text-base md:text-lg lg:text-2xl font-bold rounded-full shadow-xl hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-blue-300 animate-fadein-up text-center border-2 mt-2 w-full sm:w-auto relative overflow-hidden group"
+              style="background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 50%, #93c5fd 100%); border-color: #3b82f6; box-shadow: 0 10px 25px rgba(59, 130, 246, 0.3);"
               aria-label="가격 안내 및 유의사항 전체보기">
-              📝 가격 안내 및 유의사항 전체보기
+              <span class="relative z-10 flex items-center justify-center gap-2">
+                <span class="animate-pulse">📝</span>
+                <span>가격 안내 및 유의사항 전체보기</span>
+              </span>
             </a>
-            <div class="text-pink-200 text-xs sm:text-sm md:text-base lg:text-xl mt-2 animate-fadein-up text-center px-4">구매 전 <span class="underline">필독사항</span>을 꼭 확인해 주세요!</div>
+            <div class="text-gray-300 text-xs sm:text-sm md:text-base lg:text-xl mt-2 animate-fadein-up text-center px-4 flex items-center justify-center gap-2">
+              <span class="animate-pulse">⚠️</span>
+              <span>최저가 요청 전 <span class="underline font-semibold text-yellow-300">필독사항</span>을 꼭 확인해 주세요!</span>
+            </div>
           </div>
           <div class="mt-8 md:mt-12 animate-fadein-up-slow w-full flex justify-center">
-            <span class="text-gray-300 text-base md:text-2xl flex items-center gap-2">
-              <svg class="w-6 h-6 md:w-8 md:h-8 animate-bounce" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14M19 12l-7 7-7-7"/></svg>
-              스크롤해서 더 알아보기
-            </span>
+            <div class="flex flex-col items-center gap-3 group cursor-pointer" onclick="document.querySelector('#savings-hero').scrollIntoView({behavior: 'smooth'})">
+              <span class="text-gray-300 text-base md:text-2xl flex items-center gap-2 group-hover:text-white transition-colors duration-300">
+                <span class="group-hover:scale-110 transition-transform duration-300">스크롤해서 더 알아보기</span>
+              </span>
+              <div class="flex flex-col items-center gap-1">
+                <div class="w-1 h-8 bg-gradient-to-b from-transparent via-gray-400 to-transparent animate-pulse"></div>
+                <svg class="w-6 h-6 md:w-8 md:h-8 text-gray-400 group-hover:text-white animate-bounce transition-colors duration-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path d="M12 5v14M19 12l-7 7-7-7"/>
+                </svg>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -348,35 +1027,405 @@
           transform: scale(1.2);
         }
         
+        /* 새로운 동적 애니메이션 */
+        @keyframes float {
+          0%, 100% { transform: translateY(0px) rotate(0deg); }
+          50% { transform: translateY(-20px) rotate(180deg); }
+        }
+        @keyframes float-delayed {
+          0%, 100% { transform: translateY(0px) rotate(0deg); }
+          50% { transform: translateY(-15px) rotate(-180deg); }
+        }
+        @keyframes float-slow {
+          0%, 100% { transform: translateY(0px) rotate(0deg); }
+          50% { transform: translateY(-25px) rotate(90deg); }
+        }
+        .animate-float { animation: float 6s ease-in-out infinite; }
+        .animate-float-delayed { animation: float-delayed 8s ease-in-out infinite 2s; }
+        .animate-float-slow { animation: float-slow 10s ease-in-out infinite 1s; }
+        
+        /* 파티클 위치 랜덤화 */
+        .particle:nth-child(1) { top: 20%; left: 10%; animation-delay: 0s; }
+        .particle:nth-child(2) { top: 60%; left: 80%; animation-delay: 1s; }
+        .particle:nth-child(3) { top: 30%; left: 70%; animation-delay: 2s; }
+        .particle:nth-child(4) { top: 80%; left: 20%; animation-delay: 3s; }
+        .particle:nth-child(5) { top: 40%; left: 50%; animation-delay: 4s; }
+        
+        /* 스크롤 기반 변화 효과 */
+        .hero-scroll-transform {
+          transform: translateY(var(--scroll-y, 0)) scale(var(--scroll-scale, 1));
+        }
+        
+        .hero-bg-transform {
+          transform: translateY(calc(var(--scroll-y, 0) * 0.5)) scale(calc(1 + var(--scroll-scale, 0) * 0.1));
+        }
+        
+        /* 그라데이션 애니메이션 */
+        @keyframes gradient-shift {
+          0% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
+        }
+        .animate-gradient {
+          background-size: 200% 200%;
+          animation: gradient-shift 8s ease infinite;
+        }
+        
+        /* 텍스트 글로우 효과 */
+        .text-glow {
+          text-shadow: 0 0 10px currentColor, 0 0 20px currentColor, 0 0 30px currentColor;
+        }
+        
+        /* 히어로 버튼 추가 효과 */
+        .hero-main-btn {
+          position: relative;
+          overflow: hidden;
+        }
+        
+        .hero-main-btn::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: -100%;
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+          transition: left 0.5s;
+        }
+        
+        .hero-main-btn:hover::before {
+          left: 100%;
+        }
+        
+        .hero-secondary-btn, .hero-tertiary-btn {
+          position: relative;
+          overflow: hidden;
+        }
+        
+        .hero-secondary-btn::after, .hero-tertiary-btn::after {
+          content: '';
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          width: 0;
+          height: 0;
+          background: rgba(255, 255, 255, 0.1);
+          border-radius: 50%;
+          transform: translate(-50%, -50%);
+          transition: width 0.6s, height 0.6s;
+        }
+        
+        .hero-secondary-btn:hover::after, .hero-tertiary-btn:hover::after {
+          width: 300px;
+          height: 300px;
+        }
+        
+        /* 버튼 호버 시 글로우 효과 */
+        .hero-main-btn:hover {
+          box-shadow: 0 25px 50px rgba(236, 72, 153, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.2);
+        }
+        
+        .hero-secondary-btn:hover {
+          box-shadow: 0 15px 30px rgba(245, 158, 11, 0.5);
+        }
+        
+        .hero-tertiary-btn:hover {
+          box-shadow: 0 15px 30px rgba(59, 130, 246, 0.5);
+        }
+        
+        /* 섹션 가시성 효과 */
+        .section-visible {
+          animation: sectionFadeIn 0.8s ease-out forwards;
+        }
+        
+        @keyframes sectionFadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(30px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        
+        /* 섹션별 특별 효과 */
+        #customer-concerns.section-visible .bg-white {
+          animation: cardSlideUp 0.6s ease-out forwards;
+          animation-delay: calc(var(--card-index, 0) * 0.1s);
+        }
+        
+        @keyframes cardSlideUp {
+          from {
+            opacity: 0;
+            transform: translateY(40px) scale(0.95);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+        
+        /* 고급스러운 섹션 애니메이션 */
+        @keyframes sectionSlideIn {
+          from {
+            opacity: 0;
+            transform: translateY(60px) scale(0.98);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+        
+        @keyframes sectionFadeInScale {
+          from {
+            opacity: 0;
+            transform: scale(0.95) translateY(30px);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+          }
+        }
+        
+        @keyframes sectionSlideFromLeft {
+          from {
+            opacity: 0;
+            transform: translateX(-50px) rotateY(-10deg);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0) rotateY(0deg);
+          }
+        }
+        
+        @keyframes sectionSlideFromRight {
+          from {
+            opacity: 0;
+            transform: translateX(50px) rotateY(10deg);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0) rotateY(0deg);
+          }
+        }
+        
+        @keyframes sectionRotateIn {
+          from {
+            opacity: 0;
+            transform: rotate(-5deg) scale(0.9);
+          }
+          to {
+            opacity: 1;
+            transform: rotate(0deg) scale(1);
+          }
+        }
+        
+        /* 섹션별 애니메이션 클래스 */
+        .section-animate-slide-in {
+          animation: sectionSlideIn 1.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+        
+        .section-animate-fade-scale {
+          animation: sectionFadeInScale 1.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+        
+        .section-animate-slide-left {
+          animation: sectionSlideFromLeft 1.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+        
+        .section-animate-slide-right {
+          animation: sectionSlideFromRight 1.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+        
+        .section-animate-rotate-in {
+          animation: sectionRotateIn 1.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+        
+        /* 배경 요소 애니메이션 */
+        @keyframes backgroundFloat {
+          0%, 100% {
+            transform: translateY(0px) rotate(0deg);
+          }
+          50% {
+            transform: translateY(-20px) rotate(180deg);
+          }
+        }
+        
+        @keyframes backgroundPulse {
+          0%, 100% {
+            transform: scale(1);
+            opacity: 0.3;
+          }
+          50% {
+            transform: scale(1.1);
+            opacity: 0.5;
+          }
+        }
+        
+        .bg-animate-float {
+          animation: backgroundFloat 8s ease-in-out infinite;
+        }
+        
+        .bg-animate-pulse {
+          animation: backgroundPulse 6s ease-in-out infinite;
+        }
+        
       </style>
+      
+      <!-- 간소화된 스크롤 애니메이션 JavaScript -->
+      <script>
+        // 간소화된 히어로 스크롤 애니메이션
+        function initSimpleHeroAnimation() {
+          const heroSection = document.getElementById('hero-section');
+          const heroLogo = document.getElementById('hero-logo');
+          const heroTitle = document.getElementById('hero-title');
+          const heroButtons = document.getElementById('hero-buttons-container');
+          const heroBgBase = document.getElementById('hero-bg-base');
+          const heroBgLayer1 = document.getElementById('hero-bg-layer1');
+          const heroBgLayer2 = document.getElementById('hero-bg-layer2');
+          const heroParticles = document.getElementById('hero-particles');
+          
+          if (!heroSection || !heroLogo || !heroTitle || !heroButtons) {
+            return;
+          }
+          
+          let ticking = false;
+          
+          function updateHeroAnimation() {
+            const scrollY = window.scrollY;
+            const heroRect = heroSection.getBoundingClientRect();
+            const windowHeight = window.innerHeight;
+            
+            // 히어로 섹션이 화면에 보이는 정도 계산 (0 ~ 1)
+            const heroVisible = Math.max(0, Math.min(1, (windowHeight - heroRect.top) / windowHeight));
+            
+            // 배경 패럴랙스 효과 (부드럽게)
+            if (heroBgBase) {
+              const bgTranslateY = (1 - heroVisible) * 50;
+              heroBgBase.style.transform = `translateY(${bgTranslateY}px)`;
+            }
+            
+            if (heroBgLayer1) {
+              const layer1TranslateY = (1 - heroVisible) * 80;
+              heroBgLayer1.style.transform = `translateY(${layer1TranslateY}px)`;
+            }
+            
+            if (heroBgLayer2) {
+              const layer2TranslateY = (1 - heroVisible) * 120;
+              heroBgLayer2.style.transform = `translateY(${layer2TranslateY}px)`;
+            }
+            
+            // 파티클 투명도
+            if (heroParticles) {
+              heroParticles.style.opacity = Math.max(0.2, heroVisible);
+            }
+            
+            // 히어로 요소들 부드러운 통합 애니메이션
+            const elements = [heroLogo, heroTitle, heroButtons];
+            elements.forEach((element, index) => {
+              if (element) {
+                const delay = index * 0.05; // 지연 시간 단축
+                const adjustedProgress = Math.max(0, (1 - heroVisible - delay) / (1 - delay));
+                
+                // 더 부드러운 이동 (이동 거리 감소)
+                const translateY = adjustedProgress * -20;
+                const opacity = Math.max(0.5, 1 - adjustedProgress * 0.5); // 투명도 개선
+                const scale = Math.max(0.9, 1 - adjustedProgress * 0.1); // 스케일 변화 최소화
+                
+                element.style.transform = `translateY(${translateY}px) scale(${scale})`;
+                element.style.opacity = opacity;
+              }
+            });
+            
+            ticking = false;
+          }
+          
+          function requestTick() {
+            if (!ticking) {
+              requestAnimationFrame(updateHeroAnimation);
+              ticking = true;
+            }
+          }
+          
+          // 이벤트 리스너 등록
+          window.addEventListener('scroll', requestTick, { passive: true });
+          window.addEventListener('resize', requestTick);
+          
+          // 초기 실행
+          updateHeroAnimation();
+        }
+        
+        // DOM 로드 완료 후 초기화
+        document.addEventListener('DOMContentLoaded', initSimpleHeroAnimation);
+      </script>
     </section>
       <!-- 고객의 진짜 고민, 우리가 해결합니다 섹션 -->
-      <section class="w-full py-20 px-4 bg-gradient-to-b from-white/80 to-blue-50 relative">
-        <div class="max-w-4xl mx-auto flex flex-col items-center">
-          <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-extrabold text-blue-800 text-center mb-6 md:mb-8 lg:mb-10 drop-shadow-lg animate-fadein-up px-4">고객의 진짜 고민,<br><span class="text-pink-500">우리가 해결합니다</span></h2>
+      <section id="customer-concerns" class="w-full py-20 px-4 relative overflow-hidden" style="background: linear-gradient(135deg, #fafafa 0%, #f4f4f5 25%, #e4e4e7 50%, #d4d4d8 75%, #a1a1aa 100%);">
+        <!-- 고급스러운 동적 배경 효과 -->
+        <div class="absolute inset-0 pointer-events-none z-0">
+          <!-- 메인 배경 레이어 -->
+          <div id="concerns-bg-layer1" class="absolute inset-0 opacity-30 transition-all duration-1000">
+            <div class="absolute top-10 left-10 w-40 h-40 bg-gradient-to-br from-neutral-200 to-neutral-400 rounded-full blur-3xl bg-animate-float"></div>
+            <div class="absolute bottom-10 right-10 w-48 h-48 bg-gradient-to-br from-stone-200 to-stone-400 rounded-full blur-3xl bg-animate-pulse" style="animation-delay: 2s;"></div>
+            <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-56 h-56 bg-gradient-to-br from-zinc-200 to-zinc-400 rounded-full blur-3xl bg-animate-float" style="animation-delay: 4s;"></div>
+          </div>
+          
+          <!-- 추가 배경 레이어 -->
+          <div id="concerns-bg-layer2" class="absolute inset-0 opacity-0 transition-all duration-1000">
+            <div class="absolute top-1/3 right-1/4 w-32 h-32 bg-gradient-to-br from-stone-300 to-stone-500 rounded-full blur-2xl bg-animate-pulse" style="animation-delay: 1s;"></div>
+            <div class="absolute bottom-1/3 left-1/4 w-36 h-36 bg-gradient-to-br from-neutral-300 to-neutral-500 rounded-full blur-2xl bg-animate-float" style="animation-delay: 3s;"></div>
+          </div>
+          
+          <!-- 장식적 요소들 -->
+          <div class="absolute top-20 right-20 w-2 h-20 bg-gradient-to-b from-slate-400 to-transparent opacity-40"></div>
+          <div class="absolute bottom-20 left-20 w-20 h-2 bg-gradient-to-r from-gray-400 to-transparent opacity-40"></div>
+          <div class="absolute top-1/2 left-10 w-1 h-16 bg-gradient-to-b from-zinc-400 to-transparent opacity-30"></div>
+        </div>
+        <div class="max-w-4xl mx-auto flex flex-col items-center relative z-10">
+          <h2 id="concerns-title" class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-extrabold text-center mb-6 md:mb-8 lg:mb-10 drop-shadow-lg animate-fadein-up px-4 transition-all duration-1000" style="background: linear-gradient(135deg, #1e293b 0%, #334155 50%, #475569 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">고객의 진짜 고민,<br><span style="background: linear-gradient(135deg, #dc2626 0%, #ef4444 50%, #f87171 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">우리가 해결합니다</span></h2>
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 lg:gap-8 w-full">
             <!-- 스토리 카드 1 -->
-                          <div class="bg-white rounded-2xl shadow-xl p-6 sm:p-8 flex flex-col items-center text-center animate-fadein-up" style="animation-delay:0.1s;">
-                <div class="mb-4">
-                  <svg class="w-12 h-12 sm:w-14 sm:h-14 text-blue-400 mx-auto" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 32 32"><path d="M16 4a12 12 0 1 0 0 24A12 12 0 0 0 16 4Zm0 0v8m0 8h.01" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                          <div class="rounded-2xl shadow-2xl p-6 sm:p-8 flex flex-col items-center text-center animate-fadein-up relative overflow-hidden group" style="animation-delay:0.1s; --card-index: 0; background: linear-gradient(135deg, #ffffff 0%, #f8fafc 50%, #f1f5f9 100%); border: 1px solid rgba(148, 163, 184, 0.2);">
+                <!-- 카드 배경 효과 -->
+                <div class="absolute inset-0 bg-gradient-to-br from-slate-100/50 to-gray-100/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-slate-400 to-gray-500"></div>
+                
+                <div class="mb-4 relative z-10">
+                  <div class="w-16 h-16 sm:w-18 sm:h-18 bg-gradient-to-br from-slate-400 to-slate-600 rounded-full flex items-center justify-center mx-auto shadow-lg">
+                    <svg class="w-8 h-8 sm:w-10 sm:h-10 text-white" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 32 32"><path d="M16 4a12 12 0 1 0 0 24A12 12 0 0 0 16 4Zm0 0v8m0 8h.01" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  </div>
                 </div>
                 <div class="font-bold text-base sm:text-lg text-gray-800 mb-3 px-2 leading-relaxed">"인터넷 최저가라 샀는데<br class="sm:hidden">며칠 뒤 더 싸게 파는 곳을<br class="sm:hidden">발견해서 속상했어요..."</div>
                 <div class="text-gray-500 text-sm sm:text-base mb-3">- 김OO, 30대 직장인</div>
                 <div class="text-gray-700 text-sm sm:text-base px-2 leading-relaxed">직접 가격 비교에 지쳐 결국 샀지만,<br class="sm:hidden">나중에 더 저렴한 곳을 알게 되어<br class="sm:hidden">속상했어요. PriceHunter 덕분에<br class="sm:hidden">진짜 최저가를 놓치지 않게 됐습니다!</div>
               </div>
             <!-- 스토리 카드 2 -->
-            <div class="bg-white rounded-2xl shadow-xl p-6 sm:p-8 flex flex-col items-center text-center animate-fadein-up" style="animation-delay:0.3s;">
-              <div class="mb-4">
-                <svg class="w-12 h-12 sm:w-14 sm:h-14 text-emerald-400 mx-auto" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 32 32"><path d="M8 16h16M8 16l6-6m-6 6l6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <div class="rounded-2xl shadow-2xl p-6 sm:p-8 flex flex-col items-center text-center animate-fadein-up relative overflow-hidden group" style="animation-delay:0.3s; --card-index: 1; background: linear-gradient(135deg, #ffffff 0%, #f8fafc 50%, #f1f5f9 100%); border: 1px solid rgba(148, 163, 184, 0.2);">
+              <!-- 카드 배경 효과 -->
+              <div class="absolute inset-0 bg-gradient-to-br from-gray-100/50 to-zinc-100/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-gray-400 to-zinc-500"></div>
+              
+              <div class="mb-4 relative z-10">
+                <div class="w-16 h-16 sm:w-18 sm:h-18 bg-gradient-to-br from-gray-400 to-gray-600 rounded-full flex items-center justify-center mx-auto shadow-lg">
+                  <svg class="w-8 h-8 sm:w-10 sm:h-10 text-white" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 32 32"><path d="M8 16h16M8 16l6-6m-6 6l6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </div>
               </div>
               <div class="font-bold text-base sm:text-lg text-gray-800 mb-3 px-2 leading-relaxed">"해외직구가 더 싸다길래<br class="sm:hidden">시도했다가, 복잡한 통관과<br class="sm:hidden">배송에 포기했어요..."</div>
               <div class="text-gray-500 text-sm sm:text-base mb-3">- 이OO, 20대 대학생</div>
               <div class="text-gray-700 text-sm sm:text-base px-2 leading-relaxed">직구 정보 찾고, 배송대행 신청까지<br class="sm:hidden">너무 복잡했어요. PriceHunter가<br class="sm:hidden">대신 알아봐주니 쉽고 빠르게<br class="sm:hidden">최저가로 살 수 있었어요!</div>
             </div>
             <!-- 스토리 카드 3 -->
-            <div class="bg-white rounded-2xl shadow-xl p-6 sm:p-8 flex flex-col items-center text-center animate-fadein-up" style="animation-delay:0.5s;">
-              <div class="mb-4">
-                <svg class="w-12 h-12 sm:w-14 sm:h-14 text-pink-400 mx-auto" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 32 32"><circle cx="16" cy="16" r="12" stroke="currentColor"/><path d="M12 20c1.5-2 6.5-2 8 0" stroke-linecap="round"/><circle cx="12" cy="14" r="1.5" fill="currentColor"/><circle cx="20" cy="14" r="1.5" fill="currentColor"/></svg>
+            <div class="rounded-2xl shadow-2xl p-6 sm:p-8 flex flex-col items-center text-center animate-fadein-up relative overflow-hidden group" style="animation-delay:0.5s; --card-index: 2; background: linear-gradient(135deg, #ffffff 0%, #f8fafc 50%, #f1f5f9 100%); border: 1px solid rgba(148, 163, 184, 0.2);">
+              <!-- 카드 배경 효과 -->
+              <div class="absolute inset-0 bg-gradient-to-br from-zinc-100/50 to-neutral-100/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-zinc-400 to-neutral-500"></div>
+              
+              <div class="mb-4 relative z-10">
+                <div class="w-16 h-16 sm:w-18 sm:h-18 bg-gradient-to-br from-zinc-400 to-zinc-600 rounded-full flex items-center justify-center mx-auto shadow-lg">
+                  <svg class="w-8 h-8 sm:w-10 sm:h-10 text-white" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 32 32"><circle cx="16" cy="16" r="12" stroke="currentColor"/><path d="M12 20c1.5-2 6.5-2 8 0" stroke-linecap="round"/><circle cx="12" cy="14" r="1.5" fill="currentColor"/><circle cx="20" cy="14" r="1.5" fill="currentColor"/></svg>
+                </div>
               </div>
               <div class="font-bold text-base sm:text-lg text-gray-800 mb-3 px-2 leading-relaxed">"비브랜드 제품, 정보도 없고<br class="sm:hidden">후기 찾기도 힘들었는데..."</div>
               <div class="text-gray-500 text-sm sm:text-base mb-3">- 박OO, 40대 주부</div>
@@ -411,30 +1460,42 @@
       </section>
 
       <!-- 상세 서비스 프로세스 섹션 -->
-      <section class="w-full py-12 sm:py-16 md:py-20 px-4 sm:px-6 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 relative overflow-hidden">
-        <!-- 배경 장식 요소 -->
-        <div class="absolute inset-0 opacity-10">
-          <div class="absolute top-10 left-10 w-20 h-20 sm:w-32 sm:h-32 bg-blue-400 rounded-full blur-3xl animate-pulse"></div>
-          <div class="absolute bottom-10 right-10 w-24 h-24 sm:w-40 sm:h-40 bg-indigo-400 rounded-full blur-3xl animate-pulse" style="animation-delay: 1s;"></div>
-          <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-32 h-32 sm:w-60 sm:h-60 bg-purple-400 rounded-full blur-3xl animate-pulse" style="animation-delay: 2s;"></div>
+      <section id="service-process" class="w-full py-12 sm:py-16 md:py-20 px-4 sm:px-6 relative overflow-hidden" style="background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 25%, #cbd5e1 50%, #94a3b8 75%, #64748b 100%);">
+        <!-- 고급스러운 동적 배경 효과 -->
+        <div class="absolute inset-0 pointer-events-none z-0">
+          <!-- 메인 배경 레이어 -->
+          <div id="process-bg-1" class="absolute top-10 left-10 w-32 h-32 sm:w-48 sm:h-48 bg-gradient-to-br from-indigo-200 to-indigo-400 rounded-full blur-3xl transition-all duration-1000 opacity-20 bg-animate-float"></div>
+          <div id="process-bg-2" class="absolute bottom-10 right-10 w-40 h-40 sm:w-56 sm:h-56 bg-gradient-to-br from-violet-200 to-violet-400 rounded-full blur-3xl transition-all duration-1000 opacity-20 bg-animate-pulse" style="animation-delay: 2s;"></div>
+          <div id="process-bg-3" class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-48 h-48 sm:w-80 sm:h-80 bg-gradient-to-br from-purple-200 to-purple-400 rounded-full blur-3xl transition-all duration-1000 opacity-15 bg-animate-float" style="animation-delay: 4s;"></div>
+          
+          <!-- 추가 배경 레이어 -->
+          <div class="absolute inset-0 opacity-0 transition-all duration-1000" id="process-bg-layer2">
+            <div class="absolute top-1/4 right-1/3 w-24 h-24 bg-gradient-to-br from-teal-300 to-teal-500 rounded-full blur-2xl bg-animate-pulse" style="animation-delay: 1s;"></div>
+            <div class="absolute bottom-1/4 left-1/3 w-28 h-28 bg-gradient-to-br from-indigo-300 to-indigo-500 rounded-full blur-2xl bg-animate-float" style="animation-delay: 3s;"></div>
+          </div>
+          
+          <!-- 장식적 요소들 -->
+          <div class="absolute top-20 right-20 w-3 h-24 bg-gradient-to-b from-sky-400 to-transparent opacity-30"></div>
+          <div class="absolute bottom-20 left-20 w-24 h-3 bg-gradient-to-r from-cyan-400 to-transparent opacity-30"></div>
+          <div class="absolute top-1/2 left-10 w-2 h-20 bg-gradient-to-b from-blue-400 to-transparent opacity-25"></div>
         </div>
         
         <div class="max-w-6xl mx-auto relative z-10">
           <div class="text-center mb-8 sm:mb-12 md:mb-16">
-            <div class="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 sm:px-6 py-2 rounded-full text-xs sm:text-sm font-semibold mb-3 sm:mb-4 animate-fade-in-up">
+            <div class="inline-flex items-center gap-2 text-white px-4 sm:px-6 py-2 rounded-full text-xs sm:text-sm font-semibold mb-3 sm:mb-4 animate-fade-in-up" style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%); box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);">
               <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                 <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
               </svg>
               단계별 서비스 과정
             </div>
-            <h2 class="text-2xl sm:text-3xl md:text-5xl font-extrabold text-gray-800 mb-4 sm:mb-6 animate-fade-in-up" style="animation-delay: 0.2s;">
-              <span class="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
+            <h2 class="text-2xl sm:text-3xl md:text-5xl font-extrabold mb-4 sm:mb-6 animate-fade-in-up" style="animation-delay: 0.2s;">
+              <span style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
                 구매 프로세스
               </span>
               <br class="sm:hidden">
-              <span class="text-lg sm:text-xl md:text-2xl lg:text-3xl text-gray-600 font-medium">5단계 상세 검증 과정</span>
+              <span class="text-lg sm:text-xl md:text-2xl lg:text-3xl font-medium" style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #9333ea 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">5단계 상세 검증 과정</span>
               <br class="sm:hidden">
-              <span class="text-base sm:text-lg md:text-xl lg:text-2xl text-gray-500 font-medium">투명하고 체계적인 서비스</span>
+              <span class="text-base sm:text-lg md:text-xl lg:text-2xl font-medium" style="background: linear-gradient(135deg, #64748b 0%, #475569 50%, #334155 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">투명하고 체계적인 서비스</span>
             </h2>
             <p class="text-sm sm:text-base md:text-lg text-gray-600 max-w-3xl mx-auto animate-fade-in-up px-2 leading-relaxed" style="animation-delay: 0.4s;">
               고객님의 의뢰부터 최종 결과 제공까지,<br class="sm:hidden"> 모든 과정을 투명하게 안내해드립니다
@@ -671,11 +1732,31 @@
       </section>
 
       <!-- 절감왕 히어로 섹션 -->
-      <section id="savings-hero" class="w-full py-20 px-4 bg-gradient-to-br from-emerald-50 via-green-50 to-blue-50 relative z-10">
-        <div class="max-w-6xl mx-auto">
+      <section id="savings-hero" class="w-full py-20 px-4 relative z-10 overflow-hidden" style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 25%, #bbf7d0 50%, #86efac 75%, #4ade80 100%);">
+        <!-- 고급스러운 동적 배경 효과 -->
+        <div class="absolute inset-0 pointer-events-none z-0">
+          <!-- 메인 배경 레이어 -->
+          <div id="savings-bg-layer1" class="absolute inset-0 opacity-25 transition-all duration-1000">
+            <div class="absolute top-20 left-20 w-48 h-48 bg-gradient-to-br from-lime-200 to-lime-400 rounded-full blur-3xl bg-animate-float"></div>
+            <div class="absolute bottom-20 right-20 w-40 h-40 bg-gradient-to-br from-green-200 to-green-400 rounded-full blur-3xl bg-animate-pulse" style="animation-delay: 2s;"></div>
+            <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-gradient-to-br from-emerald-200 to-emerald-400 rounded-full blur-3xl bg-animate-float" style="animation-delay: 4s;"></div>
+          </div>
+          
+          <!-- 추가 배경 레이어 -->
+          <div id="savings-bg-layer2" class="absolute inset-0 opacity-0 transition-all duration-1000">
+            <div class="absolute top-1/3 right-1/4 w-32 h-32 bg-gradient-to-br from-lime-300 to-lime-500 rounded-full blur-2xl bg-animate-pulse" style="animation-delay: 1s;"></div>
+            <div class="absolute bottom-1/3 left-1/4 w-36 h-36 bg-gradient-to-br from-cyan-300 to-cyan-500 rounded-full blur-2xl bg-animate-float" style="animation-delay: 3s;"></div>
+          </div>
+          
+          <!-- 장식적 요소들 -->
+          <div class="absolute top-20 right-20 w-3 h-24 bg-gradient-to-b from-emerald-400 to-transparent opacity-30"></div>
+          <div class="absolute bottom-20 left-20 w-24 h-3 bg-gradient-to-r from-green-400 to-transparent opacity-30"></div>
+          <div class="absolute top-1/2 left-10 w-2 h-20 bg-gradient-to-b from-teal-400 to-transparent opacity-25"></div>
+        </div>
+        <div class="max-w-6xl mx-auto relative z-10">
           <div class="text-center mb-12">
-            <h2 class="text-3xl md:text-4xl font-extrabold text-gray-800 mb-4 flex items-center justify-center">
-              🏆 <span class="text-emerald-600">이번 주 절감왕</span>
+            <h2 id="savings-title" class="text-3xl md:text-4xl font-extrabold mb-4 flex items-center justify-center transition-all duration-1000" style="background: linear-gradient(135deg, #166534 0%, #15803d 50%, #16a34a 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+              🏆 <span style="background: linear-gradient(135deg, #22c55e 0%, #4ade80 50%, #86efac 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">이번 주 절감왕</span>
             </h2>
             <p class="text-lg text-gray-600">실제 검증된 절감 성공 사례</p>
           </div>
@@ -774,7 +1855,7 @@
 
     <!-- 햄버거 메뉴 패널 -->
     <div id="menu-panel" class="fixed top-0 left-0 h-full w-72 sm:w-80 md:w-96 bg-white shadow-2xl transform -translate-x-full transition-transform duration-300 ease-in-out z-50">
-      <div class="p-2 sm:p-3">
+      <div class="p-3 sm:p-4">
         <!-- 메뉴 헤더 -->
         <div class="flex items-center justify-between mb-6">
           <h2 class="text-lg sm:text-xl font-bold text-gray-800">메뉴</h2>
@@ -803,19 +1884,19 @@
 
           <div class="border-t border-gray-200 my-3"></div>
 
-          <a href="login.html" id="login-btn" class="w-full flex items-center gap-2 sm:gap-3 px-2 py-2 sm:py-3 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors duration-200 text-left">
+          <button id="login-btn" class="w-full flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2 sm:py-3 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors duration-200 text-left">
             <svg class="w-4 h-4 sm:w-5 sm:h-5 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <path d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path>
             </svg>
             <span class="font-medium text-sm sm:text-base">로그인</span>
-          </a>
+          </button>
 
-          <a href="register.html" id="signup-btn" class="w-full flex items-center gap-2 sm:gap-3 px-2 py-2 sm:py-3 bg-blue-500 text-white hover:bg-blue-600 rounded-lg transition-colors duration-200 text-left box-border">
+          <button id="signup-btn" class="w-full flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2 sm:py-3 bg-blue-500 text-white hover:bg-blue-600 rounded-lg transition-colors duration-200 text-left">
             <svg class="w-4 h-4 sm:w-5 sm:h-5 text-white flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <path d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path>
             </svg>
             <span class="font-medium text-sm sm:text-base">회원가입</span>
-          </a>
+          </button>
 
           <a href="member-dashboard.html" id="mypage-btn" class="hidden flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2 sm:py-3 text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 rounded-lg transition-colors duration-200">
             <svg class="w-4 h-4 sm:w-5 sm:h-5 text-emerald-500 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -837,6 +1918,51 @@
     </div>
 
 
+    <!-- 로그인 모달 -->
+    <div id="login-modal" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 hidden p-4" role="dialog" aria-modal="true" aria-labelledby="login-modal-title">
+      <div class="bg-white rounded-2xl shadow-2xl p-4 sm:p-6 md:p-8 w-full max-w-xs sm:max-w-sm md:max-w-md relative mx-auto">
+        <button id="close-login" class="absolute top-3 right-3 text-gray-400 hover:text-gray-700 text-2xl" aria-label="로그인 창 닫기" title="로그인 창 닫기">&times;</button>
+        <h2 id="login-modal-title" class="text-2xl font-bold text-center mb-6 text-gray-700">로그인</h2>
+        
+        <!-- 핸드폰 인증 안내 -->
+        <div class="mb-6">
+          <div class="text-center mb-4">
+            <span class="text-gray-500 text-sm">핸드폰 인증으로 안전하게 로그인하기</span>
+          </div>
+        </div>
+        
+
+         <form id="login-form" class="space-y-3">
+           <div>
+             <label class="block text-gray-700 font-semibold mb-1" for="login-email">이메일</label>
+             <input type="email" id="login-email" required class="w-full px-2 py-1 text-sm rounded border border-gray-300 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-colors" aria-label="이메일" placeholder="이메일을 입력하세요" />
+           </div>
+           <div>
+             <label class="block text-gray-700 font-semibold mb-1" for="login-password">비밀번호</label>
+             <input type="password" id="login-password" required class="w-full px-2 py-1 text-sm rounded border border-gray-300 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-colors" aria-label="비밀번호" placeholder="비밀번호를 입력하세요" />
+           </div>
+           <button type="submit" class="w-full py-1 bg-blue-600 text-white font-bold rounded shadow hover:bg-blue-700 transition-colors text-sm" aria-label="로그인" title="로그인">로그인</button>
+         </form>
+        
+        <!-- 아이디/비밀번호 찾기 -->
+        <div class="mt-4 text-center">
+          <div class="flex justify-center gap-4 text-sm">
+            <button type="button" onclick="showFindIdModal()" class="text-gray-600 hover:text-gray-800 underline transition-colors">
+              아이디 찾기
+            </button>
+            <span class="text-gray-400">|</span>
+            <button type="button" onclick="showFindPasswordModal()" class="text-gray-600 hover:text-gray-800 underline transition-colors">
+              비밀번호 찾기
+            </button>
+          </div>
+        </div>
+        
+        <div id="login-error" class="text-red-500 text-center mt-3 hidden flex items-center justify-center gap-2 animate-fadein">
+          <svg class="w-5 h-5 text-red-500 animate-bounce" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="8" y1="8" x2="16" y2="16"/><line x1="16" y1="8" x2="8" y2="16"/></svg>
+          <span>이메일 또는 비밀번호가 올바르지 않습니다.</span>
+        </div>
+      </div>
+    </div>
 
     <!-- 아이디 찾기 모달 -->
     <div id="find-id-modal" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 hidden p-4" role="dialog" aria-modal="true" aria-labelledby="find-id-modal-title">
@@ -960,32 +2086,78 @@
       </div>
     </div>
     <script>
-      // 콘솔 경고 필터링 (불필요한 경고 제거)
+      // 콘솔 경고 필터링 (Tailwind CDN 경고 제거)
       const originalWarn = console.warn;
+      const originalError = console.error;
+      const originalLog = console.log;
+      
       console.warn = function(...args) {
         const message = args.join(' ');
-        // 특정 경고들만 필터링
-        if (message.includes('Non-passive event listener')) {
-          return; // 비수동 이벤트 리스너 경고 무시
+        if (message.includes('cdn.tailwindcss.com should not be used in production')) {
+          return; // Tailwind CDN 경고 무시
         }
         originalWarn.apply(console, args);
       };
       
-      // Firebase v9 기반 공통 함수들
-      // Firebase 즉시 사용 함수 (waitForFirebase 제거)
-      function ensureFirebaseReady() {
-        if (!window.firebaseAuth || !window.firebaseDb || !window.firebaseFirestoreFunctions) {
-          console.error('❌ Firebase가 초기화되지 않았습니다.');
-          return false;
+      console.error = function(...args) {
+        const message = args.join(' ');
+        if (message.includes('cdn.tailwindcss.com should not be used in production')) {
+          return; // Tailwind CDN 경고 무시
         }
-        return true;
+        originalError.apply(console, args);
+      };
+      
+      console.log = function(...args) {
+        const message = args.join(' ');
+        if (message.includes('cdn.tailwindcss.com should not be used in production')) {
+          return; // Tailwind CDN 경고 무시
+        }
+        originalLog.apply(console, args);
+      };
+      
+      // Firebase v9 기반 공통 함수들
+      let isFirebaseReady = false;
+
+      // Firebase 준비 상태 확인
+      function waitForFirebase() {
+        return new Promise((resolve, reject) => {
+          console.log('🔄 Firebase 초기화 상태 확인:', {
+            firebaseAuth: !!window.firebaseAuth,
+            firebaseDb: !!window.firebaseDb,
+            firebaseFirestoreFunctions: !!window.firebaseFirestoreFunctions
+          });
+          
+          if (window.firebaseAuth && window.firebaseDb && window.firebaseFirestoreFunctions) {
+            isFirebaseReady = true;
+            console.log('✅ Firebase 초기화 완료');
+            resolve();
+          } else {
+            const checkInterval = setInterval(() => {
+              if (window.firebaseAuth && window.firebaseDb && window.firebaseFirestoreFunctions) {
+                clearInterval(checkInterval);
+                isFirebaseReady = true;
+                console.log('✅ Firebase 초기화 완료');
+                resolve();
+              }
+            }, 100);
+            
+            // 10초 후 타임아웃
+            setTimeout(() => {
+              clearInterval(checkInterval);
+              console.error('❌ Firebase 초기화 타임아웃');
+              reject(new Error('Firebase 초기화 실패'));
+            }, 10000);
+          }
+        });
       }
 
       // 사용자 데이터 upsert 함수 (모든 로그인 경로에서 공통 사용)
       async function upsertUser(userData, extra = {}) {
         try {
-          // Firebase 우회: 로컬에서만 처리 (임시)
-          console.log('🔄 Firebase 우회 - 로컬 사용자 데이터 처리:', userData.email);
+          await waitForFirebase();
+          
+          const { doc, setDoc } = window.firebaseFirestoreFunctions;
+          const userRef = doc(window.firebaseDb, 'users', userData.uid);
           
           const userDoc = {
             uid: userData.uid,
@@ -999,13 +2171,11 @@
             ...extra
           };
 
-          // 로컬 캐시에 저장
-          userCache.set(userData.email, userDoc);
-          console.log('✅ 로컬 사용자 데이터 처리 완료:', userData.email);
+          await setDoc(userRef, userDoc, { merge: true });
+          console.log('✅ 사용자 데이터 upsert 완료:', userData.email);
           return true;
         } catch (error) {
-          console.error('❌ 사용자 데이터 처리 실패:', error);
-          console.error('❌ 오류 상세:', error.message, error.code);
+          console.error('❌ 사용자 데이터 upsert 실패:', error);
           return false;
         }
       }
@@ -1109,13 +2279,12 @@
           }
         }
         
-        // 로그인/회원가입 버튼은 항상 표시 (별도 페이지로 이동)
-        safeSetDisplay('login-btn', 'inline-block');
-        safeSetDisplay('signup-btn', 'inline-block');
-        
         if (isLoggedIn) {
+          safeSetDisplay('login-btn', 'none');
+          safeSetDisplay('signup-btn', 'none');
           safeSetDisplay('mypage-btn', 'inline-block');
           safeSetDisplay('logout-btn', 'inline-block');
+
           
           if (isAdmin) {
             setAdminMode(true);
@@ -1128,6 +2297,8 @@
             }
           }
         } else {
+          safeSetDisplay('login-btn', 'inline-block');
+          safeSetDisplay('signup-btn', 'inline-block');
           safeSetDisplay('mypage-btn', 'none');
           safeSetDisplay('logout-btn', 'none');
 
@@ -2226,6 +3397,16 @@
           return null;
         }
 
+        // 로그인 모달 열기/닫기
+        document.getElementById('login-btn').onclick = function() {
+          document.getElementById('login-modal').classList.remove('hidden');
+          document.body.style.overflow = 'hidden';
+        };
+        document.getElementById('close-login').onclick = function() {
+          document.getElementById('login-modal').classList.add('hidden');
+          document.getElementById('login-error').classList.add('hidden');
+          document.body.style.overflow = '';
+        };
 
         // 아이디/비밀번호 찾기 모달 열기/닫기
         window.showFindIdModal = function() {
@@ -2317,144 +3498,134 @@
           resultDiv.classList.remove('hidden');
         };
 
-        // 사용자 데이터 동기화 함수 (성능 최적화 버전)
-        let userCache = new Map();
-        let cacheTimestamp = 0;
-        const CACHE_DURATION = 5 * 60 * 1000; // 5분 캐시
-
+        // 사용자 데이터 동기화 함수
         async function getUsersFromFirebase() {
           try {
-            // 캐시 확인 (더 긴 캐시 시간)
-            const now = Date.now();
-            if (userCache.size > 0 && (now - cacheTimestamp) < CACHE_DURATION) {
-              console.log('📊 캐시된 사용자 데이터 사용:', userCache.size, '명');
-              return Array.from(userCache.values());
-            }
-
             console.log('🔄 사용자 데이터 동기화 시작...');
             
-            // Firebase 데이터 가져오기 (v9 모듈식 + 타임아웃)
+            // Firebase 데이터 가져오기
             let firebaseUsers = [];
-            if (!ensureFirebaseReady()) {
-              console.log('⚠️ Firebase 초기화되지 않음');
-              return [];
-            }
-
-            try {
-              console.log('🔍 Firebase users 컬렉션에 접근 시도...');
-              
-              const { collection, getDocs } = window.firebaseFirestoreFunctions;
-              const usersRef = collection(window.firebaseDb, 'users');
-              
-              // 타임아웃 설정 (5초)
-              const timeoutPromise = new Promise((_, reject) => {
-                setTimeout(() => reject(new Error('Firebase 쿼리 타임아웃')), 5000);
-              });
-              
-              const snapshot = await Promise.race([
-                getDocs(usersRef),
-                timeoutPromise
-              ]);
-              
-              console.log('📊 Firebase 쿼리 성공, 문서 수:', snapshot.size);
-              
-              // 캐시 초기화
-              userCache.clear();
-              
-              snapshot.forEach(doc => {
-                const userData = doc.data();
-                const user = {
-                  id: doc.id,
-                  ...userData
-                };
-                firebaseUsers.push(user);
-                userCache.set(user.email, user); // 이메일로 캐시
-              });
-              
-              cacheTimestamp = now;
-              console.log('📊 Firebase에서 가져온 사용자:', firebaseUsers.length, '명 (캐시됨)');
-            } catch (error) {
-              console.error('❌ Firebase 사용자 데이터 가져오기 실패:', error);
-              console.error('❌ 오류 상세:', error.message);
-              console.error('❌ 오류 코드:', error.code);
-              
-              // 타임아웃이나 권한 오류인 경우 빈 배열 반환
-              if (error.message.includes('타임아웃') || error.code === 'permission-denied' || error.message.includes('permissions')) {
-                console.log('🔄 오류 감지 - 빈 배열 반환');
-                return [];
+            if (window.firebaseDb) {
+              try {
+                const { collection, getDocs } = window.firebaseFirestoreFunctions;
+                const usersRef = collection(window.firebaseDb, 'users');
+                const snapshot = await getDocs(usersRef);
+                
+                snapshot.forEach(doc => {
+                  const userData = doc.data();
+                  firebaseUsers.push({
+                    id: doc.id,
+                    ...userData
+                  });
+                });
+                console.log('📊 Firebase에서 가져온 사용자:', firebaseUsers.length, '명');
+              } catch (error) {
+                console.error('❌ Firebase 사용자 데이터 가져오기 실패:', error);
               }
             }
             
+            // Firebase 전용 - localStorage 의존성 제거
+            console.log('📊 Firebase 전용 시스템 - localStorage 의존성 제거됨');
+            
             return firebaseUsers;
           } catch (error) {
-            console.error('❌ 사용자 데이터 가져오기 전체 실패:', error);
+            console.error('❌ Firebase 사용자 데이터 가져오기 실패:', error);
             return [];
           }
         }
 
-        // 특정 이메일로 사용자 찾기 (Firebase 우회 방식)
-        async function findUserByEmail(email) {
-          const startTime = performance.now();
-          try {
-            // 캐시에서 먼저 확인
-            if (userCache.has(email)) {
-              const cacheTime = performance.now() - startTime;
-              console.log(`📊 캐시에서 사용자 찾음: ${email} (${cacheTime.toFixed(2)}ms)`);
-              return userCache.get(email);
-            }
-
-            // Firebase 우회: 하드코딩된 사용자 데이터 사용 (임시)
-            console.log(`🔄 Firebase 우회 - 하드코딩된 사용자 데이터 사용: ${email}`);
-            
-            const hardcodedUsers = [
-              {
-                id: 'bWEiBMDLUxOpkk1QiQuX',
-                email: 'q886654@naver.com',
-                name: '정다영',
-                password: '123456',
-                uid: 'email_q886654_naver_com',
-                displayName: '정다영',
-                photoURL: '',
-                loginMethod: 'email',
-                isActive: true,
-                createdAt: new Date(),
-                updatedAt: new Date()
-              },
-              {
-                id: 'admin_user_001',
-                email: 'admin@pricehunter.com',
-                name: '관리자',
-                password: 'admin1234',
-                uid: 'admin_001',
-                displayName: '관리자',
-                photoURL: '',
-                loginMethod: 'email',
-                isActive: true,
-                createdAt: new Date(),
-                updatedAt: new Date()
-              }
-            ];
-
-            const user = hardcodedUsers.find(u => u.email === email);
-            
-            if (user) {
-              // 캐시에 저장
-              userCache.set(email, user);
-              const totalTime = performance.now() - startTime;
-              console.log(`📊 하드코딩된 데이터에서 사용자 찾음: ${email} (총 ${totalTime.toFixed(2)}ms)`);
-              return user;
-            }
-
-            const totalTime = performance.now() - startTime;
-            console.log(`❌ 사용자를 찾을 수 없음: ${email} (총 ${totalTime.toFixed(2)}ms)`);
-            return null;
-          } catch (error) {
-            const totalTime = performance.now() - startTime;
-            console.error(`❌ 사용자 찾기 실패: ${totalTime.toFixed(2)}ms`, error);
-            return null;
+        // 로그인 폼 제출
+        document.getElementById('login-form').onsubmit = async function(e) {
+          e.preventDefault();
+          
+          const email = sanitizeInput(document.getElementById('login-email').value.trim());
+          const password = document.getElementById('login-password').value;
+          
+          // 입력값 검증
+          if (!validateInput(email, 'email')) {
+            showToast('올바른 이메일 주소를 입력해주세요', 'error');
+            return;
           }
-        }
+          
+          if (!password || password.length < 6) {
+            showToast('비밀번호를 올바르게 입력해주세요', 'error');
+            return;
+          }
+          
+          // Firebase에서 사용자 데이터 검색
+          const allUsers = await getUsersFromFirebase();
+          console.log('🔍 로그인 시도 - 검색할 이메일:', email);
+          console.log('📊 전체 사용자 수:', allUsers.length);
+          console.log('📋 사용자 목록:', allUsers.map(u => ({ email: u.email, name: u.name || u.displayName })));
+          
+          // 비밀번호가 없는 사용자도 찾을 수 있도록 수정
+          const user = allUsers.find(u => u.email === email && (u.password === password || !u.password));
+          console.log('👤 찾은 사용자:', user ? '찾음' : '없음');
+          
+          // 비밀번호가 없는 경우 임시로 통과
+          if (user && !user.password && email === 'etgbajy@gmail.com') {
+            console.log('🔓 비밀번호 없는 사용자 - 임시 로그인 허용');
+          } else if (user && user.password !== password) {
+            console.log('❌ 비밀번호 불일치');
+            user = null;
+          }
+          
+          if (user) {
+            // Firebase Auth로 로그인 (이메일/비밀번호)
+            try {
+              await waitForFirebase();
+              
+              // 임시: Firebase Auth 이메일/비밀번호 로그인 대신 커스텀 토큰 사용
+              const userData = {
+                uid: user.uid || `email_${user.email.replace('@', '_').replace('.', '_')}`,
+                email: user.email,
+                displayName: user.name || user.nickname || '',
+                photoURL: user.profileImage || '',
+                loginMethod: 'email'
+              };
 
+              // Firestore에 사용자 데이터 upsert
+              await upsertUser(userData, {
+                lastLogin: new Date(),
+                loginCount: (user.loginCount || 0) + 1
+              });
+
+              // 로그인 성공 처리
+              localStorage.setItem('loggedIn', 'true');
+              localStorage.setItem('currentUser', JSON.stringify(userData));
+              localStorage.setItem('user', JSON.stringify(userData)); // 마이페이지 호환성
+              localStorage.setItem('loggedInEmail', userData.email); // 이메일 저장
+              document.getElementById('login-modal').classList.add('hidden');
+              document.getElementById('login-error').classList.add('hidden');
+              updateAuthUI();
+              showToast('로그인 성공!', 'success');
+              
+            } catch (error) {
+              console.error('Firebase 로그인 실패:', error);
+              document.getElementById('login-error').classList.remove('hidden');
+              showToast('로그인 처리 중 오류가 발생했습니다', 'error');
+            }
+            
+            // users 배열에서도 업데이트
+            const users = JSON.parse(localStorage.getItem('users') || '[]');
+            const userIndex = users.findIndex(u => u.email === email);
+            // localStorage 사용자 데이터 업데이트 제거 - Firebase 전용
+            console.log('✅ Firebase 전용 시스템 - localStorage 사용자 데이터 업데이트 불필요');
+            
+            localStorage.setItem('loggedIn', 'true');
+            localStorage.setItem('currentUser', JSON.stringify(user));
+            localStorage.setItem('user', JSON.stringify(user)); // 마이페이지 호환성
+            localStorage.setItem('loggedInEmail', user.email); // 이메일 저장
+            document.getElementById('login-modal').classList.add('hidden');
+            document.getElementById('login-error').classList.add('hidden');
+            document.body.style.overflow = '';
+            updateAuthUI();
+            showToast('로그인 성공!', 'success');
+          } else {
+            document.getElementById('login-error').classList.remove('hidden');
+            showToast('이메일 또는 비밀번호가 올바르지 않습니다', 'error');
+          }
+        };
         
         // 로그아웃
         var logoutBtn = document.getElementById('logout-btn');
@@ -3205,6 +4376,239 @@ if (mypageBtn) {
         }
       });
 
+      // 히어로 섹션 추가 효과 (마우스 인터랙션, 파티클 등)
+      document.addEventListener('DOMContentLoaded', function() {
+        const heroSection = document.getElementById('hero-section');
+        const heroBgLayer1 = document.getElementById('hero-bg-layer1');
+        
+        // 마우스 움직임에 따른 추가 효과
+        if (heroSection && heroBgLayer1) {
+          heroSection.addEventListener('mousemove', function(e) {
+            const rect = heroSection.getBoundingClientRect();
+            const x = (e.clientX - rect.left) / rect.width;
+            const y = (e.clientY - rect.top) / rect.height;
+            
+            // 마우스 위치에 따른 미묘한 움직임
+            const moveX = (x - 0.5) * 20;
+            const moveY = (y - 0.5) * 20;
+            heroBgLayer1.style.transform = `translate(${moveX}px, ${moveY}px)`;
+          });
+          
+          // 마우스가 섹션을 벗어날 때 원래 위치로 복원
+          heroSection.addEventListener('mouseleave', function() {
+            heroBgLayer1.style.transform = 'translate(0, 0)';
+          });
+        }
+        
+        // 버튼 호버 효과
+        const mainBtn = document.getElementById('request-v2-btn');
+        if (mainBtn) {
+          mainBtn.addEventListener('mouseenter', function() {
+            this.style.transform = 'scale(1.05) translateY(-2px)';
+            this.style.boxShadow = '0 25px 50px rgba(236, 72, 153, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.2)';
+          });
+          
+          mainBtn.addEventListener('mouseleave', function() {
+            this.style.transform = 'scale(1) translateY(0)';
+            this.style.boxShadow = '0 20px 40px rgba(236, 72, 153, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.1)';
+          });
+        }
+        
+        // 파티클 동적 생성
+        function createParticles() {
+          const particlesContainer = document.getElementById('hero-particles');
+          if (!particlesContainer) return;
+          
+          // 기존 파티클 제거
+          particlesContainer.innerHTML = '';
+          
+          // 새로운 파티클 생성
+          for (let i = 0; i < 8; i++) {
+            const particle = document.createElement('div');
+            particle.className = 'particle absolute rounded-full';
+            particle.style.width = Math.random() * 4 + 2 + 'px';
+            particle.style.height = particle.style.width;
+            particle.style.top = Math.random() * 100 + '%';
+            particle.style.left = Math.random() * 100 + '%';
+            particle.style.background = ['#ffffff', '#fbbf24', '#ec4899', '#3b82f6', '#10b981'][Math.floor(Math.random() * 5)];
+            particle.style.animationDelay = Math.random() * 5 + 's';
+            particle.style.animationDuration = (Math.random() * 5 + 5) + 's';
+            particle.style.animationName = ['animate-float', 'animate-float-delayed', 'animate-float-slow'][Math.floor(Math.random() * 3)];
+            
+            particlesContainer.appendChild(particle);
+          }
+        }
+        
+        // 파티클 생성
+        createParticles();
+        
+        // 주기적으로 파티클 재생성
+        setInterval(createParticles, 15000);
+        
+        // 모든 섹션에 대한 동적 스크롤 효과
+        function updateAllSectionsEffects() {
+          const scrollY = window.scrollY;
+          const windowHeight = window.innerHeight;
+          
+          // 고객 고민 섹션 효과
+          const concernsSection = document.getElementById('customer-concerns');
+          if (concernsSection) {
+            const concernsRect = concernsSection.getBoundingClientRect();
+            const concernsProgress = Math.max(0, Math.min(1, (windowHeight - concernsRect.top) / (windowHeight * 0.8)));
+            
+            const concernsBgLayer1 = document.getElementById('concerns-bg-layer1');
+            const concernsBgLayer2 = document.getElementById('concerns-bg-layer2');
+            const concernsTitle = document.getElementById('concerns-title');
+            
+            if (concernsBgLayer1) {
+              concernsBgLayer1.style.opacity = 0.2 + (concernsProgress * 0.3);
+            }
+            if (concernsBgLayer2) {
+              concernsBgLayer2.style.opacity = concernsProgress * 0.4;
+            }
+            if (concernsTitle) {
+              const translateY = concernsProgress * 20;
+              concernsTitle.style.transform = `translateY(${translateY}px)`;
+              concernsTitle.style.opacity = 0.7 + (concernsProgress * 0.3);
+            }
+          }
+          
+          // 서비스 프로세스 섹션 효과
+          const processSection = document.getElementById('service-process');
+          if (processSection) {
+            const processRect = processSection.getBoundingClientRect();
+            const processProgress = Math.max(0, Math.min(1, (windowHeight - processRect.top) / (windowHeight * 0.8)));
+            
+            const processBg1 = document.getElementById('process-bg-1');
+            const processBg2 = document.getElementById('process-bg-2');
+            const processBg3 = document.getElementById('process-bg-3');
+            const processBgLayer2 = document.getElementById('process-bg-layer2');
+            
+            if (processBg1) {
+              const scale = 1 + (processProgress * 0.3);
+              processBg1.style.transform = `scale(${scale})`;
+            }
+            if (processBg2) {
+              const scale = 1 + (processProgress * 0.2);
+              processBg2.style.transform = `scale(${scale})`;
+            }
+            if (processBg3) {
+              const scale = 1 + (processProgress * 0.4);
+              processBg3.style.transform = `scale(${scale})`;
+            }
+            if (processBgLayer2) {
+              processBgLayer2.style.opacity = processProgress * 0.3;
+            }
+          }
+          
+          // 절감왕 섹션 효과
+          const savingsSection = document.getElementById('savings-hero');
+          if (savingsSection) {
+            const savingsRect = savingsSection.getBoundingClientRect();
+            const savingsProgress = Math.max(0, Math.min(1, (windowHeight - savingsRect.top) / (windowHeight * 0.8)));
+            
+            const savingsBgLayer1 = document.getElementById('savings-bg-layer1');
+            const savingsBgLayer2 = document.getElementById('savings-bg-layer2');
+            const savingsTitle = document.getElementById('savings-title');
+            
+            if (savingsBgLayer1) {
+              savingsBgLayer1.style.opacity = 0.3 + (savingsProgress * 0.2);
+            }
+            if (savingsBgLayer2) {
+              savingsBgLayer2.style.opacity = savingsProgress * 0.4;
+            }
+            if (savingsTitle) {
+              const scale = 1 + (savingsProgress * 0.1);
+              savingsTitle.style.transform = `scale(${scale})`;
+              savingsTitle.style.opacity = 0.8 + (savingsProgress * 0.2);
+            }
+          }
+        }
+        
+        // 스크롤 이벤트에 다른 섹션 효과만 추가 (히어로 섹션은 별도 처리)
+        function requestAllSectionsTick() {
+          if (!ticking) {
+            requestAnimationFrame(() => {
+              updateAllSectionsEffects();
+              ticking = false;
+            });
+            ticking = true;
+          }
+        }
+        
+        // 다른 섹션들의 스크롤 이벤트 리스너
+        window.addEventListener('scroll', requestAllSectionsTick);
+        
+        // 초기 로드 시 모든 효과 적용
+        updateAllSectionsEffects();
+        
+        // Intersection Observer를 사용한 성능 최적화
+        const observerOptions = {
+          root: null,
+          rootMargin: '50px',
+          threshold: 0.1
+        };
+        
+        const sectionObserver = new IntersectionObserver((entries) => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('section-visible');
+              
+              // 섹션별 고급 애니메이션 적용
+              const sectionId = entry.target.id;
+              if (sectionId === 'customer-concerns') {
+                entry.target.classList.add('section-animate-slide-in');
+              } else if (sectionId === 'service-process') {
+                entry.target.classList.add('section-animate-fade-scale');
+              } else if (sectionId === 'savings-hero') {
+                entry.target.classList.add('section-animate-rotate-in');
+              }
+              
+              // 카드들에 순차적 애니메이션 적용
+              const cards = entry.target.querySelectorAll('.bg-white, .rounded-2xl');
+              cards.forEach((card, index) => {
+                setTimeout(() => {
+                  card.style.opacity = '0';
+                  card.style.transform = 'translateY(40px) scale(0.95)';
+                  card.style.transition = 'all 0.8s cubic-bezier(0.4, 0, 0.2, 1)';
+                  
+                  setTimeout(() => {
+                    card.style.opacity = '1';
+                    card.style.transform = 'translateY(0) scale(1)';
+                  }, 100);
+                }, index * 200);
+              });
+              
+            } else {
+              entry.target.classList.remove('section-visible');
+              // 애니메이션 클래스들 제거
+              entry.target.classList.remove('section-animate-slide-in', 'section-animate-fade-scale', 'section-animate-rotate-in');
+            }
+          });
+        }, observerOptions);
+        
+        // 모든 섹션을 관찰 대상에 추가
+        const sections = document.querySelectorAll('section[id]');
+        sections.forEach(section => {
+          sectionObserver.observe(section);
+        });
+        
+        // 성능 최적화: 스크롤 이벤트 throttling (히어로 섹션 제외)
+        let scrollTimeout;
+        let ticking = false;
+        function throttledScrollHandler() {
+          if (!scrollTimeout) {
+            scrollTimeout = setTimeout(() => {
+              requestAllSectionsTick();
+              scrollTimeout = null;
+            }, 16); // ~60fps
+          }
+        }
+        
+        // 기존 스크롤 이벤트를 throttled 버전으로 교체
+        window.removeEventListener('scroll', requestAllSectionsTick);
+        window.addEventListener('scroll', throttledScrollHandler);
+      });
       
     </script>
   </body>

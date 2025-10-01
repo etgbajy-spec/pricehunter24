@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
     <!-- Content Security Policy - Firebase iframe 허용 -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://www.gstatic.com https://*.gstatic.com https://www.googleapis.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: http: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com https://*.gstatic.com https://firebase.googleapis.com https://*.firebase.googleapis.com https://firebaseappcheck.googleapis.com https://*.firebaseappcheck.googleapis.com https://*.googleapis.com https://*.firebaseapp.com; frame-src 'self' https://www.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com https://apis.google.com https://firebaseapp.com https://*.firebaseapp.com;" />
+    <meta http-equiv="Content-Security-Policy" content="frame-src 'self' https://www.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com https://apis.google.com https://accounts.google.com; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com https://*.gstatic.com https://firebasejs.com https://images.unsplash.com https://*.unsplash.com https://apis.google.com https://*.firebasejs.com https://accounts.google.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://www.gstatic.com https://*.gstatic.com https://firebasejs.com https://apis.google.com; img-src 'self' data: https: http: blob:;" />
     
     <title>관리자 대시보드 - PriceHunter</title>
     
@@ -16,7 +16,7 @@
     <script type="module">
       import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
       import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
-      import { getFirestore, collection, query, orderBy, onSnapshot, getDocs, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, where, limit, getDoc, setDoc } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
+      import { getFirestore, collection, query, orderBy, onSnapshot, getDocs, addDoc, serverTimestamp, doc, updateDoc, deleteDoc } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
       
       // Firebase 설정
       const firebaseConfig = {
@@ -40,7 +40,7 @@
         window.firebaseAuth = auth;
         window.firebaseDb = db;
         window.firebaseAuthFunctions = { onAuthStateChanged };
-        window.firebaseFirestoreFunctions = { collection, query, orderBy, onSnapshot, getDocs, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, where, limit, getDoc, setDoc };
+        window.firebaseFirestoreFunctions = { collection, query, orderBy, onSnapshot, getDocs, addDoc, serverTimestamp, doc, updateDoc, deleteDoc };
         
         console.log('✅ 관리자 대시보드 Firebase v9 초기화 완료');
       } catch (error) {
@@ -312,53 +312,32 @@
             console.log('✅ 관리자 대시보드 설정 완료');
         }
         
-        // 관리자 권한 확인 함수 (성능 측정 포함)
+        // 관리자 권한 확인 함수
         async function checkAdminPermission(user) {
-            const permissionStartTime = performance.now();
             try {
-                if (!user || !user.uid) {
-                    const permissionTime = performance.now() - permissionStartTime;
-                    console.log(`🔍 관리자 권한 확인 실패 (사용자 없음): ${permissionTime.toFixed(2)}ms`);
-                    return false;
-                }
-                
-                console.log('🔍 Firestore에서 관리자 권한 확인 시작');
-                const firestoreStartTime = performance.now();
+                if (!user || !user.uid) return false;
                 
                 // Firestore에서 관리자 권한 확인
                 const { doc, getDoc } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js');
                 const adminDoc = await getDoc(doc(window.firebaseDb, 'admins', user.uid));
                 
-                const firestoreTime = performance.now() - firestoreStartTime;
-                console.log(`🔍 Firestore 쿼리 완료: ${firestoreTime.toFixed(2)}ms`);
-                
                 if (adminDoc.exists()) {
                     const adminData = adminDoc.data();
-                    const isAdmin = adminData.role === 'admin' || adminData.permissions?.includes('admin');
-                    const totalPermissionTime = performance.now() - permissionStartTime;
-                    console.log(`🔍 Firestore 관리자 권한 확인: ${isAdmin ? '승인' : '거부'} (${totalPermissionTime.toFixed(2)}ms)`);
-                    return isAdmin;
+                    return adminData.role === 'admin' || adminData.permissions?.includes('admin');
                 }
                 
                 // 기본 관리자 이메일 확인 (임시)
-                const emailCheckStartTime = performance.now();
                 const adminEmails = ['admin@pricehunter.com', 'admin@example.com'];
-                const isEmailAdmin = adminEmails.includes(user.email);
-                const emailCheckTime = performance.now() - emailCheckStartTime;
-                const totalPermissionTime = performance.now() - permissionStartTime;
-                console.log(`🔍 이메일 관리자 권한 확인: ${isEmailAdmin ? '승인' : '거부'} (${emailCheckTime.toFixed(2)}ms, 총 ${totalPermissionTime.toFixed(2)}ms)`);
-                return isEmailAdmin;
+                return adminEmails.includes(user.email);
                 
             } catch (error) {
-                const totalPermissionTime = performance.now() - permissionStartTime;
-                console.error(`❌ 관리자 권한 확인 실패: ${totalPermissionTime.toFixed(2)}ms`, error);
+                console.error('❌ 관리자 권한 확인 실패:', error);
                 return false;
             }
         }
 
-        // 관리자 로그인 함수 (성능 측정 포함)
+        // 관리자 로그인 함수
         window.adminLogin = async function() {
-            const adminLoginStartTime = performance.now();
             console.log('🔐 관리자 로그인 시도...');
             
             const email = document.getElementById('admin-email').value;
@@ -382,31 +361,15 @@
             }
             
             try {
-                console.log('🔥 관리자 로그인 시도:', email);
-                
-                // Firebase Auth 로그인
-                const authStartTime = performance.now();
-                console.log('🔐 Firebase Auth 로그인 시작');
-                
+                console.log('🔥 로그인 시도:', email);
                 // Firebase v9에서는 signInWithEmailAndPassword를 직접 import해야 함
                 const { signInWithEmailAndPassword } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js');
                 const userCredential = await signInWithEmailAndPassword(window.firebaseAuth, email, password);
-                
-                const authTime = performance.now() - authStartTime;
-                console.log(`✅ Firebase Auth 로그인 성공: ${userCredential.user.email} (${authTime.toFixed(2)}ms)`);
+                console.log('✅ 로그인 성공:', userCredential.user.email);
                 
                 // 관리자 권한 확인
-                const permissionStartTime = performance.now();
-                console.log('🔍 관리자 권한 확인 시작');
-                
                 const isAdmin = await checkAdminPermission(userCredential.user);
-                
-                const permissionTime = performance.now() - permissionStartTime;
-                console.log(`🔍 관리자 권한 확인 완료: ${isAdmin ? '승인' : '거부'} (${permissionTime.toFixed(2)}ms)`);
-                
                 if (!isAdmin) {
-                    const totalTime = performance.now() - adminLoginStartTime;
-                    console.log(`❌ 관리자 권한 없음: ${totalTime.toFixed(2)}ms`);
                     alert('관리자 권한이 없습니다. 관리자 계정으로 로그인해주세요.');
                     // 로그아웃
                     const { signOut } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js');
@@ -417,7 +380,6 @@
                 console.log('✅ 관리자 권한 확인됨');
                 
                 // 로그인 성공 시 대시보드 표시
-                const uiStartTime = performance.now();
                 document.getElementById('login-section').classList.add('hidden');
                 document.getElementById('dashboard-section').classList.remove('hidden');
                 
@@ -426,22 +388,11 @@
                     document.getElementById('admin-info').textContent = userCredential.user.email;
                 }
                 
-                const uiTime = performance.now() - uiStartTime;
-                console.log(`🎨 UI 업데이트 완료: ${uiTime.toFixed(2)}ms`);
-                
                 // 대시보드 데이터 로드
-                const dataLoadStartTime = performance.now();
-                console.log('📊 대시보드 데이터 로드 시작');
-                await loadDashboardData();
-                const dataLoadTime = performance.now() - dataLoadStartTime;
-                console.log(`📊 대시보드 데이터 로드 완료: ${dataLoadTime.toFixed(2)}ms`);
-                
-                const totalAdminLoginTime = performance.now() - adminLoginStartTime;
-                console.log(`🎉 관리자 로그인 성공! 총 소요시간: ${totalAdminLoginTime.toFixed(2)}ms`);
+                loadDashboardData();
                 
             } catch (error) {
-                const totalAdminLoginTime = performance.now() - adminLoginStartTime;
-                console.error(`❌ 관리자 로그인 실패: ${totalAdminLoginTime.toFixed(2)}ms`, error);
+                console.error('❌ 로그인 실패:', error);
                 let errorMessage = '로그인에 실패했습니다.';
                 
                 switch (error.code) {
@@ -1754,13 +1705,11 @@
             }
         }
 
-        // 대시보드 데이터 로드 함수 (성능 측정 포함)
+        // 대시보드 데이터 로드 함수
         async function loadDashboardData() {
-            const dashboardLoadStartTime = performance.now();
             console.log('📊 대시보드 데이터 로드 시작...');
             
             // 관리자 권한 재확인
-            const authCheckStartTime = performance.now();
             if (!window.firebaseAuth || !window.firebaseAuth.currentUser) {
                 console.error('❌ 인증되지 않은 사용자입니다.');
                 showLoginSection();
@@ -1768,9 +1717,6 @@
             }
             
             const isAdmin = await checkAdminPermission(window.firebaseAuth.currentUser);
-            const authCheckTime = performance.now() - authCheckStartTime;
-            console.log(`🔍 관리자 권한 재확인 완료: ${authCheckTime.toFixed(2)}ms`);
-            
             if (!isAdmin) {
                 console.error('❌ 관리자 권한이 없습니다.');
                 showLoginSection();
@@ -1783,33 +1729,21 @@
             }
             
             // 실시간 구독 시작 (이미 시작되어 있으면 무시)
-            const subscriptionStartTime = performance.now();
             if (!requestsUnsubscribe) {
-                console.log('📡 의뢰 데이터 실시간 구독 시작');
                 subscribeToRequests();
             }
             if (!inquiriesUnsubscribe) {
-                console.log('📡 문의 데이터 실시간 구독 시작');
                 subscribeToInquiries();
             }
-            const subscriptionTime = performance.now() - subscriptionStartTime;
-            console.log(`📡 실시간 구독 설정 완료: ${subscriptionTime.toFixed(2)}ms`);
             
             // 초기 데이터 로드 (호환성 유지)
-            const renderStartTime = performance.now();
             renderRequestList();
             renderInquiryList();
-            const renderTime = performance.now() - renderStartTime;
-            console.log(`🎨 데이터 렌더링 완료: ${renderTime.toFixed(2)}ms`);
             
             // 통계 업데이트
-            const statsStartTime = performance.now();
             updateDashboardStats();
-            const statsTime = performance.now() - statsStartTime;
-            console.log(`📊 통계 업데이트 완료: ${statsTime.toFixed(2)}ms`);
             
-            const totalDashboardLoadTime = performance.now() - dashboardLoadStartTime;
-            console.log(`✅ 대시보드 데이터 로드 완료: ${totalDashboardLoadTime.toFixed(2)}ms`);
+            console.log('✅ 대시보드 데이터 로드 완료');
         }
         
         // Firebase 연결 테스트 함수
@@ -4431,6 +4365,9 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                         <button class="sidebar-item w-full text-left px-4 py-3 rounded-lg font-semibold hover:bg-pink-50 transition" data-section="reviews" onclick="switchSection('reviews')">
                             ⭐ 후기 관리
                         </button>
+                        <button class="sidebar-item w-full text-left px-4 py-3 rounded-lg font-semibold hover:bg-pink-50 transition" data-section="savings-king" onclick="switchSection('savings-king')">
+                            🏆 절약왕 관리
+                        </button>
                     </div>
                 </nav>
                 
@@ -4845,6 +4782,74 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                                     <!-- 동적으로 생성됨 -->
                                 </tbody>
                             </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 절약왕 관리 섹션 -->
+                <div id="savings-king-section" class="section-content p-8 hidden">
+                    <!-- 헤더 -->
+                    <div class="flex justify-between items-center mb-8">
+                        <div>
+                            <h2 class="text-3xl font-bold text-gray-800 mb-2">🏆 절약왕 관리</h2>
+                            <p class="text-gray-600">이번 주 절약왕 정보를 관리하고 수정하세요</p>
+                        </div>
+                        <div class="flex gap-3">
+                            <button onclick="previewSavingsKing()" class="px-4 py-2 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition">
+                                👁️ 미리보기
+                            </button>
+                            <button onclick="resetSavingsKing()" class="px-4 py-2 bg-gray-500 text-white rounded-lg font-semibold hover:bg-gray-600 transition">
+                                🔄 초기화
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 현재 절약왕 정보 -->
+                    <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+                        <h3 class="text-xl font-bold text-gray-800 mb-4">📊 현재 절약왕 정보</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">썸네일 이미지 URL</label>
+                                    <input type="url" id="savings-king-image" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent" placeholder="https://example.com/image.jpg" oninput="updateSavingsKingPreview()">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">절약왕 이름</label>
+                                    <input type="text" id="savings-king-name" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent" placeholder="김민수" oninput="updateSavingsKingPreview()">
+                                </div>
+                            </div>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">절약 금액 (원)</label>
+                                    <input type="number" id="savings-king-amount" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent" placeholder="420000" oninput="updateSavingsKingPreview()">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">절약율 (%)</label>
+                                    <input type="number" id="savings-king-rate" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent" placeholder="42" min="0" max="100" oninput="updateSavingsKingPreview()">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-6 flex justify-end">
+                            <button onclick="saveSavingsKing()" class="px-6 py-3 bg-pink-600 text-white rounded-lg font-semibold hover:bg-pink-700 transition">
+                                💾 저장하기
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 미리보기 섹션 -->
+                    <div class="bg-white rounded-xl shadow-lg p-6">
+                        <h3 class="text-xl font-bold text-gray-800 mb-4">👁️ 미리보기</h3>
+                        <div class="flex justify-center">
+                            <div id="savings-king-preview" class="bg-gradient-to-r from-emerald-500 to-blue-500 text-white rounded-full shadow-lg">
+                                <div class="flex items-center gap-3 px-6 py-3 font-semibold text-sm">
+                                    <span class="text-2xl">🏆</span>
+                                    <div class="text-left">
+                                        <div class="font-bold">이번 주 절감왕</div>
+                                        <div class="text-yellow-300 text-xs">-42% 절약 성공!</div>
+                                    </div>
+                                    <a href="#savings-hero" class="text-yellow-300 text-lg hover:text-yellow-200 transition-colors">→</a>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -6908,8 +6913,188 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 setTimeout(() => {
                     newReviewManager.init();
                 }, 100);
+            } else if (sectionName === 'savings-king') {
+                console.log('🔄 절약왕 섹션으로 전환 - 데이터 로드');
+                setTimeout(() => {
+                    loadSavingsKingData();
+                }, 100);
             }
         };
+
+        // 절약왕 관리 기능
+        async function loadSavingsKingData() {
+            console.log('🏆 절약왕 데이터 로드 시작');
+            
+            // 기본값 설정
+            const defaultData = {
+                image: 'https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80',
+                name: '김민수',
+                amount: 420000,
+                rate: 42
+            };
+            
+            let data = { ...defaultData };
+            
+            try {
+                // Firebase에서 데이터 로드 시도
+                if (window.firebaseDb) {
+                    const { collection, doc, getDoc } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js');
+                    
+                    const savingsKingRef = doc(collection(window.firebaseDb, 'adminSettings'), 'savingsKing');
+                    const docSnap = await getDoc(savingsKingRef);
+                    
+                    if (docSnap.exists()) {
+                        const firebaseData = docSnap.data();
+                        data = { ...defaultData, ...firebaseData };
+                        console.log('✅ Firebase에서 절약왕 데이터 로드 성공:', data);
+                    } else {
+                        console.log('⚠️ Firebase에 절약왕 데이터가 없음, 기본값 사용');
+                    }
+                }
+            } catch (error) {
+                console.error('❌ Firebase에서 절약왕 데이터 로드 실패:', error);
+                
+                // Firebase 실패 시 localStorage에서 로드
+                const savingsKingData = JSON.parse(localStorage.getItem('savingsKingData') || '{}');
+                data = { ...defaultData, ...savingsKingData };
+                console.log('📱 localStorage에서 절약왕 데이터 로드:', data);
+            }
+            
+            // 폼에 데이터 설정
+            document.getElementById('savings-king-image').value = data.image;
+            document.getElementById('savings-king-name').value = data.name;
+            document.getElementById('savings-king-amount').value = data.amount;
+            document.getElementById('savings-king-rate').value = data.rate;
+            
+            // 미리보기 업데이트
+            updateSavingsKingPreview();
+            
+            console.log('✅ 절약왕 데이터 로드 완료:', data);
+        }
+
+        async function saveSavingsKing() {
+            console.log('💾 절약왕 데이터 저장 시작');
+            
+            // 폼 데이터 수집
+            const data = {
+                image: document.getElementById('savings-king-image').value,
+                name: document.getElementById('savings-king-name').value,
+                amount: parseInt(document.getElementById('savings-king-amount').value) || 0,
+                rate: parseInt(document.getElementById('savings-king-rate').value) || 0
+            };
+            
+            // 유효성 검사
+            if (!data.name.trim()) {
+                alert('❌ 절약왕 이름을 입력해주세요.');
+                return;
+            }
+            
+            if (data.amount <= 0) {
+                alert('❌ 절약 금액은 0보다 커야 합니다.');
+                return;
+            }
+            
+            if (data.rate < 0 || data.rate > 100) {
+                alert('❌ 절약율은 0-100 사이의 값이어야 합니다.');
+                return;
+            }
+            
+            try {
+                // Firebase에 저장
+                if (window.firebaseDb) {
+                    const { collection, doc, setDoc, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js');
+                    
+                    const savingsKingRef = doc(collection(window.firebaseDb, 'adminSettings'), 'savingsKing');
+                    await setDoc(savingsKingRef, {
+                        ...data,
+                        updatedAt: serverTimestamp(),
+                        updatedBy: 'admin'
+                    }, { merge: true });
+                    
+                    console.log('✅ Firebase에 절약왕 데이터 저장 완료');
+                }
+                
+                // localStorage에도 저장 (백업용)
+                localStorage.setItem('savingsKingData', JSON.stringify(data));
+                
+                // 미리보기 업데이트
+                updateSavingsKingPreview();
+                
+                // 성공 메시지
+                alert('✅ 절약왕 정보가 저장되었습니다!');
+                
+                console.log('✅ 절약왕 데이터 저장 완료:', data);
+                
+            } catch (error) {
+                console.error('❌ 절약왕 데이터 저장 실패:', error);
+                alert('❌ 저장에 실패했습니다. 다시 시도해주세요.');
+            }
+        }
+
+        function updateSavingsKingPreview() {
+            const data = {
+                image: document.getElementById('savings-king-image').value,
+                name: document.getElementById('savings-king-name').value,
+                amount: parseInt(document.getElementById('savings-king-amount').value) || 0,
+                rate: parseInt(document.getElementById('savings-king-rate').value) || 0
+            };
+            
+            const preview = document.getElementById('savings-king-preview');
+            if (preview) {
+                preview.innerHTML = `
+                    <div class="flex items-center gap-3 px-6 py-3 font-semibold text-sm">
+                        <span class="text-2xl">🏆</span>
+                        <div class="text-left">
+                            <div class="font-bold">이번 주 절감왕</div>
+                            <div class="text-yellow-300 text-xs">-${data.rate}% 절약 성공!</div>
+                        </div>
+                        <a href="#savings-hero" class="text-yellow-300 text-lg hover:text-yellow-200 transition-colors">→</a>
+                    </div>
+                `;
+            }
+        }
+
+        function previewSavingsKing() {
+            // 메인 페이지에서 절약왕 배지 미리보기
+            const data = {
+                image: document.getElementById('savings-king-image').value,
+                name: document.getElementById('savings-king-name').value,
+                amount: parseInt(document.getElementById('savings-king-amount').value) || 0,
+                rate: parseInt(document.getElementById('savings-king-rate').value) || 0
+            };
+            
+            // 메인 페이지로 이동하여 미리보기
+            const mainPageUrl = new URL('index.html', window.location.origin);
+            mainPageUrl.searchParams.set('preview', 'savings-king');
+            mainPageUrl.searchParams.set('name', data.name);
+            mainPageUrl.searchParams.set('amount', data.amount);
+            mainPageUrl.searchParams.set('rate', data.rate);
+            mainPageUrl.searchParams.set('image', data.image);
+            
+            window.open(mainPageUrl.toString(), '_blank');
+        }
+
+        function resetSavingsKing() {
+            if (confirm('🔄 절약왕 정보를 초기값으로 리셋하시겠습니까?')) {
+                // 기본값으로 리셋
+                document.getElementById('savings-king-image').value = 'https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80';
+                document.getElementById('savings-king-name').value = '김민수';
+                document.getElementById('savings-king-amount').value = '420000';
+                document.getElementById('savings-king-rate').value = '42';
+                
+                // 미리보기 업데이트
+                updateSavingsKingPreview();
+                
+                alert('✅ 절약왕 정보가 초기값으로 리셋되었습니다.');
+            }
+        }
+
+        // 전역 함수로 등록
+        window.loadSavingsKingData = loadSavingsKingData;
+        window.saveSavingsKing = saveSavingsKing;
+        window.updateSavingsKingPreview = updateSavingsKingPreview;
+        window.previewSavingsKing = previewSavingsKing;
+        window.resetSavingsKing = resetSavingsKing;
     </script>
 </body>
 </html>
