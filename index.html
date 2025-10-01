@@ -803,19 +803,19 @@
 
           <div class="border-t border-gray-200 my-3"></div>
 
-          <button id="login-btn" class="w-full flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2 sm:py-3 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors duration-200 text-left">
+          <a href="login.html" id="login-btn" class="w-full flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2 sm:py-3 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors duration-200 text-left">
             <svg class="w-4 h-4 sm:w-5 sm:h-5 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <path d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path>
             </svg>
             <span class="font-medium text-sm sm:text-base">로그인</span>
-          </button>
+          </a>
 
-          <button id="signup-btn" class="w-full flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2 sm:py-3 bg-blue-500 text-white hover:bg-blue-600 rounded-lg transition-colors duration-200 text-left">
+          <a href="register.html" id="signup-btn" class="w-full flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2 sm:py-3 bg-blue-500 text-white hover:bg-blue-600 rounded-lg transition-colors duration-200 text-left">
             <svg class="w-4 h-4 sm:w-5 sm:h-5 text-white flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <path d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path>
             </svg>
             <span class="font-medium text-sm sm:text-base">회원가입</span>
-          </button>
+          </a>
 
           <a href="member-dashboard.html" id="mypage-btn" class="hidden flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2 sm:py-3 text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 rounded-lg transition-colors duration-200">
             <svg class="w-4 h-4 sm:w-5 sm:h-5 text-emerald-500 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -837,51 +837,6 @@
     </div>
 
 
-    <!-- 로그인 모달 -->
-    <div id="login-modal" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 hidden p-4" role="dialog" aria-modal="true" aria-labelledby="login-modal-title">
-      <div class="bg-white rounded-2xl shadow-2xl p-4 sm:p-6 md:p-8 w-full max-w-xs sm:max-w-sm md:max-w-md relative mx-auto">
-        <button id="close-login" class="absolute top-3 right-3 text-gray-400 hover:text-gray-700 text-2xl" aria-label="로그인 창 닫기" title="로그인 창 닫기">&times;</button>
-        <h2 id="login-modal-title" class="text-2xl font-bold text-center mb-6 text-gray-700">로그인</h2>
-        
-        <!-- 핸드폰 인증 안내 -->
-        <div class="mb-6">
-          <div class="text-center mb-4">
-            <span class="text-gray-500 text-sm">핸드폰 인증으로 안전하게 로그인하기</span>
-          </div>
-        </div>
-        
-
-         <form id="login-form" class="space-y-3">
-           <div>
-             <label class="block text-gray-700 font-semibold mb-1" for="login-email">이메일</label>
-             <input type="email" id="login-email" required class="w-full px-2 py-1 text-sm rounded border border-gray-300 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-colors" aria-label="이메일" placeholder="이메일을 입력하세요" />
-           </div>
-           <div>
-             <label class="block text-gray-700 font-semibold mb-1" for="login-password">비밀번호</label>
-             <input type="password" id="login-password" required class="w-full px-2 py-1 text-sm rounded border border-gray-300 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-colors" aria-label="비밀번호" placeholder="비밀번호를 입력하세요" />
-           </div>
-           <button type="submit" class="w-full py-1 bg-blue-600 text-white font-bold rounded shadow hover:bg-blue-700 transition-colors text-sm" aria-label="로그인" title="로그인">로그인</button>
-         </form>
-        
-        <!-- 아이디/비밀번호 찾기 -->
-        <div class="mt-4 text-center">
-          <div class="flex justify-center gap-4 text-sm">
-            <button type="button" onclick="showFindIdModal()" class="text-gray-600 hover:text-gray-800 underline transition-colors">
-              아이디 찾기
-            </button>
-            <span class="text-gray-400">|</span>
-            <button type="button" onclick="showFindPasswordModal()" class="text-gray-600 hover:text-gray-800 underline transition-colors">
-              비밀번호 찾기
-            </button>
-          </div>
-        </div>
-        
-        <div id="login-error" class="text-red-500 text-center mt-3 hidden flex items-center justify-center gap-2 animate-fadein">
-          <svg class="w-5 h-5 text-red-500 animate-bounce" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="8" y1="8" x2="16" y2="16"/><line x1="16" y1="8" x2="8" y2="16"/></svg>
-          <span>이메일 또는 비밀번호가 올바르지 않습니다.</span>
-        </div>
-      </div>
-    </div>
 
     <!-- 아이디 찾기 모달 -->
     <div id="find-id-modal" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 hidden p-4" role="dialog" aria-modal="true" aria-labelledby="find-id-modal-title">
@@ -1154,12 +1109,13 @@
           }
         }
         
+        // 로그인/회원가입 버튼은 항상 표시 (별도 페이지로 이동)
+        safeSetDisplay('login-btn', 'inline-block');
+        safeSetDisplay('signup-btn', 'inline-block');
+        
         if (isLoggedIn) {
-          safeSetDisplay('login-btn', 'none');
-          safeSetDisplay('signup-btn', 'none');
           safeSetDisplay('mypage-btn', 'inline-block');
           safeSetDisplay('logout-btn', 'inline-block');
-
           
           if (isAdmin) {
             setAdminMode(true);
@@ -1172,8 +1128,6 @@
             }
           }
         } else {
-          safeSetDisplay('login-btn', 'inline-block');
-          safeSetDisplay('signup-btn', 'inline-block');
           safeSetDisplay('mypage-btn', 'none');
           safeSetDisplay('logout-btn', 'none');
 
@@ -2272,16 +2226,6 @@
           return null;
         }
 
-        // 로그인 모달 열기/닫기
-        document.getElementById('login-btn').onclick = function() {
-          document.getElementById('login-modal').classList.remove('hidden');
-          document.body.style.overflow = 'hidden';
-        };
-        document.getElementById('close-login').onclick = function() {
-          document.getElementById('login-modal').classList.add('hidden');
-          document.getElementById('login-error').classList.add('hidden');
-          document.body.style.overflow = '';
-        };
 
         // 아이디/비밀번호 찾기 모달 열기/닫기
         window.showFindIdModal = function() {
@@ -2511,116 +2455,6 @@
           }
         }
 
-        // 로그인 폼 제출
-        document.getElementById('login-form').onsubmit = async function(e) {
-          e.preventDefault();
-          
-          const loginStartTime = performance.now();
-          console.log('🚀 로그인 프로세스 시작');
-          
-          const email = sanitizeInput(document.getElementById('login-email').value.trim());
-          const password = document.getElementById('login-password').value;
-          
-          // 입력값 검증
-          if (!validateInput(email, 'email')) {
-            showToast('올바른 이메일 주소를 입력해주세요', 'error');
-            return;
-          }
-          
-          if (!password || password.length < 6) {
-            showToast('비밀번호를 올바르게 입력해주세요', 'error');
-            return;
-          }
-          
-          // Firebase에서 특정 사용자 검색 (성능 최적화)
-          console.log('🔍 로그인 시도 - 검색할 이메일:', email);
-          const userSearchStartTime = performance.now();
-          const user = await findUserByEmail(email);
-          const userSearchTime = performance.now() - userSearchStartTime;
-          console.log(`👤 사용자 검색 완료: ${user ? '찾음' : '없음'} (${userSearchTime.toFixed(2)}ms)`);
-          
-          // 비밀번호 검증
-          if (user) {
-            if (!user.password && email === 'etgbajy@gmail.com') {
-              console.log('🔓 비밀번호 없는 사용자 - 임시 로그인 허용');
-            } else if (user.password && user.password !== password) {
-              console.log('❌ 비밀번호 불일치');
-              user = null;
-            } else if (user.password && user.password === password) {
-              console.log('✅ 비밀번호 일치');
-            }
-          }
-          
-          if (user) {
-            // Firebase Auth로 로그인 (이메일/비밀번호)
-            try {
-              const authStartTime = performance.now();
-              console.log('🔐 Firebase Auth 처리 시작');
-              
-              if (!ensureFirebaseReady()) {
-                throw new Error('Firebase가 초기화되지 않았습니다.');
-              }
-              
-              // 임시: Firebase Auth 이메일/비밀번호 로그인 대신 커스텀 토큰 사용
-              const userData = {
-                uid: user.uid || `email_${user.email.replace('@', '_').replace('.', '_')}`,
-                email: user.email,
-                displayName: user.name || user.nickname || '',
-                photoURL: user.profileImage || '',
-                loginMethod: 'email'
-              };
-
-              // Firestore에 사용자 데이터 upsert
-              const upsertStartTime = performance.now();
-              await upsertUser(userData, {
-                lastLogin: new Date(),
-                loginCount: (user.loginCount || 0) + 1
-              });
-              const upsertTime = performance.now() - upsertStartTime;
-              console.log(`💾 사용자 데이터 upsert 완료: ${upsertTime.toFixed(2)}ms`);
-
-              // 로그인 성공 처리
-              localStorage.setItem('loggedIn', 'true');
-              localStorage.setItem('currentUser', JSON.stringify(userData));
-              localStorage.setItem('user', JSON.stringify(userData)); // 마이페이지 호환성
-              localStorage.setItem('loggedInEmail', userData.email); // 이메일 저장
-              document.getElementById('login-modal').classList.add('hidden');
-              document.getElementById('login-error').classList.add('hidden');
-              updateAuthUI();
-              
-              const totalLoginTime = performance.now() - loginStartTime;
-              console.log(`🎉 로그인 성공! 총 소요시간: ${totalLoginTime.toFixed(2)}ms`);
-              showToast(`로그인 성공! (${totalLoginTime.toFixed(0)}ms)`, 'success');
-              
-            } catch (error) {
-              const totalLoginTime = performance.now() - loginStartTime;
-              console.error(`❌ Firebase 로그인 실패: ${totalLoginTime.toFixed(2)}ms`, error);
-              document.getElementById('login-error').classList.remove('hidden');
-              showToast('로그인 처리 중 오류가 발생했습니다', 'error');
-            }
-            
-            // users 배열에서도 업데이트
-            const users = JSON.parse(localStorage.getItem('users') || '[]');
-            const userIndex = users.findIndex(u => u.email === email);
-            // localStorage 사용자 데이터 업데이트 제거 - Firebase 전용
-            console.log('✅ Firebase 전용 시스템 - localStorage 사용자 데이터 업데이트 불필요');
-            
-            localStorage.setItem('loggedIn', 'true');
-            localStorage.setItem('currentUser', JSON.stringify(user));
-            localStorage.setItem('user', JSON.stringify(user)); // 마이페이지 호환성
-            localStorage.setItem('loggedInEmail', user.email); // 이메일 저장
-            document.getElementById('login-modal').classList.add('hidden');
-            document.getElementById('login-error').classList.add('hidden');
-            document.body.style.overflow = '';
-            updateAuthUI();
-            showToast('로그인 성공!', 'success');
-          } else {
-            const totalLoginTime = performance.now() - loginStartTime;
-            console.log(`❌ 로그인 실패: ${totalLoginTime.toFixed(2)}ms`);
-            document.getElementById('login-error').classList.remove('hidden');
-            showToast('이메일 또는 비밀번호가 올바르지 않습니다', 'error');
-          }
-        };
         
         // 로그아웃
         var logoutBtn = document.getElementById('logout-btn');
