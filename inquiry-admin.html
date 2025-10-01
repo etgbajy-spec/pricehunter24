@@ -3,10 +3,6 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  
-  <!-- Content Security Policy - Firebase 완전 허용 -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:; frame-src 'self' https://www.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com https://apis.google.com https://accounts.google.com; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com https://*.gstatic.com https://firebasejs.com https://images.unsplash.com https://*.unsplash.com https://apis.google.com https://*.firebasejs.com https://accounts.google.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://www.gstatic.com https://*.gstatic.com https://firebasejs.com https://apis.google.com https://*.firebasejs.com; img-src 'self' data: https: http: blob:; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com;" />
-  
   <title>1:1 문의 관리 | PriceHunter</title>
   <script src="https://cdn.tailwindcss.com"></script>
   
@@ -130,20 +126,9 @@
     let currentFilter = 'all';
     let allInquiries = [];
     
-    // Firebase 초기화 대기 함수 (중복 호출 방지)
-    let firebaseInitPromise = null;
+    // Firebase 초기화 대기 함수
     async function waitForFirebase() {
-      // 이미 초기화가 완료된 경우 즉시 반환
-      if (window.firebaseApp && window.firebaseDb && window.firebaseFirestoreFunctions) {
-        return Promise.resolve();
-      }
-      
-      // 이미 초기화 중인 경우 같은 Promise 반환
-      if (firebaseInitPromise) {
-        return firebaseInitPromise;
-      }
-      
-      firebaseInitPromise = new Promise((resolve, reject) => {
+      return new Promise((resolve, reject) => {
         console.log('🔄 Firebase 초기화 상태 확인:', {
           firebaseApp: !!window.firebaseApp,
           firebaseDb: !!window.firebaseDb,
@@ -157,7 +142,7 @@
           const checkInterval = setInterval(() => {
             if (window.firebaseApp && window.firebaseDb && window.firebaseFirestoreFunctions) {
               clearInterval(checkInterval);
-              console.log('✅ Firebase 초기화 완료 (대기 후)');
+              console.log('✅ Firebase 초기화 완료');
               resolve();
             }
           }, 100);
@@ -169,8 +154,6 @@
           }, 10000);
         }
       });
-      
-      return firebaseInitPromise;
     }
 
     // Firebase에서 문의 목록 조회

@@ -77,46 +77,6 @@ async function initializeFirebase() {
   }
 }
 
-// Firebase 함수들을 미리 로드하여 성능 최적화
-async function preloadFirebaseFunctions() {
-  try {
-    console.log('🚀 Firebase 함수들 미리 로드 중...');
-    
-    // Auth 함수들
-    const authModule = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js');
-    window.firebaseAuthFunctions = {
-      signInWithEmailAndPassword: authModule.signInWithEmailAndPassword,
-      signOut: authModule.signOut,
-      createUserWithEmailAndPassword: authModule.createUserWithEmailAndPassword,
-      onAuthStateChanged: authModule.onAuthStateChanged
-    };
-    
-    // Firestore 함수들
-    const firestoreModule = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js');
-    window.firebaseFirestoreFunctions = {
-      collection: firestoreModule.collection,
-      query: firestoreModule.query,
-      orderBy: firestoreModule.orderBy,
-      onSnapshot: firestoreModule.onSnapshot,
-      getDocs: firestoreModule.getDocs,
-      addDoc: firestoreModule.addDoc,
-      serverTimestamp: firestoreModule.serverTimestamp,
-      doc: firestoreModule.doc,
-      updateDoc: firestoreModule.updateDoc,
-      deleteDoc: firestoreModule.deleteDoc,
-      getDoc: firestoreModule.getDoc,
-      setDoc: firestoreModule.setDoc,
-      where: firestoreModule.where
-    };
-    
-    console.log('✅ Firebase 함수들 미리 로드 완료');
-    return true;
-  } catch (error) {
-    console.error('❌ Firebase 함수들 미리 로드 실패:', error);
-    return false;
-  }
-}
-
 // Firebase v9 상태 확인 함수
 function checkFirebaseStatus() {
   console.log('🔍 Firebase v9 상태 확인...');
@@ -157,11 +117,7 @@ function testFirebaseConnection() {
   window.initializeFirebase = initializeFirebase;
   window.checkFirebaseStatus = checkFirebaseStatus;
   window.testFirebaseConnection = testFirebaseConnection;
-  window.preloadFirebaseFunctions = preloadFirebaseFunctions;
   window.firebaseConfig = firebaseConfig; // 설정값도 전역으로 노출 (디버깅용)
-
-  // Firebase 함수들 미리 로드
-  preloadFirebaseFunctions();
 
   console.log('✅ Firebase 설정 파일 로딩 완료');
 }

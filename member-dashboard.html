@@ -4,8 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
-  <!-- Content Security Policy - Firebase 완전 허용 -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:; frame-src 'self' https://www.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com https://apis.google.com https://accounts.google.com; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com https://*.gstatic.com https://firebasejs.com https://images.unsplash.com https://*.unsplash.com https://apis.google.com https://*.firebasejs.com https://accounts.google.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://www.gstatic.com https://*.gstatic.com https://firebasejs.com https://apis.google.com https://*.firebasejs.com; img-src 'self' data: https: http: blob:; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com;" />
+  <!-- Content Security Policy - Firebase iframe 허용 -->
+  <meta http-equiv="Content-Security-Policy" content="frame-src 'self' https://www.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com;" />
   
   <title>회원 대시보드 - PriceHunter</title>
   
@@ -573,70 +573,71 @@
     let currentDisplayedReq = null;
     let fileData = '';
 
-    // 탭 전환 기능 (최적화)
-    let currentTab = 'panel-info';
-    let isTabSwitching = false;
-    
+    // 탭 전환 기능 - 전역 함수로 만들어서 HTML에서 직접 호출 가능
     window.switchTab = function(tabId) {
-      // 중복 호출 방지
-      if (isTabSwitching || currentTab === tabId) {
+      console.log('=== switchTab 시작 ===', tabId);
+      
+      // 1. 모든 탭 버튼 비활성화
+      const allButtons = document.querySelectorAll('.tab-button');
+      console.log('찾은 탭 버튼 수:', allButtons.length);
+      allButtons.forEach(btn => {
+        btn.classList.remove('active');
+        console.log('버튼 비활성화:', btn.id);
+      });
+      
+      // 2. 모든 탭 패널 숨김
+      const allPanels = document.querySelectorAll('.tab-panel');
+      console.log('찾은 탭 패널 수:', allPanels.length);
+      allPanels.forEach(panel => {
+        panel.classList.remove('active');
+        console.log('패널 숨김:', panel.id);
+      });
+      
+      // 3. 선택된 탭 패널 표시
+      const targetPanel = document.getElementById(tabId);
+      if (targetPanel) {
+        targetPanel.classList.add('active');
+        console.log('✅ 패널 활성화 성공:', tabId);
+      } else {
+        console.error('❌ 패널을 찾을 수 없음:', tabId);
         return;
       }
       
-      isTabSwitching = true;
-      console.log('=== switchTab 시작 ===', tabId);
-      
-      try {
-        // 1. 모든 탭 버튼 비활성화
-        const allButtons = document.querySelectorAll('.tab-button');
-        allButtons.forEach(btn => btn.classList.remove('active'));
-        
-        // 2. 모든 탭 패널 숨김
-        const allPanels = document.querySelectorAll('.tab-panel');
-        allPanels.forEach(panel => panel.classList.remove('active'));
-        
-        // 3. 선택된 탭 패널 표시
-        const targetPanel = document.getElementById(tabId);
-        if (!targetPanel) {
-          console.error('❌ 패널을 찾을 수 없음:', tabId);
-          return;
-        }
-        targetPanel.classList.add('active');
-        
-        // 4. 선택된 탭 버튼 활성화
-        const buttonMap = {
-          'panel-info': 'tab-info',
-          'panel-requests': 'tab-requests',
-          'panel-inquiry': 'tab-inquiry'
-        };
-        
-        const buttonId = buttonMap[tabId];
-        if (buttonId) {
-          const targetButton = document.getElementById(buttonId);
-          if (targetButton) {
-            targetButton.classList.add('active');
-          }
-        }
-        
-        // 5. 탭별 데이터 새로고침 (비동기)
-        if (tabId === 'panel-requests') {
-          renderMyRequestList();
-        } else if (tabId === 'panel-inquiry') {
-          renderHistory();
-        }
-        
-        currentTab = tabId;
-        console.log('✅ switchTab 완료:', tabId);
-      } finally {
-        isTabSwitching = false;
+      // 4. 선택된 탭 버튼 활성화
+      let buttonId = '';
+      if (tabId === 'panel-info') {
+        buttonId = 'tab-info';
+      } else if (tabId === 'panel-requests') {
+        buttonId = 'tab-requests';
+      } else if (tabId === 'panel-inquiry') {
+        buttonId = 'tab-inquiry';
       }
+      
+      if (buttonId) {
+        const targetButton = document.getElementById(buttonId);
+        if (targetButton) {
+          targetButton.classList.add('active');
+          console.log('✅ 버튼 활성화 성공:', buttonId);
+        } else {
+          console.error('❌ 버튼을 찾을 수 없음:', buttonId);
+        }
+      }
+      
+      // 탭별 데이터 새로고침
+      if (tabId === 'panel-requests') {
+        renderMyRequestList();
+      } else if (tabId === 'panel-inquiry') {
+        renderHistory();
+      }
+      
+      console.log('=== switchTab 완료 ===');
     }
 
     // 내 정보 표시 (Firebase에서 사용자 정보 가져오기)
     async function renderMyInfo() {
       try {
         await waitForFirebase();
-        const { collection, query, where, getDocs } = window.firebaseFirestoreFunctions || await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js');
+        const { collection, query, where, getDocs } = window.firebaseFirestoreFunctions;
         const db = window.firebaseDb;
         
         // 현재 로그인된 사용자 이메일 가져오기
@@ -688,22 +689,11 @@
       }
     }
 
-    // Firebase에서 의뢰 데이터 가져오기 (캐싱 적용)
-    let requestsCache = null;
-    let cacheTimestamp = 0;
-    const CACHE_DURATION = 30000; // 30초 캐시
-    
+    // Firebase에서 의뢰 데이터 가져오기
     async function getRequestsFromFirebase() {
       try {
-        // 캐시 확인
-        const now = Date.now();
-        if (requestsCache && (now - cacheTimestamp) < CACHE_DURATION) {
-          console.log('📋 캐시된 의뢰 데이터 사용');
-          return requestsCache;
-        }
-        
         await waitForFirebase();
-        const { collection, query, where, getDocs } = window.firebaseFirestoreFunctions || await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js');
+        const { collection, query, where, orderBy, getDocs } = window.firebaseFirestoreFunctions;
         const db = window.firebaseDb;
         
         // 현재 사용자 이메일 가져오기
@@ -712,6 +702,12 @@
         
         if (!userEmail) {
           console.log('❌ 사용자 이메일을 찾을 수 없어서 Firebase에서 의뢰 데이터를 가져올 수 없습니다.');
+          console.log('🔍 localStorage 상태:', {
+            loggedInEmail: localStorage.getItem('loggedInEmail'),
+            currentUser: localStorage.getItem('currentUser'),
+            user: localStorage.getItem('user'),
+            loggedIn: localStorage.getItem('loggedIn')
+          });
           return [];
         }
         
@@ -720,6 +716,7 @@
         
         let querySnapshot;
         try {
+          // 먼저 orderBy 없이 조회해보기
           const requestsQuery = query(
             collection(db, 'requests'),
             where('email', '==', userEmail)
@@ -740,16 +737,13 @@
         
         querySnapshot.forEach((doc) => {
           const data = doc.data();
+          console.log('📄 문서 데이터:', doc.id, data.email, 'vs', userEmail);
           
           // 이메일이 일치하는 경우만 추가
           if (data.email === userEmail) {
             requests.push({
               id: doc.id,
-              ...data,
-              reqNum: data.reqNum || data.requestNumber,
-              userName: data.userName || data.name,
-              productName: data.productName || data.name,
-              reqDate: data.reqDate || data.createdAt
+              ...data
             });
           }
         });
@@ -761,11 +755,8 @@
           return bTime - aTime;
         });
         
-        // 캐시 저장
-        requestsCache = requests;
-        cacheTimestamp = now;
-        
         console.log(`✅ Firebase에서 의뢰 데이터 ${requests.length}개 가져옴`);
+        console.log('📊 의뢰 데이터 상세:', requests);
         return requests;
       } catch (error) {
         console.error('❌ Firebase에서 의뢰 데이터 가져오기 실패:', error);
@@ -847,75 +838,84 @@
       }
     }
 
-    // 의뢰 내역 목록 렌더링 (최적화)
+    // 의뢰 내역 목록 렌더링 (Firebase + 로컬스토리지 통합)
     async function renderMyRequestList() {
       const requestList = document.getElementById('my-request-list');
-      
-      // 로딩 표시
-      requestList.innerHTML = '<li class="p-4 text-gray-500 text-center">의뢰 내역을 불러오는 중...</li>';
+      let requests = [];
       
       try {
-        // Firebase에서 데이터 가져오기
-        const requests = await getRequestsFromFirebase();
-        
-        if (requests.length === 0) {
-          requestList.innerHTML = '<li class="p-4 text-gray-500 text-center">의뢰 내역이 없습니다.</li>';
-          return;
+        // 1. Firebase에서 데이터 가져오기 시도
+        const firebaseRequests = await getRequestsFromFirebase();
+        if (firebaseRequests.length > 0) {
+          requests = firebaseRequests;
+          console.log('Firebase에서 의뢰 데이터 사용');
+        } else {
+          // Firebase에 데이터가 없음
+          console.log('Firebase에 데이터 없음');
+          requests = [];
         }
-        
-        // 날짜순으로 정렬 (최신순)
-        requests.sort((a, b) => {
-          const dateA = new Date(a.reqDate || a.createdAt || 0);
-          const dateB = new Date(b.reqDate || b.createdAt || 0);
-          return dateB - dateA;
-        });
-        
-        requestList.innerHTML = '';
-        requests.forEach((request) => {
-          // Firebase 데이터와 로컬스토리지 데이터 구조 통합 처리
-          const reqNum = request.reqNum || request.requestNumber || request.data?.reqNum;
-          const userName = request.userName || request.name || request.data?.userName;
-          const reqDate = request.reqDate || request.createdAt || request.data?.reqDate;
-          const productName = request.productName || request.name || request.data?.productName;
-          
-          const formattedDate = reqDate ? new Date(reqDate).toLocaleDateString('ko-KR') : '날짜 없음';
-          
-          // Firebase 상태 확인
-          const requestStatus = request.status || '처리중';
-          
-          const listItem = document.createElement('li');
-          listItem.className = 'p-4 hover:bg-blue-100 cursor-pointer transition-colors';
-          listItem.innerHTML = `
-            <div class="flex justify-between items-start">
-              <div class="flex-1">
-                <div class="font-semibold text-gray-800">${reqNum}</div>
-                <div class="text-sm text-gray-600">${userName} | ${formattedDate}</div>
-                <div class="text-sm text-gray-500 mt-1">${productName}</div>
-              </div>
-              <div class="ml-4 text-right">
-                ${requestStatus === '답변완료' ? 
-                  '<span class="inline-block px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">답변완료</span>' :
-                  requestStatus === '처리중' ?
-                  '<span class="inline-block px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">처리중</span>' :
-                  requestStatus === '대기' ?
-                  '<span class="inline-block px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded-full">대기</span>' :
-                  '<span class="inline-block px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">' + requestStatus + '</span>'
-                }
-              </div>
-            </div>
-          `;
-          
-          listItem.onclick = () => {
-            // 의뢰 상세보기 모달 표시
-            showRequestDetailModal(request);
-          };
-          
-          requestList.appendChild(listItem);
-        });
       } catch (error) {
-        console.error('의뢰 내역 렌더링 실패:', error);
-        requestList.innerHTML = '<li class="p-4 text-red-500 text-center">의뢰 내역을 불러오는데 실패했습니다.</li>';
+        console.error('Firebase 데이터 가져오기 실패:', error);
+        requests = [];
       }
+      
+      // 로컬스토리지 함수 제거됨 - Firebase 전용 사용
+      
+      // 날짜순으로 정렬 (최신순)
+      requests.sort((a, b) => {
+        const dateA = new Date(a.reqDate || a.createdAt || 0);
+        const dateB = new Date(b.reqDate || b.createdAt || 0);
+        return dateB - dateA;
+      });
+      
+      if (requests.length === 0) {
+        requestList.innerHTML = '<li class="p-4 text-gray-500 text-center">의뢰 내역이 없습니다.</li>';
+        return;
+      }
+      
+      requestList.innerHTML = '';
+      requests.forEach((request) => {
+        // Firebase 데이터와 로컬스토리지 데이터 구조 통합 처리
+        const reqNum = request.reqNum || request.requestNumber || request.data?.reqNum;
+        const userName = request.userName || request.name || request.data?.userName;
+        const reqDate = request.reqDate || request.createdAt || request.data?.reqDate;
+        const productName = request.productName || request.name || request.data?.productName;
+        
+        const formattedDate = reqDate ? new Date(reqDate).toLocaleDateString('ko-KR') : '날짜 없음';
+        
+        // Firebase 상태 확인
+        const requestStatus = request.status || '처리중';
+        const hasAdminResponse = request.adminResponse && Object.keys(request.adminResponse).length > 0;
+        
+        const listItem = document.createElement('li');
+        listItem.className = 'p-4 hover:bg-blue-100 cursor-pointer transition-colors';
+        listItem.innerHTML = `
+          <div class="flex justify-between items-start">
+            <div class="flex-1">
+              <div class="font-semibold text-gray-800">${reqNum}</div>
+              <div class="text-sm text-gray-600">${userName} | ${formattedDate}</div>
+              <div class="text-sm text-gray-500 mt-1">${productName}</div>
+            </div>
+            <div class="ml-4 text-right">
+              ${requestStatus === '답변완료' ? 
+                '<span class="inline-block px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">답변완료</span>' :
+                requestStatus === '처리중' ?
+                '<span class="inline-block px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">처리중</span>' :
+                requestStatus === '대기' ?
+                '<span class="inline-block px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded-full">대기</span>' :
+                '<span class="inline-block px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">' + requestStatus + '</span>'
+              }
+            </div>
+          </div>
+        `;
+        
+        listItem.onclick = () => {
+          // 의뢰 상세보기 모달 표시
+          showRequestDetailModal(request);
+        };
+        
+        requestList.appendChild(listItem);
+      });
     }
 
     // 의뢰 정보만 표시 (결과 데이터가 없을 때)
@@ -1466,17 +1466,56 @@
       renderHistory();
     }
 
-    // 날짜 포맷 함수 (원래 contact.html 방식으로 단순화)
-    function formatDateTime(dt) {
-      if (!dt) return '';
-      const d = new Date(dt);
-      if (isNaN(d.getTime())) return dt;
-      const y = d.getFullYear();
-      const m = String(d.getMonth()+1).padStart(2,'0');
-      const day = String(d.getDate()).padStart(2,'0');
-      const h = String(d.getHours()).padStart(2,'0');
-      const min = String(d.getMinutes()).padStart(2,'0');
-      return `${y}-${m}-${day} ${h}:${min}`;
+    // 날짜 포맷 함수 (기존 contact.html 그대로)
+    function formatDateTime(dateStr) {
+      if (!dateStr) return '날짜 없음';
+      
+      console.log('formatDateTime 입력:', dateStr, '타입:', typeof dateStr);
+      
+      let date;
+      
+      // 다양한 날짜 형식 처리
+      if (typeof dateStr === 'string') {
+        // 이미 한국어 형식인 경우 (예: "2025. 1. 30. 오전 4:55:37")
+        if (dateStr.includes('오전') || dateStr.includes('오후')) {
+          // 한국어 날짜 형식을 파싱
+          const match = dateStr.match(/(\d{4})\.\s*(\d{1,2})\.\s*(\d{1,2})\.\s*(오전|오후)\s*(\d{1,2}):(\d{1,2}):(\d{1,2})/);
+          if (match) {
+            const [, year, month, day, ampm, hour, minute, second] = match;
+            let hour24 = parseInt(hour);
+            if (ampm === '오후' && hour24 !== 12) hour24 += 12;
+            if (ampm === '오전' && hour24 === 12) hour24 = 0;
+            
+            date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), hour24, parseInt(minute), parseInt(second));
+            console.log('한국어 날짜 파싱 결과:', date);
+          }
+        } else {
+          // 일반적인 날짜 형식
+          date = new Date(dateStr);
+        }
+      } else if (typeof dateStr === 'number') {
+        // 타임스탬프인 경우
+        date = new Date(dateStr);
+      } else {
+        // 기타 경우
+        date = new Date(dateStr);
+      }
+      
+      // 유효하지 않은 날짜인지 확인
+      if (isNaN(date.getTime())) {
+        console.log('유효하지 않은 날짜:', dateStr);
+        return '날짜 형식 오류';
+      }
+      
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const h = String(date.getHours()).padStart(2, '0');
+      const min = String(date.getMinutes()).padStart(2, '0');
+      const result = `${y}-${m}-${day} ${h}:${min}`;
+      
+      console.log('formatDateTime 결과:', result);
+      return result;
     }
 
     // 문의 내역 렌더링 (Firebase + 로컬스토리지 통합)
@@ -1627,28 +1666,19 @@
     console.log('🔍 === 디버깅 완료 ===');
   }
 
-  // Firebase 초기화 대기 함수 (중복 호출 방지)
-  let firebaseInitPromise = null;
+  // Firebase 초기화 대기 함수
   async function waitForFirebase() {
-    // 이미 초기화가 완료된 경우 즉시 반환
-    if (window.firebaseApp && window.firebaseDb && window.firebaseFirestoreFunctions) {
-      return Promise.resolve();
-    }
-    
-    // 이미 초기화 중인 경우 같은 Promise 반환
-    if (firebaseInitPromise) {
-      return firebaseInitPromise;
-    }
-    
-    firebaseInitPromise = new Promise((resolve, reject) => {
+    return new Promise((resolve, reject) => {
       console.log('🔄 Firebase 초기화 상태 확인:', {
         firebaseApp: !!window.firebaseApp,
         firebaseDb: !!window.firebaseDb,
-        firebaseFirestoreFunctions: !!window.firebaseFirestoreFunctions
+        firebaseFirestoreFunctions: !!window.firebaseFirestoreFunctions,
+        firebaseFirestoreFunctionsKeys: window.firebaseFirestoreFunctions ? Object.keys(window.firebaseFirestoreFunctions) : 'undefined'
       });
       
       if (window.firebaseApp && window.firebaseDb && window.firebaseFirestoreFunctions) {
         console.log('✅ Firebase 초기화 완료');
+        console.log('🔍 사용 가능한 Firebase 함수들:', Object.keys(window.firebaseFirestoreFunctions));
         resolve();
       } else {
         // Firebase 초기화 대기
@@ -1656,6 +1686,7 @@
           if (window.firebaseApp && window.firebaseDb && window.firebaseFirestoreFunctions) {
             clearInterval(checkInterval);
             console.log('✅ Firebase 초기화 완료 (대기 후)');
+            console.log('🔍 사용 가능한 Firebase 함수들:', Object.keys(window.firebaseFirestoreFunctions));
             resolve();
           }
         }, 100);
@@ -1663,13 +1694,16 @@
         // 10초 후 타임아웃
         setTimeout(() => {
           clearInterval(checkInterval);
-          console.error('❌ Firebase 초기화 타임아웃');
+          console.error('❌ Firebase 초기화 타임아웃 - Firebase 함수들을 사용할 수 없습니다.');
+          console.error('🔍 최종 상태:', {
+            firebaseApp: !!window.firebaseApp,
+            firebaseDb: !!window.firebaseDb,
+            firebaseFirestoreFunctions: !!window.firebaseFirestoreFunctions
+          });
           reject(new Error('Firebase 초기화 실패'));
         }, 10000);
       }
     });
-    
-    return firebaseInitPromise;
   }
     
     // Firebase 연결 상태 확인
