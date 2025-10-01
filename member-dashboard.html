@@ -636,7 +636,7 @@
     async function renderMyInfo() {
       try {
         await waitForFirebase();
-        const { collection, query, where, getDocs } = window.firebaseFirestoreFunctions;
+        const { collection, query, where, getDocs } = window.firebaseFirestoreFunctions || await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js');
         const db = window.firebaseDb;
         
         // 현재 로그인된 사용자 이메일 가져오기
@@ -703,7 +703,7 @@
         }
         
         await waitForFirebase();
-        const { collection, query, where, getDocs } = window.firebaseFirestoreFunctions;
+        const { collection, query, where, getDocs } = window.firebaseFirestoreFunctions || await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js');
         const db = window.firebaseDb;
         
         // 현재 사용자 이메일 가져오기

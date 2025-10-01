@@ -359,8 +359,8 @@
                 await waitForFirebaseInit();
                 
                 console.log('🔥 로그인 시도:', email);
-                // Firebase v9에서는 signInWithEmailAndPassword를 직접 import해야 함
-                const { signInWithEmailAndPassword } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js');
+                // 미리 로드된 Firebase 함수 사용 (성능 최적화)
+                const { signInWithEmailAndPassword } = window.firebaseAuthFunctions || await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js');
                 const userCredential = await signInWithEmailAndPassword(window.firebaseAuth, email, password);
                 console.log('✅ 로그인 성공:', userCredential.user.email);
                 
@@ -369,7 +369,7 @@
                 if (!isAdmin) {
                     alert('관리자 권한이 없습니다. 관리자 계정으로 로그인해주세요.');
                     // 로그아웃
-                    const { signOut } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js');
+                    const { signOut } = window.firebaseAuthFunctions || await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js');
                     await signOut(window.firebaseAuth);
                     return;
                 }
@@ -556,7 +556,9 @@
                     usersQuery = query(usersRef);
                 }
 
-                usersUnsubscribe = onSnapshot(usersQuery, (snapshot) => {
+                // 성능 최적화: onSnapshot 대신 getDocs 사용
+                try {
+                    const snapshot = await getDocs(usersQuery);
                     const firebaseUsers = [];
                     snapshot.forEach((doc) => {
                         const userData = doc.data();
@@ -567,7 +569,7 @@
                         });
                     });
                     
-                    console.log('📊 Firebase 사용자 데이터 업데이트:', firebaseUsers.length, '명');
+                    console.log('📊 Firebase 사용자 데이터 로드 완료:', firebaseUsers.length, '명');
                     console.log('📋 Firebase 사용자 데이터:', firebaseUsers);
                     
                     // localStorage 사용자와 Firebase 사용자 합치기
@@ -583,8 +585,8 @@
                     // 통계 업데이트
                     updateMemberStats(allUsers);
                     
-                }, (error) => {
-                    console.error('❌ 사용자 목록 실시간 구독 실패:', error);
+                } catch (error) {
+                    console.error('❌ 사용자 목록 로드 실패:', error);
                     // Firebase 연결 실패시 빈 목록 표시
                     updateUsersTable([]);
                     document.getElementById('total-members').textContent = '0';
@@ -594,7 +596,7 @@
                         console.log('🔄 Firestore 연결 재시도...');
                         subscribeToUsers();
                     }, 5000);
-                });
+                }
             } catch (error) {
                 console.error('❌ Firestore 쿼리 생성 실패:', error);
                 // 쿼리 생성 실패시 빈 목록 표시
@@ -1037,7 +1039,9 @@
                 
                 console.log('🔄 의뢰 데이터 실시간 구독 시작...');
                 
-                requestsUnsubscribe = onSnapshot(requestsRef, (querySnapshot) => {
+                // 성능 최적화: onSnapshot 대신 getDocs 사용
+                try {
+                    const querySnapshot = await getDocs(requestsRef);
                     const requests = [];
                     
                     querySnapshot.forEach((doc) => {
@@ -1054,17 +1058,20 @@
                         return bTime - aTime;
                     });
                     
-                    console.log(`✅ 실시간 의뢰 데이터 업데이트: ${requests.length}개`);
-                    console.log('📊 실시간 의뢰 데이터 상세:', requests);
+                    console.log(`✅ 의뢰 데이터 로드 완료: ${requests.length}개`);
+                    console.log('📊 의뢰 데이터 상세:', requests);
                     
                     // UI 업데이트
                     updateRequestListUI(requests);
                     
                     // 통계 업데이트
                     updateRequestStats(requests);
-                }, (error) => {
-                    console.error('❌ 의뢰 데이터 실시간 구독 오류:', error);
-                });
+                } catch (error) {
+                    console.error('❌ 의뢰 데이터 로드 오류:', error);
+                    // 오류시 빈 배열로 표시
+                    updateRequestListUI([]);
+                    updateRequestStats([]);
+                }
                 
             } catch (error) {
                 console.error('❌ 의뢰 데이터 구독 설정 실패:', error);
@@ -1159,7 +1166,9 @@
                 
                 console.log('🔄 문의 데이터 실시간 구독 시작...');
                 
-                inquiriesUnsubscribe = onSnapshot(inquiriesRef, (querySnapshot) => {
+                // 성능 최적화: onSnapshot 대신 getDocs 사용
+                try {
+                    const querySnapshot = await getDocs(inquiriesRef);
                     const inquiries = [];
                     
                     querySnapshot.forEach((doc) => {
@@ -1176,17 +1185,20 @@
                         return bTime - aTime;
                     });
                     
-                    console.log(`✅ 실시간 문의 데이터 업데이트: ${inquiries.length}개`);
-                    console.log('📊 실시간 문의 데이터 상세:', inquiries);
+                    console.log(`✅ 문의 데이터 로드 완료: ${inquiries.length}개`);
+                    console.log('📊 문의 데이터 상세:', inquiries);
                     
                     // UI 업데이트
                     updateInquiryListUI(inquiries);
                     
                     // 통계 업데이트
                     updateInquiryStats(inquiries);
-                }, (error) => {
-                    console.error('❌ 문의 데이터 실시간 구독 오류:', error);
-                });
+                } catch (error) {
+                    console.error('❌ 문의 데이터 로드 오류:', error);
+                    // 오류시 빈 배열로 표시
+                    updateInquiryListUI([]);
+                    updateInquiryStats([]);
+                }
                 
             } catch (error) {
                 console.error('❌ 문의 데이터 구독 설정 실패:', error);
