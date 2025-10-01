@@ -13,7 +13,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     
     <!-- Content Security Policy - Firebase iframe 허용 -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://www.gstatic.com https://*.gstatic.com https://www.googleapis.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com https://*.gstatic.com https://firebase.googleapis.com https://*.firebase.googleapis.com https://firebaseappcheck.googleapis.com https://*.firebaseappcheck.googleapis.com https://*.googleapis.com; frame-src 'self' https://www.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com https://apis.google.com https://firebaseapp.com https://*.firebaseapp.com;" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://www.gstatic.com https://*.gstatic.com https://www.googleapis.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com https://*.gstatic.com https://firebase.googleapis.com https://*.firebase.googleapis.com https://firebaseappcheck.googleapis.com https://*.firebaseappcheck.googleapis.com https://*.googleapis.com https://*.firebaseapp.com; frame-src 'self' https://www.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com https://apis.google.com https://firebaseapp.com https://*.firebaseapp.com https://*.firebaseapp.com;" />
     
     <title>PriceHunter</title>
     
@@ -44,7 +44,7 @@
       // Firebase v9 모듈 import (안정적인 버전)
       import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
       import { getAuth, signInWithCustomToken, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
-      import { getFirestore, doc, setDoc, getDoc, collection, query, orderBy, onSnapshot, getDocs, where, serverTimestamp, enableNetwork, disableNetwork } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
+      import { getFirestore, doc, setDoc, getDoc, collection, query, orderBy, onSnapshot, getDocs, where, limit, serverTimestamp, enableNetwork, disableNetwork } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
       
       // Firebase 설정
       const firebaseConfig = {
@@ -73,7 +73,7 @@
         window.firebaseAuth = auth;
         window.firebaseDb = db;
         window.firebaseAuthFunctions = { signInWithCustomToken, onAuthStateChanged, signOut };
-        window.firebaseFirestoreFunctions = { doc, setDoc, getDoc, collection, query, orderBy, onSnapshot, getDocs, where, serverTimestamp, enableNetwork, disableNetwork };
+        window.firebaseFirestoreFunctions = { doc, setDoc, getDoc, collection, query, orderBy, onSnapshot, getDocs, where, limit, serverTimestamp, enableNetwork, disableNetwork };
         
         console.log('✅ Firebase v9 초기화 완료');
         
@@ -2503,15 +2503,16 @@
                 const errorTime = performance.now() - startTime;
                 console.error(`❌ Firebase 특정 사용자 쿼리 실패: ${errorTime.toFixed(2)}ms`, error);
                 console.error('❌ 오류 상세:', error.message, error.code);
+                
+                // 쿼리 실패시 즉시 null 반환 (전체 데이터 폴백 제거)
+                console.log('❌ 쿼리 실패로 인한 즉시 반환');
+                return null;
               }
             }
 
-            // 캐시가 없고 Firebase 쿼리도 실패한 경우 전체 데이터 가져오기
-            console.log('🔄 전체 사용자 데이터로 폴백...');
-            const allUsers = await getUsersFromFirebase();
-            const totalTime = performance.now() - startTime;
-            console.log(`🔄 폴백 완료: ${totalTime.toFixed(2)}ms`);
-            return allUsers.find(u => u.email === email);
+            // Firebase가 초기화되지 않은 경우
+            console.log('⚠️ Firebase가 초기화되지 않음');
+            return null;
           } catch (error) {
             const totalTime = performance.now() - startTime;
             console.error(`❌ 사용자 찾기 실패: ${totalTime.toFixed(2)}ms`, error);
