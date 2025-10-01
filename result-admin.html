@@ -175,33 +175,6 @@
       let selectedRequests = new Set();
       let currentRequest = null;
       
-      // 날짜 포맷팅 함수
-      function formatRequestDate(date) {
-        if (!date) return 'N/A';
-        
-        // Firebase Timestamp 객체 처리
-        if (date && typeof date === 'object' && date.seconds) {
-          const d = new Date(date.seconds * 1000);
-          if (isNaN(d.getTime())) return 'N/A';
-          return d.toLocaleString('ko-KR');
-        }
-        
-        // 일반 날짜 처리
-        const d = new Date(date);
-        if (isNaN(d.getTime())) {
-          // 숫자 타임스탬프인 경우
-          if (typeof date === 'number') {
-            const d2 = new Date(date);
-            if (!isNaN(d2.getTime())) {
-              return d2.toLocaleString('ko-KR');
-            }
-          }
-          return 'N/A';
-        }
-        
-        return d.toLocaleString('ko-KR');
-      }
-      
       // 의뢰 목록 불러오기
       function getRequestList() {
         const list = [];
@@ -454,7 +427,7 @@
               <span class="text-gray-700">${req.userName || '익명'}</span>
               <span class="ml-2 text-gray-400 text-xs">${isSelected ? '▼' : '▶'}</span>
             </div>
-            <div class="w-1/6 text-center text-xs text-gray-400">${formatRequestDate(req.date)}</div>
+            <div class="w-1/6 text-center text-xs text-gray-400">${req.date ? new Date(req.date).toLocaleString() : ''}</div>
             <div class="w-1/6 text-center">${statusBadge}</div>
             <div class="w-1/6 text-center text-xs">
               <span class="text-gray-600">${purchaseMethodText}</span>

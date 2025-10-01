@@ -570,6 +570,35 @@
   <script>
     // 전역 변수
     let currentReqKey = null;
+
+    // 날짜 처리 유틸리티 함수
+    function formatDateFromMultipleSources(data, dateFields = ['reqDate', 'createdAt', 'date']) {
+      for (const field of dateFields) {
+        if (data[field]) {
+          try {
+            const dateValue = data[field];
+            // Firebase Timestamp 객체 처리
+            if (dateValue.toDate) {
+              return dateValue.toDate().toLocaleString('ko-KR');
+            } else if (dateValue.seconds) {
+              return new Date(dateValue.seconds * 1000).toLocaleString('ko-KR');
+            } else {
+              return new Date(dateValue).toLocaleString('ko-KR');
+            }
+          } catch (e) {
+            console.warn(`${field} 파싱 실패:`, data[field]);
+            continue;
+          }
+        }
+      }
+      return 'N/A';
+    }
+
+    // 답변일시 처리 유틸리티 함수
+    function formatResponseDateFromMultipleSources(data) {
+      const responseFields = ['responseDateString', 'responseDate', 'lastModified', 'updatedAt'];
+      return formatDateFromMultipleSources(data, responseFields);
+    }
     let currentDisplayedReq = null;
     let fileData = '';
 
@@ -878,10 +907,10 @@
         // Firebase 데이터와 로컬스토리지 데이터 구조 통합 처리
         const reqNum = request.reqNum || request.requestNumber || request.data?.reqNum;
         const userName = request.userName || request.name || request.data?.userName;
-        const reqDate = request.reqDate || request.createdAt || request.data?.reqDate;
         const productName = request.productName || request.name || request.data?.productName;
         
-        const formattedDate = reqDate ? new Date(reqDate).toLocaleDateString('ko-KR') : '날짜 없음';
+        // 의뢰일시 처리 - 유틸리티 함수 사용
+        const formattedDate = formatDateFromMultipleSources(request).replace(/오전|오후/, '').trim();
         
         // Firebase 상태 확인
         const requestStatus = request.status || '처리중';
@@ -2386,7 +2415,11 @@
     function fillRequestDetailModal(request) {
       // 의뢰 기본 정보
       document.getElementById('modal-request-number').textContent = request.reqNum || request.requestNumber || 'N/A';
-      document.getElementById('modal-request-date').textContent = request.reqDate ? new Date(request.reqDate).toLocaleString('ko-KR') : 'N/A';
+      
+      // 의뢰일시 처리 - 유틸리티 함수 사용
+      const requestDate = formatDateFromMultipleSources(request);
+      document.getElementById('modal-request-date').textContent = requestDate;
+      
       document.getElementById('modal-product-name').textContent = request.productName || request.name || 'N/A';
       document.getElementById('modal-original-price').textContent = request.originalPrice || request.price || 'N/A';
       
@@ -2420,7 +2453,10 @@
       // 관리자 답변 (있는 경우)
       if (request.adminResponse || request.response) {
         document.getElementById('modal-admin-response').classList.remove('hidden');
-        document.getElementById('modal-response-date').textContent = request.responseDate ? new Date(request.responseDate).toLocaleString('ko-KR') : 'N/A';
+        
+        // 답변일시 처리 - 유틸리티 함수 사용
+        const responseDate = formatResponseDateFromMultipleSources(request);
+        document.getElementById('modal-response-date').textContent = responseDate;
         
         // 답변이 구조화된 데이터인지 확인
         if (typeof request.adminResponse === 'object' && request.adminResponse !== null) {

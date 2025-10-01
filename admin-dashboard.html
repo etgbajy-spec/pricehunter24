@@ -1338,9 +1338,8 @@
                     const listItem = document.createElement('li');
                     listItem.className = 'grid grid-cols-8 gap-2 px-4 py-3 hover:bg-pink-100 transition-colors';
                     
-                    const createdAt = request.createdAt ? 
-                        new Date(request.createdAt.seconds * 1000).toLocaleDateString('ko-KR') : 
-                        '날짜 없음';
+                    // 의뢰일시 처리 - 유틸리티 함수 사용
+                    const createdAt = formatDateFromMultipleSources(request).replace(/오전|오후/, '').trim();
                     
                     listItem.innerHTML = `
                         <div class="col-span-1 flex items-center">
@@ -5239,22 +5238,11 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
         function fillAdminRequestDetailModal(request) {
             // 의뢰 기본 정보
             document.getElementById('admin-modal-request-number').textContent = request.reqNum || request.requestNumber || 'N/A';
-            // 의뢰일시 표시 - 여러 필드에서 날짜 찾기
-            let requestDate = 'N/A';
-            if (request.reqDate) {
-                const date = new Date(request.reqDate);
-                requestDate = isNaN(date.getTime()) ? 'N/A' : date.toLocaleString('ko-KR');
-            } else if (request.date) {
-                const date = new Date(request.date);
-                requestDate = isNaN(date.getTime()) ? 'N/A' : date.toLocaleString('ko-KR');
-            } else if (request.createdAt) {
-                const date = new Date(request.createdAt);
-                requestDate = isNaN(date.getTime()) ? 'N/A' : date.toLocaleString('ko-KR');
-            } else if (request.timestamp) {
-                const date = new Date(request.timestamp);
-                requestDate = isNaN(date.getTime()) ? 'N/A' : date.toLocaleString('ko-KR');
-            }
+            
+            // 의뢰일시 처리 - 유틸리티 함수 사용
+            const requestDate = formatDateFromMultipleSources(request);
             document.getElementById('admin-modal-request-date').textContent = requestDate;
+            
             document.getElementById('admin-modal-product-name').textContent = request.productName || request.name || 'N/A';
             document.getElementById('admin-modal-original-price').textContent = request.originalPrice || request.price || 'N/A';
             
@@ -5297,18 +5285,9 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             // 관리자 답변 (있는 경우)
             if (request.adminResponse || request.response) {
                 document.getElementById('admin-modal-admin-response').classList.remove('hidden');
-                // 답변일시 표시 - 여러 필드에서 날짜 찾기
-                let responseDate = 'N/A';
-                if (request.responseDate) {
-                    const date = new Date(request.responseDate);
-                    responseDate = isNaN(date.getTime()) ? 'N/A' : date.toLocaleString('ko-KR');
-                } else if (request.answerDate) {
-                    const date = new Date(request.answerDate);
-                    responseDate = isNaN(date.getTime()) ? 'N/A' : date.toLocaleString('ko-KR');
-                } else if (request.updatedAt) {
-                    const date = new Date(request.updatedAt);
-                    responseDate = isNaN(date.getTime()) ? 'N/A' : date.toLocaleString('ko-KR');
-                }
+                
+                // 답변일시 처리 - 유틸리티 함수 사용
+                const responseDate = formatResponseDateFromMultipleSources(request);
                 document.getElementById('admin-modal-response-date').textContent = responseDate;
                 
                 // 답변이 구조화된 데이터인지 확인
@@ -5392,6 +5371,35 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
         // 전역 변수
         let currentRequestId = null;
         let currentInquiryId = null;
+
+        // 날짜 처리 유틸리티 함수
+        function formatDateFromMultipleSources(data, dateFields = ['reqDate', 'createdAt', 'date']) {
+            for (const field of dateFields) {
+                if (data[field]) {
+                    try {
+                        const dateValue = data[field];
+                        // Firebase Timestamp 객체 처리
+                        if (dateValue.toDate) {
+                            return dateValue.toDate().toLocaleString('ko-KR');
+                        } else if (dateValue.seconds) {
+                            return new Date(dateValue.seconds * 1000).toLocaleString('ko-KR');
+                        } else {
+                            return new Date(dateValue).toLocaleString('ko-KR');
+                        }
+                    } catch (e) {
+                        console.warn(`${field} 파싱 실패:`, data[field]);
+                        continue;
+                    }
+                }
+            }
+            return 'N/A';
+        }
+
+        // 답변일시 처리 유틸리티 함수
+        function formatResponseDateFromMultipleSources(data) {
+            const responseFields = ['responseDateString', 'responseDate', 'lastModified', 'updatedAt'];
+            return formatDateFromMultipleSources(data, responseFields);
+        }
 
         // 기존 답변을 폼에 채우기
         function loadExistingResponseToForm(request) {
@@ -5488,13 +5496,19 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 await waitForFirebase();
                 const { collection, doc, updateDoc, serverTimestamp } = window.firebaseFirestoreFunctions;
                 
+                // 현재 시간을 한국 시간으로 설정
+                const now = new Date();
+                const koreaTime = new Date(now.getTime() + (9 * 60 * 60 * 1000)); // UTC+9
+                
                 // Firebase에서 의뢰 문서 업데이트
                 const requestRef = doc(collection(window.firebaseDb, 'requests'), currentRequestId);
                 await updateDoc(requestRef, {
                     adminResponse: formData,
                     responseDate: serverTimestamp(),
+                    responseDateString: koreaTime.toISOString(), // 추가: 문자열 형태로도 저장
                     status: '답변완료',
-                    lastUpdated: serverTimestamp()
+                    lastUpdated: serverTimestamp(),
+                    lastModified: koreaTime.toISOString() // 추가: 마지막 수정 시간
                 });
 
                 alert('답변이 성공적으로 저장되었습니다.');
@@ -5502,7 +5516,7 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 // 답변 섹션 업데이트
                 document.getElementById('admin-modal-admin-response').classList.remove('hidden');
                 document.getElementById('admin-modal-response-content').innerHTML = formatResponseForDisplay(formData);
-                document.getElementById('admin-modal-response-date').textContent = new Date().toLocaleString('ko-KR');
+                document.getElementById('admin-modal-response-date').textContent = koreaTime.toLocaleString('ko-KR');
                 
                 // 모달의 상태 표시도 업데이트
                 const statusElement = document.getElementById('admin-modal-status');
@@ -5672,19 +5686,7 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
         function fillInquiryDetailModal(inquiry) {
             // 문의 기본 정보
             document.getElementById('inquiry-modal-id').textContent = inquiry.id || 'N/A';
-            // 문의일시 표시 - 여러 필드에서 날짜 찾기
-            let inquiryDate = 'N/A';
-            if (inquiry.date) {
-                const date = new Date(inquiry.date);
-                inquiryDate = isNaN(date.getTime()) ? 'N/A' : date.toLocaleString('ko-KR');
-            } else if (inquiry.createdAt) {
-                const date = new Date(inquiry.createdAt);
-                inquiryDate = isNaN(date.getTime()) ? 'N/A' : date.toLocaleString('ko-KR');
-            } else if (inquiry.timestamp) {
-                const date = new Date(inquiry.timestamp);
-                inquiryDate = isNaN(date.getTime()) ? 'N/A' : date.toLocaleString('ko-KR');
-            }
-            document.getElementById('inquiry-modal-date').textContent = inquiryDate;
+            document.getElementById('inquiry-modal-date').textContent = inquiry.date ? new Date(inquiry.date).toLocaleString('ko-KR') : 'N/A';
             document.getElementById('inquiry-modal-subject').textContent = inquiry.subject || 'N/A';
             document.getElementById('inquiry-modal-message').textContent = inquiry.message || 'N/A';
             
@@ -5709,19 +5711,10 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             // 관리자 답변 (있는 경우)
             if (inquiry.adminResponse || inquiry.response) {
                 document.getElementById('inquiry-modal-admin-response').classList.remove('hidden');
-                // 문의 답변일시 표시 - 여러 필드에서 날짜 찾기
-                let inquiryResponseDate = 'N/A';
-                if (inquiry.responseDate) {
-                    const date = new Date(inquiry.responseDate);
-                    inquiryResponseDate = isNaN(date.getTime()) ? 'N/A' : date.toLocaleString('ko-KR');
-                } else if (inquiry.answerDate) {
-                    const date = new Date(inquiry.answerDate);
-                    inquiryResponseDate = isNaN(date.getTime()) ? 'N/A' : date.toLocaleString('ko-KR');
-                } else if (inquiry.updatedAt) {
-                    const date = new Date(inquiry.updatedAt);
-                    inquiryResponseDate = isNaN(date.getTime()) ? 'N/A' : date.toLocaleString('ko-KR');
-                }
-                document.getElementById('inquiry-modal-response-date').textContent = inquiryResponseDate;
+                
+                // 답변일시 처리 - 유틸리티 함수 사용
+                const responseDate = formatResponseDateFromMultipleSources(inquiry);
+                document.getElementById('inquiry-modal-response-date').textContent = responseDate;
                 
                 // 답변이 구조화된 데이터인지 확인
                 if (typeof inquiry.adminResponse === 'object' && inquiry.adminResponse !== null) {
@@ -5866,13 +5859,19 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 await waitForFirebase();
                 const { collection, doc, updateDoc, serverTimestamp } = window.firebaseFirestoreFunctions;
                 
+                // 현재 시간을 한국 시간으로 설정
+                const now = new Date();
+                const koreaTime = new Date(now.getTime() + (9 * 60 * 60 * 1000)); // UTC+9
+                
                 // Firebase에서 문의 문서 업데이트
                 const inquiryRef = doc(collection(window.firebaseDb, 'inquiries'), currentInquiryId);
                 await updateDoc(inquiryRef, {
                     adminResponse: formData,
                     responseDate: serverTimestamp(),
+                    responseDateString: koreaTime.toISOString(), // 추가: 문자열 형태로도 저장
                     status: '답변완료',
-                    lastUpdated: serverTimestamp()
+                    lastUpdated: serverTimestamp(),
+                    lastModified: koreaTime.toISOString() // 추가: 마지막 수정 시간
                 });
 
                 alert('답변이 성공적으로 저장되었습니다.');
@@ -5880,7 +5879,7 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 // 답변 섹션 업데이트
                 document.getElementById('inquiry-modal-admin-response').classList.remove('hidden');
                 document.getElementById('inquiry-modal-response-content').innerHTML = formatInquiryResponseForDisplay(formData);
-                document.getElementById('inquiry-modal-response-date').textContent = new Date().toLocaleString('ko-KR');
+                document.getElementById('inquiry-modal-response-date').textContent = koreaTime.toLocaleString('ko-KR');
                 
                 // 모달의 상태 표시도 업데이트
                 const statusElement = document.getElementById('inquiry-modal-status');
