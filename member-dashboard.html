@@ -714,28 +714,23 @@
         }
 
         await waitForFirebase();
-        const { collection, query, where, getDocs } = window.firebaseFirestoreFunctions;
         const db = window.firebaseDb;
         
-        // Firebase에서 해당 사용자의 의뢰 데이터 조회
+        // Firebase에서 해당 사용자의 의뢰 데이터 조회 (compat 버전)
         console.log('🔍 사용자 이메일로 의뢰 데이터 조회:', userEmail);
         
         let querySnapshot;
         try {
-          // where 쿼리로 직접 필터링
-          const requestsQuery = query(
-            collection(db, 'requests'),
-            where('email', '==', userEmail)
-          );
-          
-          querySnapshot = await getDocs(requestsQuery);
+          // where 쿼리로 직접 필터링 (compat 버전)
+          querySnapshot = await db.collection('requests')
+            .where('email', '==', userEmail)
+            .get();
           console.log('🔍 쿼리 결과:', querySnapshot.size, '개 문서 발견');
         } catch (queryError) {
           console.warn('⚠️ where 쿼리 실패, 모든 데이터를 가져와서 필터링:', queryError);
           
           // 쿼리 실패시 모든 데이터를 가져와서 클라이언트에서 필터링
-          const allRequestsQuery = query(collection(db, 'requests'));
-          querySnapshot = await getDocs(allRequestsQuery);
+          querySnapshot = await db.collection('requests').get();
           console.log('🔍 전체 의뢰 데이터:', querySnapshot.size, '개 문서 발견');
         }
         
@@ -800,28 +795,23 @@
         }
 
         await waitForFirebase();
-        const { collection, query, where, getDocs } = window.firebaseFirestoreFunctions;
         const db = window.firebaseDb;
         
-        // Firebase에서 해당 사용자의 문의 데이터 조회
+        // Firebase에서 해당 사용자의 문의 데이터 조회 (compat 버전)
         console.log('🔍 사용자 이메일로 문의 데이터 조회:', userEmail);
         
         let querySnapshot;
         try {
-          // where 쿼리로 직접 필터링
-          const inquiriesQuery = query(
-            collection(db, 'inquiries'),
-            where('email', '==', userEmail)
-          );
-          
-          querySnapshot = await getDocs(inquiriesQuery);
+          // where 쿼리로 직접 필터링 (compat 버전)
+          querySnapshot = await db.collection('inquiries')
+            .where('email', '==', userEmail)
+            .get();
           console.log('🔍 문의 쿼리 결과:', querySnapshot.size, '개 문서 발견');
         } catch (queryError) {
           console.warn('⚠️ 문의 where 쿼리 실패, 모든 데이터를 가져와서 필터링:', queryError);
           
           // 쿼리 실패시 모든 데이터를 가져와서 클라이언트에서 필터링
-          const allInquiriesQuery = query(collection(db, 'inquiries'));
-          querySnapshot = await getDocs(allInquiriesQuery);
+          querySnapshot = await db.collection('inquiries').get();
           console.log('🔍 전체 문의 데이터:', querySnapshot.size, '개 문서 발견');
         }
         
