@@ -5239,7 +5239,22 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
         function fillAdminRequestDetailModal(request) {
             // 의뢰 기본 정보
             document.getElementById('admin-modal-request-number').textContent = request.reqNum || request.requestNumber || 'N/A';
-            document.getElementById('admin-modal-request-date').textContent = request.reqDate ? new Date(request.reqDate).toLocaleString('ko-KR') : 'N/A';
+            // 의뢰일시 표시 - 여러 필드에서 날짜 찾기
+            let requestDate = 'N/A';
+            if (request.reqDate) {
+                const date = new Date(request.reqDate);
+                requestDate = isNaN(date.getTime()) ? 'N/A' : date.toLocaleString('ko-KR');
+            } else if (request.date) {
+                const date = new Date(request.date);
+                requestDate = isNaN(date.getTime()) ? 'N/A' : date.toLocaleString('ko-KR');
+            } else if (request.createdAt) {
+                const date = new Date(request.createdAt);
+                requestDate = isNaN(date.getTime()) ? 'N/A' : date.toLocaleString('ko-KR');
+            } else if (request.timestamp) {
+                const date = new Date(request.timestamp);
+                requestDate = isNaN(date.getTime()) ? 'N/A' : date.toLocaleString('ko-KR');
+            }
+            document.getElementById('admin-modal-request-date').textContent = requestDate;
             document.getElementById('admin-modal-product-name').textContent = request.productName || request.name || 'N/A';
             document.getElementById('admin-modal-original-price').textContent = request.originalPrice || request.price || 'N/A';
             
@@ -5282,7 +5297,19 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             // 관리자 답변 (있는 경우)
             if (request.adminResponse || request.response) {
                 document.getElementById('admin-modal-admin-response').classList.remove('hidden');
-                document.getElementById('admin-modal-response-date').textContent = request.responseDate ? new Date(request.responseDate).toLocaleString('ko-KR') : 'N/A';
+                // 답변일시 표시 - 여러 필드에서 날짜 찾기
+                let responseDate = 'N/A';
+                if (request.responseDate) {
+                    const date = new Date(request.responseDate);
+                    responseDate = isNaN(date.getTime()) ? 'N/A' : date.toLocaleString('ko-KR');
+                } else if (request.answerDate) {
+                    const date = new Date(request.answerDate);
+                    responseDate = isNaN(date.getTime()) ? 'N/A' : date.toLocaleString('ko-KR');
+                } else if (request.updatedAt) {
+                    const date = new Date(request.updatedAt);
+                    responseDate = isNaN(date.getTime()) ? 'N/A' : date.toLocaleString('ko-KR');
+                }
+                document.getElementById('admin-modal-response-date').textContent = responseDate;
                 
                 // 답변이 구조화된 데이터인지 확인
                 if (typeof request.adminResponse === 'object' && request.adminResponse !== null) {
@@ -5645,7 +5672,19 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
         function fillInquiryDetailModal(inquiry) {
             // 문의 기본 정보
             document.getElementById('inquiry-modal-id').textContent = inquiry.id || 'N/A';
-            document.getElementById('inquiry-modal-date').textContent = inquiry.date ? new Date(inquiry.date).toLocaleString('ko-KR') : 'N/A';
+            // 문의일시 표시 - 여러 필드에서 날짜 찾기
+            let inquiryDate = 'N/A';
+            if (inquiry.date) {
+                const date = new Date(inquiry.date);
+                inquiryDate = isNaN(date.getTime()) ? 'N/A' : date.toLocaleString('ko-KR');
+            } else if (inquiry.createdAt) {
+                const date = new Date(inquiry.createdAt);
+                inquiryDate = isNaN(date.getTime()) ? 'N/A' : date.toLocaleString('ko-KR');
+            } else if (inquiry.timestamp) {
+                const date = new Date(inquiry.timestamp);
+                inquiryDate = isNaN(date.getTime()) ? 'N/A' : date.toLocaleString('ko-KR');
+            }
+            document.getElementById('inquiry-modal-date').textContent = inquiryDate;
             document.getElementById('inquiry-modal-subject').textContent = inquiry.subject || 'N/A';
             document.getElementById('inquiry-modal-message').textContent = inquiry.message || 'N/A';
             
@@ -5670,7 +5709,19 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             // 관리자 답변 (있는 경우)
             if (inquiry.adminResponse || inquiry.response) {
                 document.getElementById('inquiry-modal-admin-response').classList.remove('hidden');
-                document.getElementById('inquiry-modal-response-date').textContent = inquiry.responseDate ? new Date(inquiry.responseDate).toLocaleString('ko-KR') : 'N/A';
+                // 문의 답변일시 표시 - 여러 필드에서 날짜 찾기
+                let inquiryResponseDate = 'N/A';
+                if (inquiry.responseDate) {
+                    const date = new Date(inquiry.responseDate);
+                    inquiryResponseDate = isNaN(date.getTime()) ? 'N/A' : date.toLocaleString('ko-KR');
+                } else if (inquiry.answerDate) {
+                    const date = new Date(inquiry.answerDate);
+                    inquiryResponseDate = isNaN(date.getTime()) ? 'N/A' : date.toLocaleString('ko-KR');
+                } else if (inquiry.updatedAt) {
+                    const date = new Date(inquiry.updatedAt);
+                    inquiryResponseDate = isNaN(date.getTime()) ? 'N/A' : date.toLocaleString('ko-KR');
+                }
+                document.getElementById('inquiry-modal-response-date').textContent = inquiryResponseDate;
                 
                 // 답변이 구조화된 데이터인지 확인
                 if (typeof inquiry.adminResponse === 'object' && inquiry.adminResponse !== null) {
