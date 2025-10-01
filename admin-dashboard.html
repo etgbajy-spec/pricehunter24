@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
     <!-- Content Security Policy - Firebase iframe 허용 -->
-    <meta http-equiv="Content-Security-Policy" content="frame-src 'self' https://www.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com https://apis.google.com https://accounts.google.com https://firebaseapp.com; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com https://*.gstatic.com https://firebasejs.com https://images.unsplash.com https://*.unsplash.com https://apis.google.com https://*.firebasejs.com https://accounts.google.com https://www.gstatic.com/firebasejs/9.23.0/; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://www.gstatic.com https://*.gstatic.com https://firebasejs.com https://apis.google.com; img-src 'self' data: https: http: blob:;" />
+    <meta http-equiv="Content-Security-Policy" content="frame-src 'self' https://www.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com https://apis.google.com https://accounts.google.com; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com https://*.gstatic.com https://firebasejs.com https://images.unsplash.com https://*.unsplash.com https://apis.google.com https://*.firebasejs.com https://accounts.google.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://www.gstatic.com https://*.gstatic.com https://firebasejs.com https://apis.google.com; img-src 'self' data: https: http: blob:;" />
     
     <title>관리자 대시보드 - PriceHunter</title>
     
@@ -83,32 +83,13 @@
             }
         }
         
-        // Tailwind CSS 동적 로딩 (프로덕션 경고 억제)
+        // Tailwind CSS 동적 로딩
         function loadTailwindCSS() {
             return new Promise((resolve, reject) => {
                 const script = document.createElement('script');
                 script.src = 'https://cdn.tailwindcss.com';
                 script.onload = () => {
-                    // 프로덕션 경고 억제
-                    if (typeof tailwind !== 'undefined') {
-                        tailwind.config = {
-                            theme: {
-                                extend: {}
-                            },
-                            corePlugins: {
-                                preflight: false
-                            }
-                        };
-                        // 콘솔 경고 억제
-                        const originalWarn = console.warn;
-                        console.warn = function(message) {
-                            if (typeof message === 'string' && message.includes('cdn.tailwindcss.com should not be used in production')) {
-                                return; // 이 경고는 무시
-                            }
-                            originalWarn.apply(console, arguments);
-                        };
-                    }
-                    console.log('✅ Tailwind CSS 로드됨 (프로덕션 경고 억제됨)');
+                    console.log('✅ Tailwind CSS 로드됨 (개발용 CDN)');
                     resolve();
                 };
                 script.onerror = (error) => {
@@ -381,11 +362,8 @@
             
             try {
                 console.log('🔥 로그인 시도:', email);
-                
-                // Firebase v9 모듈에서 함수 가져오기
-                const { signInWithEmailAndPassword, signOut } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js');
-                
-                // 로그인 시도
+                // Firebase v9에서는 signInWithEmailAndPassword를 직접 import해야 함
+                const { signInWithEmailAndPassword } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js');
                 const userCredential = await signInWithEmailAndPassword(window.firebaseAuth, email, password);
                 console.log('✅ 로그인 성공:', userCredential.user.email);
                 
@@ -394,6 +372,7 @@
                 if (!isAdmin) {
                     alert('관리자 권한이 없습니다. 관리자 계정으로 로그인해주세요.');
                     // 로그아웃
+                    const { signOut } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js');
                     await signOut(window.firebaseAuth);
                     return;
                 }
@@ -430,10 +409,10 @@
                         errorMessage = '너무 많은 로그인 시도가 있었습니다. 잠시 후 다시 시도해주세요.';
                         break;
                     default:
-                        errorMessage = error.message || '알 수 없는 오류가 발생했습니다.';
+                        errorMessage = error.message;
                 }
                 
-                alert(errorMessage);
+                alert('로그인에 실패했습니다. 다시 시도해주세요.');
             }
         };
         
@@ -6943,11 +6922,8 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
         };
 
         // 절약왕 관리 기능
-        function loadSavingsKingData() {
+        async function loadSavingsKingData() {
             console.log('🏆 절약왕 데이터 로드 시작');
-            
-            // localStorage에서 절약왕 데이터 로드
-            const savingsKingData = JSON.parse(localStorage.getItem('savingsKingData') || '{}');
             
             // 기본값 설정
             const defaultData = {
@@ -6957,7 +6933,32 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 rate: 42
             };
             
-            const data = { ...defaultData, ...savingsKingData };
+            let data = { ...defaultData };
+            
+            try {
+                // Firebase에서 데이터 로드 시도
+                if (window.firebaseDb) {
+                    const { collection, doc, getDoc } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js');
+                    
+                    const savingsKingRef = doc(collection(window.firebaseDb, 'adminSettings'), 'savingsKing');
+                    const docSnap = await getDoc(savingsKingRef);
+                    
+                    if (docSnap.exists()) {
+                        const firebaseData = docSnap.data();
+                        data = { ...defaultData, ...firebaseData };
+                        console.log('✅ Firebase에서 절약왕 데이터 로드 성공:', data);
+                    } else {
+                        console.log('⚠️ Firebase에 절약왕 데이터가 없음, 기본값 사용');
+                    }
+                }
+            } catch (error) {
+                console.error('❌ Firebase에서 절약왕 데이터 로드 실패:', error);
+                
+                // Firebase 실패 시 localStorage에서 로드
+                const savingsKingData = JSON.parse(localStorage.getItem('savingsKingData') || '{}');
+                data = { ...defaultData, ...savingsKingData };
+                console.log('📱 localStorage에서 절약왕 데이터 로드:', data);
+            }
             
             // 폼에 데이터 설정
             document.getElementById('savings-king-image').value = data.image;
@@ -6971,7 +6972,7 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             console.log('✅ 절약왕 데이터 로드 완료:', data);
         }
 
-        function saveSavingsKing() {
+        async function saveSavingsKing() {
             console.log('💾 절약왕 데이터 저장 시작');
             
             // 폼 데이터 수집
@@ -6998,16 +6999,36 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 return;
             }
             
-            // localStorage에 저장
-            localStorage.setItem('savingsKingData', JSON.stringify(data));
-            
-            // 미리보기 업데이트
-            updateSavingsKingPreview();
-            
-            // 성공 메시지
-            alert('✅ 절약왕 정보가 저장되었습니다!');
-            
-            console.log('✅ 절약왕 데이터 저장 완료:', data);
+            try {
+                // Firebase에 저장
+                if (window.firebaseDb) {
+                    const { collection, doc, setDoc, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js');
+                    
+                    const savingsKingRef = doc(collection(window.firebaseDb, 'adminSettings'), 'savingsKing');
+                    await setDoc(savingsKingRef, {
+                        ...data,
+                        updatedAt: serverTimestamp(),
+                        updatedBy: 'admin'
+                    }, { merge: true });
+                    
+                    console.log('✅ Firebase에 절약왕 데이터 저장 완료');
+                }
+                
+                // localStorage에도 저장 (백업용)
+                localStorage.setItem('savingsKingData', JSON.stringify(data));
+                
+                // 미리보기 업데이트
+                updateSavingsKingPreview();
+                
+                // 성공 메시지
+                alert('✅ 절약왕 정보가 저장되었습니다!');
+                
+                console.log('✅ 절약왕 데이터 저장 완료:', data);
+                
+            } catch (error) {
+                console.error('❌ 절약왕 데이터 저장 실패:', error);
+                alert('❌ 저장에 실패했습니다. 다시 시도해주세요.');
+            }
         }
 
         function updateSavingsKingPreview() {

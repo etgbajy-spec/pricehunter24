@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
   <!-- Content Security Policy - Firebase iframe 허용 -->
-  <meta http-equiv="Content-Security-Policy" content="frame-src 'self' https://www.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com https://firebaseapp.com https://apis.google.com;" />
+  <meta http-equiv="Content-Security-Policy" content="frame-src 'self' https://www.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com;" />
   
   <title>회원 대시보드 - PriceHunter</title>
   
@@ -570,35 +570,6 @@
   <script>
     // 전역 변수
     let currentReqKey = null;
-
-    // 날짜 처리 유틸리티 함수
-    function formatDateFromMultipleSources(data, dateFields = ['reqDate', 'createdAt', 'date']) {
-      for (const field of dateFields) {
-        if (data[field]) {
-          try {
-            const dateValue = data[field];
-            // Firebase Timestamp 객체 처리
-            if (dateValue.toDate) {
-              return dateValue.toDate().toLocaleString('ko-KR');
-            } else if (dateValue.seconds) {
-              return new Date(dateValue.seconds * 1000).toLocaleString('ko-KR');
-            } else {
-              return new Date(dateValue).toLocaleString('ko-KR');
-            }
-          } catch (e) {
-            console.warn(`${field} 파싱 실패:`, data[field]);
-            continue;
-          }
-        }
-      }
-      return 'N/A';
-    }
-
-    // 답변일시 처리 유틸리티 함수
-    function formatResponseDateFromMultipleSources(data) {
-      const responseFields = ['responseDateString', 'responseDate', 'lastModified', 'updatedAt'];
-      return formatDateFromMultipleSources(data, responseFields);
-    }
     let currentDisplayedReq = null;
     let fileData = '';
 
@@ -774,7 +745,6 @@
               id: doc.id,
               ...data
             });
-            console.log('✅ 의뢰 데이터 추가됨:', data.reqNum || data.requestNumber);
           }
         });
         
@@ -787,25 +757,6 @@
         
         console.log(`✅ Firebase에서 의뢰 데이터 ${requests.length}개 가져옴`);
         console.log('📊 의뢰 데이터 상세:', requests);
-        
-        // 디버깅을 위해 전체 데이터도 로그로 출력
-        if (requests.length === 0) {
-          console.log('🔍 디버깅: Firebase 전체 의뢰 데이터 확인...');
-          const allRequestsQuery = query(collection(db, 'requests'));
-          const allSnapshot = await getDocs(allRequestsQuery);
-          console.log('🔍 전체 의뢰 문서 수:', allSnapshot.size);
-          allSnapshot.forEach((doc) => {
-            const data = doc.data();
-            console.log('📄 전체 데이터 샘플:', {
-              id: doc.id,
-              email: data.email,
-              name: data.name || data.userName,
-              reqNum: data.reqNum || data.requestNumber,
-              createdAt: data.createdAt
-            });
-          });
-        }
-        
         return requests;
       } catch (error) {
         console.error('❌ Firebase에서 의뢰 데이터 가져오기 실패:', error);
@@ -927,10 +878,10 @@
         // Firebase 데이터와 로컬스토리지 데이터 구조 통합 처리
         const reqNum = request.reqNum || request.requestNumber || request.data?.reqNum;
         const userName = request.userName || request.name || request.data?.userName;
+        const reqDate = request.reqDate || request.createdAt || request.data?.reqDate;
         const productName = request.productName || request.name || request.data?.productName;
         
-        // 의뢰일시 처리 - 유틸리티 함수 사용
-        const formattedDate = formatDateFromMultipleSources(request).replace(/오전|오후/, '').trim();
+        const formattedDate = reqDate ? new Date(reqDate).toLocaleDateString('ko-KR') : '날짜 없음';
         
         // Firebase 상태 확인
         const requestStatus = request.status || '처리중';
@@ -2435,11 +2386,7 @@
     function fillRequestDetailModal(request) {
       // 의뢰 기본 정보
       document.getElementById('modal-request-number').textContent = request.reqNum || request.requestNumber || 'N/A';
-      
-      // 의뢰일시 처리 - 유틸리티 함수 사용
-      const requestDate = formatDateFromMultipleSources(request);
-      document.getElementById('modal-request-date').textContent = requestDate;
-      
+      document.getElementById('modal-request-date').textContent = request.reqDate ? new Date(request.reqDate).toLocaleString('ko-KR') : 'N/A';
       document.getElementById('modal-product-name').textContent = request.productName || request.name || 'N/A';
       document.getElementById('modal-original-price').textContent = request.originalPrice || request.price || 'N/A';
       
@@ -2473,10 +2420,7 @@
       // 관리자 답변 (있는 경우)
       if (request.adminResponse || request.response) {
         document.getElementById('modal-admin-response').classList.remove('hidden');
-        
-        // 답변일시 처리 - 유틸리티 함수 사용
-        const responseDate = formatResponseDateFromMultipleSources(request);
-        document.getElementById('modal-response-date').textContent = responseDate;
+        document.getElementById('modal-response-date').textContent = request.responseDate ? new Date(request.responseDate).toLocaleString('ko-KR') : 'N/A';
         
         // 답변이 구조화된 데이터인지 확인
         if (typeof request.adminResponse === 'object' && request.adminResponse !== null) {
