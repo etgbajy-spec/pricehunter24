@@ -689,34 +689,40 @@
       }
     }
 
-    // Firebase에서 의뢰 데이터 가져오기
+    // 캐시 시스템 추가
+    let requestsCache = new Map();
+    let requestsCacheTimestamp = 0;
+    const REQUESTS_CACHE_DURATION = 2 * 60 * 1000; // 2분 캐시
+
+    // Firebase에서 의뢰 데이터 가져오기 (성능 최적화)
     async function getRequestsFromFirebase() {
       try {
-        await waitForFirebase();
-        const { collection, query, where, orderBy, getDocs } = window.firebaseFirestoreFunctions;
-        const db = window.firebaseDb;
-        
         // 현재 사용자 이메일 가져오기
         const userEmail = getUserEmail();
         console.log('🔍 최종 사용자 이메일:', userEmail);
         
         if (!userEmail) {
           console.log('❌ 사용자 이메일을 찾을 수 없어서 Firebase에서 의뢰 데이터를 가져올 수 없습니다.');
-          console.log('🔍 localStorage 상태:', {
-            loggedInEmail: localStorage.getItem('loggedInEmail'),
-            currentUser: localStorage.getItem('currentUser'),
-            user: localStorage.getItem('user'),
-            loggedIn: localStorage.getItem('loggedIn')
-          });
           return [];
         }
+
+        // 캐시 확인
+        const now = Date.now();
+        if (requestsCache.has(userEmail) && (now - requestsCacheTimestamp) < REQUESTS_CACHE_DURATION) {
+          console.log('📊 캐시된 의뢰 데이터 사용:', userEmail);
+          return requestsCache.get(userEmail);
+        }
+
+        await waitForFirebase();
+        const { collection, query, where, getDocs } = window.firebaseFirestoreFunctions;
+        const db = window.firebaseDb;
         
         // Firebase에서 해당 사용자의 의뢰 데이터 조회
         console.log('🔍 사용자 이메일로 의뢰 데이터 조회:', userEmail);
         
         let querySnapshot;
         try {
-          // 먼저 orderBy 없이 조회해보기
+          // where 쿼리로 직접 필터링
           const requestsQuery = query(
             collection(db, 'requests'),
             where('email', '==', userEmail)
@@ -737,7 +743,6 @@
         
         querySnapshot.forEach((doc) => {
           const data = doc.data();
-          console.log('📄 문서 데이터:', doc.id, data.email, 'vs', userEmail);
           
           // 이메일이 일치하는 경우만 추가
           if (data.email === userEmail) {
@@ -755,8 +760,11 @@
           return bTime - aTime;
         });
         
-        console.log(`✅ Firebase에서 의뢰 데이터 ${requests.length}개 가져옴`);
-        console.log('📊 의뢰 데이터 상세:', requests);
+        // 캐시에 저장
+        requestsCache.set(userEmail, requests);
+        requestsCacheTimestamp = now;
+        
+        console.log(`✅ Firebase에서 의뢰 데이터 ${requests.length}개 가져옴 (캐시됨)`);
         return requests;
       } catch (error) {
         console.error('❌ Firebase에서 의뢰 데이터 가져오기 실패:', error);
@@ -768,13 +776,14 @@
       }
     }
     
-    // Firebase에서 문의 데이터 가져오기
+    // 문의 데이터 캐시 시스템
+    let inquiriesCache = new Map();
+    let inquiriesCacheTimestamp = 0;
+    const INQUIRIES_CACHE_DURATION = 2 * 60 * 1000; // 2분 캐시
+
+    // Firebase에서 문의 데이터 가져오기 (성능 최적화)
     async function getInquiriesFromFirebase() {
       try {
-        await waitForFirebase();
-        const { collection, query, where, orderBy, getDocs } = window.firebaseFirestoreFunctions;
-        const db = window.firebaseDb;
-        
         // 현재 사용자 이메일 가져오기
         const userEmail = getUserEmail();
         
@@ -782,13 +791,24 @@
           console.log('❌ 사용자 이메일을 찾을 수 없어서 Firebase에서 문의 데이터를 가져올 수 없습니다.');
           return [];
         }
+
+        // 캐시 확인
+        const now = Date.now();
+        if (inquiriesCache.has(userEmail) && (now - inquiriesCacheTimestamp) < INQUIRIES_CACHE_DURATION) {
+          console.log('📊 캐시된 문의 데이터 사용:', userEmail);
+          return inquiriesCache.get(userEmail);
+        }
+
+        await waitForFirebase();
+        const { collection, query, where, getDocs } = window.firebaseFirestoreFunctions;
+        const db = window.firebaseDb;
         
         // Firebase에서 해당 사용자의 문의 데이터 조회
         console.log('🔍 사용자 이메일로 문의 데이터 조회:', userEmail);
         
         let querySnapshot;
         try {
-          // 먼저 orderBy 없이 조회해보기
+          // where 쿼리로 직접 필터링
           const inquiriesQuery = query(
             collection(db, 'inquiries'),
             where('email', '==', userEmail)
@@ -804,11 +824,11 @@
           querySnapshot = await getDocs(allInquiriesQuery);
           console.log('🔍 전체 문의 데이터:', querySnapshot.size, '개 문서 발견');
         }
+        
         const inquiries = [];
         
         querySnapshot.forEach((doc) => {
           const data = doc.data();
-          console.log('📄 문의 문서 데이터:', doc.id, data.email, 'vs', userEmail);
           
           // 이메일이 일치하는 경우만 추가
           if (data.email === userEmail) {
@@ -826,7 +846,11 @@
           return bTime - aTime;
         });
         
-        console.log(`✅ Firebase에서 문의 데이터 ${inquiries.length}개 가져옴`);
+        // 캐시에 저장
+        inquiriesCache.set(userEmail, inquiries);
+        inquiriesCacheTimestamp = now;
+        
+        console.log(`✅ Firebase에서 문의 데이터 ${inquiries.length}개 가져옴 (캐시됨)`);
         return inquiries;
       } catch (error) {
         console.error('❌ Firebase에서 문의 데이터 가져오기 실패:', error);

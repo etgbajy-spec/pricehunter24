@@ -987,6 +987,12 @@
       // Firebase 준비 상태 확인
       function waitForFirebase() {
         return new Promise((resolve, reject) => {
+          // 이미 초기화된 경우 즉시 반환
+          if (isFirebaseReady && window.firebaseAuth && window.firebaseDb && window.firebaseFirestoreFunctions) {
+            resolve();
+            return;
+          }
+
           console.log('🔄 Firebase 초기화 상태 확인:', {
             firebaseAuth: !!window.firebaseAuth,
             firebaseDb: !!window.firebaseDb,
@@ -1005,14 +1011,14 @@
                 console.log('✅ Firebase 초기화 완료');
                 resolve();
               }
-            }, 100);
+            }, 50); // 100ms -> 50ms로 단축
             
-            // 10초 후 타임아웃
+            // 5초 타임아웃 (10초 -> 5초로 단축)
             setTimeout(() => {
               clearInterval(checkInterval);
               console.error('❌ Firebase 초기화 타임아웃');
               reject(new Error('Firebase 초기화 실패'));
-            }, 10000);
+            }, 5000);
           }
         });
       }
@@ -2364,9 +2370,20 @@
           resultDiv.classList.remove('hidden');
         };
 
-        // 사용자 데이터 동기화 함수 (개선된 버전)
+        // 사용자 데이터 동기화 함수 (성능 최적화 버전)
+        let userCache = new Map();
+        let cacheTimestamp = 0;
+        const CACHE_DURATION = 5 * 60 * 1000; // 5분 캐시
+
         async function getUsersFromFirebase() {
           try {
+            // 캐시 확인
+            const now = Date.now();
+            if (userCache.size > 0 && (now - cacheTimestamp) < CACHE_DURATION) {
+              console.log('📊 캐시된 사용자 데이터 사용:', userCache.size, '명');
+              return Array.from(userCache.values());
+            }
+
             console.log('🔄 사용자 데이터 동기화 시작...');
             
             // Firebase 데이터 가져오기
@@ -2380,14 +2397,21 @@
                 const snapshot = await getDocs(usersRef);
                 console.log('📊 Firebase 쿼리 성공, 문서 수:', snapshot.size);
                 
+                // 캐시 초기화
+                userCache.clear();
+                
                 snapshot.forEach(doc => {
                   const userData = doc.data();
-                  firebaseUsers.push({
+                  const user = {
                     id: doc.id,
                     ...userData
-                  });
+                  };
+                  firebaseUsers.push(user);
+                  userCache.set(user.email, user); // 이메일로 캐시
                 });
-                console.log('📊 Firebase에서 가져온 사용자:', firebaseUsers.length, '명');
+                
+                cacheTimestamp = now;
+                console.log('📊 Firebase에서 가져온 사용자:', firebaseUsers.length, '명 (캐시됨)');
               } catch (error) {
                 console.error('❌ Firebase 사용자 데이터 가져오기 실패:', error);
                 console.error('❌ 오류 상세:', error.message);
@@ -2427,6 +2451,53 @@
           }
         }
 
+        // 특정 이메일로 사용자 찾기 (성능 최적화)
+        async function findUserByEmail(email) {
+          try {
+            // 캐시에서 먼저 확인
+            if (userCache.has(email)) {
+              console.log('📊 캐시에서 사용자 찾음:', email);
+              return userCache.get(email);
+            }
+
+            // Firebase에서 직접 쿼리
+            if (window.firebaseDb && window.firebaseFirestoreFunctions) {
+              try {
+                const { collection, query, where, getDocs } = window.firebaseFirestoreFunctions;
+                const usersRef = collection(window.firebaseDb, 'users');
+                const q = query(usersRef, where('email', '==', email));
+                
+                console.log('🔍 Firebase에서 특정 사용자 쿼리:', email);
+                const snapshot = await getDocs(q);
+                
+                if (!snapshot.empty) {
+                  const doc = snapshot.docs[0];
+                  const userData = doc.data();
+                  const user = {
+                    id: doc.id,
+                    ...userData
+                  };
+                  
+                  // 캐시에 저장
+                  userCache.set(email, user);
+                  console.log('📊 Firebase에서 사용자 찾음 및 캐시됨:', email);
+                  return user;
+                }
+              } catch (error) {
+                console.error('❌ Firebase 특정 사용자 쿼리 실패:', error);
+              }
+            }
+
+            // 캐시가 없고 Firebase 쿼리도 실패한 경우 전체 데이터 가져오기
+            console.log('🔄 전체 사용자 데이터로 폴백...');
+            const allUsers = await getUsersFromFirebase();
+            return allUsers.find(u => u.email === email);
+          } catch (error) {
+            console.error('❌ 사용자 찾기 실패:', error);
+            return null;
+          }
+        }
+
         // 로그인 폼 제출
         document.getElementById('login-form').onsubmit = async function(e) {
           e.preventDefault();
@@ -2445,14 +2516,9 @@
             return;
           }
           
-          // Firebase에서 사용자 데이터 검색
-          const allUsers = await getUsersFromFirebase();
+          // Firebase에서 특정 사용자 검색 (성능 최적화)
           console.log('🔍 로그인 시도 - 검색할 이메일:', email);
-          console.log('📊 전체 사용자 수:', allUsers.length);
-          console.log('📋 사용자 목록:', allUsers.map(u => ({ email: u.email, name: u.name || u.displayName })));
-          
-          // 비밀번호가 없는 사용자도 찾을 수 있도록 수정
-          let user = allUsers.find(u => u.email === email);
+          const user = await findUserByEmail(email);
           console.log('👤 찾은 사용자:', user ? '찾음' : '없음');
           
           // 비밀번호 검증
