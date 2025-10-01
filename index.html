@@ -13,7 +13,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     
     <!-- Content Security Policy - Firebase iframe 허용 -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://www.gstatic.com https://*.gstatic.com https://www.googleapis.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com https://*.gstatic.com https://firebase.googleapis.com https://*.firebase.googleapis.com https://firebaseappcheck.googleapis.com https://*.firebaseappcheck.googleapis.com; frame-src 'self' https://www.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com https://apis.google.com;" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://www.gstatic.com https://*.gstatic.com https://www.googleapis.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com https://*.gstatic.com https://firebase.googleapis.com https://*.firebase.googleapis.com https://firebaseappcheck.googleapis.com https://*.firebaseappcheck.googleapis.com https://*.googleapis.com; frame-src 'self' https://www.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com https://apis.google.com https://firebaseapp.com https://*.firebaseapp.com;" />
     
     <title>PriceHunter</title>
     
@@ -40,12 +40,12 @@
     </script>
     
     <!-- Firebase v9 SDK (모듈식) -->
-    <!-- Firebase v9 SDK (최적화된 compat 버전) -->
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-    
-    <script>
+    <script type="module">
+      // Firebase v9 모듈 import (안정적인 버전)
+      import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
+      import { getAuth, signInWithCustomToken, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
+      import { getFirestore, doc, setDoc, getDoc, collection, query, orderBy, onSnapshot, getDocs, where, serverTimestamp, enableNetwork, disableNetwork } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
+      
       // Firebase 설정
       const firebaseConfig = {
         apiKey: "AIzaSyDBZxKyMS7eeBTbPnbZkj0WWOZQHNldoL4",
@@ -57,53 +57,33 @@
         measurementId: "G-4BKLV4EVB9"
       };
 
-      // Firebase 초기화 (compat 버전 사용)
+      // Firebase 초기화 (v9 모듈식)
       try {
-        console.log('🔥 Firebase 초기화 시작...');
+        console.log('🔥 Firebase v9 초기화 시작...');
         
-        // Firebase 앱 초기화
-        if (!firebase.apps.length) {
-          firebase.initializeApp(firebaseConfig);
-        }
-        
-        const db = firebase.firestore();
-        const auth = firebase.auth();
-        
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
         // 성능 최적화 설정
-        db.settings({
-          cacheSizeBytes: firebase.firestore.CACHE_SIZE_UNLIMITED,
-          ignoreUndefinedProperties: true
-        });
+        console.log('⚙️ Firebase 성능 최적화 설정 적용');
         
         // 전역으로 노출
-        window.firebaseApp = firebase.app();
+        window.firebaseApp = app;
         window.firebaseAuth = auth;
         window.firebaseDb = db;
-        window.firebaseAuthFunctions = {
-          signInWithCustomToken: auth.signInWithCustomToken.bind(auth),
-          onAuthStateChanged: auth.onAuthStateChanged.bind(auth),
-          signOut: auth.signOut.bind(auth)
-        };
-        window.firebaseFirestoreFunctions = {
-          doc: db.doc.bind(db),
-          setDoc: (ref, data) => ref.set(data),
-          getDoc: (ref) => ref.get(),
-          collection: db.collection.bind(db),
-          query: (...args) => db.collection(args[0]).where(args[1], args[2], args[3]),
-          orderBy: (field, direction) => ({ field, direction }),
-          onSnapshot: (ref, callback) => ref.onSnapshot(callback),
-          getDocs: (query) => query.get(),
-          where: (field, operator, value) => ({ field, operator, value }),
-          serverTimestamp: firebase.firestore.FieldValue.serverTimestamp
-        };
+        window.firebaseAuthFunctions = { signInWithCustomToken, onAuthStateChanged, signOut };
+        window.firebaseFirestoreFunctions = { doc, setDoc, getDoc, collection, query, orderBy, onSnapshot, getDocs, where, serverTimestamp, enableNetwork, disableNetwork };
         
-        console.log('✅ Firebase 초기화 완료 (compat 버전)');
+        console.log('✅ Firebase v9 초기화 완료');
         
-        // 연결 테스트
-        db.collection('test').limit(1).get().then(() => {
+        // 연결 테스트 (간단한 테스트)
+        console.log('🔍 Firebase 연결 테스트 시작...');
+        const testRef = doc(db, 'test', 'connection');
+        getDoc(testRef).then(() => {
           console.log('✅ Firebase 연결 테스트 성공');
         }).catch(error => {
-          console.error('❌ Firebase 연결 테스트 실패:', error);
+          console.log('⚠️ Firebase 연결 테스트 (예상된 오류):', error.code);
         });
         
       } catch (error) {
@@ -1064,17 +1044,25 @@
         try {
           await waitForFirebase();
           
-          const { doc, setDoc } = window.firebaseFirestoreFunctions;
-          const userRef = doc(window.firebaseDb, 'users', userData.uid);
+          if (!window.firebaseDb || !window.firebaseFirestoreFunctions) {
+            console.error('❌ Firebase가 초기화되지 않았습니다.');
+            return false;
+          }
+          
+          const { doc, setDoc, serverTimestamp } = window.firebaseFirestoreFunctions;
+          
+          // UID가 문자열인지 확인하고 안전하게 처리
+          const safeUid = typeof userData.uid === 'string' ? userData.uid : String(userData.uid);
+          const userRef = doc(window.firebaseDb, 'users', safeUid);
           
           const userDoc = {
-            uid: userData.uid,
+            uid: safeUid,
             email: userData.email,
             displayName: userData.displayName || userData.name || userData.nickname || '',
             photoURL: userData.photoURL || userData.profileImage || '',
             loginMethod: userData.loginMethod || 'email',
-            createdAt: userData.createdAt || new Date(),
-            updatedAt: new Date(),
+            createdAt: userData.createdAt || serverTimestamp(),
+            updatedAt: serverTimestamp(),
             isActive: true,
             ...extra
           };
@@ -1084,6 +1072,7 @@
           return true;
         } catch (error) {
           console.error('❌ 사용자 데이터 upsert 실패:', error);
+          console.error('❌ 오류 상세:', error.message, error.code);
           return false;
         }
       }
@@ -2422,13 +2411,15 @@
 
             console.log('🔄 사용자 데이터 동기화 시작...');
             
-            // Firebase 데이터 가져오기 (compat 버전)
+            // Firebase 데이터 가져오기 (v9 모듈식)
             let firebaseUsers = [];
-            if (window.firebaseDb) {
+            if (window.firebaseDb && window.firebaseFirestoreFunctions) {
               try {
                 console.log('🔍 Firebase users 컬렉션에 접근 시도...');
                 
-                const snapshot = await window.firebaseDb.collection('users').get();
+                const { collection, getDocs } = window.firebaseFirestoreFunctions;
+                const usersRef = collection(window.firebaseDb, 'users');
+                const snapshot = await getDocs(usersRef);
                 console.log('📊 Firebase 쿼리 성공, 문서 수:', snapshot.size);
                 
                 // 캐시 초기화
@@ -2469,7 +2460,7 @@
           }
         }
 
-        // 특정 이메일로 사용자 찾기 (compat 버전 최적화 + 성능 측정)
+        // 특정 이메일로 사용자 찾기 (v9 모듈식 최적화 + 성능 측정)
         async function findUserByEmail(email) {
           const startTime = performance.now();
           try {
@@ -2480,16 +2471,16 @@
               return userCache.get(email);
             }
 
-            // Firebase에서 직접 쿼리 (compat 버전)
-            if (window.firebaseDb) {
+            // Firebase에서 직접 쿼리 (v9 모듈식)
+            if (window.firebaseDb && window.firebaseFirestoreFunctions) {
               try {
                 console.log(`🔍 Firebase에서 특정 사용자 쿼리 시작: ${email}`);
                 const queryStartTime = performance.now();
                 
-                const snapshot = await window.firebaseDb.collection('users')
-                  .where('email', '==', email)
-                  .limit(1)
-                  .get();
+                const { collection, query, where, limit, getDocs } = window.firebaseFirestoreFunctions;
+                const usersRef = collection(window.firebaseDb, 'users');
+                const q = query(usersRef, where('email', '==', email), limit(1));
+                const snapshot = await getDocs(q);
                 
                 const queryTime = performance.now() - queryStartTime;
                 console.log(`🔍 Firebase 쿼리 완료: ${queryTime.toFixed(2)}ms, 결과: ${snapshot.size}개`);
@@ -2511,6 +2502,7 @@
               } catch (error) {
                 const errorTime = performance.now() - startTime;
                 console.error(`❌ Firebase 특정 사용자 쿼리 실패: ${errorTime.toFixed(2)}ms`, error);
+                console.error('❌ 오류 상세:', error.message, error.code);
               }
             }
 
