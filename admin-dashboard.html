@@ -15,8 +15,8 @@
     <!-- Firebase v9 SDK (모듈식) -->
     <script type="module">
       import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
-      import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
-      import { getFirestore, collection, query, orderBy, onSnapshot, getDocs, addDoc, serverTimestamp, doc, updateDoc, deleteDoc } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
+      import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut, createUserWithEmailAndPassword } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
+      import { getFirestore, collection, query, orderBy, onSnapshot, getDocs, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, setDoc } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
       
       // Firebase 설정
       const firebaseConfig = {
@@ -39,8 +39,8 @@
         window.firebaseApp = app;
         window.firebaseAuth = auth;
         window.firebaseDb = db;
-        window.firebaseAuthFunctions = { onAuthStateChanged };
-        window.firebaseFirestoreFunctions = { collection, query, orderBy, onSnapshot, getDocs, addDoc, serverTimestamp, doc, updateDoc, deleteDoc };
+        window.firebaseAuthFunctions = { onAuthStateChanged, signInWithEmailAndPassword, signOut, createUserWithEmailAndPassword };
+        window.firebaseFirestoreFunctions = { collection, query, orderBy, onSnapshot, getDocs, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, setDoc };
         
         console.log('✅ 관리자 대시보드 Firebase v9 초기화 완료');
       } catch (error) {
@@ -49,7 +49,12 @@
         window.firebaseApp = null;
         window.firebaseAuth = null;
         window.firebaseDb = null;
-        window.firebaseAuthFunctions = { onAuthStateChanged: () => {} };
+        window.firebaseAuthFunctions = { 
+          onAuthStateChanged: () => {},
+          signInWithEmailAndPassword: () => Promise.reject(new Error('Firebase 초기화 실패')),
+          signOut: () => Promise.reject(new Error('Firebase 초기화 실패')),
+          createUserWithEmailAndPassword: () => Promise.reject(new Error('Firebase 초기화 실패'))
+        };
         window.firebaseFirestoreFunctions = { 
           collection: () => {}, 
           query: () => {}, 
@@ -60,7 +65,8 @@
           serverTimestamp: () => {},
           doc: () => {},
           updateDoc: () => {},
-          deleteDoc: () => {}
+          deleteDoc: () => {},
+          setDoc: () => {}
         };
         
         // 사용자에게 알림
@@ -362,8 +368,8 @@
             
             try {
                 console.log('🔥 로그인 시도:', email);
-                // Firebase v9에서는 signInWithEmailAndPassword를 직접 import해야 함
-                const { signInWithEmailAndPassword } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js');
+                // Firebase v9 함수들을 전역에서 가져오기
+                const { signInWithEmailAndPassword } = window.firebaseAuthFunctions;
                 const userCredential = await signInWithEmailAndPassword(window.firebaseAuth, email, password);
                 console.log('✅ 로그인 성공:', userCredential.user.email);
                 
@@ -372,7 +378,7 @@
                 if (!isAdmin) {
                     alert('관리자 권한이 없습니다. 관리자 계정으로 로그인해주세요.');
                     // 로그아웃
-                    const { signOut } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js');
+                    const { signOut } = window.firebaseAuthFunctions;
                     await signOut(window.firebaseAuth);
                     return;
                 }
@@ -412,7 +418,8 @@
                         errorMessage = error.message;
                 }
                 
-                alert('로그인에 실패했습니다. 다시 시도해주세요.');
+                console.error('❌ 로그인 오류:', error);
+                alert(errorMessage);
             }
         };
         
@@ -431,14 +438,14 @@
                     return;
                 }
                 
-                // Firebase v9에서는 createUserWithEmailAndPassword를 직접 import해야 함
-                const { createUserWithEmailAndPassword } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js');
+                // Firebase v9 함수들을 전역에서 가져오기
+                const { createUserWithEmailAndPassword } = window.firebaseAuthFunctions;
                 const userCredential = await createUserWithEmailAndPassword(window.firebaseAuth, 'admin@pricehunter.com', 'admin1234');
                 console.log('✅ 테스트 관리자 계정 생성 완료:', userCredential.user.email);
                 
                 // Firestore에 관리자 정보 저장
                 if (window.firebaseDb) {
-                    const { collection, doc, setDoc, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js');
+                    const { collection, doc, setDoc, serverTimestamp } = window.firebaseFirestoreFunctions;
                     await setDoc(doc(collection(window.firebaseDb, 'admins'), userCredential.user.uid), {
                         email: 'admin@pricehunter.com',
                         role: 'admin',
