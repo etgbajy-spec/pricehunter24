@@ -13,7 +13,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     
     <!-- Content Security Policy - Firebase iframe 허용 -->
-    <meta http-equiv="Content-Security-Policy" content="frame-src 'self' https://www.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com https://apis.google.com; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com https://*.gstatic.com;" />
+    <meta http-equiv="Content-Security-Policy" content="frame-src 'self' https://www.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com https://apis.google.com; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com https://*.gstatic.com https://firebase.googleapis.com https://*.firebase.googleapis.com https://firebaseappcheck.googleapis.com https://*.firebaseappcheck.googleapis.com;" />
     
     <title>PriceHunter</title>
     
@@ -21,7 +21,8 @@
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🔍%3C/text%3E%3C/svg%3E">
     
     <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tailwind CSS 로컬 빌드 사용 -->
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     
     <!-- 모바일 여백 제거 CSS -->
     <link rel="stylesheet" href="mobile-fix.css">
@@ -970,12 +971,13 @@
       </div>
     </div>
     <script>
-      // 콘솔 경고 필터링 (Tailwind CDN 경고 제거)
+      // 콘솔 경고 필터링 (불필요한 경고 제거)
       const originalWarn = console.warn;
       console.warn = function(...args) {
         const message = args.join(' ');
-        if (message.includes('cdn.tailwindcss.com should not be used in production')) {
-          return; // Tailwind CDN 경고 무시
+        // 특정 경고들만 필터링
+        if (message.includes('Non-passive event listener')) {
+          return; // 비수동 이벤트 리스너 경고 무시
         }
         originalWarn.apply(console, args);
       };
@@ -2363,18 +2365,21 @@
           resultDiv.classList.remove('hidden');
         };
 
-        // 사용자 데이터 동기화 함수
+        // 사용자 데이터 동기화 함수 (개선된 버전)
         async function getUsersFromFirebase() {
           try {
             console.log('🔄 사용자 데이터 동기화 시작...');
             
             // Firebase 데이터 가져오기
             let firebaseUsers = [];
-            if (window.firebaseDb) {
+            if (window.firebaseDb && window.firebaseFirestoreFunctions) {
               try {
                 const { collection, getDocs } = window.firebaseFirestoreFunctions;
                 const usersRef = collection(window.firebaseDb, 'users');
+                console.log('🔍 Firebase users 컬렉션에 접근 시도...');
+                
                 const snapshot = await getDocs(usersRef);
+                console.log('📊 Firebase 쿼리 성공, 문서 수:', snapshot.size);
                 
                 snapshot.forEach(doc => {
                   const userData = doc.data();
@@ -2386,16 +2391,40 @@
                 console.log('📊 Firebase에서 가져온 사용자:', firebaseUsers.length, '명');
               } catch (error) {
                 console.error('❌ Firebase 사용자 데이터 가져오기 실패:', error);
+                console.error('❌ 오류 상세:', error.message);
+                console.error('❌ 오류 코드:', error.code);
+                
+                // 권한 오류인 경우 대체 방법 시도
+                if (error.code === 'permission-denied' || error.message.includes('permissions')) {
+                  console.log('🔄 권한 오류 감지 - 대체 방법 시도...');
+                  // localStorage에서 백업 데이터 확인
+                  const backupUsers = JSON.parse(localStorage.getItem('users') || '[]');
+                  if (backupUsers.length > 0) {
+                    console.log('📊 localStorage 백업 데이터 사용:', backupUsers.length, '명');
+                    return backupUsers;
+                  }
+                }
               }
+            } else {
+              console.log('⚠️ Firebase 초기화되지 않음 - localStorage 사용');
+              // Firebase가 초기화되지 않은 경우 localStorage 사용
+              const backupUsers = JSON.parse(localStorage.getItem('users') || '[]');
+              console.log('📊 localStorage 백업 데이터 사용:', backupUsers.length, '명');
+              return backupUsers;
             }
-            
-            // Firebase 전용 - localStorage 의존성 제거
-            console.log('📊 Firebase 전용 시스템 - localStorage 의존성 제거됨');
             
             return firebaseUsers;
           } catch (error) {
-            console.error('❌ Firebase 사용자 데이터 가져오기 실패:', error);
-            return [];
+            console.error('❌ 사용자 데이터 가져오기 전체 실패:', error);
+            // 최후의 수단으로 localStorage 사용
+            try {
+              const backupUsers = JSON.parse(localStorage.getItem('users') || '[]');
+              console.log('📊 최후 수단 - localStorage 사용:', backupUsers.length, '명');
+              return backupUsers;
+            } catch (backupError) {
+              console.error('❌ localStorage도 실패:', backupError);
+              return [];
+            }
           }
         }
 
@@ -2424,15 +2453,19 @@
           console.log('📋 사용자 목록:', allUsers.map(u => ({ email: u.email, name: u.name || u.displayName })));
           
           // 비밀번호가 없는 사용자도 찾을 수 있도록 수정
-          const user = allUsers.find(u => u.email === email && (u.password === password || !u.password));
+          let user = allUsers.find(u => u.email === email);
           console.log('👤 찾은 사용자:', user ? '찾음' : '없음');
           
-          // 비밀번호가 없는 경우 임시로 통과
-          if (user && !user.password && email === 'etgbajy@gmail.com') {
-            console.log('🔓 비밀번호 없는 사용자 - 임시 로그인 허용');
-          } else if (user && user.password !== password) {
-            console.log('❌ 비밀번호 불일치');
-            user = null;
+          // 비밀번호 검증
+          if (user) {
+            if (!user.password && email === 'etgbajy@gmail.com') {
+              console.log('🔓 비밀번호 없는 사용자 - 임시 로그인 허용');
+            } else if (user.password && user.password !== password) {
+              console.log('❌ 비밀번호 불일치');
+              user = null;
+            } else if (user.password && user.password === password) {
+              console.log('✅ 비밀번호 일치');
+            }
           }
           
           if (user) {
