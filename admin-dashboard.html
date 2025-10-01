@@ -4829,7 +4829,10 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                                 </div>
                             </div>
                         </div>
-                        <div class="mt-6 flex justify-end">
+                        <div class="mt-6 flex justify-between">
+                            <button onclick="testFirebaseConnection()" class="px-4 py-2 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 transition">
+                                🔧 Firebase 연결 테스트
+                            </button>
                             <button onclick="saveSavingsKing()" class="px-6 py-3 bg-pink-600 text-white rounded-lg font-semibold hover:bg-pink-700 transition">
                                 💾 저장하기
                             </button>
@@ -4850,6 +4853,19 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                                     <a href="#savings-hero" class="text-yellow-300 text-lg hover:text-yellow-200 transition-colors">→</a>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+
+                    <!-- 로그 표시 섹션 -->
+                    <div class="bg-white rounded-xl shadow-lg p-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-xl font-bold text-gray-800">📋 최근 로그</h3>
+                            <button onclick="clearSavingsKingLogs()" class="px-3 py-1 bg-gray-500 text-white text-sm rounded hover:bg-gray-600 transition">
+                                🗑️ 로그 지우기
+                            </button>
+                        </div>
+                        <div id="savings-king-logs" class="bg-gray-50 rounded-lg p-4 h-48 overflow-y-auto font-mono text-sm">
+                            <div class="text-gray-500">로그가 여기에 표시됩니다...</div>
                         </div>
                     </div>
                 </div>
@@ -6924,6 +6940,12 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
         // 절약왕 관리 기능
         async function loadSavingsKingData() {
             console.log('🏆 절약왕 데이터 로드 시작');
+            console.log('🔍 Firebase 연결 상태 확인:', {
+                firebaseApp: !!window.firebaseApp,
+                firebaseAuth: !!window.firebaseAuth,
+                firebaseDb: !!window.firebaseDb,
+                firebaseFirestoreFunctions: !!window.firebaseFirestoreFunctions
+            });
             
             // 기본값 설정
             const defaultData = {
@@ -6938,10 +6960,15 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             try {
                 // Firebase에서 데이터 로드 시도
                 if (window.firebaseDb) {
+                    console.log('🔥 Firebase 연결 정상, 데이터 로드 시도...');
                     const { collection, doc, getDoc } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js');
+                    console.log('📦 Firebase 모듈 로드 완료');
                     
                     const savingsKingRef = doc(collection(window.firebaseDb, 'adminSettings'), 'savingsKing');
+                    console.log('📄 문서 참조 생성:', savingsKingRef.path);
+                    
                     const docSnap = await getDoc(savingsKingRef);
+                    console.log('📖 문서 읽기 완료, 존재 여부:', docSnap.exists());
                     
                     if (docSnap.exists()) {
                         const firebaseData = docSnap.data();
@@ -6950,14 +6977,27 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                     } else {
                         console.log('⚠️ Firebase에 절약왕 데이터가 없음, 기본값 사용');
                     }
+                } else {
+                    console.warn('⚠️ Firebase DB가 초기화되지 않음, localStorage에서 로드 시도');
+                    throw new Error('Firebase DB not initialized');
                 }
             } catch (error) {
                 console.error('❌ Firebase에서 절약왕 데이터 로드 실패:', error);
+                console.error('❌ 에러 상세 정보:', {
+                    name: error.name,
+                    message: error.message,
+                    code: error.code
+                });
                 
                 // Firebase 실패 시 localStorage에서 로드
-                const savingsKingData = JSON.parse(localStorage.getItem('savingsKingData') || '{}');
-                data = { ...defaultData, ...savingsKingData };
-                console.log('📱 localStorage에서 절약왕 데이터 로드:', data);
+                try {
+                    const savingsKingData = JSON.parse(localStorage.getItem('savingsKingData') || '{}');
+                    data = { ...defaultData, ...savingsKingData };
+                    console.log('📱 localStorage에서 절약왕 데이터 로드:', data);
+                } catch (localError) {
+                    console.error('❌ localStorage 로드도 실패:', localError);
+                    console.log('🔄 기본값 사용:', defaultData);
+                }
             }
             
             // 폼에 데이터 설정
@@ -6974,6 +7014,14 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
 
         async function saveSavingsKing() {
             console.log('💾 절약왕 데이터 저장 시작');
+            addSavingsKingLog('💾 절약왕 데이터 저장 시작', 'info');
+            
+            console.log('🔍 Firebase 상태 확인:', {
+                firebaseApp: !!window.firebaseApp,
+                firebaseAuth: !!window.firebaseAuth,
+                firebaseDb: !!window.firebaseDb,
+                firebaseFirestoreFunctions: !!window.firebaseFirestoreFunctions
+            });
             
             // 폼 데이터 수집
             const data = {
@@ -6983,51 +7031,125 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 rate: parseInt(document.getElementById('savings-king-rate').value) || 0
             };
             
+            console.log('📝 수집된 데이터:', data);
+            addSavingsKingLog(`📝 수집된 데이터: ${JSON.stringify(data)}`, 'info');
+            
             // 유효성 검사
             if (!data.name.trim()) {
+                console.log('❌ 유효성 검사 실패: 이름이 비어있음');
+                addSavingsKingLog('❌ 유효성 검사 실패: 이름이 비어있음', 'error');
                 alert('❌ 절약왕 이름을 입력해주세요.');
                 return;
             }
             
             if (data.amount <= 0) {
+                console.log('❌ 유효성 검사 실패: 절약 금액이 0 이하');
+                addSavingsKingLog('❌ 유효성 검사 실패: 절약 금액이 0 이하', 'error');
                 alert('❌ 절약 금액은 0보다 커야 합니다.');
                 return;
             }
             
             if (data.rate < 0 || data.rate > 100) {
+                console.log('❌ 유효성 검사 실패: 절약율이 범위를 벗어남');
+                addSavingsKingLog('❌ 유효성 검사 실패: 절약율이 범위를 벗어남', 'error');
                 alert('❌ 절약율은 0-100 사이의 값이어야 합니다.');
                 return;
             }
             
+            console.log('✅ 유효성 검사 통과');
+            addSavingsKingLog('✅ 유효성 검사 통과', 'success');
+            
             try {
-                // Firebase에 저장
-                if (window.firebaseDb) {
-                    const { collection, doc, setDoc, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js');
-                    
-                    const savingsKingRef = doc(collection(window.firebaseDb, 'adminSettings'), 'savingsKing');
-                    await setDoc(savingsKingRef, {
-                        ...data,
-                        updatedAt: serverTimestamp(),
-                        updatedBy: 'admin'
-                    }, { merge: true });
-                    
-                    console.log('✅ Firebase에 절약왕 데이터 저장 완료');
+                // Firebase 연결 상태 확인
+                if (!window.firebaseDb) {
+                    console.error('❌ Firebase DB가 초기화되지 않음');
+                    addSavingsKingLog('❌ Firebase DB가 초기화되지 않음', 'error');
+                    throw new Error('Firebase가 초기화되지 않았습니다. 페이지를 새로고침해주세요.');
                 }
+                
+                console.log('🔥 Firebase 연결 상태 정상, 저장 시작...');
+                addSavingsKingLog('🔥 Firebase 연결 상태 정상, 저장 시작...', 'info');
+                
+                // Firebase에 저장
+                const { collection, doc, setDoc, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js');
+                console.log('📦 Firebase 모듈 로드 완료');
+                addSavingsKingLog('📦 Firebase 모듈 로드 완료', 'info');
+                
+                const savingsKingRef = doc(collection(window.firebaseDb, 'adminSettings'), 'savingsKing');
+                console.log('📄 문서 참조 생성:', savingsKingRef.path);
+                addSavingsKingLog(`📄 문서 참조 생성: ${savingsKingRef.path}`, 'info');
+                
+                const saveData = {
+                    ...data,
+                    updatedAt: serverTimestamp(),
+                    updatedBy: 'admin'
+                };
+                
+                console.log('💾 저장할 데이터:', saveData);
+                addSavingsKingLog(`💾 저장할 데이터: ${JSON.stringify(saveData)}`, 'info');
+                
+                await setDoc(savingsKingRef, saveData, { merge: true });
+                console.log('✅ Firebase에 절약왕 데이터 저장 완료');
+                addSavingsKingLog('✅ Firebase에 절약왕 데이터 저장 완료', 'success');
                 
                 // localStorage에도 저장 (백업용)
                 localStorage.setItem('savingsKingData', JSON.stringify(data));
+                console.log('💾 localStorage 백업 완료');
+                addSavingsKingLog('💾 localStorage 백업 완료', 'success');
                 
                 // 미리보기 업데이트
                 updateSavingsKingPreview();
+                console.log('👁️ 미리보기 업데이트 완료');
+                addSavingsKingLog('👁️ 미리보기 업데이트 완료', 'success');
                 
                 // 성공 메시지
                 alert('✅ 절약왕 정보가 저장되었습니다!');
+                addSavingsKingLog('✅ 절약왕 정보가 저장되었습니다!', 'success');
                 
                 console.log('✅ 절약왕 데이터 저장 완료:', data);
                 
             } catch (error) {
                 console.error('❌ 절약왕 데이터 저장 실패:', error);
-                alert('❌ 저장에 실패했습니다. 다시 시도해주세요.');
+                addSavingsKingLog(`❌ 절약왕 데이터 저장 실패: ${error.message}`, 'error');
+                
+                console.error('❌ 에러 상세 정보:', {
+                    name: error.name,
+                    message: error.message,
+                    code: error.code,
+                    stack: error.stack
+                });
+                
+                addSavingsKingLog(`❌ 에러 상세 정보: ${JSON.stringify({
+                    name: error.name,
+                    message: error.message,
+                    code: error.code
+                })}`, 'error');
+                
+                // 더 구체적인 에러 메시지 제공
+                let errorMessage = '❌ 저장에 실패했습니다.';
+                if (error.message.includes('permission')) {
+                    errorMessage += '\n\n권한 오류: 관리자 권한을 확인해주세요.';
+                    addSavingsKingLog('❌ 권한 오류: 관리자 권한을 확인해주세요.', 'error');
+                } else if (error.message.includes('network')) {
+                    errorMessage += '\n\n네트워크 오류: 인터넷 연결을 확인해주세요.';
+                    addSavingsKingLog('❌ 네트워크 오류: 인터넷 연결을 확인해주세요.', 'error');
+                } else if (error.message.includes('Firebase')) {
+                    errorMessage += '\n\nFirebase 오류: 서비스를 다시 시작해주세요.';
+                    addSavingsKingLog('❌ Firebase 오류: 서비스를 다시 시작해주세요.', 'error');
+                } else {
+                    errorMessage += '\n\n오류: ' + error.message;
+                    addSavingsKingLog(`❌ 기타 오류: ${error.message}`, 'error');
+                }
+                
+                alert(errorMessage);
+                
+                // 개발자 콘솔에 추가 정보 출력
+                console.log('🔧 문제 해결을 위한 추가 정보:');
+                console.log('- 현재 시간:', new Date().toISOString());
+                console.log('- 사용자 에이전트:', navigator.userAgent);
+                console.log('- 온라인 상태:', navigator.onLine);
+                
+                addSavingsKingLog(`🔧 문제 해결 정보: 시간=${new Date().toISOString()}, 온라인=${navigator.onLine}`, 'warning');
             }
         }
 
@@ -7089,12 +7211,149 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             }
         }
 
+        // 로그 표시 기능
+        function addSavingsKingLog(message, type = 'info') {
+            const logsContainer = document.getElementById('savings-king-logs');
+            if (!logsContainer) return;
+            
+            const timestamp = new Date().toLocaleTimeString('ko-KR');
+            const logEntry = document.createElement('div');
+            
+            let bgColor = 'bg-blue-50';
+            let textColor = 'text-blue-800';
+            
+            if (type === 'error') {
+                bgColor = 'bg-red-50';
+                textColor = 'text-red-800';
+            } else if (type === 'success') {
+                bgColor = 'bg-green-50';
+                textColor = 'text-green-800';
+            } else if (type === 'warning') {
+                bgColor = 'bg-yellow-50';
+                textColor = 'text-yellow-800';
+            }
+            
+            logEntry.className = `mb-2 p-2 rounded ${bgColor} ${textColor}`;
+            logEntry.innerHTML = `<span class="text-gray-500">[${timestamp}]</span> ${message}`;
+            
+            // 기존 "로그가 여기에 표시됩니다..." 메시지 제거
+            const placeholder = logsContainer.querySelector('.text-gray-500');
+            if (placeholder) {
+                placeholder.remove();
+            }
+            
+            logsContainer.insertBefore(logEntry, logsContainer.firstChild);
+            
+            // 최대 20개 로그만 유지
+            const logs = logsContainer.children;
+            if (logs.length > 20) {
+                logsContainer.removeChild(logs[logs.length - 1]);
+            }
+            
+            // 자동 스크롤
+            logsContainer.scrollTop = 0;
+        }
+        
+        function clearSavingsKingLogs() {
+            const logsContainer = document.getElementById('savings-king-logs');
+            if (logsContainer) {
+                logsContainer.innerHTML = '<div class="text-gray-500">로그가 여기에 표시됩니다...</div>';
+            }
+        }
+
+        // Firebase 연결 테스트 함수
+        async function testFirebaseConnection() {
+            console.log('🔧 Firebase 연결 테스트 시작...');
+            addSavingsKingLog('🔧 Firebase 연결 테스트 시작...', 'info');
+            
+            try {
+                // Firebase 상태 확인
+                const firebaseStatus = {
+                    firebaseApp: !!window.firebaseApp,
+                    firebaseAuth: !!window.firebaseAuth,
+                    firebaseDb: !!window.firebaseDb,
+                    firebaseFirestoreFunctions: !!window.firebaseFirestoreFunctions
+                };
+                
+                console.log('📊 Firebase 상태:', firebaseStatus);
+                addSavingsKingLog(`📊 Firebase 상태: ${JSON.stringify(firebaseStatus)}`, 'info');
+                
+                if (!firebaseStatus.firebaseDb) {
+                    addSavingsKingLog('❌ Firebase DB가 초기화되지 않았습니다.', 'error');
+                    throw new Error('Firebase DB가 초기화되지 않았습니다.');
+                }
+                
+                // 간단한 읽기 테스트
+                const { collection, doc, getDoc } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js');
+                const testRef = doc(collection(window.firebaseDb, 'adminSettings'), 'savingsKing');
+                console.log('📄 테스트 문서 참조 생성:', testRef.path);
+                addSavingsKingLog(`📄 테스트 문서 참조 생성: ${testRef.path}`, 'info');
+                
+                const docSnap = await getDoc(testRef);
+                console.log('📖 테스트 문서 읽기 완료, 존재 여부:', docSnap.exists());
+                addSavingsKingLog(`📖 테스트 문서 읽기 완료, 존재 여부: ${docSnap.exists()}`, 'info');
+                
+                if (docSnap.exists()) {
+                    console.log('📄 기존 데이터:', docSnap.data());
+                    addSavingsKingLog(`📄 기존 데이터: ${JSON.stringify(docSnap.data())}`, 'info');
+                }
+                
+                // 간단한 쓰기 테스트 (기존 데이터 유지)
+                const { setDoc, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js');
+                await setDoc(testRef, {
+                    testTimestamp: serverTimestamp(),
+                    testMessage: 'Firebase 연결 테스트 성공'
+                }, { merge: true });
+                
+                console.log('✅ Firebase 연결 테스트 성공');
+                addSavingsKingLog('✅ Firebase 연결 테스트 성공', 'success');
+                alert('✅ Firebase 연결이 정상입니다!\n\n콘솔에서 자세한 로그를 확인할 수 있습니다.');
+                
+            } catch (error) {
+                console.error('❌ Firebase 연결 테스트 실패:', error);
+                addSavingsKingLog(`❌ Firebase 연결 테스트 실패: ${error.message}`, 'error');
+                
+                console.error('❌ 에러 상세 정보:', {
+                    name: error.name,
+                    message: error.message,
+                    code: error.code,
+                    stack: error.stack
+                });
+                
+                addSavingsKingLog(`❌ 에러 상세 정보: ${JSON.stringify({
+                    name: error.name,
+                    message: error.message,
+                    code: error.code
+                })}`, 'error');
+                
+                let errorMessage = '❌ Firebase 연결 테스트 실패\n\n';
+                if (error.message.includes('permission')) {
+                    errorMessage += '권한 오류: 관리자 권한을 확인해주세요.';
+                    addSavingsKingLog('❌ 권한 오류: 관리자 권한을 확인해주세요.', 'error');
+                } else if (error.message.includes('network')) {
+                    errorMessage += '네트워크 오류: 인터넷 연결을 확인해주세요.';
+                    addSavingsKingLog('❌ 네트워크 오류: 인터넷 연결을 확인해주세요.', 'error');
+                } else if (error.message.includes('Firebase')) {
+                    errorMessage += 'Firebase 오류: 서비스를 다시 시작해주세요.';
+                    addSavingsKingLog('❌ Firebase 오류: 서비스를 다시 시작해주세요.', 'error');
+                } else {
+                    errorMessage += '오류: ' + error.message;
+                    addSavingsKingLog(`❌ 기타 오류: ${error.message}`, 'error');
+                }
+                
+                alert(errorMessage);
+            }
+        }
+
         // 전역 함수로 등록
         window.loadSavingsKingData = loadSavingsKingData;
         window.saveSavingsKing = saveSavingsKing;
         window.updateSavingsKingPreview = updateSavingsKingPreview;
         window.previewSavingsKing = previewSavingsKing;
         window.resetSavingsKing = resetSavingsKing;
+        window.testFirebaseConnection = testFirebaseConnection;
+        window.addSavingsKingLog = addSavingsKingLog;
+        window.clearSavingsKingLogs = clearSavingsKingLogs;
     </script>
 </body>
 </html>
