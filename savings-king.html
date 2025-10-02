@@ -144,19 +144,23 @@
     const savingsData = [
       {
         id: 1,
-        title: "전기포트 3만8천원 절감 성공",
-        category: "home",
-        originalPrice: 89000,
-        savingsPrice: 51000,
-        savingsAmount: 38000,
-        savingsRate: 42,
-        product: "전기포트",
-        user: "김OO, 30대 직장인",
-        date: "2024.01.15",
-        reason: "동일 모델명, 동일 용량, 동일 보증 조건으로 검증 완료. 공장 직접구매 경로를 통해 대폭 할인된 가격 발견.",
-        image: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80",
+        title: "패션백 8만원 절감 성공",
+        category: "fashion",
+        categoryName: "패션/잡화",
+        originalPrice: 180000,
+        savingsPrice: 100000,
+        savingsAmount: 80000,
+        savingsRate: 44,
+        product: "패션백",
+        name: "최OO",
+        age: "20대",
+        job: "직장인",
+        user: "최OO, 20대 직장인",
+        date: new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\./g, '.').replace(/ /g, ''),
+        reason: "동일 브랜드, 동일 사이즈로 검증 완료. 해외직구 경로를 통한 대폭 할인.",
+        image: "https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&w=600&q=80",
         evidence: "스크린샷 및 구매 링크 제공",
-        tags: ["생활용품", "공장직구", "동일모델"]
+        tags: ["패션/잡화", "해외직구", "동일브랜드"]
       },
       {
         id: 2,
@@ -168,7 +172,7 @@
         savingsRate: 21,
         product: "무선이어폰",
         user: "이OO, 20대 대학생",
-        date: "2024.01.14",
+        date: new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\./g, '.').replace(/ /g, ''),
         reason: "동일 스펙, 동일 보증 조건으로 검증 완료. 도매처 연동을 통한 할인가 발견.",
         image: "https://images.unsplash.com/photo-1503602642458-232111445657?auto=format&fit=crop&w=600&q=80",
         evidence: "스크린샷 및 구매 링크 제공",
@@ -184,7 +188,7 @@
         savingsRate: 43,
         product: "사무용품 세트",
         user: "박OO, 40대 사업자",
-        date: "2024.01.13",
+        date: new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\./g, '.').replace(/ /g, ''),
         reason: "대량구매 할인과 공장직구 경로를 통해 대폭 절감. 동일 품질 보장.",
         image: "https://images.unsplash.com/photo-1465101046530-73398c7f28ca?auto=format&fit=crop&w=600&q=80",
         evidence: "스크린샷 및 구매 링크 제공",
@@ -200,7 +204,7 @@
         savingsRate: 44,
         product: "패션백",
         user: "최OO, 20대 직장인",
-        date: "2024.01.12",
+        date: new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\./g, '.').replace(/ /g, ''),
         reason: "동일 브랜드, 동일 사이즈로 검증 완료. 해외직구 경로를 통한 대폭 할인.",
         image: "https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&w=600&q=80",
         evidence: "스크린샷 및 구매 링크 제공",
@@ -216,7 +220,7 @@
         savingsRate: 43,
         product: "모니터",
         user: "정OO, 30대 개발자",
-        date: "2024.01.11",
+        date: new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\./g, '.').replace(/ /g, ''),
         reason: "동일 해상도, 동일 패널 타입으로 검증 완료. 공장직구 경로를 통한 할인.",
         image: "https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?auto=format&fit=crop&w=600&q=80",
         evidence: "스크린샷 및 구매 링크 제공",
@@ -232,7 +236,7 @@
         savingsRate: 42,
         product: "주방용품 세트",
         user: "한OO, 40대 주부",
-        date: "2024.01.10",
+        date: new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\./g, '.').replace(/ /g, ''),
         reason: "동일 구성, 동일 재질로 검증 완료. 도매처 연동을 통한 할인.",
         image: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?auto=format&fit=crop&w=600&q=80",
         evidence: "스크린샷 및 구매 링크 제공",
@@ -461,6 +465,26 @@
     // 페이지 로드 시 실행
     document.addEventListener('DOMContentLoaded', function() {
       renderSavingsCards();
+      
+      // 첫 번째 절감왕 데이터를 localStorage에 저장하여 인덱스 파일과 연동
+      if (savingsData && savingsData.length > 0) {
+        const firstSavingsKing = savingsData[0];
+        const savingsKingData = {
+          name: firstSavingsKing.name,
+          age: firstSavingsKing.age,
+          job: firstSavingsKing.job,
+          product: firstSavingsKing.product,
+          category: firstSavingsKing.categoryName,
+          originalPrice: firstSavingsKing.originalPrice,
+          savingsPrice: firstSavingsKing.savingsPrice,
+          savingsAmount: firstSavingsKing.savingsAmount,
+          rate: firstSavingsKing.savingsRate,
+          image: firstSavingsKing.image
+        };
+        
+        localStorage.setItem('savingsKing', JSON.stringify(savingsKingData));
+        console.log('✅ 절감왕 데이터를 localStorage에 저장:', savingsKingData);
+      }
       
       // 모달 외부 클릭 시 닫기
       document.getElementById('modal').addEventListener('click', function(e) {

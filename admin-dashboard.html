@@ -4818,6 +4818,32 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                                     <input type="text" id="savings-king-name" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent" placeholder="김민수" oninput="updateSavingsKingPreview()">
                                 </div>
                                 <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">나이대</label>
+                                    <select id="savings-king-age" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent" onchange="updateSavingsKingPreview()">
+                                        <option value="10대">10대</option>
+                                        <option value="20대">20대</option>
+                                        <option value="30대" selected>30대</option>
+                                        <option value="40대">40대</option>
+                                        <option value="50대">50대</option>
+                                        <option value="60대 이상">60대 이상</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">직업</label>
+                                    <select id="savings-king-job" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent" onchange="updateSavingsKingPreview()">
+                                        <option value="학생">학생</option>
+                                        <option value="대학생">대학생</option>
+                                        <option value="직장인" selected>직장인</option>
+                                        <option value="사업자">사업자</option>
+                                        <option value="주부">주부</option>
+                                        <option value="공무원">공무원</option>
+                                        <option value="개발자">개발자</option>
+                                        <option value="디자이너">디자이너</option>
+                                        <option value="마케터">마케터</option>
+                                        <option value="기타">기타</option>
+                                    </select>
+                                </div>
+                                <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">제품명</label>
                                     <input type="text" id="savings-king-product" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent" placeholder="모듈쇼파" oninput="updateSavingsKingPreview()">
                                 </div>
@@ -6953,10 +6979,13 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             
             // 기본값 설정
             const defaultData = {
-                image: 'https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80',
-                name: '김민수',
-                amount: 420000,
-                rate: 42
+                image: 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&w=600&q=80',
+                name: '최OO',
+                age: '20대',
+                job: '직장인',
+                product: '패션백',
+                amount: 80000,
+                rate: 44
             };
             
             let data = { ...defaultData };
@@ -7007,7 +7036,9 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             // 폼에 데이터 설정
             document.getElementById('savings-king-image').value = data.image;
             document.getElementById('savings-king-name').value = data.name;
-            document.getElementById('savings-king-product').value = data.product || '모듈쇼파';
+            document.getElementById('savings-king-age').value = data.age || '20대';
+            document.getElementById('savings-king-job').value = data.job || '직장인';
+            document.getElementById('savings-king-product').value = data.product || '패션백';
             document.getElementById('savings-king-amount').value = data.amount;
             document.getElementById('savings-king-rate').value = data.rate;
             
@@ -7032,6 +7063,8 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             const data = {
                 image: document.getElementById('savings-king-image').value,
                 name: document.getElementById('savings-king-name').value,
+                age: document.getElementById('savings-king-age').value,
+                job: document.getElementById('savings-king-job').value,
                 product: document.getElementById('savings-king-product').value,
                 amount: parseInt(document.getElementById('savings-king-amount').value) || 0,
                 rate: parseInt(document.getElementById('savings-king-rate').value) || 0
@@ -7170,6 +7203,8 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             const data = {
                 image: document.getElementById('savings-king-image').value,
                 name: document.getElementById('savings-king-name').value,
+                age: document.getElementById('savings-king-age').value,
+                job: document.getElementById('savings-king-job').value,
                 product: document.getElementById('savings-king-product').value,
                 amount: parseInt(document.getElementById('savings-king-amount').value) || 0,
                 rate: parseInt(document.getElementById('savings-king-rate').value) || 0
@@ -7195,6 +7230,8 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             const data = {
                 image: document.getElementById('savings-king-image').value,
                 name: document.getElementById('savings-king-name').value,
+                age: document.getElementById('savings-king-age').value,
+                job: document.getElementById('savings-king-job').value,
                 product: document.getElementById('savings-king-product').value,
                 amount: parseInt(document.getElementById('savings-king-amount').value) || 0,
                 rate: parseInt(document.getElementById('savings-king-rate').value) || 0
@@ -7204,6 +7241,8 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             const mainPageUrl = new URL('index.html', window.location.origin);
             mainPageUrl.searchParams.set('preview', 'savings-king');
             mainPageUrl.searchParams.set('name', data.name);
+            mainPageUrl.searchParams.set('age', data.age);
+            mainPageUrl.searchParams.set('job', data.job);
             mainPageUrl.searchParams.set('product', data.product);
             mainPageUrl.searchParams.set('amount', data.amount);
             mainPageUrl.searchParams.set('rate', data.rate);
@@ -7215,11 +7254,13 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
         function resetSavingsKing() {
             if (confirm('🔄 절약왕 정보를 초기값으로 리셋하시겠습니까?')) {
                 // 기본값으로 리셋
-                document.getElementById('savings-king-image').value = 'https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80';
-                document.getElementById('savings-king-name').value = '김민수';
-                document.getElementById('savings-king-product').value = '모듈쇼파';
-                document.getElementById('savings-king-amount').value = '420000';
-                document.getElementById('savings-king-rate').value = '42';
+                document.getElementById('savings-king-image').value = 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&w=600&q=80';
+                document.getElementById('savings-king-name').value = '최OO';
+                document.getElementById('savings-king-age').value = '20대';
+                document.getElementById('savings-king-job').value = '직장인';
+                document.getElementById('savings-king-product').value = '패션백';
+                document.getElementById('savings-king-amount').value = '80000';
+                document.getElementById('savings-king-rate').value = '44';
                 
                 // 미리보기 업데이트
                 updateSavingsKingPreview();

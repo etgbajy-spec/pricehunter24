@@ -499,11 +499,17 @@
         
         // 기본값 설정
         const defaultData = {
-          image: 'https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80',
-          name: '김민수',
-          product: '모듈쇼파',
-          amount: 420000,
-          rate: 42
+          image: 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&w=600&q=80',
+          name: '최OO',
+          age: '20대',
+          job: '직장인',
+          product: '패션백',
+          category: '패션/잡화',
+          originalPrice: 180000,
+          savingsPrice: 100000,
+          savingsAmount: 80000,
+          amount: 80000,
+          rate: 44
         };
         
         let data = { ...defaultData };
@@ -547,6 +553,48 @@
           badgeRateElement.innerHTML = `-${data.rate}%<br class="sm:hidden">절약 성공!`;
         }
         
+        // 절약왕 히어로 섹션 업데이트
+        const heroImage = document.getElementById('savings-hero-image');
+        if (heroImage) {
+          heroImage.src = data.image;
+          heroImage.alt = data.product || '절감왕 상품';
+        }
+        
+        const heroUser = document.getElementById('savings-hero-user');
+        if (heroUser) {
+          heroUser.textContent = `${data.name}, ${data.age || '30대'} ${data.job || '직장인'}`;
+        }
+        
+        const heroProduct = document.getElementById('savings-hero-product');
+        if (heroProduct) {
+          heroProduct.textContent = data.product || '절감왕 상품';
+        }
+        
+        const heroCategory = document.getElementById('savings-hero-category');
+        if (heroCategory) {
+          heroCategory.textContent = data.category || '생활용품 카테고리';
+        }
+        
+        const heroOriginalPrice = document.getElementById('savings-hero-original-price');
+        if (heroOriginalPrice) {
+          heroOriginalPrice.textContent = `${data.originalPrice?.toLocaleString() || '89,000'}원`;
+        }
+        
+        const heroSavingsPrice = document.getElementById('savings-hero-savings-price');
+        if (heroSavingsPrice) {
+          heroSavingsPrice.textContent = `${data.savingsPrice?.toLocaleString() || '51,000'}원`;
+        }
+        
+        const heroSavingsAmount = document.getElementById('savings-hero-savings-amount');
+        if (heroSavingsAmount) {
+          heroSavingsAmount.textContent = `${data.savingsAmount?.toLocaleString() || '38,000'}원 절약`;
+        }
+        
+        const heroRate = document.getElementById('savings-hero-rate');
+        if (heroRate) {
+          heroRate.textContent = `-${data.rate || 42}% 절감`;
+        }
+        
         // 절약왕 팝업 업데이트
         const popup = document.getElementById('savings-popup');
         if (popup) {
@@ -578,13 +626,13 @@
           // 절약 금액
           const amountElement = document.getElementById('popup-amount');
           if (amountElement) {
-            amountElement.textContent = `₩${data.amount.toLocaleString()}`;
+            amountElement.textContent = `₩${(data.savingsAmount || data.amount || 0).toLocaleString()}`;
           }
           
           // 절약률
           const rateElement = document.getElementById('popup-rate');
           if (rateElement) {
-            rateElement.textContent = `${data.rate}%`;
+            rateElement.textContent = `${data.rate || 42}%`;
           }
           
           // 총 절약금액
@@ -700,20 +748,20 @@
             
             <div class="savings-highlight bg-white/20 rounded-2xl p-4 sm:p-6 mb-6 backdrop-blur-sm">
               <div class="text-base sm:text-lg md:text-2xl font-semibold mb-2">
-                <span class="text-yellow-200" id="popup-name">김민수님</span>이
+                <span class="text-yellow-200" id="popup-name">최OO님</span>이
               </div>
               <div class="text-lg sm:text-xl md:text-3xl font-bold mb-2">
-                <span class="text-white" id="popup-product">모듈쇼파</span>를
+                <span class="text-white" id="popup-product">패션백</span>을
               </div>
               <div class="text-lg sm:text-2xl md:text-4xl font-extrabold text-yellow-200 mb-2">
                 <span class="block sm:inline">의뢰하신 가격보다</span>
               </div>
               <div class="text-2xl sm:text-3xl md:text-5xl font-black text-white animate-pulse">
-                <span class="text-red-200" id="popup-amount">₩450,000</span>
+                <span class="text-red-200" id="popup-amount">₩80,000</span>
                 <span class="block sm:inline">저렴하게!</span>
               </div>
               <div class="text-base sm:text-lg md:text-xl font-semibold mt-2 text-yellow-200">
-                절약률 <span class="text-xl sm:text-2xl font-bold text-white" id="popup-rate">42%</span>
+                절약률 <span class="text-xl sm:text-2xl font-bold text-white" id="popup-rate">44%</span>
               </div>
             </div>
             
@@ -721,7 +769,7 @@
             <div class="celebration-effects">
               <div class="text-base sm:text-lg md:text-xl font-semibold mb-4 text-yellow-200">
                 <span class="block sm:inline">💰 총 절약금액:</span>
-                <span class="text-xl sm:text-2xl font-bold text-white" id="popup-total-amount">₩450,000</span>
+                <span class="text-xl sm:text-2xl font-bold text-white" id="popup-total-amount">₩80,000</span>
               </div>
               <div class="text-sm sm:text-base md:text-lg text-yellow-100">
                 <span class="block sm:inline">PriceHunter로</span>
@@ -1780,34 +1828,34 @@
                     </svg>
                   </div>
                   <div>
-                    <h3 class="text-2xl font-bold text-gray-800">전기포트</h3>
-                    <p class="text-gray-600">생활용품 카테고리</p>
+                    <h3 id="savings-hero-product" class="text-2xl font-bold text-gray-800">패션백</h3>
+                    <p id="savings-hero-category" class="text-gray-600">패션/잡화 카테고리</p>
                   </div>
                 </div>
                 
                 <div class="space-y-4">
                   <div class="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
                     <span class="text-gray-600">원래 가격</span>
-                    <span class="text-lg font-semibold text-gray-800">89,000원</span>
+                    <span id="savings-hero-original-price" class="text-lg font-semibold text-gray-800">180,000원</span>
                   </div>
                   <div class="flex justify-between items-center p-4 bg-emerald-50 rounded-lg">
                     <span class="text-gray-600">절감 후 가격</span>
-                    <span class="text-xl font-bold text-emerald-600">51,000원</span>
+                    <span id="savings-hero-savings-price" class="text-xl font-bold text-emerald-600">100,000원</span>
                   </div>
                   <div class="flex justify-between items-center p-4 bg-red-50 rounded-lg">
                     <span class="text-gray-600">절감액</span>
-                    <span class="text-xl font-bold text-red-600">38,000원 절약</span>
+                    <span id="savings-hero-savings-amount" class="text-xl font-bold text-red-600">80,000원 절약</span>
                   </div>
                   <div class="text-center">
-                    <span class="inline-block bg-red-100 text-red-800 px-4 py-2 rounded-full font-bold text-lg">
-                      -42% 절감
+                    <span id="savings-hero-rate" class="inline-block bg-red-100 text-red-800 px-4 py-2 rounded-full font-bold text-lg">
+                      -44% 절감
                     </span>
                   </div>
                 </div>
                 
                 <div class="bg-blue-50 p-4 rounded-lg">
                   <h4 class="font-semibold text-blue-800 mb-2">선정 사유</h4>
-                  <p class="text-sm text-blue-700">동일 모델명, 동일 용량, 동일 보증 조건으로 검증 완료. 공장 직접구매 경로를 통해 대폭 할인된 가격 발견.</p>
+                  <p class="text-sm text-blue-700">동일 브랜드, 동일 사이즈로 검증 완료. 해외직구 경로를 통한 대폭 할인.</p>
                 </div>
                 
                         <div class="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full">
@@ -1825,15 +1873,14 @@
               
               <!-- 이미지 -->
               <div class="relative">
-                <img src="https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80" 
-                     alt="절감왕 전기포트" 
+                <img id="savings-hero-image" src="https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&w=600&q=80" 
+                     alt="절감왕 상품" 
                      class="w-full h-64 object-cover rounded-xl shadow-lg">
                 <div class="absolute top-4 right-4 bg-emerald-500 text-white px-3 py-1 rounded-full text-sm font-bold">
                   🏆 절감왕
                 </div>
                 <div class="absolute bottom-4 left-4 bg-white/90 backdrop-blur px-3 py-2 rounded-lg">
-                  <p class="text-sm font-semibold text-gray-800">김OO, 30대 직장인</p>
-                  <p class="text-xs text-gray-600">2024.01.15 검증 완료</p>
+                  <p id="savings-hero-user" class="text-sm font-semibold text-gray-800">최OO, 20대 직장인</p>
                 </div>
               </div>
             </div>
