@@ -1417,6 +1417,108 @@
         document.addEventListener('DOMContentLoaded', initSimpleHeroAnimation);
       </script>
     </section>
+
+      <!-- 절감왕 히어로 섹션 -->
+      <section id="savings-hero" class="w-full py-20 px-4 relative z-10 overflow-hidden" style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 25%, #bbf7d0 50%, #86efac 75%, #4ade80 100%);">
+        <!-- 고급스러운 동적 배경 효과 -->
+        <div class="absolute inset-0 pointer-events-none z-0">
+          <!-- 메인 배경 레이어 -->
+          <div id="savings-bg-layer1" class="absolute inset-0 opacity-25 transition-all duration-1000">
+            <div class="absolute top-20 left-20 w-48 h-48 bg-gradient-to-br from-lime-200 to-lime-400 rounded-full blur-3xl bg-animate-float"></div>
+            <div class="absolute bottom-20 right-20 w-40 h-40 bg-gradient-to-br from-green-200 to-green-400 rounded-full blur-3xl bg-animate-pulse" style="animation-delay: 2s;"></div>
+            <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-gradient-to-br from-emerald-200 to-emerald-400 rounded-full blur-3xl bg-animate-float" style="animation-delay: 4s;"></div>
+          </div>
+          
+          <!-- 추가 배경 레이어 -->
+          <div id="savings-bg-layer2" class="absolute inset-0 opacity-0 transition-all duration-1000">
+            <div class="absolute top-1/3 right-1/4 w-32 h-32 bg-gradient-to-br from-lime-300 to-lime-500 rounded-full blur-2xl bg-animate-pulse" style="animation-delay: 1s;"></div>
+            <div class="absolute bottom-1/3 left-1/4 w-36 h-36 bg-gradient-to-br from-cyan-300 to-cyan-500 rounded-full blur-2xl bg-animate-float" style="animation-delay: 3s;"></div>
+          </div>
+          
+          <!-- 장식적 요소들 -->
+          <div class="absolute top-20 right-20 w-3 h-24 bg-gradient-to-b from-emerald-400 to-transparent opacity-30"></div>
+          <div class="absolute bottom-20 left-20 w-24 h-3 bg-gradient-to-r from-green-400 to-transparent opacity-30"></div>
+          <div class="absolute top-1/2 left-10 w-2 h-20 bg-gradient-to-b from-teal-400 to-transparent opacity-25"></div>
+        </div>
+        <div class="max-w-6xl mx-auto relative z-10">
+          <div class="text-center mb-12">
+            <h2 id="savings-title" class="text-3xl md:text-4xl font-extrabold mb-4 flex items-center justify-center transition-all duration-1000" style="background: linear-gradient(135deg, #166534 0%, #15803d 50%, #16a34a 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+              🏆 <span style="background: linear-gradient(135deg, #22c55e 0%, #4ade80 50%, #86efac 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">이번 주 절감왕</span>
+            </h2>
+            <p class="text-lg text-gray-600">실제 검증된 절감 성공 사례</p>
+          </div>
+          
+          <div class="bg-white rounded-2xl shadow-2xl p-8 md:p-12 max-w-4xl mx-auto">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+              <!-- 절감 정보 -->
+              <div class="space-y-6">
+                <div class="flex items-center gap-4">
+                  <div class="bg-emerald-100 rounded-full p-3">
+                    <svg class="w-8 h-8 text-emerald-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path>
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 id="savings-hero-product" class="text-2xl font-bold text-gray-800">패션백</h3>
+                    <p id="savings-hero-category" class="text-gray-600">패션/잡화 카테고리</p>
+                  </div>
+                </div>
+                
+                <div class="space-y-4">
+                  <div class="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
+                    <span class="text-gray-600">원래 가격</span>
+                    <span id="savings-hero-original-price" class="text-lg font-semibold text-gray-800">180,000원</span>
+                  </div>
+                  <div class="flex justify-between items-center p-4 bg-emerald-50 rounded-lg">
+                    <span class="text-gray-600">절감 후 가격</span>
+                    <span id="savings-hero-savings-price" class="text-xl font-bold text-emerald-600">100,000원</span>
+                  </div>
+                  <div class="flex justify-between items-center p-4 bg-red-50 rounded-lg">
+                    <span class="text-gray-600">절감액</span>
+                    <span id="savings-hero-savings-amount" class="text-xl font-bold text-red-600">80,000원 절약</span>
+                  </div>
+                  <div class="text-center">
+                    <span id="savings-hero-rate" class="inline-block bg-red-100 text-red-800 px-4 py-2 rounded-full font-bold text-lg">
+                      -44% 절감
+                    </span>
+                  </div>
+                </div>
+                
+                <div class="bg-blue-50 p-4 rounded-lg">
+                  <h4 class="font-semibold text-blue-800 mb-2">선정 사유</h4>
+                  <p class="text-sm text-blue-700">동일 브랜드, 동일 사이즈로 검증 완료. 해외직구 경로를 통한 대폭 할인.</p>
+                </div>
+                
+                        <div class="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full">
+          <button onclick="goToRequest()" class="w-full sm:flex-1 bg-pink-600 text-white py-3 px-4 sm:px-6 rounded-lg font-semibold hover:bg-pink-700 transition text-sm sm:text-base text-center" style="white-space: nowrap; box-sizing: border-box;">
+            나도 의뢰해서 절약하기
+          </button>
+          <a href="reviews.html" class="w-full sm:flex-1 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-3 px-4 sm:px-6 rounded-lg font-semibold transition-all duration-300 text-sm sm:text-base text-center flex items-center justify-center gap-2" style="white-space: nowrap; box-sizing: border-box;">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+            </svg>
+            <span>고객 후기 보기</span>
+          </a>
+        </div>
+              </div>
+              
+              <!-- 이미지 -->
+              <div class="relative">
+                <img id="savings-hero-image" src="https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&w=600&q=80" 
+                     alt="절감왕 상품" 
+                     class="w-full h-64 object-cover rounded-xl shadow-lg">
+                <div class="absolute top-4 right-4 bg-emerald-500 text-white px-3 py-1 rounded-full text-sm font-bold">
+                  🏆 절감왕
+                </div>
+                <div class="absolute bottom-4 left-4 bg-white/90 backdrop-blur px-3 py-2 rounded-lg">
+                  <p id="savings-hero-user" class="text-sm font-semibold text-gray-800">최OO, 20대 직장인</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <!-- 고객의 진짜 고민, 우리가 해결합니다 섹션 -->
       <section id="customer-concerns" class="w-full py-20 px-4 relative overflow-hidden" style="background: linear-gradient(135deg, #fafafa 0%, #f4f4f5 25%, #e4e4e7 50%, #d4d4d8 75%, #a1a1aa 100%);">
         <!-- 고급스러운 동적 배경 효과 -->
@@ -1781,107 +1883,6 @@
                   </svg>
                   <span class="whitespace-nowrap">최저가 검증 의뢰하기</span>
                 </a>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- 절감왕 히어로 섹션 -->
-      <section id="savings-hero" class="w-full py-20 px-4 relative z-10 overflow-hidden" style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 25%, #bbf7d0 50%, #86efac 75%, #4ade80 100%);">
-        <!-- 고급스러운 동적 배경 효과 -->
-        <div class="absolute inset-0 pointer-events-none z-0">
-          <!-- 메인 배경 레이어 -->
-          <div id="savings-bg-layer1" class="absolute inset-0 opacity-25 transition-all duration-1000">
-            <div class="absolute top-20 left-20 w-48 h-48 bg-gradient-to-br from-lime-200 to-lime-400 rounded-full blur-3xl bg-animate-float"></div>
-            <div class="absolute bottom-20 right-20 w-40 h-40 bg-gradient-to-br from-green-200 to-green-400 rounded-full blur-3xl bg-animate-pulse" style="animation-delay: 2s;"></div>
-            <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-gradient-to-br from-emerald-200 to-emerald-400 rounded-full blur-3xl bg-animate-float" style="animation-delay: 4s;"></div>
-          </div>
-          
-          <!-- 추가 배경 레이어 -->
-          <div id="savings-bg-layer2" class="absolute inset-0 opacity-0 transition-all duration-1000">
-            <div class="absolute top-1/3 right-1/4 w-32 h-32 bg-gradient-to-br from-lime-300 to-lime-500 rounded-full blur-2xl bg-animate-pulse" style="animation-delay: 1s;"></div>
-            <div class="absolute bottom-1/3 left-1/4 w-36 h-36 bg-gradient-to-br from-cyan-300 to-cyan-500 rounded-full blur-2xl bg-animate-float" style="animation-delay: 3s;"></div>
-          </div>
-          
-          <!-- 장식적 요소들 -->
-          <div class="absolute top-20 right-20 w-3 h-24 bg-gradient-to-b from-emerald-400 to-transparent opacity-30"></div>
-          <div class="absolute bottom-20 left-20 w-24 h-3 bg-gradient-to-r from-green-400 to-transparent opacity-30"></div>
-          <div class="absolute top-1/2 left-10 w-2 h-20 bg-gradient-to-b from-teal-400 to-transparent opacity-25"></div>
-        </div>
-        <div class="max-w-6xl mx-auto relative z-10">
-          <div class="text-center mb-12">
-            <h2 id="savings-title" class="text-3xl md:text-4xl font-extrabold mb-4 flex items-center justify-center transition-all duration-1000" style="background: linear-gradient(135deg, #166534 0%, #15803d 50%, #16a34a 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
-              🏆 <span style="background: linear-gradient(135deg, #22c55e 0%, #4ade80 50%, #86efac 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">이번 주 절감왕</span>
-            </h2>
-            <p class="text-lg text-gray-600">실제 검증된 절감 성공 사례</p>
-          </div>
-          
-          <div class="bg-white rounded-2xl shadow-2xl p-8 md:p-12 max-w-4xl mx-auto">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-              <!-- 절감 정보 -->
-              <div class="space-y-6">
-                <div class="flex items-center gap-4">
-                  <div class="bg-emerald-100 rounded-full p-3">
-                    <svg class="w-8 h-8 text-emerald-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path>
-                    </svg>
-                  </div>
-                  <div>
-                    <h3 id="savings-hero-product" class="text-2xl font-bold text-gray-800">패션백</h3>
-                    <p id="savings-hero-category" class="text-gray-600">패션/잡화 카테고리</p>
-                  </div>
-                </div>
-                
-                <div class="space-y-4">
-                  <div class="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
-                    <span class="text-gray-600">원래 가격</span>
-                    <span id="savings-hero-original-price" class="text-lg font-semibold text-gray-800">180,000원</span>
-                  </div>
-                  <div class="flex justify-between items-center p-4 bg-emerald-50 rounded-lg">
-                    <span class="text-gray-600">절감 후 가격</span>
-                    <span id="savings-hero-savings-price" class="text-xl font-bold text-emerald-600">100,000원</span>
-                  </div>
-                  <div class="flex justify-between items-center p-4 bg-red-50 rounded-lg">
-                    <span class="text-gray-600">절감액</span>
-                    <span id="savings-hero-savings-amount" class="text-xl font-bold text-red-600">80,000원 절약</span>
-                  </div>
-                  <div class="text-center">
-                    <span id="savings-hero-rate" class="inline-block bg-red-100 text-red-800 px-4 py-2 rounded-full font-bold text-lg">
-                      -44% 절감
-                    </span>
-                  </div>
-                </div>
-                
-                <div class="bg-blue-50 p-4 rounded-lg">
-                  <h4 class="font-semibold text-blue-800 mb-2">선정 사유</h4>
-                  <p class="text-sm text-blue-700">동일 브랜드, 동일 사이즈로 검증 완료. 해외직구 경로를 통한 대폭 할인.</p>
-                </div>
-                
-                        <div class="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full">
-          <button onclick="goToRequest()" class="w-full sm:flex-1 bg-pink-600 text-white py-3 px-4 sm:px-6 rounded-lg font-semibold hover:bg-pink-700 transition text-sm sm:text-base text-center" style="white-space: nowrap; box-sizing: border-box;">
-            나도 의뢰해서 절약하기
-          </button>
-          <a href="reviews.html" class="w-full sm:flex-1 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-3 px-4 sm:px-6 rounded-lg font-semibold transition-all duration-300 text-sm sm:text-base text-center flex items-center justify-center gap-2" style="white-space: nowrap; box-sizing: border-box;">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
-            </svg>
-            <span>고객 후기 보기</span>
-          </a>
-        </div>
-              </div>
-              
-              <!-- 이미지 -->
-              <div class="relative">
-                <img id="savings-hero-image" src="https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&w=600&q=80" 
-                     alt="절감왕 상품" 
-                     class="w-full h-64 object-cover rounded-xl shadow-lg">
-                <div class="absolute top-4 right-4 bg-emerald-500 text-white px-3 py-1 rounded-full text-sm font-bold">
-                  🏆 절감왕
-                </div>
-                <div class="absolute bottom-4 left-4 bg-white/90 backdrop-blur px-3 py-2 rounded-lg">
-                  <p id="savings-hero-user" class="text-sm font-semibold text-gray-800">최OO, 20대 직장인</p>
-                </div>
               </div>
             </div>
           </div>
