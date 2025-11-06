@@ -1358,14 +1358,22 @@
           }
           
           let ticking = false;
+          let heroRectCache = null;
+          let heroRectCacheTime = 0;
+          const HERO_RECT_CACHE_DURATION = 100; // 100ms마다 rect 재계산
           
           function updateHeroAnimation() {
-            const scrollY = window.scrollY;
-            const heroRect = heroSection.getBoundingClientRect();
+            const now = performance.now();
             const windowHeight = window.innerHeight;
             
+            // rect 캐싱: 성능 개선
+            if (!heroRectCache || (now - heroRectCacheTime) > HERO_RECT_CACHE_DURATION) {
+              heroRectCache = heroSection.getBoundingClientRect();
+              heroRectCacheTime = now;
+            }
+            
             // 히어로 섹션이 화면에 보이는 정도 계산 (0 ~ 1)
-            const heroVisible = Math.max(0, Math.min(1, (windowHeight - heroRect.top) / windowHeight));
+            const heroVisible = Math.max(0, Math.min(1, (windowHeight - heroRectCache.top) / windowHeight));
             
             // 배경 패럴랙스 효과 (부드럽게)
             if (heroBgBase) {
@@ -1417,7 +1425,10 @@
           
           // 이벤트 리스너 등록
           window.addEventListener('scroll', requestTick, { passive: true });
-          window.addEventListener('resize', requestTick);
+          window.addEventListener('resize', () => {
+            heroRectCache = null; // 리사이즈 시 캐시 무효화
+            requestTick();
+          }, { passive: true });
           
           // 초기 실행
           updateHeroAnimation();
@@ -4456,25 +4467,45 @@ if (mypageBtn) {
           heroSection.style.transform = 'translateY(0)';
         }
         
-        // 마우스 움직임에 따른 추가 효과
+        // 마우스 움직임에 따른 추가 효과 (PC 전용, 성능 최적화)
         if (heroSection && heroBgLayer1 && !shouldReduceMotion && !isCoarsePointer) {
-          let heroParallaxFrame;
+          let heroParallaxFrame = null;
+          let lastMouseUpdate = 0;
+          const MOUSE_THROTTLE = 50; // 50ms마다만 업데이트
+          let cachedRect = null;
+          let rectCacheTime = 0;
+          const RECT_CACHE_DURATION = 100; // 100ms마다 rect 재계산
+          
           heroSection.addEventListener('mousemove', function(e) {
+            const now = performance.now();
+            
+            // throttle: 너무 자주 실행 방지
+            if (now - lastMouseUpdate < MOUSE_THROTTLE) {
+              return;
+            }
+            lastMouseUpdate = now;
+            
             if (heroParallaxFrame) {
               cancelAnimationFrame(heroParallaxFrame);
             }
+            
             heroParallaxFrame = requestAnimationFrame(() => {
-              const rect = heroSection.getBoundingClientRect();
-              const x = (e.clientX - rect.left) / rect.width;
-              const y = (e.clientY - rect.top) / rect.height;
+              // rect 캐싱으로 성능 개선
+              if (!cachedRect || (now - rectCacheTime) > RECT_CACHE_DURATION) {
+                cachedRect = heroSection.getBoundingClientRect();
+                rectCacheTime = now;
+              }
+              
+              const x = (e.clientX - cachedRect.left) / cachedRect.width;
+              const y = (e.clientY - cachedRect.top) / cachedRect.height;
 
-              // 마우스 위치에 따른 미묘한 움직임
-              const moveX = (x - 0.5) * 16;
-              const moveY = (y - 0.5) * 16;
+              // 마우스 위치에 따른 미묘한 움직임 (더 작게 조정)
+              const moveX = (x - 0.5) * 12;
+              const moveY = (y - 0.5) * 12;
               heroBgLayer1.style.transform = `translate(${moveX}px, ${moveY}px)`;
               heroParallaxFrame = null;
             });
-          });
+          }, { passive: true });
           
           // 마우스가 섹션을 벗어날 때 원래 위치로 복원
           heroSection.addEventListener('mouseleave', function() {
@@ -4482,6 +4513,7 @@ if (mypageBtn) {
               cancelAnimationFrame(heroParallaxFrame);
               heroParallaxFrame = null;
             }
+            cachedRect = null;
             heroBgLayer1.style.transform = 'translate(0, 0)';
           });
         }
@@ -4538,18 +4570,28 @@ if (mypageBtn) {
           setInterval(createParticles, 18000);
         }
         
-        // 모든 섹션에 대한 동적 스크롤 효과
+        // 모든 섹션에 대한 동적 스크롤 효과 (성능 최적화)
+        let sectionRectsCache = {};
+        let rectCacheTimestamp = 0;
+        const RECT_CACHE_DURATION = 200; // 200ms마다 rect 재계산
+        
         function updateAllSectionsEffects() {
           if (disableScrollEffects) {
             return;
           }
-          const scrollY = window.scrollY;
+          const now = performance.now();
           const windowHeight = window.innerHeight;
+          
+          // rect 캐싱: 성능 개선
+          const shouldRecalc = (now - rectCacheTimestamp) > RECT_CACHE_DURATION;
           
           // 고객 고민 섹션 효과
           const concernsSection = document.getElementById('customer-concerns');
           if (concernsSection) {
-            const concernsRect = concernsSection.getBoundingClientRect();
+            if (shouldRecalc || !sectionRectsCache.concerns) {
+              sectionRectsCache.concerns = concernsSection.getBoundingClientRect();
+            }
+            const concernsRect = sectionRectsCache.concerns;
             const concernsProgress = Math.max(0, Math.min(1, (windowHeight - concernsRect.top) / (windowHeight * 0.8)));
             
             const concernsBgLayer1 = document.getElementById('concerns-bg-layer1');
@@ -4572,7 +4614,10 @@ if (mypageBtn) {
           // 서비스 프로세스 섹션 효과
           const processSection = document.getElementById('service-process');
           if (processSection) {
-            const processRect = processSection.getBoundingClientRect();
+            if (shouldRecalc || !sectionRectsCache.process) {
+              sectionRectsCache.process = processSection.getBoundingClientRect();
+            }
+            const processRect = sectionRectsCache.process;
             const processProgress = Math.max(0, Math.min(1, (windowHeight - processRect.top) / (windowHeight * 0.8)));
             
             const processBg1 = document.getElementById('process-bg-1');
@@ -4600,7 +4645,10 @@ if (mypageBtn) {
           // 절감왕 섹션 효과
           const savingsSection = document.getElementById('savings-hero');
           if (savingsSection) {
-            const savingsRect = savingsSection.getBoundingClientRect();
+            if (shouldRecalc || !sectionRectsCache.savings) {
+              sectionRectsCache.savings = savingsSection.getBoundingClientRect();
+            }
+            const savingsRect = sectionRectsCache.savings;
             const savingsProgress = Math.max(0, Math.min(1, (windowHeight - savingsRect.top) / (windowHeight * 0.8)));
             
             const savingsBgLayer1 = document.getElementById('savings-bg-layer1');
@@ -4619,29 +4667,42 @@ if (mypageBtn) {
               savingsTitle.style.opacity = 0.8 + (savingsProgress * 0.2);
             }
           }
+          
+          if (shouldRecalc) {
+            rectCacheTimestamp = now;
+          }
         }
         
-        // 스크롤 이벤트에 다른 섹션 효과만 추가 (히어로 섹션은 별도 처리)
+        // 스크롤 이벤트 통합 및 최적화 (PC 성능 개선)
+        let sectionsTickRequested = false;
+        let sectionsScrollTimeout = null;
+        
         function requestAllSectionsTick() {
-          if (disableScrollEffects) {
+          if (disableScrollEffects || sectionsTickRequested) {
             return;
           }
-          if (!ticking) {
-            requestAnimationFrame(() => {
-              updateAllSectionsEffects();
-              ticking = false;
-            });
-            ticking = true;
+          sectionsTickRequested = true;
+          requestAnimationFrame(() => {
+            updateAllSectionsEffects();
+            sectionsTickRequested = false;
+          });
+        }
+        
+        // 스크롤 이벤트 throttle (더 강력하게)
+        function throttledSectionsScrollHandler() {
+          if (sectionsScrollTimeout) {
+            return;
           }
+          sectionsScrollTimeout = setTimeout(() => {
+            requestAllSectionsTick();
+            sectionsScrollTimeout = null;
+          }, 33); // ~30fps로 제한 (더 부드럽게)
         }
         
-        // 다른 섹션들의 스크롤 이벤트 리스너
+        // 초기 로드 시 모든 효과 적용 (한 번만)
         if (!disableScrollEffects) {
-          window.addEventListener('scroll', requestAllSectionsTick);
+          updateAllSectionsEffects();
         }
-        
-        // 초기 로드 시 모든 효과 적용
-        updateAllSectionsEffects();
         
         if (!disableScrollEffects) {
           // Intersection Observer를 사용한 성능 최적화
@@ -4656,35 +4717,41 @@ if (mypageBtn) {
               if (entry.isIntersecting) {
                 entry.target.classList.add('section-visible');
                 
-                // 섹션별 고급 애니메이션 적용
+                // 섹션별 고급 애니메이션 적용 (한 번만)
                 const sectionId = entry.target.id;
-                if (sectionId === 'customer-concerns') {
-                  entry.target.classList.add('section-animate-slide-in');
-                } else if (sectionId === 'service-process') {
-                  entry.target.classList.add('section-animate-fade-scale');
-                } else if (sectionId === 'savings-hero') {
-                  entry.target.classList.add('section-animate-rotate-in');
+                if (!entry.target.dataset.animated) {
+                  if (sectionId === 'customer-concerns') {
+                    entry.target.classList.add('section-animate-slide-in');
+                  } else if (sectionId === 'service-process') {
+                    entry.target.classList.add('section-animate-fade-scale');
+                  } else if (sectionId === 'savings-hero') {
+                    entry.target.classList.add('section-animate-rotate-in');
+                  }
+                  
+                  // 카드들에 순차적 애니메이션 적용 (한 번만)
+                  const cards = entry.target.querySelectorAll('.bg-white, .rounded-2xl');
+                  cards.forEach((card, index) => {
+                    if (!card.dataset.animated) {
+                      setTimeout(() => {
+                        card.style.opacity = '0';
+                        card.style.transform = 'translateY(40px) scale(0.95)';
+                        card.style.transition = 'all 0.8s cubic-bezier(0.4, 0, 0.2, 1)';
+                        
+                        setTimeout(() => {
+                          card.style.opacity = '1';
+                          card.style.transform = 'translateY(0) scale(1)';
+                          card.dataset.animated = 'true';
+                        }, 100);
+                      }, index * 200);
+                    }
+                  });
+                  
+                  entry.target.dataset.animated = 'true';
                 }
-                
-                // 카드들에 순차적 애니메이션 적용
-                const cards = entry.target.querySelectorAll('.bg-white, .rounded-2xl');
-                cards.forEach((card, index) => {
-                  setTimeout(() => {
-                    card.style.opacity = '0';
-                    card.style.transform = 'translateY(40px) scale(0.95)';
-                    card.style.transition = 'all 0.8s cubic-bezier(0.4, 0, 0.2, 1)';
-                    
-                    setTimeout(() => {
-                      card.style.opacity = '1';
-                      card.style.transform = 'translateY(0) scale(1)';
-                    }, 100);
-                  }, index * 200);
-                });
                 
               } else {
                 entry.target.classList.remove('section-visible');
-                // 애니메이션 클래스들 제거
-                entry.target.classList.remove('section-animate-slide-in', 'section-animate-fade-scale', 'section-animate-rotate-in');
+                // 애니메이션 클래스들 제거하지 않음 (성능 개선)
               }
             });
           }, observerOptions);
@@ -4694,27 +4761,18 @@ if (mypageBtn) {
           sections.forEach(section => {
             sectionObserver.observe(section);
           });
+          
+          // 스크롤 이벤트 리스너 등록 (passive로 성능 개선)
+          window.addEventListener('scroll', throttledSectionsScrollHandler, { passive: true });
+          
+          // 리사이즈 시 캐시 무효화
+          window.addEventListener('resize', () => {
+            sectionRectsCache = {};
+            rectCacheTimestamp = 0;
+          }, { passive: true });
         } else {
           const sections = document.querySelectorAll('section[id]');
           sections.forEach(section => section.classList.add('section-visible'));
-        }
-        
-        // 성능 최적화: 스크롤 이벤트 throttling (히어로 섹션 제외)
-        let scrollTimeout;
-        let ticking = false;
-        function throttledScrollHandler() {
-          if (!scrollTimeout) {
-            scrollTimeout = setTimeout(() => {
-              requestAllSectionsTick();
-              scrollTimeout = null;
-            }, 16); // ~60fps
-          }
-        }
-        
-        // 기존 스크롤 이벤트를 throttled 버전으로 교체
-        if (!disableScrollEffects) {
-          window.removeEventListener('scroll', requestAllSectionsTick);
-          window.addEventListener('scroll', throttledScrollHandler);
         }
       });
       
