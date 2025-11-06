@@ -333,9 +333,13 @@
         // 팝업을 닫는 공통 함수
         function closePopup() {
           popup.style.animation = 'fadeOut 0.8s ease-out forwards';
+          popup.setAttribute('aria-hidden', 'true');
           
           setTimeout(() => {
-            popup.style.display = 'none';
+            popup.classList.add('hidden');
+            popup.classList.remove('flex');
+            popup.style.removeProperty('animation');
+            popup.style.removeProperty('display');
             
             // 히어로섹션 페이드인 애니메이션
             heroSection.style.transition = 'all 1.2s cubic-bezier(0.4, 0, 0.2, 1)';
@@ -369,11 +373,17 @@
         
         if (hiddenDate !== today) {
           setTimeout(() => {
-            popup.style.display = 'flex';
+            popup.classList.remove('hidden');
+            popup.classList.add('flex');
+            popup.style.removeProperty('display');
+            popup.setAttribute('aria-hidden', 'false');
           }, 500);
         } else {
           // 오늘 이미 안보기로 설정했다면 팝업 숨기고 바로 히어로섹션 표시
-          popup.style.display = 'none';
+          popup.classList.add('hidden');
+          popup.classList.remove('flex');
+          popup.style.removeProperty('display');
+          popup.setAttribute('aria-hidden', 'true');
           heroSection.style.opacity = '1';
           heroSection.style.transform = 'translateY(0)';
           
@@ -397,7 +407,7 @@
         
         // ESC 키로 팝업 닫기
         document.addEventListener('keydown', function(e) {
-          if (e.key === 'Escape' && popup.style.display === 'flex') {
+          if (e.key === 'Escape' && popup.getAttribute('aria-hidden') === 'false') {
             closePopup();
           }
         });
@@ -708,10 +718,10 @@
       </div>
     </div>
     <!-- 강력한 애니메이션 팝업 -->
-    <div id="savings-popup" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+    <div id="savings-popup" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/80 backdrop-blur-sm" role="dialog" aria-modal="true" aria-hidden="true">
       <div class="popup-container relative max-w-4xl mx-auto px-4">
         <!-- 메인 팝업 카드 -->
-        <div class="popup-card bg-gradient-to-br from-yellow-400 via-orange-500 to-red-500 rounded-3xl p-8 md:p-12 shadow-2xl transform scale-0 opacity-0 transition-all duration-1000 relative">
+        <div class="popup-card bg-gradient-to-br from-yellow-400 via-orange-500 to-red-500 rounded-3xl p-8 md:p-12 shadow-2xl transform scale-0 opacity-0 transition-all duration-1000 relative max-h-[85vh] overflow-y-auto flex flex-col items-center w-full">
           <!-- 닫기 버튼 -->
           <button id="popup-close-btn" class="absolute top-4 right-4 w-8 h-8 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center text-white text-xl font-bold transition-all duration-300 hover:scale-110 backdrop-blur-sm">
             ×
@@ -4436,29 +4446,49 @@ if (mypageBtn) {
       document.addEventListener('DOMContentLoaded', function() {
         const heroSection = document.getElementById('hero-section');
         const heroBgLayer1 = document.getElementById('hero-bg-layer1');
+        const motionPreferenceQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+        const shouldReduceMotion = motionPreferenceQuery.matches;
+        const isCoarsePointer = window.matchMedia('(pointer: coarse)').matches;
+        const disableScrollEffects = shouldReduceMotion || isCoarsePointer;
+        
+        if (heroSection && shouldReduceMotion) {
+          heroSection.style.opacity = '1';
+          heroSection.style.transform = 'translateY(0)';
+        }
         
         // 마우스 움직임에 따른 추가 효과
-        if (heroSection && heroBgLayer1) {
+        if (heroSection && heroBgLayer1 && !shouldReduceMotion && !isCoarsePointer) {
+          let heroParallaxFrame;
           heroSection.addEventListener('mousemove', function(e) {
-            const rect = heroSection.getBoundingClientRect();
-            const x = (e.clientX - rect.left) / rect.width;
-            const y = (e.clientY - rect.top) / rect.height;
-            
-            // 마우스 위치에 따른 미묘한 움직임
-            const moveX = (x - 0.5) * 20;
-            const moveY = (y - 0.5) * 20;
-            heroBgLayer1.style.transform = `translate(${moveX}px, ${moveY}px)`;
+            if (heroParallaxFrame) {
+              cancelAnimationFrame(heroParallaxFrame);
+            }
+            heroParallaxFrame = requestAnimationFrame(() => {
+              const rect = heroSection.getBoundingClientRect();
+              const x = (e.clientX - rect.left) / rect.width;
+              const y = (e.clientY - rect.top) / rect.height;
+
+              // 마우스 위치에 따른 미묘한 움직임
+              const moveX = (x - 0.5) * 16;
+              const moveY = (y - 0.5) * 16;
+              heroBgLayer1.style.transform = `translate(${moveX}px, ${moveY}px)`;
+              heroParallaxFrame = null;
+            });
           });
           
           // 마우스가 섹션을 벗어날 때 원래 위치로 복원
           heroSection.addEventListener('mouseleave', function() {
+            if (heroParallaxFrame) {
+              cancelAnimationFrame(heroParallaxFrame);
+              heroParallaxFrame = null;
+            }
             heroBgLayer1.style.transform = 'translate(0, 0)';
           });
         }
         
         // 버튼 호버 효과
         const mainBtn = document.getElementById('request-v2-btn');
-        if (mainBtn) {
+        if (mainBtn && !shouldReduceMotion) {
           mainBtn.addEventListener('mouseenter', function() {
             this.style.transform = 'scale(1.05) translateY(-2px)';
             this.style.boxShadow = '0 25px 50px rgba(236, 72, 153, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.2)';
@@ -4474,35 +4504,45 @@ if (mypageBtn) {
         function createParticles() {
           const particlesContainer = document.getElementById('hero-particles');
           if (!particlesContainer) return;
-          
+
+          if (disableScrollEffects) {
+            particlesContainer.innerHTML = '';
+            return;
+          }
+
           // 기존 파티클 제거
           particlesContainer.innerHTML = '';
-          
+
+          const particleCount = Math.max(3, Math.round(window.innerWidth / 480));
+
           // 새로운 파티클 생성
-          for (let i = 0; i < 8; i++) {
+          for (let i = 0; i < particleCount; i++) {
             const particle = document.createElement('div');
             particle.className = 'particle absolute rounded-full';
-            particle.style.width = Math.random() * 4 + 2 + 'px';
+            const size = Math.random() * 3 + 2;
+            particle.style.width = `${size}px`;
             particle.style.height = particle.style.width;
             particle.style.top = Math.random() * 100 + '%';
             particle.style.left = Math.random() * 100 + '%';
             particle.style.background = ['#ffffff', '#fbbf24', '#ec4899', '#3b82f6', '#10b981'][Math.floor(Math.random() * 5)];
-            particle.style.animationDelay = Math.random() * 5 + 's';
-            particle.style.animationDuration = (Math.random() * 5 + 5) + 's';
+            particle.style.animationDelay = Math.random() * 4 + 's';
+            particle.style.animationDuration = (Math.random() * 4 + 5) + 's';
             particle.style.animationName = ['animate-float', 'animate-float-delayed', 'animate-float-slow'][Math.floor(Math.random() * 3)];
             
             particlesContainer.appendChild(particle);
           }
         }
         
-        // 파티클 생성
         createParticles();
-        
-        // 주기적으로 파티클 재생성
-        setInterval(createParticles, 15000);
+        if (!disableScrollEffects) {
+          setInterval(createParticles, 18000);
+        }
         
         // 모든 섹션에 대한 동적 스크롤 효과
         function updateAllSectionsEffects() {
+          if (disableScrollEffects) {
+            return;
+          }
           const scrollY = window.scrollY;
           const windowHeight = window.innerHeight;
           
@@ -4583,6 +4623,9 @@ if (mypageBtn) {
         
         // 스크롤 이벤트에 다른 섹션 효과만 추가 (히어로 섹션은 별도 처리)
         function requestAllSectionsTick() {
+          if (disableScrollEffects) {
+            return;
+          }
           if (!ticking) {
             requestAnimationFrame(() => {
               updateAllSectionsEffects();
@@ -4593,61 +4636,68 @@ if (mypageBtn) {
         }
         
         // 다른 섹션들의 스크롤 이벤트 리스너
-        window.addEventListener('scroll', requestAllSectionsTick);
+        if (!disableScrollEffects) {
+          window.addEventListener('scroll', requestAllSectionsTick);
+        }
         
         // 초기 로드 시 모든 효과 적용
         updateAllSectionsEffects();
         
-        // Intersection Observer를 사용한 성능 최적화
-        const observerOptions = {
-          root: null,
-          rootMargin: '50px',
-          threshold: 0.1
-        };
-        
-        const sectionObserver = new IntersectionObserver((entries) => {
-          entries.forEach(entry => {
-            if (entry.isIntersecting) {
-              entry.target.classList.add('section-visible');
-              
-              // 섹션별 고급 애니메이션 적용
-              const sectionId = entry.target.id;
-              if (sectionId === 'customer-concerns') {
-                entry.target.classList.add('section-animate-slide-in');
-              } else if (sectionId === 'service-process') {
-                entry.target.classList.add('section-animate-fade-scale');
-              } else if (sectionId === 'savings-hero') {
-                entry.target.classList.add('section-animate-rotate-in');
-              }
-              
-              // 카드들에 순차적 애니메이션 적용
-              const cards = entry.target.querySelectorAll('.bg-white, .rounded-2xl');
-              cards.forEach((card, index) => {
-                setTimeout(() => {
-                  card.style.opacity = '0';
-                  card.style.transform = 'translateY(40px) scale(0.95)';
-                  card.style.transition = 'all 0.8s cubic-bezier(0.4, 0, 0.2, 1)';
-                  
+        if (!disableScrollEffects) {
+          // Intersection Observer를 사용한 성능 최적화
+          const observerOptions = {
+            root: null,
+            rootMargin: '50px',
+            threshold: 0.1
+          };
+          
+          const sectionObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+              if (entry.isIntersecting) {
+                entry.target.classList.add('section-visible');
+                
+                // 섹션별 고급 애니메이션 적용
+                const sectionId = entry.target.id;
+                if (sectionId === 'customer-concerns') {
+                  entry.target.classList.add('section-animate-slide-in');
+                } else if (sectionId === 'service-process') {
+                  entry.target.classList.add('section-animate-fade-scale');
+                } else if (sectionId === 'savings-hero') {
+                  entry.target.classList.add('section-animate-rotate-in');
+                }
+                
+                // 카드들에 순차적 애니메이션 적용
+                const cards = entry.target.querySelectorAll('.bg-white, .rounded-2xl');
+                cards.forEach((card, index) => {
                   setTimeout(() => {
-                    card.style.opacity = '1';
-                    card.style.transform = 'translateY(0) scale(1)';
-                  }, 100);
-                }, index * 200);
-              });
-              
-            } else {
-              entry.target.classList.remove('section-visible');
-              // 애니메이션 클래스들 제거
-              entry.target.classList.remove('section-animate-slide-in', 'section-animate-fade-scale', 'section-animate-rotate-in');
-            }
+                    card.style.opacity = '0';
+                    card.style.transform = 'translateY(40px) scale(0.95)';
+                    card.style.transition = 'all 0.8s cubic-bezier(0.4, 0, 0.2, 1)';
+                    
+                    setTimeout(() => {
+                      card.style.opacity = '1';
+                      card.style.transform = 'translateY(0) scale(1)';
+                    }, 100);
+                  }, index * 200);
+                });
+                
+              } else {
+                entry.target.classList.remove('section-visible');
+                // 애니메이션 클래스들 제거
+                entry.target.classList.remove('section-animate-slide-in', 'section-animate-fade-scale', 'section-animate-rotate-in');
+              }
+            });
+          }, observerOptions);
+          
+          // 모든 섹션을 관찰 대상에 추가
+          const sections = document.querySelectorAll('section[id]');
+          sections.forEach(section => {
+            sectionObserver.observe(section);
           });
-        }, observerOptions);
-        
-        // 모든 섹션을 관찰 대상에 추가
-        const sections = document.querySelectorAll('section[id]');
-        sections.forEach(section => {
-          sectionObserver.observe(section);
-        });
+        } else {
+          const sections = document.querySelectorAll('section[id]');
+          sections.forEach(section => section.classList.add('section-visible'));
+        }
         
         // 성능 최적화: 스크롤 이벤트 throttling (히어로 섹션 제외)
         let scrollTimeout;
@@ -4662,8 +4712,10 @@ if (mypageBtn) {
         }
         
         // 기존 스크롤 이벤트를 throttled 버전으로 교체
-        window.removeEventListener('scroll', requestAllSectionsTick);
-        window.addEventListener('scroll', throttledScrollHandler);
+        if (!disableScrollEffects) {
+          window.removeEventListener('scroll', requestAllSectionsTick);
+          window.addEventListener('scroll', throttledScrollHandler);
+        }
       });
       
     </script>
