@@ -5865,10 +5865,14 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                     return;
                 }
                 
-                console.log('📝 문의 답변 저장 시작:', {
-                    inquiryId: currentInquiryId,
-                    formData: formData
-                });
+                // 현재 사용자 확인 및 토큰 강제 갱신 (Firestore 규칙 인식용)
+                if (window.firebaseAuth && window.firebaseAuth.currentUser) {
+                    try {
+                        await window.firebaseAuth.currentUser.getIdToken(true);
+                    } catch (tokenError) {
+                        console.warn('⚠️ 토큰 갱신 실패:', tokenError);
+                    }
+                }
                 
                 const { collection, doc, updateDoc, serverTimestamp } = window.firebaseFirestoreFunctions;
                 
