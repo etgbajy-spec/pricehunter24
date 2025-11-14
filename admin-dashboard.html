@@ -1352,8 +1352,8 @@
                         </div>
                         <div class="col-span-1 text-center text-sm">${createdAt}</div>
                         <div class="col-span-1 text-center">
-                            <span class="px-2 py-1 text-xs rounded-full ${request.status === 'completed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}">
-                                ${request.status === 'completed' ? '완료' : '진행중'}
+                            <span class="px-2 py-1 text-xs rounded-full ${request.status === 'completed' || request.status === '답변완료' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}">
+                                ${request.status === 'completed' || request.status === '답변완료' ? '완료' : '진행중'}
                             </span>
                         </div>
                         <div class="col-span-1 text-center text-sm">${request.purchaseMethod || '-'}</div>
@@ -5859,10 +5859,21 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
 
             try {
                 await waitForFirebase();
+                
+                if (!currentInquiryId) {
+                    alert('문의 ID를 찾을 수 없습니다. 페이지를 새로고침하고 다시 시도해주세요.');
+                    return;
+                }
+                
                 const { collection, doc, updateDoc, serverTimestamp } = window.firebaseFirestoreFunctions;
                 
+                console.log('📝 문의 답변 저장 시작:', {
+                    inquiryId: currentInquiryId,
+                    formData: formData
+                });
+                
                 // Firebase에서 문의 문서 업데이트
-                const inquiryRef = doc(collection(window.firebaseDb, 'inquiries'), currentInquiryId);
+                const inquiryRef = doc(window.firebaseDb, 'inquiries', currentInquiryId);
                 await updateDoc(inquiryRef, {
                     adminResponse: formData,
                     responseDate: serverTimestamp(),
@@ -5870,6 +5881,7 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                     lastUpdated: serverTimestamp()
                 });
 
+                console.log('✅ 문의 답변 저장 완료');
                 alert('답변이 성공적으로 저장되었습니다.');
                 
                 // 답변 섹션 업데이트
@@ -5879,8 +5891,10 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 
                 // 모달의 상태 표시도 업데이트
                 const statusElement = document.getElementById('inquiry-modal-status');
-                statusElement.textContent = '답변완료';
-                statusElement.className = 'px-2 py-1 rounded-full text-xs font-bold text-white ' + getInquiryStatusClass('답변완료');
+                if (statusElement) {
+                    statusElement.textContent = '답변완료';
+                    statusElement.className = 'px-2 py-1 rounded-full text-xs font-bold text-white ' + getInquiryStatusClass('답변완료');
+                }
                 
                 // 폼 초기화
                 clearInquiryResponseForm();
@@ -5890,7 +5904,22 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 
             } catch (error) {
                 console.error('❌ 문의 답변 저장 실패:', error);
-                alert('답변 저장에 실패했습니다. 다시 시도해주세요.');
+                console.error('❌ 오류 상세:', {
+                    code: error.code,
+                    message: error.message,
+                    inquiryId: currentInquiryId
+                });
+                
+                let errorMessage = '답변 저장에 실패했습니다.';
+                if (error.code === 'permission-denied') {
+                    errorMessage = '권한이 없습니다. 관리자로 로그인되어 있는지 확인해주세요.';
+                } else if (error.code === 'not-found') {
+                    errorMessage = '문의를 찾을 수 없습니다. 페이지를 새로고침하고 다시 시도해주세요.';
+                } else if (error.message) {
+                    errorMessage = `답변 저장에 실패했습니다: ${error.message}`;
+                }
+                
+                alert(errorMessage);
             }
         }
 

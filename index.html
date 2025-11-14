@@ -440,7 +440,7 @@
     <!-- Firebase v9 SDK (모듈식) -->
     <script type="module">
       import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
-      import { getAuth, signInWithCustomToken, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
+      import { getAuth, signInWithCustomToken, onAuthStateChanged, signOut, sendPasswordResetEmail } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
       import { getFirestore, doc, setDoc, getDoc, collection, query, orderBy, onSnapshot, getDocs, where, serverTimestamp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
       
       // Firebase 설정
@@ -464,7 +464,7 @@
         window.firebaseApp = app;
         window.firebaseAuth = auth;
         window.firebaseDb = db;
-        window.firebaseAuthFunctions = { signInWithCustomToken, onAuthStateChanged, signOut };
+        window.firebaseAuthFunctions = { signInWithCustomToken, onAuthStateChanged, signOut, sendPasswordResetEmail };
         window.firebaseFirestoreFunctions = { doc, setDoc, getDoc, collection, query, orderBy, onSnapshot, getDocs, where, serverTimestamp };
         
         console.log('✅ Firebase v9 초기화 완료');
@@ -3552,21 +3552,46 @@
           const resultP = resultDiv.querySelector('p');
           
           if (foundUser) {
-            // 임시 비밀번호 생성
-            const tempPassword = Math.random().toString(36).slice(-8);
-            
-            // 사용자 비밀번호 업데이트
-            const userIndex = users.findIndex(user => user.email === email);
-            // localStorage 사용자 데이터 업데이트 제거 - Firebase 전용
-            console.log('✅ Firebase 전용 시스템 - localStorage 사용자 데이터 업데이트 불필요');
-            
-            resultP.innerHTML = `
-              <div class="text-green-600">
-                <p class="font-bold">임시 비밀번호가 발급되었습니다.</p>
-                <p class="mt-2">임시 비밀번호: <span class="font-mono bg-gray-200 px-2 py-1 rounded">${tempPassword}</span></p>
-                <p class="text-sm mt-2 text-gray-600">로그인 후 비밀번호를 변경해주세요.</p>
-              </div>
-            `;
+            try {
+              await waitForFirebase();
+              
+              // Firebase Auth의 sendPasswordResetEmail 사용
+              const { sendPasswordResetEmail } = window.firebaseAuthFunctions;
+              
+              if (window.firebaseAuth && sendPasswordResetEmail) {
+                await sendPasswordResetEmail(window.firebaseAuth, email);
+                
+                resultP.innerHTML = `
+                  <div class="text-green-600">
+                    <p class="font-bold">비밀번호 재설정 이메일을 발송했습니다.</p>
+                    <p class="mt-2 text-sm">입력하신 이메일 주소(${email})로 비밀번호 재설정 링크를 보내드렸습니다.</p>
+                    <p class="text-sm mt-2 text-gray-600">이메일을 확인하시고 링크를 클릭하여 비밀번호를 재설정해주세요.</p>
+                    <p class="text-xs mt-2 text-gray-500">이메일이 보이지 않으면 스팸함을 확인해주세요.</p>
+                  </div>
+                `;
+              } else {
+                // Firebase Auth가 없는 경우 대체 방법 (임시 비밀번호 표시)
+                const tempPassword = Math.random().toString(36).slice(-8) + 'A1!';
+                
+                resultP.innerHTML = `
+                  <div class="text-yellow-600">
+                    <p class="font-bold">⚠️ 임시 비밀번호가 발급되었습니다.</p>
+                    <p class="mt-2">임시 비밀번호: <span class="font-mono bg-gray-200 px-2 py-1 rounded">${tempPassword}</span></p>
+                    <p class="text-sm mt-2 text-gray-600">로그인 후 반드시 비밀번호를 변경해주세요.</p>
+                    <p class="text-xs mt-2 text-red-600">※ 보안을 위해 이메일로 비밀번호 재설정 링크를 받는 것을 권장합니다.</p>
+                  </div>
+                `;
+              }
+            } catch (error) {
+              console.error('비밀번호 재설정 오류:', error);
+              resultP.innerHTML = `
+                <div class="text-red-600">
+                  <p class="font-bold">비밀번호 재설정에 실패했습니다.</p>
+                  <p class="text-sm mt-2">오류: ${error.message}</p>
+                  <p class="text-sm mt-2">관리자에게 문의해주세요.</p>
+                </div>
+              `;
+            }
           } else {
             resultP.textContent = '입력하신 정보와 일치하는 계정을 찾을 수 없습니다.';
             resultP.className = 'text-center text-red-600';

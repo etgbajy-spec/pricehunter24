@@ -1,5 +1,4 @@
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
     // 관리자 권한 확인 함수
@@ -12,103 +11,85 @@ service cloud.firestore {
       );
     }
     
-    // 로그인 사용자 확인 함수
-    function isAuthenticated() {
-      return request.auth != null;
+    // users 컬렉션에 대한 규칙 (회원 데이터)
+    match /users/{userId} {
+      // 읽기: 모든 사용자 허용 (회원가입 시 중복 확인용)
+      allow read: if true;
+      // 쓰기: 회원가입과 로그인 시에만 허용
+      allow create: if true;
+      allow update: if true;
+      allow delete: if false; // 사용자 삭제는 허용하지 않음
     }
     
-    // 회원 컬렉션: 문서ID = uid
-    match /members/{uid} {
-      // 본인은 읽기/생성/필요 필드 업데이트 가능
-      allow read, create: if isAuthenticated() && request.auth.uid == uid;
-      allow update: if isAuthenticated() && request.auth.uid == uid && 
-                   !('role' in request.resource.data.diff(resource.data).affectedKeys()) &&
-                   !('status' in request.resource.data.diff(resource.data).affectedKeys());
-      // 관리자는 모든 작업 가능
-      allow read, write: if isAdmin();
-    }
-    
-    // 회원 컬렉션 전체 조회 (관리자 대시보드용) - 컬렉션 레벨 쿼리
-    match /members/{document=**} {
-      // 관리자는 모든 회원 조회 가능
-      allow read: if isAdmin();
-    }
-    
-    // 의뢰 컬렉션
-    match /requests/{requestId} {
-      // 로그인한 사용자는 생성 가능
-      allow create: if isAuthenticated();
-      // 본인이 작성한 것 또는 관리자는 읽기 가능
-      allow read: if isAuthenticated() && 
-                  (resource.data.createdBy == request.auth.uid || isAdmin());
-      // 작성자 또는 관리자는 업데이트/삭제 가능
-      allow update, delete: if isAuthenticated() && 
-                           (resource.data.createdBy == request.auth.uid || isAdmin());
-    }
-    
-    // 문의 컬렉션
+    // inquiries 컬렉션에 대한 규칙 (문의 데이터)
     match /inquiries/{inquiryId} {
-      // 로그인한 사용자는 생성 가능
-      allow create: if isAuthenticated();
-      // 본인이 작성한 것 또는 관리자는 읽기 가능
-      allow read: if isAuthenticated() && 
-                  (resource.data.createdBy == request.auth.uid || isAdmin());
-      // 작성자 또는 관리자는 업데이트/삭제 가능
-      allow update, delete: if isAuthenticated() && 
-                           (resource.data.createdBy == request.auth.uid || isAdmin());
+      // 읽기: 모든 사용자 허용
+      allow read: if true;
+      // 쓰기: 문의 작성만 허용
+      allow create: if true;
+      allow update: if isAdmin(); // 관리자는 문의 답변 작성 가능
+      allow delete: if false; // 문의 삭제는 허용하지 않음
     }
     
-    // 관리자 컬렉션
-    match /admins/{adminId} {
+    // reviews 컬렉션에 대한 규칙 (후기 데이터)
+    match /reviews/{reviewId} {
+      // 읽기: 모든 사용자 허용
+      allow read: if true;
+      // 쓰기: 후기 작성만 허용
+      allow create: if true;
+      // 수정: 관리자만 허용 (절약왕 수정 기능용)
+      allow update: if isAdmin();
+      allow delete: if false; // 후기 삭제는 허용하지 않음
+    }
+    
+    // requests 컬렉션에 대한 규칙 (요청 데이터)
+    match /requests/{requestId} {
+      // 읽기: 모든 사용자 허용
+      allow read: if true;
+      // 쓰기: 요청 작성만 허용
+      allow create: if true;
+      allow update: if isAdmin(); // 관리자는 의뢰 답변 작성 가능
+      allow delete: if false; // 요청 삭제는 허용하지 않음
+    }
+    
+    // orders 컬렉션에 대한 규칙 (주문 데이터)
+    match /orders/{orderId} {
+      // 읽기: 모든 사용자 허용
+      allow read: if true;
+      // 쓰기: 주문 생성만 허용
+      allow create: if true;
+      allow update: if false; // 주문 수정은 허용하지 않음
+      allow delete: if false; // 주문 삭제는 허용하지 않음
+    }
+    
+    // payments 컬렉션에 대한 규칙 (결제 데이터)
+    match /payments/{paymentId} {
+      // 읽기: 모든 사용자 허용
+      allow read: if true;
+      // 쓰기: 결제 정보 생성만 허용
+      allow create: if true;
+      allow update: if false; // 결제 정보 수정은 허용하지 않음
+      allow delete: if false; // 결제 정보 삭제는 허용하지 않음
+    }
+    
+    // 관리자 설정 컬렉션 (절약왕 관리 등)
+    match /adminSettings/{settingId} {
       // 읽기: 관리자만
       allow read: if isAdmin();
-      
       // 쓰기: 관리자만
       allow write: if isAdmin();
-      
       // 삭제: 관리자만
       allow delete: if isAdmin();
     }
     
-    // 동기화 설정 컬렉션
-    match /sync_config/{configId} {
-      // 읽기: 관리자만
-      allow read: if isAdmin();
-      
-      // 쓰기: 관리자만
-      allow write: if isAdmin();
-      
-      // 삭제: 관리자만
-      allow delete: if isAdmin();
-    }
-    
-    // 가져오기 오류 로그 컬렉션
-    match /import_errors/{errorId} {
-      // 읽기: 관리자만
-      allow read: if isAdmin();
-      
-      // 쓰기: 관리자만
-      allow write: if isAdmin();
-      
-      // 삭제: 관리자만
-      allow delete: if isAdmin();
-    }
-    
-    // 감사 로그 컬렉션
-    match /audit_logs/{logId} {
-      // 읽기: 관리자만
-      allow read: if isAdmin();
-      
-      // 쓰기: 관리자만 (서버에서만)
-      allow write: if isAdmin();
-      
-      // 삭제: 관리자만
-      allow delete: if isAdmin();
-    }
-    
-    // 기본 규칙: 다른 모든 문서는 거부
+    // 다른 모든 컬렉션에 대한 기본 규칙
     match /{document=**} {
-      allow read, write: if false;
+      // 읽기: 모든 사용자 허용
+      allow read: if true;
+      // 쓰기: 생성만 허용
+      allow create: if true;
+      allow update: if false;
+      allow delete: if false;
     }
   }
 }
