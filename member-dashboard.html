@@ -1529,6 +1529,36 @@
         if (firebaseInquiries.length > 0) {
           history = firebaseInquiries;
           console.log('Firebase에서 문의 데이터 사용');
+          
+          // 각 문의에 대한 댓글 가져오기
+          await waitForFirebase();
+          const { collection, query, where, getDocs, orderBy } = window.firebaseFirestoreFunctions;
+          const commentsRef = collection(window.firebaseDb, 'inquiryComments');
+          
+          for (let inq of history) {
+            try {
+              const commentsQuery = query(
+                commentsRef,
+                where('inquiryId', '==', inq.id)
+              );
+              const commentsSnapshot = await getDocs(commentsQuery);
+              const comments = [];
+              commentsSnapshot.forEach(doc => {
+                const data = doc.data();
+                comments.push({
+                  author: data.author,
+                  text: data.text,
+                  date: data.date || (data.createdAt?.seconds ? data.createdAt.seconds * 1000 : Date.now())
+                });
+              });
+              // 클라이언트에서 날짜순 정렬
+              comments.sort((a, b) => a.date - b.date);
+              inq.comments = comments;
+            } catch (error) {
+              console.warn('댓글 가져오기 실패:', error);
+              inq.comments = [];
+            }
+          }
         } else {
           // Firebase에 데이터가 없음
           console.log('Firebase에 데이터 없음');
@@ -2307,19 +2337,28 @@
             }
             
             const author = (JSON.parse(localStorage.getItem('user')||'{}').name) || '회원';
-            const newComment = {
+            const userEmail = getUserEmail();
+            
+            console.log('📝 댓글 저장 시도:', {
+              inquiryId: inquiry.id,
               author: author,
+              email: userEmail,
+              text: text
+            });
+            
+            // 댓글을 별도 컬렉션에 저장 (권한 문제 해결)
+            const { collection, addDoc, serverTimestamp } = window.firebaseFirestoreFunctions;
+            const commentsRef = collection(window.firebaseDb, 'inquiryComments');
+            
+            console.log('📝 inquiryComments 컬렉션에 저장 시도...');
+            
+            await addDoc(commentsRef, {
+              inquiryId: inquiry.id,
+              author: author,
+              email: userEmail,
               text: text,
-              date: Date.now()
-            };
-            
-            // Firebase에 댓글 추가
-            const { collection, doc, updateDoc, serverTimestamp, arrayUnion } = window.firebaseFirestoreFunctions;
-            const inquiryRef = doc(collection(window.firebaseDb, 'inquiries'), inquiry.id);
-            
-            await updateDoc(inquiryRef, {
-              comments: arrayUnion(newComment),
-              lastUpdated: serverTimestamp()
+              date: Date.now(),
+              createdAt: serverTimestamp()
             });
             
             console.log('✅ Firebase에 댓글 저장 완료');
@@ -2332,7 +2371,20 @@
             
           } catch (error) {
             console.error('❌ 댓글 저장 실패:', error);
-            alert('댓글 저장에 실패했습니다: ' + error.message);
+            console.error('❌ 에러 상세:', {
+              code: error.code,
+              message: error.message,
+              stack: error.stack
+            });
+            
+            let errorMessage = '댓글 저장에 실패했습니다.';
+            if (error.code === 'permission-denied') {
+              errorMessage = '권한이 없습니다.\n\nFirestore 규칙이 배포되었는지 확인해주세요.\n\nFirebase 콘솔에서 Rules 탭을 확인하고 "Publish" 버튼을 클릭했는지 확인해주세요.';
+            } else if (error.message) {
+              errorMessage = `댓글 저장에 실패했습니다: ${error.message}`;
+            }
+            
+            alert(errorMessage);
           }
           
           return false;
