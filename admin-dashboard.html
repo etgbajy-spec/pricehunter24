@@ -5867,13 +5867,8 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 
                 const { collection, doc, updateDoc, serverTimestamp } = window.firebaseFirestoreFunctions;
                 
-                console.log('📝 문의 답변 저장 시작:', {
-                    inquiryId: currentInquiryId,
-                    formData: formData
-                });
-                
-                // Firebase에서 문의 문서 업데이트
-                const inquiryRef = doc(window.firebaseDb, 'inquiries', currentInquiryId);
+                // Firebase에서 문의 문서 업데이트 (의뢰 관리와 동일한 방식)
+                const inquiryRef = doc(collection(window.firebaseDb, 'inquiries'), currentInquiryId);
                 await updateDoc(inquiryRef, {
                     adminResponse: formData,
                     responseDate: serverTimestamp(),
@@ -5904,22 +5899,7 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 
             } catch (error) {
                 console.error('❌ 문의 답변 저장 실패:', error);
-                console.error('❌ 오류 상세:', {
-                    code: error.code,
-                    message: error.message,
-                    inquiryId: currentInquiryId
-                });
-                
-                let errorMessage = '답변 저장에 실패했습니다.';
-                if (error.code === 'permission-denied') {
-                    errorMessage = '권한이 없습니다. 관리자로 로그인되어 있는지 확인해주세요.';
-                } else if (error.code === 'not-found') {
-                    errorMessage = '문의를 찾을 수 없습니다. 페이지를 새로고침하고 다시 시도해주세요.';
-                } else if (error.message) {
-                    errorMessage = `답변 저장에 실패했습니다: ${error.message}`;
-                }
-                
-                alert(errorMessage);
+                alert('답변 저장에 실패했습니다. 다시 시도해주세요.');
             }
         }
 
