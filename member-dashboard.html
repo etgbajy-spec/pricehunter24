@@ -24,7 +24,7 @@
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
     import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
-    import { getFirestore, collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, getDocs, where, doc, updateDoc, deleteDoc } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
+    import { getFirestore, collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, getDocs, where, doc, updateDoc, deleteDoc, arrayUnion } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
     
     // Firebase 설정
     const firebaseConfig = {
@@ -57,7 +57,8 @@
       where, 
       doc, 
       updateDoc, 
-      deleteDoc 
+      deleteDoc,
+      arrayUnion
     };
 
     console.log('✅ Firebase v9 초기화 완료 (member-dashboard.html)');
@@ -2264,8 +2265,8 @@
         }
       });
 
-      // 댓글 제출 이벤트 (기존 contact.html 그대로)
-      document.addEventListener('submit', function(e) {
+      // 댓글 제출 이벤트 (Firebase 전용)
+      document.addEventListener('submit', async function(e) {
         if (e.target.classList.contains('comment-form')) {
           e.preventDefault();
           const subject = e.target.getAttribute('data-subject');
@@ -2273,36 +2274,67 @@
           const input = e.target.querySelector('input[name="comment"]');
           const text = input.value.trim();
           if (!text) return false;
-          let history = JSON.parse(localStorage.getItem('contact-history') || '[]');
-          let found = null, foundIdx = -1;
-          for (let i = 0; i < history.length; i++) {
-            if (history[i].subject === subject && history[i].date === date) {
-              found = history[i];
-              foundIdx = i;
-              break;
-            }
-          }
-          if (!found) return false;
-          // inquiry-에서 comments 동기화
-          let inquiryKey = null;
-          for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            if (key.startsWith('inquiry-')) {
-              const obj = JSON.parse(localStorage.getItem(key));
-              if (obj && obj.subject === subject && obj.date === date) {
-                inquiryKey = key;
-                break;
+          
+          try {
+            await waitForFirebase();
+            
+            // Firebase에서 해당 문의 찾기
+            const inquiries = await getInquiriesFromFirebase();
+            const inquiry = inquiries.find(inq => {
+              // 제목으로 먼저 매칭
+              if (inq.subject !== subject) return false;
+              
+              // 날짜 매칭 (여러 형식 지원)
+              if (inq.date === date) return true;
+              
+              // createdAt 타임스탬프로 매칭
+              if (inq.createdAt) {
+                const createdAtDate = inq.createdAt.toDate ? inq.createdAt.toDate() : new Date(inq.createdAt.seconds * 1000);
+                const targetDate = new Date(date);
+                // 날짜만 비교 (시간 제외)
+                if (createdAtDate.toDateString() === targetDate.toDateString()) return true;
+                // 또는 로케일 문자열로 비교
+                if (createdAtDate.toLocaleString() === date) return true;
               }
+              
+              return false;
+            });
+            
+            if (!inquiry || !inquiry.id) {
+              console.error('문의를 찾을 수 없습니다:', { subject, date, inquiries: inquiries.map(i => ({ id: i.id, subject: i.subject, date: i.date })) });
+              alert('문의를 찾을 수 없습니다. 페이지를 새로고침하고 다시 시도해주세요.');
+              return false;
             }
+            
+            const author = (JSON.parse(localStorage.getItem('user')||'{}').name) || '회원';
+            const newComment = {
+              author: author,
+              text: text,
+              date: Date.now()
+            };
+            
+            // Firebase에 댓글 추가
+            const { collection, doc, updateDoc, serverTimestamp, arrayUnion } = window.firebaseFirestoreFunctions;
+            const inquiryRef = doc(collection(window.firebaseDb, 'inquiries'), inquiry.id);
+            
+            await updateDoc(inquiryRef, {
+              comments: arrayUnion(newComment),
+              lastUpdated: serverTimestamp()
+            });
+            
+            console.log('✅ Firebase에 댓글 저장 완료');
+            
+            // 즉시 렌더링 갱신
+            renderHistory();
+            
+            // 입력 필드 초기화
+            input.value = '';
+            
+          } catch (error) {
+            console.error('❌ 댓글 저장 실패:', error);
+            alert('댓글 저장에 실패했습니다: ' + error.message);
           }
-          if (!inquiryKey) return false;
-          const author = (JSON.parse(localStorage.getItem('user')||'{}').name) || '회원';
-          // localStorage 댓글 저장 제거 - Firebase 전용
-          console.log('✅ Firebase에서 댓글 업데이트 필요');
-          // 즉시 렌더링 갱신
-          renderHistory();
-          // 입력 필드 초기화
-          input.value = '';
+          
           return false;
         }
       });
