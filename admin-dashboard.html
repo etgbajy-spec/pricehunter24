@@ -16,7 +16,7 @@
     <script type="module">
       import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
       import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
-      import { getFirestore, collection, query, orderBy, onSnapshot, getDocs, addDoc, serverTimestamp, doc, updateDoc, deleteDoc } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
+      import { getFirestore, collection, query, orderBy, onSnapshot, getDocs, getDoc, addDoc, serverTimestamp, doc, updateDoc, deleteDoc } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
       
       // Firebase 설정
       const firebaseConfig = {
@@ -40,7 +40,7 @@
         window.firebaseAuth = auth;
         window.firebaseDb = db;
         window.firebaseAuthFunctions = { onAuthStateChanged };
-        window.firebaseFirestoreFunctions = { collection, query, orderBy, onSnapshot, getDocs, addDoc, serverTimestamp, doc, updateDoc, deleteDoc };
+        window.firebaseFirestoreFunctions = { collection, query, orderBy, onSnapshot, getDocs, getDoc, addDoc, serverTimestamp, doc, updateDoc, deleteDoc };
         
         console.log('✅ 관리자 대시보드 Firebase v9 초기화 완료');
       } catch (error) {
@@ -5865,6 +5865,11 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                     return;
                 }
                 
+                console.log('📝 문의 답변 저장 시작:', {
+                    inquiryId: currentInquiryId,
+                    formData: formData
+                });
+                
                 const { collection, doc, updateDoc, serverTimestamp } = window.firebaseFirestoreFunctions;
                 
                 // Firebase에서 문의 문서 업데이트 (의뢰 관리와 동일한 방식)
@@ -5899,7 +5904,24 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 
             } catch (error) {
                 console.error('❌ 문의 답변 저장 실패:', error);
-                alert('답변 저장에 실패했습니다. 다시 시도해주세요.');
+                console.error('❌ 에러 상세 정보:', {
+                    code: error.code,
+                    message: error.message,
+                    stack: error.stack,
+                    inquiryId: currentInquiryId,
+                    formData: formData
+                });
+                
+                let errorMessage = '답변 저장에 실패했습니다.';
+                if (error.code) {
+                    errorMessage += `\n\n오류 코드: ${error.code}`;
+                }
+                if (error.message) {
+                    errorMessage += `\n오류 메시지: ${error.message}`;
+                }
+                errorMessage += '\n\n브라우저 콘솔(F12)에서 자세한 오류를 확인해주세요.';
+                
+                alert(errorMessage);
             }
         }
 
