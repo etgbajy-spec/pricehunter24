@@ -592,17 +592,26 @@
         
         const heroSavingsPrice = document.getElementById('savings-hero-savings-price');
         if (heroSavingsPrice) {
-          heroSavingsPrice.textContent = `${data.savingsPrice?.toLocaleString() || '51,000'}원`;
+          heroSavingsPrice.textContent = `${data.finalPrice?.toLocaleString() || data.savingsPrice?.toLocaleString() || '51,000'}원`;
         }
         
         const heroSavingsAmount = document.getElementById('savings-hero-savings-amount');
         if (heroSavingsAmount) {
-          heroSavingsAmount.textContent = `${data.savingsAmount?.toLocaleString() || '38,000'}원 절약`;
+          // 절약 금액 계산: originalPrice - finalPrice 또는 기존 amount 사용
+          const savingsAmount = data.originalPrice && data.finalPrice 
+            ? data.originalPrice - data.finalPrice 
+            : (data.savingsAmount || data.amount || 0);
+          heroSavingsAmount.textContent = `${savingsAmount.toLocaleString()}원 절약`;
         }
         
         const heroRate = document.getElementById('savings-hero-rate');
         if (heroRate) {
-          heroRate.textContent = `-${data.rate || 42}% 절감`;
+          // 절약율 계산: originalPrice와 finalPrice가 있으면 자동 계산
+          let rate = data.rate;
+          if (data.originalPrice && data.finalPrice && data.originalPrice > 0) {
+            rate = Math.round(((data.originalPrice - data.finalPrice) / data.originalPrice) * 100);
+          }
+          heroRate.textContent = `-${rate || 42}% 절감`;
         }
         
         // 절약왕 팝업 업데이트
@@ -636,19 +645,29 @@
           // 절약 금액
           const amountElement = document.getElementById('popup-amount');
           if (amountElement) {
-            amountElement.textContent = `₩${(data.savingsAmount || data.amount || 0).toLocaleString()}`;
+            const savingsAmount = data.originalPrice && data.finalPrice 
+              ? data.originalPrice - data.finalPrice 
+              : (data.savingsAmount || data.amount || 0);
+            amountElement.textContent = `₩${savingsAmount.toLocaleString()}`;
           }
           
           // 절약률
           const rateElement = document.getElementById('popup-rate');
           if (rateElement) {
-            rateElement.textContent = `${data.rate || 42}%`;
+            let rate = data.rate;
+            if (data.originalPrice && data.finalPrice && data.originalPrice > 0) {
+              rate = Math.round(((data.originalPrice - data.finalPrice) / data.originalPrice) * 100);
+            }
+            rateElement.textContent = `${rate || 42}%`;
           }
           
           // 총 절약금액
           const totalAmountElement = document.getElementById('popup-total-amount');
           if (totalAmountElement) {
-            totalAmountElement.textContent = `₩${data.amount.toLocaleString()}`;
+            const savingsAmount = data.originalPrice && data.finalPrice 
+              ? data.originalPrice - data.finalPrice 
+              : (data.amount || 0);
+            totalAmountElement.textContent = `₩${savingsAmount.toLocaleString()}`;
           }
         }
         
@@ -662,30 +681,38 @@
             heroImg.alt = data.product || '절약왕 상품';
           }
           
-          // 절약 정보 업데이트 (올바른 계산 로직)
+          // 절약 정보 업데이트 (저장된 데이터 직접 사용)
           const originalPriceElement = heroSection.querySelector('.bg-gray-50 .text-lg');
           if (originalPriceElement) {
-            // 원래 가격 = 절약금액 / (절약률 / 100)
-            const originalPrice = Math.round(data.amount / (data.rate / 100));
+            // 의뢰 가격 직접 사용
+            const originalPrice = data.originalPrice || (data.amount && data.rate ? Math.round(data.amount / (data.rate / 100)) : 0);
             originalPriceElement.textContent = `${originalPrice.toLocaleString()}원`;
           }
           
           const finalPriceElement = heroSection.querySelector('.bg-emerald-50 .text-xl');
           if (finalPriceElement) {
-            // 최종 가격 = 원래 가격 - 절약금액
-            const originalPrice = Math.round(data.amount / (data.rate / 100));
-            const finalPrice = originalPrice - data.amount;
+            // 절감된 가격 직접 사용
+            const finalPrice = data.finalPrice || (data.originalPrice && data.amount ? data.originalPrice - data.amount : 0);
             finalPriceElement.textContent = `${finalPrice.toLocaleString()}원`;
           }
           
           const savingsAmountElement = heroSection.querySelector('.bg-red-50 .text-xl');
           if (savingsAmountElement) {
-            savingsAmountElement.textContent = `${data.amount.toLocaleString()}원 절약`;
+            // 절약 금액 계산: originalPrice - finalPrice 또는 기존 amount 사용
+            const savingsAmount = data.originalPrice && data.finalPrice 
+              ? data.originalPrice - data.finalPrice 
+              : (data.amount || 0);
+            savingsAmountElement.textContent = `${savingsAmount.toLocaleString()}원 절약`;
           }
           
           const savingsRateElement = heroSection.querySelector('.bg-red-100');
           if (savingsRateElement) {
-            savingsRateElement.textContent = `-${data.rate}% 절감`;
+            // 절약율 계산: originalPrice와 finalPrice가 있으면 자동 계산
+            let rate = data.rate;
+            if (data.originalPrice && data.finalPrice && data.originalPrice > 0) {
+              rate = Math.round(((data.originalPrice - data.finalPrice) / data.originalPrice) * 100);
+            }
+            savingsRateElement.textContent = `-${rate || 42}% 절감`;
           }
           
           // 사용자 정보
