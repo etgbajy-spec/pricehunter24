@@ -1081,9 +1081,16 @@
                         </span>
                     </td>
                     <td class="px-4 py-3 text-sm">
-                        <button onclick="viewRequestDetail('${request.id}')" class="px-2 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600">
-                            상세보기
-                        </button>
+                        <div class="flex gap-2">
+                            <button onclick="viewRequestDetail('${request.id}')" class="px-2 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600">
+                                상세보기
+                            </button>
+                            ${request.reviewAgree ? `
+                                <button onclick="publishToReviews('${request.id}')" class="px-2 py-1 bg-purple-500 text-white text-xs rounded hover:bg-purple-600" title="후기게시판에 올리기">
+                                    후기게시판에 올리기
+                                </button>
+                            ` : ''}
+                        </div>
                     </td>
                 `;
                 requestList.appendChild(row);
@@ -1455,6 +1462,91 @@
             } catch (error) {
                 console.error('❌ 의뢰 상세보기 실패:', error);
                 alert('의뢰 상세 정보를 불러오는데 실패했습니다.');
+            }
+        }
+
+        // 의뢰 데이터를 후기게시판에 올리기
+        async function publishToReviews(requestId) {
+            try {
+                if (!confirm('이 의뢰를 후기게시판에 올리시겠습니까?')) {
+                    return;
+                }
+
+                const requests = await getRequestsFromFirebase();
+                const request = requests.find(r => r.id === requestId);
+                
+                if (!request) {
+                    alert('의뢰 정보를 찾을 수 없습니다.');
+                    return;
+                }
+
+                if (!request.reviewAgree) {
+                    alert('이 의뢰는 후기게시판 등록에 동의하지 않았습니다.');
+                    return;
+                }
+
+                // 이미 후기로 등록되었는지 확인
+                const { collection, query, where, getDocs } = window.firebaseFirestoreFunctions;
+                const db = window.firebaseDb;
+                const reviewsRef = collection(db, 'reviews');
+                const existingReviewQuery = query(reviewsRef, where('requestId', '==', requestId));
+                const existingReviewSnapshot = await getDocs(existingReviewQuery);
+                
+                if (!existingReviewSnapshot.empty) {
+                    alert('이 의뢰는 이미 후기게시판에 등록되어 있습니다.');
+                    return;
+                }
+
+                // 의뢰 데이터를 후기 형식으로 변환
+                const reviewData = {
+                    // 기본 정보
+                    name: request.userName || '익명',
+                    productName: request.name || request.productName || '제품명 없음',
+                    originalPrice: request.price ? `${request.price.toLocaleString()}원` : '가격 정보 없음',
+                    
+                    // 검증 결과 정보 (있는 경우)
+                    finalPrice: request.finalPrice || request.resultPrice || request.price ? `${request.price.toLocaleString()}원` : '가격 정보 없음',
+                    savings: request.savings || '0원',
+                    savingsPercent: request.savingsPercent || 0,
+                    
+                    // 후기 내용
+                    review: request.review || request.statusDetail || '의뢰가 완료되었습니다.',
+                    rating: request.rating || 5,
+                    
+                    // 추가 정보
+                    country: request.origin || '대한민국',
+                    shipping: request.shipping || '2-3일',
+                    method: request.method || '검증 완료',
+                    badge: '실제 구매자',
+                    purchaseDate: request.createdAt ? (request.createdAt.toDate ? request.createdAt.toDate().toISOString().split('T')[0] : new Date(request.createdAt).toISOString().split('T')[0]) : new Date().toISOString().split('T')[0],
+                    
+                    // 이미지 (있는 경우)
+                    photos: request.images || [],
+                    
+                    // 메타데이터
+                    requestId: requestId,
+                    requestNumber: request.reqNum || request.requestNumber,
+                    approved: true, // 관리자가 올린 것이므로 자동 승인
+                    createdAt: new Date(),
+                    source: 'admin_publish'
+                };
+
+                // Firebase에 후기 저장
+                const { addDoc, serverTimestamp } = window.firebaseFirestoreFunctions;
+                const docRef = await addDoc(reviewsRef, {
+                    ...reviewData,
+                    createdAt: serverTimestamp()
+                });
+
+                console.log('✅ 후기게시판에 등록 완료:', docRef.id);
+                alert('후기게시판에 성공적으로 등록되었습니다!');
+                
+                // 목록 새로고침
+                renderRequestList();
+                
+            } catch (error) {
+                console.error('❌ 후기게시판 등록 실패:', error);
+                alert('후기게시판 등록 중 오류가 발생했습니다: ' + error.message);
             }
         }
         
@@ -7593,6 +7685,8 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
         window.testFirebaseConnection = testFirebaseConnection;
         window.addSavingsKingLog = addSavingsKingLog;
         window.clearSavingsKingLogs = clearSavingsKingLogs;
+        window.viewRequestDetail = viewRequestDetail;
+        window.publishToReviews = publishToReviews;
     </script>
 </body>
 </html>
