@@ -3015,6 +3015,9 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                             <a href="reviews.html" target="_blank" class="px-4 py-2 bg-green-500 text-white rounded-lg font-semibold hover:bg-green-600 transition">
                                 👁️ 후기 페이지 보기
                             </a>
+                            <button onclick="updateRequestReviewAgree('PH-20250926982')" class="px-4 py-2 bg-purple-500 text-white rounded-lg font-semibold hover:bg-purple-600 transition" title="의뢰번호 PH-20250926982의 후기 동의 상태를 true로 변경">
+                                🔧 의뢰 후기동의 업데이트
+                            </button>
                         </div>
                     </div>
 
@@ -3023,11 +3026,11 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                         <div class="bg-white rounded-xl shadow-lg p-6">
                             <div class="text-3xl font-bold text-blue-600" id="reviews-total">0</div>
                             <div class="text-gray-600 mt-2">전체 후기</div>
-                        </div>
+                                </div>
                         <div class="bg-white rounded-xl shadow-lg p-6">
                             <div class="text-3xl font-bold text-green-600" id="reviews-approved">0</div>
                             <div class="text-gray-600 mt-2">승인된 후기</div>
-                        </div>
+                            </div>
                         <div class="bg-white rounded-xl shadow-lg p-6">
                             <div class="text-3xl font-bold text-yellow-600" id="reviews-pending">0</div>
                             <div class="text-gray-600 mt-2">대기 중</div>
@@ -3047,12 +3050,12 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                             </div>
                             <select id="review-status-filter" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
                                 <option value="all">전체</option>
-                                <option value="approved">승인됨</option>
-                                <option value="pending">대기 중</option>
-                            </select>
+                                    <option value="approved">승인됨</option>
+                                    <option value="pending">대기 중</option>
+                                </select>
                             <button onclick="clearReviewFilters()" class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition">
                                 필터 초기화
-                            </button>
+                                </button>
                         </div>
                     </div>
 
@@ -5038,6 +5041,109 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
 
         // 전역 함수로 노출
         window.publishToReviewBoard = publishToReviewBoard;
+
+        // 특정 의뢰번호의 후기 동의 상태 업데이트 (임시 함수)
+        window.updateRequestReviewAgree = async function(requestNumber) {
+            try {
+                // # 기호 제거 (있든 없든 작동하도록)
+                const cleanRequestNumber = requestNumber.replace(/^#/, '');
+                const withHash = '#' + cleanRequestNumber;
+                const withoutHash = cleanRequestNumber;
+
+                if (!confirm(`의뢰번호 ${requestNumber}의 후기 동의 상태를 true로 변경하시겠습니까?`)) {
+                    return;
+                }
+
+                await waitForFirebase();
+                const { collection, query, where, getDocs, doc, updateDoc } = window.firebaseFirestoreFunctions;
+                const db = window.firebaseDb;
+
+                const requestsRef = collection(db, 'requests');
+                let found = false;
+
+                // reqNum 필드로 검색 (# 포함)
+                let q = query(requestsRef, where('reqNum', '==', withHash));
+                let querySnapshot = await getDocs(q);
+                
+                if (!querySnapshot.empty) {
+                    for (const docSnap of querySnapshot.docs) {
+                        const requestRef = doc(db, 'requests', docSnap.id);
+                        await updateDoc(requestRef, {
+                            reviewBoardAgree: true
+                        });
+                        console.log(`✅ 의뢰 ${docSnap.id} (reqNum: ${withHash})의 후기 동의 상태를 true로 변경했습니다.`);
+                        found = true;
+                    }
+                }
+
+                // reqNum 필드로 검색 (# 없이)
+                if (!found) {
+                    q = query(requestsRef, where('reqNum', '==', withoutHash));
+                    querySnapshot = await getDocs(q);
+                    
+                    if (!querySnapshot.empty) {
+                        for (const docSnap of querySnapshot.docs) {
+                            const requestRef = doc(db, 'requests', docSnap.id);
+                            await updateDoc(requestRef, {
+                                reviewBoardAgree: true
+                            });
+                            console.log(`✅ 의뢰 ${docSnap.id} (reqNum: ${withoutHash})의 후기 동의 상태를 true로 변경했습니다.`);
+                            found = true;
+                        }
+                    }
+                }
+
+                // requestNumber 필드로 검색 (# 포함)
+                if (!found) {
+                    q = query(requestsRef, where('requestNumber', '==', withHash));
+                    querySnapshot = await getDocs(q);
+                    
+                    if (!querySnapshot.empty) {
+                        for (const docSnap of querySnapshot.docs) {
+                            const requestRef = doc(db, 'requests', docSnap.id);
+                            await updateDoc(requestRef, {
+                                reviewBoardAgree: true
+                            });
+                            console.log(`✅ 의뢰 ${docSnap.id} (requestNumber: ${withHash})의 후기 동의 상태를 true로 변경했습니다.`);
+                            found = true;
+                        }
+                    }
+                }
+
+                // requestNumber 필드로 검색 (# 없이)
+                if (!found) {
+                    q = query(requestsRef, where('requestNumber', '==', withoutHash));
+                    querySnapshot = await getDocs(q);
+                    
+                    if (!querySnapshot.empty) {
+                        for (const docSnap of querySnapshot.docs) {
+                            const requestRef = doc(db, 'requests', docSnap.id);
+                            await updateDoc(requestRef, {
+                                reviewBoardAgree: true
+                            });
+                            console.log(`✅ 의뢰 ${docSnap.id} (requestNumber: ${withoutHash})의 후기 동의 상태를 true로 변경했습니다.`);
+                            found = true;
+                        }
+                    }
+                }
+
+                if (!found) {
+                    alert(`의뢰번호 ${requestNumber}를 찾을 수 없습니다.\n\n검색한 형식:\n- #${cleanRequestNumber}\n- ${cleanRequestNumber}`);
+                    return;
+                }
+
+                alert(`의뢰번호 ${requestNumber}의 후기 동의 상태를 true로 변경했습니다.`);
+                
+                // 의뢰 목록 새로고침
+                if (typeof renderRequestList === 'function') {
+                    renderRequestList();
+                }
+
+            } catch (error) {
+                console.error('❌ 후기 동의 상태 업데이트 실패:', error);
+                alert('후기 동의 상태 업데이트에 실패했습니다: ' + error.message);
+            }
+        };
 
         // ==================== 후기 관리 시스템 ====================
         let allReviews = [];
