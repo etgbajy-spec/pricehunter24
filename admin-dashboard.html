@@ -3266,7 +3266,18 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                                 <div><span class="font-semibold text-gray-700">의뢰번호:</span> <span id="admin-modal-request-number" class="text-blue-600"></span></div>
                                 <div><span class="font-semibold text-gray-700">의뢰일시:</span> <span id="admin-modal-request-date" class="text-blue-600"></span></div>
                                 <div><span class="font-semibold text-gray-700">제품명:</span> <span id="admin-modal-product-name" class="text-blue-600"></span></div>
-                                <div><span class="font-semibold text-gray-700">요청가:</span> <span id="admin-modal-original-price" class="text-blue-600"></span></div>
+                                <div class="md:col-span-2">
+                                    <div class="flex items-center gap-2 mb-2">
+                                        <span class="font-semibold text-gray-700">의뢰 가격:</span>
+                                        <input type="text" id="admin-modal-original-price" class="flex-1 px-3 py-1 border border-blue-300 rounded-lg text-blue-600 focus:ring-2 focus:ring-blue-500" placeholder="의뢰 가격 입력">
+                                        <button onclick="saveRequestPrice()" class="px-3 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600 transition">저장</button>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="font-semibold text-gray-700">절감된 가격:</span>
+                                        <input type="text" id="admin-modal-final-price" class="flex-1 px-3 py-1 border border-green-300 rounded-lg text-green-600 focus:ring-2 focus:ring-green-500" placeholder="절감된 가격 입력">
+                                        <button onclick="saveRequestPrice()" class="px-3 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600 transition">저장</button>
+                                    </div>
+                                </div>
                                 <div><span class="font-semibold text-gray-700">상태:</span> <span id="admin-modal-status" class="px-2 py-1 rounded-full text-xs font-bold text-white"></span></div>
                                 <div><span class="font-semibold text-gray-700">진행률:</span> <span id="admin-modal-progress" class="text-blue-600"></span></div>
                             </div>
@@ -3449,7 +3460,23 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             document.getElementById('admin-modal-request-number').textContent = request.reqNum || request.requestNumber || 'N/A';
             document.getElementById('admin-modal-request-date').textContent = request.reqDate ? new Date(request.reqDate).toLocaleString('ko-KR') : 'N/A';
             document.getElementById('admin-modal-product-name').textContent = request.productName || request.name || 'N/A';
-            document.getElementById('admin-modal-original-price').textContent = request.originalPrice || request.price || 'N/A';
+            // 의뢰 가격과 절감된 가격을 입력 필드에 설정
+            const originalPriceInput = document.getElementById('admin-modal-original-price');
+            const finalPriceInput = document.getElementById('admin-modal-final-price');
+            if (originalPriceInput) {
+                originalPriceInput.value = request.originalPrice || request.price || '';
+            }
+            if (finalPriceInput) {
+                finalPriceInput.value = request.adminResponse?.lowestPrice || request.finalPrice || '';
+            }
+            
+            // 현재 의뢰 ID 저장 (가격 저장 시 사용)
+            if (originalPriceInput) {
+                originalPriceInput.dataset.requestId = request.id;
+            }
+            if (finalPriceInput) {
+                finalPriceInput.dataset.requestId = request.id;
+            }
             
             // 상태 및 진행률
             const status = request.status || '처리중';
@@ -5041,6 +5068,75 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
 
         // 전역 함수로 노출
         window.publishToReviewBoard = publishToReviewBoard;
+
+        // 의뢰 가격 저장 함수
+        window.saveRequestPrice = async function() {
+            try {
+                const originalPriceInput = document.getElementById('admin-modal-original-price');
+                const finalPriceInput = document.getElementById('admin-modal-final-price');
+                
+                if (!originalPriceInput || !finalPriceInput) {
+                    alert('가격 입력 필드를 찾을 수 없습니다.');
+                    return;
+                }
+
+                const requestId = originalPriceInput.dataset.requestId || finalPriceInput.dataset.requestId;
+                if (!requestId) {
+                    alert('의뢰 ID를 찾을 수 없습니다.');
+                    return;
+                }
+
+                const originalPrice = originalPriceInput.value.trim();
+                const finalPrice = finalPriceInput.value.trim();
+
+                if (!originalPrice && !finalPrice) {
+                    alert('의뢰 가격 또는 절감된 가격을 입력해주세요.');
+                    return;
+                }
+
+                await waitForFirebase();
+                const { doc, updateDoc, serverTimestamp } = window.firebaseFirestoreFunctions;
+                const db = window.firebaseDb;
+
+                const updateData = {
+                    updatedAt: serverTimestamp()
+                };
+
+                if (originalPrice) {
+                    updateData.originalPrice = originalPrice;
+                    updateData.price = originalPrice; // 호환성을 위해 price도 업데이트
+                }
+
+                if (finalPrice) {
+                    // adminResponse 객체 업데이트를 위해 기존 데이터 가져오기
+                    const requestRef = doc(db, 'requests', requestId);
+                    const { getDoc } = window.firebaseFirestoreFunctions;
+                    const requestSnap = await getDoc(requestRef);
+                    const requestData = requestSnap.data();
+
+                    // adminResponse 객체 생성 또는 업데이트
+                    const adminResponse = requestData.adminResponse || {};
+                    adminResponse.lowestPrice = finalPrice;
+                    adminResponse.updatedAt = serverTimestamp();
+                    updateData.adminResponse = adminResponse;
+                    updateData.finalPrice = finalPrice; // 호환성을 위해 finalPrice도 업데이트
+                }
+
+                const requestRef = doc(db, 'requests', requestId);
+                await updateDoc(requestRef, updateData);
+
+                alert('가격이 성공적으로 저장되었습니다!');
+                
+                // 의뢰 목록 새로고침
+                if (typeof renderRequestList === 'function') {
+                    renderRequestList();
+                }
+
+            } catch (error) {
+                console.error('❌ 가격 저장 실패:', error);
+                alert('가격 저장에 실패했습니다: ' + error.message);
+            }
+        };
 
         // 특정 의뢰번호의 후기 동의 상태 업데이트 (임시 함수)
         window.updateRequestReviewAgree = async function(requestNumber) {
