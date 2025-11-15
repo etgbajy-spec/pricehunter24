@@ -1061,7 +1061,7 @@
             requestList.innerHTML = '';
             
             if (requests.length === 0) {
-                requestList.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-gray-500">의뢰가 없습니다.</td></tr>';
+                requestList.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-gray-500">의뢰가 없습니다.</td></tr>';
                 return;
             }
             
@@ -1081,10 +1081,15 @@
                         </span>
                     </td>
                     <td class="px-4 py-3 text-sm">
+                        <span class="px-2 py-1 text-xs rounded-full ${request.reviewBoardAgree ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-500'}">
+                            ${request.reviewBoardAgree ? '✓ 동의' : '✗ 미동의'}
+                        </span>
+                    </td>
+                    <td class="px-4 py-3 text-sm">
                         <div class="flex gap-2">
-                            <button onclick="viewRequestDetail('${request.id}')" class="px-2 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600">
-                                상세보기
-                            </button>
+                        <button onclick="viewRequestDetail('${request.id}')" class="px-2 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600">
+                            상세보기
+                        </button>
                             ${request.reviewBoardAgree ? `
                             <button onclick="publishToReviewBoard('${request.id}')" class="px-2 py-1 bg-purple-500 text-white text-xs rounded hover:bg-purple-600" title="후기게시판에 올리기">
                                 후기등록
@@ -1344,7 +1349,7 @@
                 requestList.innerHTML = '';
                 requests.forEach(request => {
                     const listItem = document.createElement('li');
-                    listItem.className = 'grid grid-cols-8 gap-2 px-4 py-3 hover:bg-pink-100 transition-colors';
+                    listItem.className = 'grid grid-cols-9 gap-2 px-4 py-3 hover:bg-pink-100 transition-colors';
                     
                     const createdAt = request.createdAt ? 
                         new Date(request.createdAt.seconds * 1000).toLocaleDateString('ko-KR') : 
@@ -1367,10 +1372,15 @@
                         <div class="col-span-1 text-center text-sm">${request.purchaseMethod || '-'}</div>
                         <div class="col-span-1 text-center text-sm">${request.purchaseStatus || '-'}</div>
                         <div class="col-span-1 text-center">
+                            <span class="px-2 py-1 text-xs rounded-full ${request.reviewBoardAgree ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-500'}">
+                                ${request.reviewBoardAgree ? '✓ 동의' : '✗ 미동의'}
+                            </span>
+                        </div>
+                        <div class="col-span-1 text-center">
                             <div class="flex gap-2 justify-center">
-                                <button onclick="viewRequestDetail('${request.id}')" class="px-2 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600">
-                                    상세보기
-                                </button>
+                            <button onclick="viewRequestDetail('${request.id}')" class="px-2 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600">
+                                상세보기
+                            </button>
                                 ${request.reviewBoardAgree ? `
                                 <button onclick="publishToReviewBoard('${request.id}')" class="px-2 py-1 bg-purple-500 text-white text-xs rounded hover:bg-purple-600" title="후기게시판에 올리기">
                                     후기등록
@@ -2816,14 +2826,15 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                     <!-- 의뢰 목록 -->
                     <div class="bg-white rounded-xl shadow-lg overflow-hidden">
                         <div class="font-bold text-gray-700 p-4 border-b">접수된 의뢰 목록</div>
-                        <div class="grid grid-cols-8 gap-2 px-4 py-2 bg-pink-100 text-sm font-bold text-pink-700">
+                        <div class="grid grid-cols-9 gap-2 px-4 py-2 bg-pink-100 text-sm font-bold text-pink-700">
                             <div class="col-span-1">선택</div>
                             <div class="col-span-2">의뢰번호/회원명</div>
                             <div class="col-span-1 text-center">의뢰일시</div>
                             <div class="col-span-1 text-center">진행상황</div>
                             <div class="col-span-1 text-center">구매방식</div>
                             <div class="col-span-1 text-center">구매상태</div>
-                            <div class="col-span-1 text-center">알림상태</div>
+                            <div class="col-span-1 text-center">후기 동의</div>
+                            <div class="col-span-1 text-center">작업</div>
                         </div>
                         <ul id="request-list" class="bg-pink-50 divide-y divide-pink-100">
                             <!-- 동적으로 생성됨 -->
@@ -5190,24 +5201,33 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 }
 
                 // 의뢰 데이터에서 후기 데이터 생성
+                const originalPrice = requestData.price || requestData.originalPrice || '0';
+                const finalPrice = requestData.adminResponse?.lowestPrice || requestData.finalPrice || '0';
+                const savings = calculateSavings(originalPrice, finalPrice);
+                const savingsPercent = calculateSavingsPercent(originalPrice, finalPrice);
+                
                 const reviewData = {
                     // 기본 정보
                     productName: requestData.productName || requestData.name || '제품명 없음',
                     userName: requestData.userName || requestData.name || '익명',
+                    name: requestData.userName || requestData.name || '익명', // 호환성
                     email: requestData.email || '',
                     
                     // 가격 정보
-                    originalPrice: requestData.price || requestData.originalPrice || '0',
-                    finalPrice: requestData.adminResponse?.lowestPrice || requestData.finalPrice || '0',
-                    savings: calculateSavings(requestData.price || requestData.originalPrice, requestData.adminResponse?.lowestPrice || requestData.finalPrice),
-                    savingsPercent: calculateSavingsPercent(requestData.price || requestData.originalPrice, requestData.adminResponse?.lowestPrice || requestData.finalPrice),
+                    originalPrice: originalPrice,
+                    finalPrice: finalPrice,
+                    savings: savings,
+                    savingsPercent: savingsPercent,
                     
                     // 후기 내용
-                    review: requestData.adminResponse?.additionalInfo || `PriceHunter를 통해 ${requestData.productName || '제품'}을 검증받았습니다.`,
+                    review: requestData.adminResponse?.additionalInfo || 
+                           `PriceHunter를 통해 ${requestData.productName || requestData.name || '제품'}을 검증받았습니다. ` +
+                           `원래 가격 ${originalPrice}에서 ${finalPrice}로 절약했습니다!`,
                     rating: 5, // 기본 평점
                     
                     // 이미지
                     images: requestData.images || [],
+                    photos: requestData.images || [], // 호환성
                     
                     // 의뢰 정보
                     requestId: requestId,

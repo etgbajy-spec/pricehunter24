@@ -5,11 +5,284 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>후기 - PriceHunter</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
+        body { font-family: 'Noto Sans KR', sans-serif; }
+    </style>
 </head>
-<body class="bg-gray-50 min-h-screen">
-    <div class="max-w-7xl mx-auto px-4 py-8">
-        <h1 class="text-3xl font-bold text-gray-800 mb-4">후기</h1>
-        <p class="text-gray-600">새로운 후기 시스템을 구축 중입니다.</p>
-    </div>
+<body class="bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
+    <!-- 헤더 -->
+    <header class="bg-white shadow-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-4">
+            <div class="flex justify-between items-center">
+                <h1 class="text-2xl font-bold text-gray-800">⭐ 고객 후기</h1>
+                <a href="index.html" class="text-blue-600 hover:text-blue-800 font-medium">← 메인으로</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- 메인 컨텐츠 -->
+    <main class="max-w-7xl mx-auto px-4 py-8">
+        <!-- 통계 섹션 -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            <div class="bg-white rounded-xl shadow-lg p-6 text-center">
+                <div class="text-3xl font-bold text-blue-600" id="total-reviews">0</div>
+                <div class="text-gray-600 mt-2">전체 후기</div>
+            </div>
+            <div class="bg-white rounded-xl shadow-lg p-6 text-center">
+                <div class="text-3xl font-bold text-green-600" id="avg-savings">0원</div>
+                <div class="text-gray-600 mt-2">평균 절약액</div>
+            </div>
+            <div class="bg-white rounded-xl shadow-lg p-6 text-center">
+                <div class="text-3xl font-bold text-purple-600" id="avg-rating">0</div>
+                <div class="text-gray-600 mt-2">평균 평점</div>
+            </div>
+            <div class="bg-white rounded-xl shadow-lg p-6 text-center">
+                <div class="text-3xl font-bold text-orange-600" id="total-savings">0원</div>
+                <div class="text-gray-600 mt-2">총 절약액</div>
+            </div>
+        </div>
+
+        <!-- 필터 섹션 -->
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+            <div class="flex flex-wrap gap-4 items-center">
+                <div class="flex-1 min-w-[200px]">
+                    <input type="text" id="search-input" placeholder="제품명 또는 후기 내용 검색..." 
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                </div>
+                <select id="sort-select" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                    <option value="newest">최신순</option>
+                    <option value="oldest">오래된순</option>
+                    <option value="savings">절약액 높은순</option>
+                    <option value="rating">평점 높은순</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- 로딩 상태 -->
+        <div id="loading" class="text-center py-12">
+            <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+            <p class="mt-4 text-gray-600">후기를 불러오는 중...</p>
+        </div>
+
+        <!-- 후기 목록 -->
+        <div id="reviews-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 hidden">
+            <!-- 동적으로 생성됨 -->
+        </div>
+
+        <!-- 빈 상태 -->
+        <div id="empty-state" class="text-center py-12 hidden">
+            <div class="text-6xl mb-4">📝</div>
+            <p class="text-xl text-gray-600 mb-2">아직 등록된 후기가 없습니다</p>
+            <p class="text-gray-500">첫 번째 후기를 작성해보세요!</p>
+        </div>
+    </main>
+
+    <!-- Firebase 초기화 -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
+        import { getFirestore, collection, getDocs, query, orderBy, where, onSnapshot } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDBZxKyMS7eeBTbPnbZkj0WWOZQHNldoL4",
+            authDomain: "pricehunter-99a1b.firebaseapp.com",
+            projectId: "pricehunter-99a1b",
+            storageBucket: "pricehunter-99a1b.firebasestorage.app",
+            messagingSenderId: "242265693919",
+            appId: "1:242265693919:web:74234d942b82a51541136a",
+            measurementId: "G-4BKLV4EVB9"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        let allReviews = [];
+        let filteredReviews = [];
+
+        // 후기 데이터 로드
+        async function loadReviews() {
+            try {
+                const reviewsRef = collection(db, 'reviews');
+                const q = query(reviewsRef, where('approved', '==', true), orderBy('createdAt', 'desc'));
+                
+                const querySnapshot = await getDocs(q);
+                allReviews = [];
+                
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    allReviews.push({
+                        id: doc.id,
+                        ...data,
+                        createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt || Date.now())
+                    });
+                });
+
+                filteredReviews = [...allReviews];
+                renderReviews();
+                updateStatistics();
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('reviews-container').classList.remove('hidden');
+                
+            } catch (error) {
+                console.error('후기 로드 실패:', error);
+                document.getElementById('loading').innerHTML = '<p class="text-red-600">후기를 불러오는데 실패했습니다.</p>';
+            }
+        }
+
+        // 실시간 업데이트 구독
+        function subscribeToReviews() {
+            const reviewsRef = collection(db, 'reviews');
+            const q = query(reviewsRef, where('approved', '==', true), orderBy('createdAt', 'desc'));
+            
+            onSnapshot(q, (snapshot) => {
+                allReviews = [];
+                snapshot.forEach((doc) => {
+                    const data = doc.data();
+                    allReviews.push({
+                        id: doc.id,
+                        ...data,
+                        createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt || Date.now())
+                    });
+                });
+                filteredReviews = [...allReviews];
+                renderReviews();
+                updateStatistics();
+            });
+        }
+
+        // 후기 렌더링
+        function renderReviews() {
+            const container = document.getElementById('reviews-container');
+            
+            if (filteredReviews.length === 0) {
+                container.classList.add('hidden');
+                document.getElementById('empty-state').classList.remove('hidden');
+                return;
+            }
+
+            document.getElementById('empty-state').classList.add('hidden');
+            container.classList.remove('hidden');
+            
+            container.innerHTML = filteredReviews.map(review => {
+                const savings = parseInt(String(review.savings || '0').replace(/[^0-9]/g, ''));
+                const savingsPercent = review.savingsPercent || 0;
+                const rating = review.rating || 5;
+                const stars = '★'.repeat(rating) + '☆'.repeat(5 - rating);
+                const date = review.createdAt ? new Date(review.createdAt).toLocaleDateString('ko-KR') : '날짜 없음';
+                const images = review.images || review.photos || [];
+                const mainImage = images.length > 0 ? images[0] : 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400&h=300&fit=crop';
+
+                return `
+                    <div class="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
+                        <div class="relative h-48 bg-gradient-to-br from-purple-100 to-blue-100">
+                            ${images.length > 0 ? `
+                                <img src="${mainImage}" alt="${review.productName || '제품'}" 
+                                     class="w-full h-full object-cover">
+                            ` : `
+                                <div class="w-full h-full flex items-center justify-center text-6xl">
+                                    🛍️
+                                </div>
+                            `}
+                            <div class="absolute top-4 right-4 bg-white rounded-full px-3 py-1 text-sm font-bold text-purple-600 shadow-lg">
+                                ${savingsPercent}% 절약
+                            </div>
+                        </div>
+                        <div class="p-6">
+                            <h3 class="text-xl font-bold text-gray-800 mb-2 line-clamp-2">${review.productName || '제품명 없음'}</h3>
+                            <div class="flex items-center mb-3">
+                                <div class="w-10 h-10 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full flex items-center justify-center text-white font-bold mr-3">
+                                    ${(review.userName || review.name || '익').charAt(0)}
+                                </div>
+                                <div>
+                                    <div class="font-semibold text-gray-800">${review.userName || review.name || '익명'}</div>
+                                    <div class="text-sm text-gray-500">${date}</div>
+                                </div>
+                            </div>
+                            <div class="mb-4">
+                                <div class="text-yellow-500 text-lg mb-1">${stars}</div>
+                                <p class="text-gray-700 text-sm line-clamp-3">${review.review || '후기 내용이 없습니다.'}</p>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4 pt-4 border-t border-gray-200">
+                                <div>
+                                    <div class="text-xs text-gray-500 mb-1">원래 가격</div>
+                                    <div class="text-sm line-through text-gray-400">${review.originalPrice || '0원'}</div>
+                                </div>
+                                <div>
+                                    <div class="text-xs text-gray-500 mb-1">구매 가격</div>
+                                    <div class="text-lg font-bold text-green-600">${review.finalPrice || '0원'}</div>
+                                </div>
+                            </div>
+                            <div class="mt-4 pt-4 border-t border-gray-200">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm text-gray-600">절약액</span>
+                                    <span class="text-xl font-bold text-red-600">${review.savings || '0원'}</span>
+                                </div>
+                            </div>
+                            ${review.badge ? `
+                                <div class="mt-4">
+                                    <span class="inline-block px-3 py-1 bg-purple-100 text-purple-800 text-xs rounded-full font-semibold">
+                                        ${review.badge}
+                                    </span>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // 통계 업데이트
+        function updateStatistics() {
+            const total = allReviews.length;
+            const totalSavings = allReviews.reduce((sum, r) => {
+                const savings = parseInt(String(r.savings || '0').replace(/[^0-9]/g, ''));
+                return sum + savings;
+            }, 0);
+            const avgSavings = total > 0 ? Math.round(totalSavings / total) : 0;
+            const avgRating = total > 0 ? (allReviews.reduce((sum, r) => sum + (r.rating || 5), 0) / total).toFixed(1) : 0;
+
+            document.getElementById('total-reviews').textContent = total;
+            document.getElementById('avg-savings').textContent = avgSavings.toLocaleString() + '원';
+            document.getElementById('avg-rating').textContent = avgRating;
+            document.getElementById('total-savings').textContent = totalSavings.toLocaleString() + '원';
+        }
+
+        // 검색 및 필터
+        document.getElementById('search-input').addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            filteredReviews = allReviews.filter(review => {
+                const productName = (review.productName || '').toLowerCase();
+                const reviewText = (review.review || '').toLowerCase();
+                const userName = (review.userName || review.name || '').toLowerCase();
+                return productName.includes(searchTerm) || reviewText.includes(searchTerm) || userName.includes(searchTerm);
+            });
+            renderReviews();
+        });
+
+        document.getElementById('sort-select').addEventListener('change', (e) => {
+            const sortBy = e.target.value;
+            filteredReviews = [...filteredReviews].sort((a, b) => {
+                switch(sortBy) {
+                    case 'newest':
+                        return b.createdAt - a.createdAt;
+                    case 'oldest':
+                        return a.createdAt - b.createdAt;
+                    case 'savings':
+                        const savingsA = parseInt(String(a.savings || '0').replace(/[^0-9]/g, ''));
+                        const savingsB = parseInt(String(b.savings || '0').replace(/[^0-9]/g, ''));
+                        return savingsB - savingsA;
+                    case 'rating':
+                        return (b.rating || 5) - (a.rating || 5);
+                    default:
+                        return 0;
+                }
+            });
+            renderReviews();
+        });
+
+        // 초기 로드
+        loadReviews();
+        subscribeToReviews();
+    </script>
 </body>
 </html>
