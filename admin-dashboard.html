@@ -2605,11 +2605,15 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                     loadDashboardData();
                     break;
                 case 'reviews':
-                    // 후기 관리 섹션인 경우 실시간 구독 시작
-                    if (!reviewsUnsubscribe) {
-                        subscribeToReviews();
-                    }
-                    loadReviewsData();
+                    // 후기 관리 섹션인 경우 데이터 로드 및 실시간 구독 시작
+                    loadReviewsData().then(() => {
+                        // 데이터 로드 완료 후 실시간 구독 시작
+                        if (!reviewsUnsubscribe) {
+                            subscribeToReviews();
+                        }
+                    }).catch(error => {
+                        console.error('후기 섹션 로드 실패:', error);
+                    });
                     break;
             }
         }
@@ -2621,11 +2625,23 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
 
         // 후기 데이터 로드
         async function loadReviewsData() {
+            const tbody = document.getElementById('reviews-table-body');
+            if (tbody) {
+                tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-4 text-center text-gray-500">후기를 불러오는 중...</td></tr>';
+            }
+
             try {
+                console.log('📥 후기 데이터 로드 시작...');
                 await waitForFirebase();
+                
+                if (!window.firebaseDb || !window.firebaseFirestoreFunctions) {
+                    throw new Error('Firebase가 초기화되지 않았습니다.');
+                }
+
                 const { collection, getDocs } = window.firebaseFirestoreFunctions;
                 const reviewsRef = collection(window.firebaseDb, 'reviews');
                 
+                console.log('📊 Firestore 쿼리 실행 중...');
                 const querySnapshot = await getDocs(reviewsRef);
                 allReviews = [];
                 
@@ -2638,6 +2654,8 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                     });
                 });
 
+                console.log(`✅ ${allReviews.length}개의 후기 로드 완료`);
+
                 // 클라이언트에서 최신순 정렬
                 allReviews.sort((a, b) => b.createdAt - a.createdAt);
                 
@@ -2647,24 +2665,33 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 
             } catch (error) {
                 console.error('❌ 후기 데이터 로드 실패:', error);
-                const tbody = document.getElementById('reviews-table-body');
+                console.error('에러 상세:', error.stack);
                 if (tbody) {
-                    tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-4 text-center text-red-500">후기를 불러오는데 실패했습니다.</td></tr>';
+                    tbody.innerHTML = `<tr><td colspan="7" class="px-6 py-4 text-center text-red-500">후기를 불러오는데 실패했습니다.<br><span class="text-xs">${error.message}</span></td></tr>`;
                 }
             }
         }
 
         // 후기 실시간 구독
-        function subscribeToReviews() {
+        async function subscribeToReviews() {
             if (reviewsUnsubscribe) {
                 reviewsUnsubscribe();
+                reviewsUnsubscribe = null;
             }
 
             try {
+                console.log('📡 후기 실시간 구독 시작...');
+                await waitForFirebase();
+                
+                if (!window.firebaseDb || !window.firebaseFirestoreFunctions) {
+                    throw new Error('Firebase가 초기화되지 않았습니다.');
+                }
+
                 const { collection, onSnapshot } = window.firebaseFirestoreFunctions;
                 const reviewsRef = collection(window.firebaseDb, 'reviews');
                 
                 reviewsUnsubscribe = onSnapshot(reviewsRef, (snapshot) => {
+                    console.log('🔄 후기 실시간 업데이트 수신:', snapshot.size, '개');
                     allReviews = [];
                     snapshot.forEach((doc) => {
                         const data = doc.data();
@@ -2684,9 +2711,15 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                     updateReviewStatistics();
                 }, (error) => {
                     console.error('❌ 후기 실시간 업데이트 오류:', error);
+                    const tbody = document.getElementById('reviews-table-body');
+                    if (tbody) {
+                        tbody.innerHTML = `<tr><td colspan="7" class="px-6 py-4 text-center text-red-500">실시간 업데이트 오류가 발생했습니다.<br><span class="text-xs">${error.message}</span></td></tr>`;
+                    }
                 });
+                console.log('✅ 후기 실시간 구독 완료');
             } catch (error) {
                 console.error('❌ 후기 구독 실패:', error);
+                console.error('에러 상세:', error.stack);
             }
         }
 
