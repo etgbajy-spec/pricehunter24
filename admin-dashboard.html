@@ -5688,7 +5688,7 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
         }
 
         // 문의 모달 데이터 채우기
-        function fillInquiryDetailModal(inquiry) {
+        async function fillInquiryDetailModal(inquiry) {
             // 문의 기본 정보
             document.getElementById('inquiry-modal-id').textContent = inquiry.id || 'N/A';
             document.getElementById('inquiry-modal-date').textContent = inquiry.date ? new Date(inquiry.date).toLocaleString('ko-KR') : 'N/A';
@@ -5727,6 +5727,66 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             } else {
                 document.getElementById('inquiry-modal-admin-response').classList.add('hidden');
             }
+            
+            // 댓글 로드 및 표시
+            await loadInquiryComments(inquiry.id);
+        }
+        
+        // 문의 댓글 로드
+        async function loadInquiryComments(inquiryId) {
+            try {
+                await waitForFirebase();
+                const { collection, query, where, getDocs } = window.firebaseFirestoreFunctions;
+                const commentsRef = collection(window.firebaseDb, 'inquiryComments');
+                
+                const commentsQuery = query(
+                    commentsRef,
+                    where('inquiryId', '==', inquiryId)
+                );
+                const commentsSnapshot = await getDocs(commentsQuery);
+                
+                const comments = [];
+                commentsSnapshot.forEach(doc => {
+                    const data = doc.data();
+                    comments.push({
+                        author: data.author,
+                        text: data.text,
+                        date: data.date || (data.createdAt?.seconds ? data.createdAt.seconds * 1000 : Date.now()),
+                        email: data.email
+                    });
+                });
+                
+                // 날짜순 정렬
+                comments.sort((a, b) => a.date - b.date);
+                
+                // 댓글 표시
+                const commentsList = document.getElementById('inquiry-modal-comments-list');
+                if (comments.length === 0) {
+                    commentsList.innerHTML = '<p class="text-gray-400 text-center py-4">댓글이 없습니다.</p>';
+                } else {
+                    commentsList.innerHTML = comments.map(comment => `
+                        <div class="bg-white rounded-lg p-3 border border-emerald-200">
+                            <div class="flex items-center justify-between mb-2">
+                                <div class="font-semibold text-emerald-700 text-sm">${escapeHtml(comment.author)}</div>
+                                <div class="text-gray-400 text-xs">${new Date(comment.date).toLocaleString('ko-KR')}</div>
+                            </div>
+                            <div class="text-gray-800 text-sm whitespace-pre-wrap">${escapeHtml(comment.text)}</div>
+                        </div>
+                    `).join('');
+                }
+                
+            } catch (error) {
+                console.error('❌ 댓글 로드 실패:', error);
+                document.getElementById('inquiry-modal-comments-list').innerHTML = '<p class="text-red-400 text-center py-4">댓글을 불러오는데 실패했습니다.</p>';
+            }
+        }
+        
+        // HTML 이스케이프 함수
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
 
         // 문의 첨부 파일 표시
@@ -6487,6 +6547,29 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                             </div>
                         </div>
                     </div>
+
+                    <!-- 추가 댓글 -->
+                    <div class="mb-6">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                            💬 추가 댓글
+                        </h3>
+                        <div class="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl p-6 border-l-4 border-emerald-500 shadow-sm">
+                            <div id="inquiry-modal-comments-list" class="space-y-3 mb-4">
+                                <!-- 댓글이 여기에 동적으로 표시됨 -->
+                            </div>
+                            <div class="bg-white rounded-lg p-4 border border-emerald-200">
+                                <form id="inquiry-comment-form" class="space-y-3">
+                                    <textarea id="inquiry-comment-input" 
+                                              rows="2" 
+                                              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:outline-none transition-colors" 
+                                              placeholder="댓글을 입력하세요..."></textarea>
+                                    <button type="submit" class="px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition font-medium">
+                                        💬 댓글 등록
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -6517,7 +6600,60 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 e.preventDefault();
                 saveInquiryResponse();
             });
+            
+            // 문의 댓글 폼 제출 이벤트 리스너
+            document.getElementById('inquiry-comment-form').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                await saveInquiryComment();
+            });
         });
+        
+        // 문의 댓글 저장 (관리자용)
+        async function saveInquiryComment() {
+            const input = document.getElementById('inquiry-comment-input');
+            const text = input.value.trim();
+            
+            if (!text) {
+                alert('댓글을 입력해주세요.');
+                return;
+            }
+            
+            if (!currentInquiryId) {
+                alert('문의 ID를 찾을 수 없습니다.');
+                return;
+            }
+            
+            try {
+                await waitForFirebase();
+                const { collection, addDoc, serverTimestamp } = window.firebaseFirestoreFunctions;
+                const commentsRef = collection(window.firebaseDb, 'inquiryComments');
+                
+                // 현재 관리자 정보 가져오기
+                const currentUser = window.firebaseAuth?.currentUser;
+                const adminEmail = currentUser?.email || 'admin@pricehunter.com';
+                
+                await addDoc(commentsRef, {
+                    inquiryId: currentInquiryId,
+                    author: '관리자',
+                    email: adminEmail,
+                    text: text,
+                    date: Date.now(),
+                    createdAt: serverTimestamp()
+                });
+                
+                console.log('✅ 관리자 댓글 저장 완료');
+                
+                // 댓글 목록 새로고침
+                await loadInquiryComments(currentInquiryId);
+                
+                // 입력 필드 초기화
+                input.value = '';
+                
+            } catch (error) {
+                console.error('❌ 관리자 댓글 저장 실패:', error);
+                alert('댓글 저장에 실패했습니다: ' + error.message);
+            }
+        }
     </script>
 
     <!-- 새로운 후기 관리 시스템 -->
