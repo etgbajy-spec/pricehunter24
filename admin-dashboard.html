@@ -2222,36 +2222,42 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
         window.switchSection = function(sectionName) {
             console.log('🔄 섹션 전환:', sectionName);
             
-            // 모든 섹션 숨기기
-            document.querySelectorAll('.section-content').forEach(section => {
-                section.classList.add('hidden');
-            });
-            
-            // 모든 사이드바 아이템 비활성화
-            document.querySelectorAll('.sidebar-item').forEach(item => {
-                item.classList.remove('active');
-            });
-            
-            // 선택된 섹션 표시
-            let targetSection;
-            if (sectionName === 'dashboard') {
-                // 대시보드는 dashboard-content를 표시
-                targetSection = document.getElementById('dashboard-content');
+            // 내부 switchSection 함수 호출 (데이터 로드 로직 포함)
+            if (typeof switchSection === 'function') {
+                switchSection(sectionName);
             } else {
-                targetSection = document.getElementById(sectionName + '-section');
-            }
-            
-            if (targetSection) {
-                targetSection.classList.remove('hidden');
-                console.log('✅ 섹션 표시:', sectionName);
-            } else {
-                console.error('❌ 섹션을 찾을 수 없음:', sectionName);
-            }
-            
-            // 선택된 사이드바 아이템 활성화
-            const activeItem = document.querySelector(`[data-section="${sectionName}"]`);
-            if (activeItem) {
-                activeItem.classList.add('active');
+                // 내부 함수가 아직 로드되지 않은 경우 기본 동작만 수행
+                // 모든 섹션 숨기기
+                document.querySelectorAll('.section-content').forEach(section => {
+                    section.classList.add('hidden');
+                });
+                
+                // 모든 사이드바 아이템 비활성화
+                document.querySelectorAll('.sidebar-item').forEach(item => {
+                    item.classList.remove('active');
+                });
+                
+                // 선택된 섹션 표시
+                let targetSection;
+                if (sectionName === 'dashboard') {
+                    // 대시보드는 dashboard-content를 표시
+                    targetSection = document.getElementById('dashboard-content');
+                } else {
+                    targetSection = document.getElementById(sectionName + '-section');
+                }
+                
+                if (targetSection) {
+                    targetSection.classList.remove('hidden');
+                    console.log('✅ 섹션 표시:', sectionName);
+                } else {
+                    console.error('❌ 섹션을 찾을 수 없음:', sectionName);
+                }
+                
+                // 선택된 사이드바 아이템 활성화
+                const activeItem = document.querySelector(`[data-section="${sectionName}"]`);
+                if (activeItem) {
+                    activeItem.classList.add('active');
+                }
             }
         }
         
@@ -2555,8 +2561,9 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             }
         }
 
-        // 섹션 전환
+        // 섹션 전환 (내부 함수)
         function switchSection(section) {
+            console.log('🔄 내부 switchSection 호출:', section);
             // 기존 활성 섹션 숨기기
             document.querySelectorAll('.section-content').forEach(content => {
                 content.classList.add('hidden');
@@ -2605,14 +2612,21 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                     loadDashboardData();
                     break;
                 case 'reviews':
+                    console.log('⭐ 후기 섹션 선택됨 - 데이터 로드 시작');
                     // 후기 관리 섹션인 경우 데이터 로드 및 실시간 구독 시작
                     loadReviewsData().then(() => {
+                        console.log('✅ 후기 데이터 로드 완료 - 실시간 구독 시작');
                         // 데이터 로드 완료 후 실시간 구독 시작
                         if (!reviewsUnsubscribe) {
                             subscribeToReviews();
                         }
                     }).catch(error => {
-                        console.error('후기 섹션 로드 실패:', error);
+                        console.error('❌ 후기 섹션 로드 실패:', error);
+                        console.error('에러 스택:', error.stack);
+                        const tbody = document.getElementById('reviews-table-body');
+                        if (tbody) {
+                            tbody.innerHTML = `<tr><td colspan="7" class="px-6 py-4 text-center text-red-500">후기 로드 중 오류 발생<br><span class="text-xs">${error.message}</span></td></tr>`;
+                        }
                     });
                     break;
             }
@@ -2625,13 +2639,21 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
 
         // 후기 데이터 로드
         async function loadReviewsData() {
+            console.log('🚀 loadReviewsData 함수 호출됨!');
             const tbody = document.getElementById('reviews-table-body');
-            if (tbody) {
-                tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-4 text-center text-gray-500">후기를 불러오는 중...</td></tr>';
+            if (!tbody) {
+                console.error('❌ reviews-table-body 요소를 찾을 수 없습니다!');
+                return;
             }
+            
+            tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-4 text-center text-gray-500">후기를 불러오는 중...</td></tr>';
 
             try {
                 console.log('📥 후기 데이터 로드 시작...');
+                console.log('Firebase 상태 확인:', {
+                    firebaseDb: !!window.firebaseDb,
+                    firebaseFirestoreFunctions: !!window.firebaseFirestoreFunctions
+                });
                 await waitForFirebase();
                 
                 if (!window.firebaseDb || !window.firebaseFirestoreFunctions) {
