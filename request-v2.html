@@ -415,11 +415,11 @@
         <!-- 후기게시판 자동등록 동의 -->
         <div class="bg-purple-50 p-4 rounded-lg mb-6 border border-purple-200">
           <div class="flex items-start">
-            <input type="checkbox" id="reviewAgree" class="mt-1 mr-3 w-5 h-5 text-purple-600 border-gray-300 rounded focus:ring-purple-400">
-            <label for="reviewAgree" class="text-sm text-gray-700">
+            <input type="checkbox" id="reviewBoardAgree" class="mt-1 mr-3 w-5 h-5 text-purple-600 border-gray-300 rounded focus:ring-purple-400">
+            <label for="reviewBoardAgree" class="text-sm text-gray-700">
               <span class="font-semibold text-purple-800">[선택]</span> 이 의뢰건 데이터를 후기게시판에 자동등록되는 것에 동의합니다.
               <div class="text-xs text-gray-500 mt-1">
-                의뢰가 완료된 후, 관리자가 검증 결과를 바탕으로 후기게시판에 게시할 수 있습니다. 
+                의뢰가 완료된 후 관리자가 검증 결과를 바탕으로 후기게시판에 등록할 수 있습니다. 
                 동의하지 않으셔도 의뢰는 정상적으로 처리됩니다.
               </div>
             </label>
@@ -1118,7 +1118,6 @@
       const email = document.getElementById('userEmail').value;
       const phone = document.getElementById('userPhone').value;
       const price = Number(document.getElementById('productPrice').value);
-      const reviewAgree = document.getElementById('reviewAgree').checked;
       
       // 고유 의뢰번호 생성
       function generateReqNum() {
@@ -1199,6 +1198,8 @@
           console.warn('모든 이미지가 Firebase 크기 제한으로 인해 제외되었습니다.');
         }
         
+        const reviewBoardAgree = document.getElementById('reviewBoardAgree').checked;
+        
         const reqData = {
           name, 
           desc, 
@@ -1215,7 +1216,7 @@
           estimatedTime: '2-3일 내 완료 예정',
           lastUpdated: Date.now(),
           progress: 10,
-          reviewAgree: reviewAgree // 후기게시판 자동등록 동의 여부
+          reviewBoardAgree: reviewBoardAgree // 후기게시판 자동등록 동의 여부
         };
         
         try {

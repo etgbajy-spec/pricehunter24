@@ -1085,10 +1085,10 @@
                             <button onclick="viewRequestDetail('${request.id}')" class="px-2 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600">
                                 상세보기
                             </button>
-                            ${request.reviewAgree ? `
-                                <button onclick="publishToReviews('${request.id}')" class="px-2 py-1 bg-purple-500 text-white text-xs rounded hover:bg-purple-600" title="후기게시판에 올리기">
-                                    후기게시판에 올리기
-                                </button>
+                            ${request.reviewBoardAgree ? `
+                            <button onclick="publishToReviewBoard('${request.id}')" class="px-2 py-1 bg-purple-500 text-white text-xs rounded hover:bg-purple-600" title="후기게시판에 올리기">
+                                후기등록
+                            </button>
                             ` : ''}
                         </div>
                     </td>
@@ -1367,9 +1367,16 @@
                         <div class="col-span-1 text-center text-sm">${request.purchaseMethod || '-'}</div>
                         <div class="col-span-1 text-center text-sm">${request.purchaseStatus || '-'}</div>
                         <div class="col-span-1 text-center">
-                            <button onclick="viewRequestDetail('${request.id}')" class="px-2 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600">
-                                상세보기
-                            </button>
+                            <div class="flex gap-2 justify-center">
+                                <button onclick="viewRequestDetail('${request.id}')" class="px-2 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600">
+                                    상세보기
+                                </button>
+                                ${request.reviewBoardAgree ? `
+                                <button onclick="publishToReviewBoard('${request.id}')" class="px-2 py-1 bg-purple-500 text-white text-xs rounded hover:bg-purple-600" title="후기게시판에 올리기">
+                                    후기등록
+                                </button>
+                                ` : ''}
+                            </div>
                         </div>
                     `;
                     
@@ -1462,91 +1469,6 @@
             } catch (error) {
                 console.error('❌ 의뢰 상세보기 실패:', error);
                 alert('의뢰 상세 정보를 불러오는데 실패했습니다.');
-            }
-        }
-
-        // 의뢰 데이터를 후기게시판에 올리기
-        async function publishToReviews(requestId) {
-            try {
-                if (!confirm('이 의뢰를 후기게시판에 올리시겠습니까?')) {
-                    return;
-                }
-
-                const requests = await getRequestsFromFirebase();
-                const request = requests.find(r => r.id === requestId);
-                
-                if (!request) {
-                    alert('의뢰 정보를 찾을 수 없습니다.');
-                    return;
-                }
-
-                if (!request.reviewAgree) {
-                    alert('이 의뢰는 후기게시판 등록에 동의하지 않았습니다.');
-                    return;
-                }
-
-                // 이미 후기로 등록되었는지 확인
-                const { collection, query, where, getDocs } = window.firebaseFirestoreFunctions;
-                const db = window.firebaseDb;
-                const reviewsRef = collection(db, 'reviews');
-                const existingReviewQuery = query(reviewsRef, where('requestId', '==', requestId));
-                const existingReviewSnapshot = await getDocs(existingReviewQuery);
-                
-                if (!existingReviewSnapshot.empty) {
-                    alert('이 의뢰는 이미 후기게시판에 등록되어 있습니다.');
-                    return;
-                }
-
-                // 의뢰 데이터를 후기 형식으로 변환
-                const reviewData = {
-                    // 기본 정보
-                    name: request.userName || '익명',
-                    productName: request.name || request.productName || '제품명 없음',
-                    originalPrice: request.price ? `${request.price.toLocaleString()}원` : '가격 정보 없음',
-                    
-                    // 검증 결과 정보 (있는 경우)
-                    finalPrice: request.finalPrice || request.resultPrice || request.price ? `${request.price.toLocaleString()}원` : '가격 정보 없음',
-                    savings: request.savings || '0원',
-                    savingsPercent: request.savingsPercent || 0,
-                    
-                    // 후기 내용
-                    review: request.review || request.statusDetail || '의뢰가 완료되었습니다.',
-                    rating: request.rating || 5,
-                    
-                    // 추가 정보
-                    country: request.origin || '대한민국',
-                    shipping: request.shipping || '2-3일',
-                    method: request.method || '검증 완료',
-                    badge: '실제 구매자',
-                    purchaseDate: request.createdAt ? (request.createdAt.toDate ? request.createdAt.toDate().toISOString().split('T')[0] : new Date(request.createdAt).toISOString().split('T')[0]) : new Date().toISOString().split('T')[0],
-                    
-                    // 이미지 (있는 경우)
-                    photos: request.images || [],
-                    
-                    // 메타데이터
-                    requestId: requestId,
-                    requestNumber: request.reqNum || request.requestNumber,
-                    approved: true, // 관리자가 올린 것이므로 자동 승인
-                    createdAt: new Date(),
-                    source: 'admin_publish'
-                };
-
-                // Firebase에 후기 저장
-                const { addDoc, serverTimestamp } = window.firebaseFirestoreFunctions;
-                const docRef = await addDoc(reviewsRef, {
-                    ...reviewData,
-                    createdAt: serverTimestamp()
-                });
-
-                console.log('✅ 후기게시판에 등록 완료:', docRef.id);
-                alert('후기게시판에 성공적으로 등록되었습니다!');
-                
-                // 목록 새로고침
-                renderRequestList();
-                
-            } catch (error) {
-                console.error('❌ 후기게시판 등록 실패:', error);
-                alert('후기게시판 등록 중 오류가 발생했습니다: ' + error.message);
             }
         }
         
@@ -7685,8 +7607,122 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
         window.testFirebaseConnection = testFirebaseConnection;
         window.addSavingsKingLog = addSavingsKingLog;
         window.clearSavingsKingLogs = clearSavingsKingLogs;
-        window.viewRequestDetail = viewRequestDetail;
-        window.publishToReviews = publishToReviews;
+
+        // 의뢰 데이터를 후기 게시판에 올리기
+        async function publishToReviewBoard(requestId) {
+            try {
+                if (!confirm('이 의뢰건을 후기게시판에 등록하시겠습니까?')) {
+                    return;
+                }
+
+                await waitForFirebase();
+                const { collection, doc, getDoc, addDoc, serverTimestamp } = window.firebaseFirestoreFunctions;
+                const db = window.firebaseDb;
+
+                // 의뢰 데이터 가져오기
+                const requestRef = doc(db, 'requests', requestId);
+                const requestSnap = await getDoc(requestRef);
+
+                if (!requestSnap.exists()) {
+                    alert('의뢰 데이터를 찾을 수 없습니다.');
+                    return;
+                }
+
+                const requestData = requestSnap.data();
+
+                // 후기게시판 동의 여부 확인
+                if (!requestData.reviewBoardAgree) {
+                    alert('이 의뢰건은 후기게시판 자동등록에 동의하지 않았습니다.');
+                    return;
+                }
+
+                // 의뢰 데이터에서 후기 데이터 생성
+                const reviewData = {
+                    // 기본 정보
+                    productName: requestData.productName || requestData.name || '제품명 없음',
+                    userName: requestData.userName || requestData.name || '익명',
+                    email: requestData.email || '',
+                    
+                    // 가격 정보
+                    originalPrice: requestData.price || requestData.originalPrice || '0',
+                    finalPrice: requestData.adminResponse?.lowestPrice || requestData.finalPrice || '0',
+                    savings: calculateSavings(requestData.price || requestData.originalPrice, requestData.adminResponse?.lowestPrice || requestData.finalPrice),
+                    savingsPercent: calculateSavingsPercent(requestData.price || requestData.originalPrice, requestData.adminResponse?.lowestPrice || requestData.finalPrice),
+                    
+                    // 후기 내용
+                    review: requestData.adminResponse?.additionalInfo || `PriceHunter를 통해 ${requestData.productName || '제품'}을 검증받았습니다.`,
+                    rating: 5, // 기본 평점
+                    
+                    // 이미지
+                    images: requestData.images || [],
+                    
+                    // 의뢰 정보
+                    requestId: requestId,
+                    requestNumber: requestData.requestNumber || requestData.reqNum || '',
+                    
+                    // 기타 정보
+                    badge: '실제 구매자',
+                    country: '대한민국',
+                    shipping: requestData.adminResponse?.shippingTime || '3일',
+                    method: requestData.adminResponse?.seller || 'PriceHunter 검증',
+                    
+                    // 관리자 승인
+                    approved: true, // 관리자가 직접 등록하므로 자동 승인
+                    featured: false,
+                    views: 0,
+                    
+                    // 타임스탬프
+                    createdAt: serverTimestamp(),
+                    updatedAt: serverTimestamp()
+                };
+
+                // 후기 컬렉션에 추가
+                const reviewsRef = collection(db, 'reviews');
+                await addDoc(reviewsRef, reviewData);
+
+                alert('후기게시판에 성공적으로 등록되었습니다!');
+                console.log('✅ 후기게시판 등록 완료:', reviewData);
+
+            } catch (error) {
+                console.error('❌ 후기게시판 등록 실패:', error);
+                alert('후기게시판 등록에 실패했습니다: ' + error.message);
+            }
+        }
+
+        // 절약 금액 계산
+        function calculateSavings(originalPrice, finalPrice) {
+            const original = parseInt(String(originalPrice).replace(/[^0-9]/g, ''));
+            const final = parseInt(String(finalPrice).replace(/[^0-9]/g, ''));
+            if (isNaN(original) || isNaN(final)) return '0원';
+            const savings = original - final;
+            return savings > 0 ? savings.toLocaleString() + '원' : '0원';
+        }
+
+        // 절약률 계산
+        function calculateSavingsPercent(originalPrice, finalPrice) {
+            const original = parseInt(String(originalPrice).replace(/[^0-9]/g, ''));
+            const final = parseInt(String(finalPrice).replace(/[^0-9]/g, ''));
+            if (isNaN(original) || isNaN(final) || original === 0) return 0;
+            const percent = Math.round(((original - final) / original) * 100);
+            return percent > 0 ? percent : 0;
+        }
+
+        // Firebase 초기화 대기 함수
+        function waitForFirebase() {
+            return new Promise((resolve) => {
+                const checkFirebase = () => {
+                    if (window.firebaseDb && window.firebaseFirestoreFunctions) {
+                        resolve();
+                    } else {
+                        setTimeout(checkFirebase, 100);
+                    }
+                };
+                checkFirebase();
+            });
+        }
+
+        // 전역 함수로 노출
+        window.publishToReviewBoard = publishToReviewBoard;
     </script>
 </body>
 </html>
