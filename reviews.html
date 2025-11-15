@@ -293,62 +293,9 @@
             renderReviews();
         });
 
-        // 가상 데이터 삭제 (일회성 실행)
-        (async () => {
-            try {
-                console.log('🗑️ 가상 데이터 삭제 시작...');
-                const { doc, deleteDoc } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js');
-                const reviewsRef = collection(db, 'reviews');
-                const querySnapshot = await getDocs(reviewsRef);
-                
-                const fakeReviews = [
-                    { productName: '로지텍 MX Master 3S', userName: '정우성' },
-                    { productName: '다이슨 V15 무선청소기', userName: '최지은' },
-                    { productName: 'iPad Air 5세대', userName: '박민수' },
-                    { productName: '삼성 갤럭시 S24 Ultra', userName: '이철수' },
-                    { productName: 'MacBook Pro 14인치', userName: '김영희' }
-                ];
-                
-                let deletedCount = 0;
-                const deletePromises = [];
-                
-                querySnapshot.forEach((docSnapshot) => {
-                    const data = docSnapshot.data();
-                    const productName = data.productName || '';
-                    const userName = data.userName || data.name || '';
-                    
-                    const isFake = fakeReviews.some(fake => {
-                        return (productName.includes(fake.productName) || fake.productName.includes(productName)) &&
-                               (userName.includes(fake.userName) || fake.userName.includes(userName));
-                    });
-                    
-                    if (isFake) {
-                        const docRef = doc(db, 'reviews', docSnapshot.id);
-                        deletePromises.push(
-                            deleteDoc(docRef).then(() => {
-                                deletedCount++;
-                                console.log(`✅ 삭제: ${productName} - ${userName}`);
-                            })
-                        );
-                    }
-                });
-                
-                await Promise.all(deletePromises);
-                console.log(`✅ 총 ${deletedCount}개의 가상 데이터 삭제 완료`);
-                
-                if (deletedCount > 0) {
-                    alert(`✅ ${deletedCount}개의 가상 데이터가 삭제되었습니다.`);
-                    setTimeout(() => location.reload(), 1000);
-                    return;
-                }
-            } catch (error) {
-                console.error('❌ 가상 데이터 삭제 실패:', error);
-            }
-            
-            // 삭제 완료 후 또는 삭제할 데이터가 없으면 후기 로드
-                loadReviews();
-            subscribeToReviews();
-        })();
+        // 초기 로드
+        loadReviews();
+        subscribeToReviews();
     </script>
 </body>
 </html>
