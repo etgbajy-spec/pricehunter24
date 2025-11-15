@@ -324,6 +324,15 @@
               안내사항 자세히보기
             </button>
           </div>
+          <div class="flex items-start p-3 bg-blue-50 rounded-lg border border-blue-200">
+            <input type="checkbox" id="reviewConsent" class="mt-1 mr-3 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-400">
+            <div class="flex-1">
+              <label for="reviewConsent" class="text-sm text-gray-700">
+                <span class="font-semibold text-blue-800">[선택]</span> 이 의뢰건 데이터를 후기게시판에 자동등록되는 것에 동의합니다.
+                <div class="text-xs text-gray-500 mt-1">의뢰가 완료되면 관리자가 후기게시판에 등록할 수 있으며, 동의하시면 자동으로 등록됩니다.</div>
+              </label>
+            </div>
+          </div>
         </div>
 
         <!-- 마이크로카피 -->
@@ -1199,7 +1208,8 @@
           statusDetail: '의뢰가 접수되었습니다. 검색을 시작합니다.',
           estimatedTime: '2-3일 내 완료 예정',
           lastUpdated: Date.now(),
-          progress: 10
+          progress: 10,
+          reviewConsent: document.getElementById('reviewConsent').checked || false
         };
         
         try {
