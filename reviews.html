@@ -51,11 +51,11 @@
                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
                 </div>
                 <select id="sort-select" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
-                    <option value="newest">최신순</option>
-                    <option value="oldest">오래된순</option>
+                        <option value="newest">최신순</option>
+                        <option value="oldest">오래된순</option>
                     <option value="savings">절약액 높은순</option>
                     <option value="rating">평점 높은순</option>
-                </select>
+                    </select>
             </div>
         </div>
 
@@ -95,7 +95,7 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
-
+        
         let allReviews = [];
         let filteredReviews = [];
 
@@ -103,7 +103,9 @@
         async function loadReviews() {
             try {
                 const reviewsRef = collection(db, 'reviews');
-                const q = query(reviewsRef, where('approved', '==', true), orderBy('createdAt', 'desc'));
+                
+                // 인덱스 없이도 작동하도록 where만 사용하고 클라이언트에서 정렬
+                const q = query(reviewsRef, where('approved', '==', true));
                 
                 const querySnapshot = await getDocs(q);
                 allReviews = [];
@@ -117,6 +119,9 @@
                     });
                 });
 
+                // 클라이언트에서 최신순 정렬
+                allReviews.sort((a, b) => b.createdAt - a.createdAt);
+                
                 filteredReviews = [...allReviews];
                 renderReviews();
                 updateStatistics();
@@ -132,7 +137,8 @@
         // 실시간 업데이트 구독
         function subscribeToReviews() {
             const reviewsRef = collection(db, 'reviews');
-            const q = query(reviewsRef, where('approved', '==', true), orderBy('createdAt', 'desc'));
+            // 인덱스 없이도 작동하도록 where만 사용하고 클라이언트에서 정렬
+            const q = query(reviewsRef, where('approved', '==', true));
             
             onSnapshot(q, (snapshot) => {
                 allReviews = [];
@@ -144,9 +150,16 @@
                         createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt || Date.now())
                     });
                 });
+                
+                // 클라이언트에서 최신순 정렬
+                allReviews.sort((a, b) => b.createdAt - a.createdAt);
+                
                 filteredReviews = [...allReviews];
                 renderReviews();
                 updateStatistics();
+            }, (error) => {
+                console.error('실시간 업데이트 오류:', error);
+                // 오류가 발생해도 기존 데이터는 유지
             });
         }
 
@@ -201,7 +214,7 @@
                             <div class="mb-4">
                                 <div class="text-yellow-500 text-lg mb-1">${stars}</div>
                                 <p class="text-gray-700 text-sm line-clamp-3">${review.review || '후기 내용이 없습니다.'}</p>
-                            </div>
+                        </div>
                             <div class="grid grid-cols-2 gap-4 pt-4 border-t border-gray-200">
                                 <div>
                                     <div class="text-xs text-gray-500 mb-1">원래 가격</div>
@@ -221,9 +234,9 @@
                             ${review.badge ? `
                                 <div class="mt-4">
                                     <span class="inline-block px-3 py-1 bg-purple-100 text-purple-800 text-xs rounded-full font-semibold">
-                                        ${review.badge}
-                                    </span>
-                                </div>
+                                ${review.badge}
+                            </span>
+                            </div>
                             ` : ''}
                         </div>
                     </div>
@@ -263,15 +276,15 @@
             const sortBy = e.target.value;
             filteredReviews = [...filteredReviews].sort((a, b) => {
                 switch(sortBy) {
-                    case 'newest':
+                case 'newest':
                         return b.createdAt - a.createdAt;
-                    case 'oldest':
+                case 'oldest':
                         return a.createdAt - b.createdAt;
                     case 'savings':
                         const savingsA = parseInt(String(a.savings || '0').replace(/[^0-9]/g, ''));
                         const savingsB = parseInt(String(b.savings || '0').replace(/[^0-9]/g, ''));
                         return savingsB - savingsA;
-                    case 'rating':
+                case 'rating':
                         return (b.rating || 5) - (a.rating || 5);
                     default:
                         return 0;
