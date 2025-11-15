@@ -3151,12 +3151,20 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                             </div>
                             <div class="space-y-4">
                                 <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">의뢰 가격 (원)</label>
+                                    <input type="number" id="savings-king-original-price" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent" placeholder="1000000" oninput="updateSavingsKingPreview()">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">절감된 가격 (원)</label>
+                                    <input type="number" id="savings-king-final-price" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent" placeholder="580000" oninput="updateSavingsKingPreview()">
+                                </div>
+                                <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">절약 금액 (원)</label>
-                                    <input type="number" id="savings-king-amount" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent" placeholder="420000" oninput="updateSavingsKingPreview()">
+                                    <input type="number" id="savings-king-amount" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent" placeholder="420000" oninput="updateSavingsKingPreview()" readonly>
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">절약율 (%)</label>
-                                    <input type="number" id="savings-king-rate" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent" placeholder="42" min="0" max="100" oninput="updateSavingsKingPreview()">
+                                    <input type="number" id="savings-king-rate" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent" placeholder="42" min="0" max="100" oninput="updateSavingsKingPreview()" readonly>
                                 </div>
                             </div>
                         </div>
@@ -3266,18 +3274,7 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                                 <div><span class="font-semibold text-gray-700">의뢰번호:</span> <span id="admin-modal-request-number" class="text-blue-600"></span></div>
                                 <div><span class="font-semibold text-gray-700">의뢰일시:</span> <span id="admin-modal-request-date" class="text-blue-600"></span></div>
                                 <div><span class="font-semibold text-gray-700">제품명:</span> <span id="admin-modal-product-name" class="text-blue-600"></span></div>
-                                <div class="md:col-span-2">
-                                    <div class="flex items-center gap-2 mb-2">
-                                        <span class="font-semibold text-gray-700">의뢰 가격:</span>
-                                        <input type="text" id="admin-modal-original-price" class="flex-1 px-3 py-1 border border-blue-300 rounded-lg text-blue-600 focus:ring-2 focus:ring-blue-500" placeholder="의뢰 가격 입력">
-                                        <button onclick="saveRequestPrice()" class="px-3 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600 transition">저장</button>
-                                    </div>
-                                    <div class="flex items-center gap-2">
-                                        <span class="font-semibold text-gray-700">절감된 가격:</span>
-                                        <input type="text" id="admin-modal-final-price" class="flex-1 px-3 py-1 border border-green-300 rounded-lg text-green-600 focus:ring-2 focus:ring-green-500" placeholder="절감된 가격 입력">
-                                        <button onclick="saveRequestPrice()" class="px-3 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600 transition">저장</button>
-                                    </div>
-                                </div>
+                                <div><span class="font-semibold text-gray-700">요청가:</span> <span id="admin-modal-original-price" class="text-blue-600"></span></div>
                                 <div><span class="font-semibold text-gray-700">상태:</span> <span id="admin-modal-status" class="px-2 py-1 rounded-full text-xs font-bold text-white"></span></div>
                                 <div><span class="font-semibold text-gray-700">진행률:</span> <span id="admin-modal-progress" class="text-blue-600"></span></div>
                             </div>
@@ -3460,23 +3457,7 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             document.getElementById('admin-modal-request-number').textContent = request.reqNum || request.requestNumber || 'N/A';
             document.getElementById('admin-modal-request-date').textContent = request.reqDate ? new Date(request.reqDate).toLocaleString('ko-KR') : 'N/A';
             document.getElementById('admin-modal-product-name').textContent = request.productName || request.name || 'N/A';
-            // 의뢰 가격과 절감된 가격을 입력 필드에 설정
-            const originalPriceInput = document.getElementById('admin-modal-original-price');
-            const finalPriceInput = document.getElementById('admin-modal-final-price');
-            if (originalPriceInput) {
-                originalPriceInput.value = request.originalPrice || request.price || '';
-            }
-            if (finalPriceInput) {
-                finalPriceInput.value = request.adminResponse?.lowestPrice || request.finalPrice || '';
-            }
-            
-            // 현재 의뢰 ID 저장 (가격 저장 시 사용)
-            if (originalPriceInput) {
-                originalPriceInput.dataset.requestId = request.id;
-            }
-            if (finalPriceInput) {
-                finalPriceInput.dataset.requestId = request.id;
-            }
+            document.getElementById('admin-modal-original-price').textContent = request.originalPrice || request.price || 'N/A';
             
             // 상태 및 진행률
             const status = request.status || '처리중';
@@ -4570,8 +4551,16 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             document.getElementById('savings-king-age').value = data.age || '20대';
             document.getElementById('savings-king-job').value = data.job || '직장인';
             document.getElementById('savings-king-product').value = data.product || '패션백';
-            document.getElementById('savings-king-amount').value = data.amount;
-            document.getElementById('savings-king-rate').value = data.rate;
+            
+            // 의뢰 가격과 절감된 가격 설정 (기존 데이터에서 계산하거나 기본값 사용)
+            const originalPrice = data.originalPrice || (data.amount && data.rate ? Math.round(data.amount / (data.rate / 100)) : 1000000);
+            const finalPrice = data.finalPrice || (data.amount && originalPrice ? originalPrice - data.amount : 580000);
+            
+            document.getElementById('savings-king-original-price').value = originalPrice;
+            document.getElementById('savings-king-final-price').value = finalPrice;
+            
+            // 절약 금액과 절약율 자동 계산
+            updateSavingsKingAmountAndRate();
             
             // 미리보기 업데이트
             updateSavingsKingPreview();
@@ -4591,14 +4580,21 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             });
             
             // 폼 데이터 수집
+            const originalPrice = parseInt(document.getElementById('savings-king-original-price').value) || 0;
+            const finalPrice = parseInt(document.getElementById('savings-king-final-price').value) || 0;
+            const amount = originalPrice - finalPrice;
+            const rate = originalPrice > 0 ? Math.round((amount / originalPrice) * 100) : 0;
+            
             const data = {
                 image: document.getElementById('savings-king-image').value,
                 name: document.getElementById('savings-king-name').value,
                 age: document.getElementById('savings-king-age').value,
                 job: document.getElementById('savings-king-job').value,
                 product: document.getElementById('savings-king-product').value,
-                amount: parseInt(document.getElementById('savings-king-amount').value) || 0,
-                rate: parseInt(document.getElementById('savings-king-rate').value) || 0
+                originalPrice: originalPrice,
+                finalPrice: finalPrice,
+                amount: amount,
+                rate: rate
             };
             
             console.log('📝 수집된 데이터:', data);
@@ -4730,15 +4726,36 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             }
         }
 
+        // 절약 금액과 절약율 자동 계산 함수
+        function updateSavingsKingAmountAndRate() {
+            const originalPrice = parseInt(document.getElementById('savings-king-original-price').value) || 0;
+            const finalPrice = parseInt(document.getElementById('savings-king-final-price').value) || 0;
+            const amount = originalPrice - finalPrice;
+            const rate = originalPrice > 0 ? Math.round((amount / originalPrice) * 100) : 0;
+            
+            document.getElementById('savings-king-amount').value = amount > 0 ? amount : '';
+            document.getElementById('savings-king-rate').value = rate > 0 ? rate : '';
+        }
+
         function updateSavingsKingPreview() {
+            // 절약 금액과 절약율 자동 계산
+            updateSavingsKingAmountAndRate();
+            
+            const originalPrice = parseInt(document.getElementById('savings-king-original-price').value) || 0;
+            const finalPrice = parseInt(document.getElementById('savings-king-final-price').value) || 0;
+            const amount = originalPrice - finalPrice;
+            const rate = originalPrice > 0 ? Math.round((amount / originalPrice) * 100) : 0;
+            
             const data = {
                 image: document.getElementById('savings-king-image').value,
                 name: document.getElementById('savings-king-name').value,
                 age: document.getElementById('savings-king-age').value,
                 job: document.getElementById('savings-king-job').value,
                 product: document.getElementById('savings-king-product').value,
-                amount: parseInt(document.getElementById('savings-king-amount').value) || 0,
-                rate: parseInt(document.getElementById('savings-king-rate').value) || 0
+                originalPrice: originalPrice,
+                finalPrice: finalPrice,
+                amount: amount,
+                rate: rate
             };
             
             const preview = document.getElementById('savings-king-preview');
@@ -4758,14 +4775,23 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
 
         function previewSavingsKing() {
             // 메인 페이지에서 절약왕 배지 미리보기
+            updateSavingsKingAmountAndRate();
+            
+            const originalPrice = parseInt(document.getElementById('savings-king-original-price').value) || 0;
+            const finalPrice = parseInt(document.getElementById('savings-king-final-price').value) || 0;
+            const amount = originalPrice - finalPrice;
+            const rate = originalPrice > 0 ? Math.round((amount / originalPrice) * 100) : 0;
+            
             const data = {
                 image: document.getElementById('savings-king-image').value,
                 name: document.getElementById('savings-king-name').value,
                 age: document.getElementById('savings-king-age').value,
                 job: document.getElementById('savings-king-job').value,
                 product: document.getElementById('savings-king-product').value,
-                amount: parseInt(document.getElementById('savings-king-amount').value) || 0,
-                rate: parseInt(document.getElementById('savings-king-rate').value) || 0
+                originalPrice: originalPrice,
+                finalPrice: finalPrice,
+                amount: amount,
+                rate: rate
             };
             
             // 메인 페이지로 이동하여 미리보기
@@ -4790,8 +4816,9 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 document.getElementById('savings-king-age').value = '20대';
                 document.getElementById('savings-king-job').value = '직장인';
                 document.getElementById('savings-king-product').value = '패션백';
-                document.getElementById('savings-king-amount').value = '80000';
-                document.getElementById('savings-king-rate').value = '44';
+                document.getElementById('savings-king-original-price').value = '180000';
+                document.getElementById('savings-king-final-price').value = '100000';
+                updateSavingsKingAmountAndRate();
                 
                 // 미리보기 업데이트
                 updateSavingsKingPreview();
@@ -5068,75 +5095,6 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
 
         // 전역 함수로 노출
         window.publishToReviewBoard = publishToReviewBoard;
-
-        // 의뢰 가격 저장 함수
-        window.saveRequestPrice = async function() {
-            try {
-                const originalPriceInput = document.getElementById('admin-modal-original-price');
-                const finalPriceInput = document.getElementById('admin-modal-final-price');
-                
-                if (!originalPriceInput || !finalPriceInput) {
-                    alert('가격 입력 필드를 찾을 수 없습니다.');
-                    return;
-                }
-
-                const requestId = originalPriceInput.dataset.requestId || finalPriceInput.dataset.requestId;
-                if (!requestId) {
-                    alert('의뢰 ID를 찾을 수 없습니다.');
-                    return;
-                }
-
-                const originalPrice = originalPriceInput.value.trim();
-                const finalPrice = finalPriceInput.value.trim();
-
-                if (!originalPrice && !finalPrice) {
-                    alert('의뢰 가격 또는 절감된 가격을 입력해주세요.');
-                    return;
-                }
-
-                await waitForFirebase();
-                const { doc, updateDoc, serverTimestamp } = window.firebaseFirestoreFunctions;
-                const db = window.firebaseDb;
-
-                const updateData = {
-                    updatedAt: serverTimestamp()
-                };
-
-                if (originalPrice) {
-                    updateData.originalPrice = originalPrice;
-                    updateData.price = originalPrice; // 호환성을 위해 price도 업데이트
-                }
-
-                if (finalPrice) {
-                    // adminResponse 객체 업데이트를 위해 기존 데이터 가져오기
-                    const requestRef = doc(db, 'requests', requestId);
-                    const { getDoc } = window.firebaseFirestoreFunctions;
-                    const requestSnap = await getDoc(requestRef);
-                    const requestData = requestSnap.data();
-
-                    // adminResponse 객체 생성 또는 업데이트
-                    const adminResponse = requestData.adminResponse || {};
-                    adminResponse.lowestPrice = finalPrice;
-                    adminResponse.updatedAt = serverTimestamp();
-                    updateData.adminResponse = adminResponse;
-                    updateData.finalPrice = finalPrice; // 호환성을 위해 finalPrice도 업데이트
-                }
-
-                const requestRef = doc(db, 'requests', requestId);
-                await updateDoc(requestRef, updateData);
-
-                alert('가격이 성공적으로 저장되었습니다!');
-                
-                // 의뢰 목록 새로고침
-                if (typeof renderRequestList === 'function') {
-                    renderRequestList();
-                }
-
-            } catch (error) {
-                console.error('❌ 가격 저장 실패:', error);
-                alert('가격 저장에 실패했습니다: ' + error.message);
-            }
-        };
 
         // 특정 의뢰번호의 후기 동의 상태 업데이트 (임시 함수)
         window.updateRequestReviewAgree = async function(requestNumber) {
