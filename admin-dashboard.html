@@ -5176,9 +5176,6 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                                 <button onclick="updateRequestStatusFromModal()" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition">
                                     상태 업데이트
                                 </button>
-                                <button onclick="postToReviewBoard()" class="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition">
-                                    📝 후기게시판에 올리기
-                                </button>
                                 <button onclick="deleteRequestFromModal()" class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition">
                                     의뢰 삭제
                                 </button>
@@ -5651,124 +5648,6 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             // 데이터 내보내기 로직 구현
             console.log('데이터 내보내기:', requestNumber);
             alert('데이터가 내보내기되었습니다.');
-        }
-
-        // 후기게시판에 올리기 함수
-        async function postToReviewBoard() {
-            try {
-                if (!currentRequestId) {
-                    alert('의뢰 정보를 찾을 수 없습니다.');
-                    return;
-                }
-
-                // 현재 의뢰 데이터 가져오기
-                const requests = await getRequestsFromFirebase();
-                const request = requests.find(r => r.id === currentRequestId);
-
-                if (!request) {
-                    alert('의뢰 정보를 찾을 수 없습니다.');
-                    return;
-                }
-
-                // 이미 후기게시판에 올라간 의뢰인지 확인
-                const { collection, query, where, getDocs } = window.firebaseFirestoreFunctions;
-                const reviewsRef = collection(window.firebaseDb, 'reviews');
-                const q = query(reviewsRef, where('requestId', '==', currentRequestId));
-                const existingReviews = await getDocs(q);
-
-                if (!existingReviews.empty) {
-                    if (!confirm('이미 후기게시판에 등록된 의뢰입니다. 다시 등록하시겠습니까?')) {
-                        return;
-                    }
-                }
-
-                // 의뢰 데이터를 후기 데이터로 변환
-                const reviewData = convertRequestToReview(request);
-
-                // Firestore에 후기 저장
-                const { addDoc, serverTimestamp } = window.firebaseFirestoreFunctions;
-                // createdAt과 updatedAt을 serverTimestamp로 설정
-                reviewData.createdAt = serverTimestamp();
-                reviewData.updatedAt = serverTimestamp();
-                const reviewDoc = await addDoc(reviewsRef, reviewData);
-
-                console.log('✅ 후기게시판에 등록 완료:', reviewDoc.id);
-                alert('후기게시판에 성공적으로 등록되었습니다!');
-                
-                // 모달 닫기
-                closeAdminRequestDetailModal();
-
-            } catch (error) {
-                console.error('❌ 후기게시판 등록 실패:', error);
-                alert('후기게시판 등록에 실패했습니다: ' + error.message);
-            }
-        }
-
-        // 의뢰 데이터를 후기 데이터로 변환하는 함수
-        function convertRequestToReview(request) {
-            // 원래 가격과 최종 가격 계산
-            const originalPrice = request.price || request.originalPrice || 0;
-            const finalPrice = request.adminResponse?.lowestPrice || request.lowestPrice || originalPrice;
-            
-            // 가격 문자열에서 숫자 추출
-            const extractPrice = (priceStr) => {
-                if (typeof priceStr === 'number') return priceStr;
-                if (typeof priceStr === 'string') {
-                    const numStr = priceStr.replace(/[^0-9]/g, '');
-                    return parseInt(numStr) || 0;
-                }
-                return 0;
-            };
-
-            const origPriceNum = extractPrice(originalPrice);
-            const finalPriceNum = extractPrice(finalPrice);
-            const savings = origPriceNum - finalPriceNum;
-            const savingsPercent = origPriceNum > 0 ? Math.round((savings / origPriceNum) * 100) : 0;
-
-            // 후기 데이터 구성
-            const reviewData = {
-                // 기본 정보
-                productName: request.productName || request.name || '제품명 없음',
-                userName: request.userName || request.name || '익명',
-                email: request.email || '',
-                phone: request.phone || '',
-                
-                // 가격 정보
-                originalPrice: origPriceNum,
-                finalPrice: finalPriceNum,
-                savings: savings,
-                savingsPercent: savingsPercent,
-                
-                // 제품 정보
-                description: request.desc || request.description || request.productDescription || '',
-                photos: request.images || [],
-                urls: request.urls || [],
-                
-                // 의뢰 정보
-                reqNum: request.reqNum || request.requestNumber || '',
-                requestId: request.id,
-                
-                // 후기 정보 (기본값)
-                rating: 5, // 기본 5점
-                review: request.adminResponse?.additionalInfo || `PriceHunter를 통해 ${savings.toLocaleString()}원 절약했습니다!`,
-                purchaseDate: request.date ? new Date(request.date) : new Date(),
-                
-                // 메타 정보
-                approved: true, // 관리자가 올린 것이므로 자동 승인
-                views: 0,
-                // createdAt과 updatedAt은 호출하는 곳에서 serverTimestamp()로 설정됨
-                
-                // 추가 정보
-                seller: request.adminResponse?.seller || '',
-                shippingCost: request.adminResponse?.shippingCost || '',
-                shippingTime: request.adminResponse?.shippingTime || '',
-                sellerLink: request.adminResponse?.sellerLink || '',
-                
-                // 동의 정보
-                reviewConsent: request.reviewConsent || false
-            };
-
-            return reviewData;
         }
 
         // 관리자용 모달 이벤트 리스너 등록
