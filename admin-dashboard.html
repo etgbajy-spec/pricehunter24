@@ -9,6 +9,10 @@
     
     <title>관리자 대시보드 - PriceHunter</title>
     
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🔍%3C/text%3E%3C/svg%3E">
     
@@ -107,7 +111,7 @@
         function applyFallbackStyles() {
             const style = document.createElement('style');
             style.textContent = `
-                body { font-family: system-ui, -apple-system, sans-serif; }
+                body { font-family: 'Noto Sans KR', sans-serif; }
                 .bg-gradient-to-br { background: linear-gradient(135deg, #f3f4f6, #dbeafe, #d1fae5); }
                 .min-h-screen { min-height: 100vh; }
                 .flex { display: flex; }
@@ -2618,7 +2622,7 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
     </script>
     
     <style>
-        body { font-family: 'Inter', 'Noto Sans KR', sans-serif; }
+        body { font-family: 'Noto Sans KR', sans-serif; }
         .sidebar-item.active { background-color: #ec4899; color: white; }
         .tab-btn.active { background-color: #ec4899; color: white; }
         .filter-btn.active { background-color: #6b7280; color: white; }
