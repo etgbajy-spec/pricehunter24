@@ -4,8 +4,12 @@ service cloud.firestore {
     // 관리자 권한 확인 함수
     function isAdmin() {
       return request.auth != null && (
-        // 화이트리스트 확인
-        request.auth.token.email in ['admin@pricehunter.com', 'manager@pricehunter.com', 'staff@pricehunter.com', 'q886654@naver.com'] ||
+        // 화이트리스트 확인 (이메일이 존재하는 경우)
+        (request.auth.token.email != null && 
+         (request.auth.token.email == 'admin@pricehunter.com' || 
+          request.auth.token.email == 'manager@pricehunter.com' || 
+          request.auth.token.email == 'staff@pricehunter.com' || 
+          request.auth.token.email == 'q886654@naver.com')) ||
         // Custom Claims 확인
         request.auth.token.role == 'admin'
       );
@@ -27,8 +31,21 @@ service cloud.firestore {
       allow read: if true;
       // 쓰기: 문의 작성만 허용
       allow create: if true;
-      allow update: if isAdmin(); // 관리자는 문의 답변 작성 가능
+      // 수정: 관리자만 허용 (답변 작성 및 댓글 관리)
+      allow update: if isAdmin();
       allow delete: if false; // 문의 삭제는 허용하지 않음
+    }
+    
+    // inquiryComments 컬렉션에 대한 규칙 (문의 댓글 데이터)
+    match /inquiryComments/{commentId} {
+      // 읽기: 모든 사용자 허용
+      allow read: if true;
+      // 쓰기: 모든 사용자가 댓글 작성 가능
+      allow create: if true;
+      // 수정: 관리자만 허용
+      allow update: if isAdmin();
+      // 삭제: 관리자만 허용
+      allow delete: if isAdmin();
     }
     
     // reviews 컬렉션에 대한 규칙 (후기 데이터)
@@ -39,7 +56,8 @@ service cloud.firestore {
       allow create: if true;
       // 수정: 관리자만 허용 (절약왕 수정 기능용)
       allow update: if isAdmin();
-      allow delete: if false; // 후기 삭제는 허용하지 않음
+      // 삭제: 관리자만 허용
+      allow delete: if isAdmin();
     }
     
     // requests 컬렉션에 대한 규칙 (요청 데이터)
@@ -92,4 +110,4 @@ service cloud.firestore {
       allow delete: if false;
     }
   }
-}
+} 

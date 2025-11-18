@@ -640,10 +640,15 @@
             nameElement.textContent = `${data.name}님`;
           }
           
-          // 제품명
+          // 제품명 및 조사
           const productElement = document.getElementById('popup-product');
+          const productParticleElement = document.getElementById('popup-product-josa');
+          const popupProductName = data.product || '모듈쇼파';
           if (productElement) {
-            productElement.textContent = data.product || '모듈쇼파';
+            productElement.textContent = popupProductName;
+          }
+          if (productParticleElement) {
+            productParticleElement.textContent = getObjectParticle(popupProductName);
           }
           
           // 절약 금액
@@ -727,6 +732,17 @@
         }
       }
       
+      function getObjectParticle(word = '') {
+        if (!word || typeof word !== 'string') return '을';
+        const lastChar = word[word.length - 1];
+        const code = lastChar.charCodeAt(0);
+        if (code < 0xac00 || code > 0xd7a3) {
+          return /[aeiouAEIOU]$/.test(lastChar) ? '를' : '을';
+        }
+        const hasBatchim = ((code - 0xac00) % 28) !== 0;
+        return hasBatchim ? '을' : '를';
+      }
+      
       // 전역 함수로 등록
       window.loadSavingsKingData = loadSavingsKingData;
       window.updateSavingsKingUI = updateSavingsKingUI;
@@ -734,20 +750,6 @@
 
   </head>
   <body class="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-700 min-h-screen">
-    <!-- 절감왕 알림 배지 -->
-    <div id="savings-badge" class="fixed top-2 right-4 z-50">
-      <div class="bg-gradient-to-r from-emerald-500 to-blue-500 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-        <div class="flex items-center gap-2 px-4 py-2 font-semibold text-xs">
-          <span class="text-lg">🏆</span>
-          <div class="text-left">
-            <div class="font-bold text-xs">이번 주<br class="sm:hidden">절감왕</div>
-            <div class="text-yellow-300 text-xs" id="badge-rate">-42%<br class="sm:hidden">절약 성공!</div>
-          </div>
-          <a href="#savings-hero" class="text-yellow-300 text-sm hover:text-yellow-200 transition-colors" onclick="document.getElementById('savings-hero').scrollIntoView({behavior: 'smooth'}); return false;">→</a>
-          <button onclick="hideSavingsBadge()" class="text-white/70 hover:text-white text-sm ml-1 transition-colors">×</button>
-        </div>
-      </div>
-    </div>
     <!-- 강력한 애니메이션 팝업 -->
     <div id="savings-popup" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/80 backdrop-blur-sm" role="dialog" aria-modal="true" aria-hidden="true">
       <div class="popup-container relative max-w-4xl mx-auto px-4">
@@ -792,7 +794,7 @@
                 <span class="text-yellow-200" id="popup-name">최OO님</span>이
               </div>
               <div class="text-lg sm:text-xl md:text-3xl font-bold mb-2">
-                <span class="text-white" id="popup-product">패션백</span>을
+                <span class="text-white" id="popup-product">패션백</span><span id="popup-product-josa">을</span>
               </div>
               <div class="text-lg sm:text-2xl md:text-4xl font-extrabold text-yellow-200 mb-2">
                 <span class="block sm:inline">의뢰하신 가격보다</span>
@@ -813,7 +815,7 @@
                 <span class="text-xl sm:text-2xl font-bold text-white" id="popup-total-amount">₩80,000</span>
               </div>
               <div class="text-sm sm:text-base md:text-lg text-yellow-100">
-                <span class="block sm:inline">PriceHunter로</span>
+                <span class="block sm:inline">프라이스헌터로</span>
                 <span class="block sm:inline">진짜 최저가를 찾았습니다!</span>
               </div>
             </div>
@@ -948,7 +950,6 @@
             </a>
             <div class="text-gray-300 text-xs sm:text-sm md:text-base lg:text-xl mt-2 animate-fadein-up text-center px-4 flex items-center justify-center gap-2">
               <span class="animate-pulse">⚠️</span>
-              <span>최저가 요청 전 <span class="underline font-semibold text-yellow-300">필독사항</span>을 꼭 확인해 주세요!</span>
             </div>
           </div>
           <div class="mt-8 md:mt-12 animate-fadein-up-slow w-full flex justify-center">
@@ -1556,13 +1557,15 @@
               
               <!-- 이미지 -->
               <div class="relative">
-                <img id="savings-hero-image" src="https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&w=600&q=80" 
-                     alt="절감왕 상품" 
-                     class="w-full h-64 object-cover rounded-xl shadow-lg">
-                <div class="absolute top-4 right-4 bg-emerald-500 text-white px-3 py-1 rounded-full text-sm font-bold">
+                <div class="w-full h-80 md:h-[26rem] bg-white rounded-2xl shadow-lg border border-gray-100 flex items-center justify-center overflow-hidden">
+                  <img id="savings-hero-image" src="https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&w=900&q=90" 
+                       alt="절감왕 상품" 
+                       class="max-h-full w-auto object-contain">
+                </div>
+                <div class="absolute top-6 right-6 bg-emerald-500 text-white px-3 py-1 rounded-full text-sm font-bold shadow">
                   🏆 절감왕
                 </div>
-                <div class="absolute bottom-4 left-4 bg-white/90 backdrop-blur px-3 py-2 rounded-lg">
+                <div class="absolute bottom-6 left-6 bg-white/95 backdrop-blur px-4 py-2 rounded-lg shadow">
                   <p id="savings-hero-user" class="text-sm font-semibold text-gray-800">최OO, 20대 직장인</p>
                 </div>
               </div>
@@ -1572,101 +1575,92 @@
       </section>
 
       <!-- 고객의 진짜 고민, 우리가 해결합니다 섹션 -->
-      <section id="customer-concerns" class="w-full py-20 px-4 relative overflow-hidden" style="background: linear-gradient(135deg, #fafafa 0%, #f4f4f5 25%, #e4e4e7 50%, #d4d4d8 75%, #a1a1aa 100%);">
-        <!-- 고급스러운 동적 배경 효과 -->
-        <div class="absolute inset-0 pointer-events-none z-0">
-          <!-- 메인 배경 레이어 -->
-          <div id="concerns-bg-layer1" class="absolute inset-0 opacity-30 transition-all duration-1000">
-            <div class="absolute top-10 left-10 w-40 h-40 bg-gradient-to-br from-neutral-200 to-neutral-400 rounded-full blur-3xl bg-animate-float"></div>
-            <div class="absolute bottom-10 right-10 w-48 h-48 bg-gradient-to-br from-stone-200 to-stone-400 rounded-full blur-3xl bg-animate-pulse" style="animation-delay: 2s;"></div>
-            <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-56 h-56 bg-gradient-to-br from-zinc-200 to-zinc-400 rounded-full blur-3xl bg-animate-float" style="animation-delay: 4s;"></div>
-          </div>
-          
-          <!-- 추가 배경 레이어 -->
-          <div id="concerns-bg-layer2" class="absolute inset-0 opacity-0 transition-all duration-1000">
-            <div class="absolute top-1/3 right-1/4 w-32 h-32 bg-gradient-to-br from-stone-300 to-stone-500 rounded-full blur-2xl bg-animate-pulse" style="animation-delay: 1s;"></div>
-            <div class="absolute bottom-1/3 left-1/4 w-36 h-36 bg-gradient-to-br from-neutral-300 to-neutral-500 rounded-full blur-2xl bg-animate-float" style="animation-delay: 3s;"></div>
-          </div>
-          
-          <!-- 장식적 요소들 -->
-          <div class="absolute top-20 right-20 w-2 h-20 bg-gradient-to-b from-slate-400 to-transparent opacity-40"></div>
-          <div class="absolute bottom-20 left-20 w-20 h-2 bg-gradient-to-r from-gray-400 to-transparent opacity-40"></div>
-          <div class="absolute top-1/2 left-10 w-1 h-16 bg-gradient-to-b from-zinc-400 to-transparent opacity-30"></div>
+      <section id="customer-concerns" class="w-full py-16 lg:py-20 px-4 relative overflow-hidden" style="background: linear-gradient(135deg, #fdfdfd 0%, #f4f4f5 35%, #e2e2e6 70%, #c8c8d0 100%);">
+        <div class="absolute inset-0 pointer-events-none">
+          <div class="absolute -top-16 -right-10 w-64 h-64 bg-gradient-to-br from-slate-200 to-slate-400 blur-3xl opacity-30"></div>
+          <div class="absolute bottom-0 left-0 w-72 h-72 bg-gradient-to-br from-zinc-200 to-zinc-400 blur-3xl opacity-30"></div>
         </div>
-        <div class="max-w-4xl mx-auto flex flex-col items-center relative z-10">
-          <h2 id="concerns-title" class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-extrabold text-center mb-6 md:mb-8 lg:mb-10 drop-shadow-lg animate-fadein-up px-4 transition-all duration-1000" style="background: linear-gradient(135deg, #1e293b 0%, #334155 50%, #475569 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">고객의 진짜 고민,<br><span style="background: linear-gradient(135deg, #dc2626 0%, #ef4444 50%, #f87171 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">우리가 해결합니다</span></h2>
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 lg:gap-8 w-full">
-            <!-- 스토리 카드 1 -->
-                          <div class="rounded-2xl shadow-2xl p-6 sm:p-8 flex flex-col items-center text-center animate-fadein-up relative overflow-hidden group" style="animation-delay:0.1s; --card-index: 0; background: linear-gradient(135deg, #ffffff 0%, #f8fafc 50%, #f1f5f9 100%); border: 1px solid rgba(148, 163, 184, 0.2);">
-                <!-- 카드 배경 효과 -->
-                <div class="absolute inset-0 bg-gradient-to-br from-slate-100/50 to-gray-100/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-slate-400 to-gray-500"></div>
-                
-                <div class="mb-4 relative z-10">
-                  <div class="w-16 h-16 sm:w-18 sm:h-18 bg-gradient-to-br from-slate-400 to-slate-600 rounded-full flex items-center justify-center mx-auto shadow-lg">
-                    <svg class="w-8 h-8 sm:w-10 sm:h-10 text-white" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 32 32"><path d="M16 4a12 12 0 1 0 0 24A12 12 0 0 0 16 4Zm0 0v8m0 8h.01" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                  </div>
+        <div class="max-w-5xl mx-auto relative z-10">
+          <h2 id="concerns-title" class="text-2xl sm:text-3xl md:text-4xl font-extrabold text-center leading-snug" style="background: linear-gradient(135deg, #111827 0%, #1f2937 40%, #334155 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">고객의 진짜 고민, <br><span style="background: linear-gradient(135deg, #dc2626 0%, #ef4444 50%, #f97316 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">우리가 해결합니다</span></h2>
+          <p class="text-center text-xs sm:text-sm md:text-base text-slate-600 mt-4 mb-10 leading-relaxed">상세한 고객 페르소나를 바탕으로 실제 고민을 구조화하고, PriceHunter가 어떤 방식으로 해결하는지 한눈에 보여드렸습니다.</p>
+          
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+            <!-- 카드 1 -->
+            <article class="bg-white rounded-[22px] border border-slate-100 shadow-xl p-6 flex flex-col gap-4">
+              <div class="flex items-center gap-3">
+                <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-slate-500 to-slate-700 text-white flex items-center justify-center shadow-md">
+                  <span class="text-lg font-bold">01</span>
                 </div>
-                <div class="font-bold text-base sm:text-lg text-gray-800 mb-3 px-2 leading-relaxed">"인터넷 최저가라 샀는데<br class="sm:hidden">며칠 뒤 더 싸게 파는 곳을<br class="sm:hidden">발견해서 속상했어요..."</div>
-                <div class="text-gray-500 text-sm sm:text-base mb-3">- 김OO, 30대 직장인</div>
-                <div class="text-gray-700 text-sm sm:text-base px-2 leading-relaxed">직접 가격 비교에 지쳐 결국 샀지만,<br class="sm:hidden">나중에 더 저렴한 곳을 알게 되어<br class="sm:hidden">속상했어요. PriceHunter 덕분에<br class="sm:hidden">진짜 최저가를 놓치지 않게 됐습니다!</div>
-              </div>
-            <!-- 스토리 카드 2 -->
-            <div class="rounded-2xl shadow-2xl p-6 sm:p-8 flex flex-col items-center text-center animate-fadein-up relative overflow-hidden group" style="animation-delay:0.3s; --card-index: 1; background: linear-gradient(135deg, #ffffff 0%, #f8fafc 50%, #f1f5f9 100%); border: 1px solid rgba(148, 163, 184, 0.2);">
-              <!-- 카드 배경 효과 -->
-              <div class="absolute inset-0 bg-gradient-to-br from-gray-100/50 to-zinc-100/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-gray-400 to-zinc-500"></div>
-              
-              <div class="mb-4 relative z-10">
-                <div class="w-16 h-16 sm:w-18 sm:h-18 bg-gradient-to-br from-gray-400 to-gray-600 rounded-full flex items-center justify-center mx-auto shadow-lg">
-                  <svg class="w-8 h-8 sm:w-10 sm:h-10 text-white" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 32 32"><path d="M8 16h16M8 16l6-6m-6 6l6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <div>
+                  <p class="text-xs uppercase tracking-[0.3em] text-slate-400">Pain Point</p>
+                  <h3 class="text-lg font-bold text-slate-900">최저가 찾기 실패</h3>
                 </div>
               </div>
-              <div class="font-bold text-base sm:text-lg text-gray-800 mb-3 px-2 leading-relaxed">"해외직구가 더 싸다길래<br class="sm:hidden">시도했다가, 복잡한 통관과<br class="sm:hidden">배송에 포기했어요..."</div>
-              <div class="text-gray-500 text-sm sm:text-base mb-3">- 이OO, 20대 대학생</div>
-              <div class="text-gray-700 text-sm sm:text-base px-2 leading-relaxed">직구 정보 찾고, 배송대행 신청까지<br class="sm:hidden">너무 복잡했어요. PriceHunter가<br class="sm:hidden">대신 알아봐주니 쉽고 빠르게<br class="sm:hidden">최저가로 살 수 있었어요!</div>
-            </div>
-            <!-- 스토리 카드 3 -->
-            <div class="rounded-2xl shadow-2xl p-6 sm:p-8 flex flex-col items-center text-center animate-fadein-up relative overflow-hidden group" style="animation-delay:0.5s; --card-index: 2; background: linear-gradient(135deg, #ffffff 0%, #f8fafc 50%, #f1f5f9 100%); border: 1px solid rgba(148, 163, 184, 0.2);">
-              <!-- 카드 배경 효과 -->
-              <div class="absolute inset-0 bg-gradient-to-br from-zinc-100/50 to-neutral-100/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-zinc-400 to-neutral-500"></div>
-              
-              <div class="mb-4 relative z-10">
-                <div class="w-16 h-16 sm:w-18 sm:h-18 bg-gradient-to-br from-zinc-400 to-zinc-600 rounded-full flex items-center justify-center mx-auto shadow-lg">
-                  <svg class="w-8 h-8 sm:w-10 sm:h-10 text-white" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 32 32"><circle cx="16" cy="16" r="12" stroke="currentColor"/><path d="M12 20c1.5-2 6.5-2 8 0" stroke-linecap="round"/><circle cx="12" cy="14" r="1.5" fill="currentColor"/><circle cx="20" cy="14" r="1.5" fill="currentColor"/></svg>
+              <p class="text-sm text-slate-600 leading-relaxed">“인터넷 최저가라길래 샀는데 며칠 뒤 더 싸게 파는 곳을 발견해서 속상했어요...”라는 고객의 말처럼, 흩어진 가격 정보를 직접 검증하기엔 한계가 있습니다.</p>
+              <ul class="text-sm text-slate-700 space-y-2">
+                <li class="flex items-start gap-2"><span class="mt-1 h-1.5 w-1.5 rounded-full bg-slate-500"></span>실시간 가격 변동 추적과 검증 리포트 제공</li>
+                <li class="flex items-start gap-2"><span class="mt-1 h-1.5 w-1.5 rounded-full bg-slate-500"></span>요청가 대비 절약 금액을 명확하게 안내</li>
+              </ul>
+              <span class="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 bg-slate-100 px-3 py-1 rounded-full w-fit">김OO · 30대 직장인</span>
+            </article>
+            
+            <!-- 카드 2 -->
+            <article class="bg-white rounded-[22px] border border-slate-100 shadow-xl p-6 flex flex-col gap-4">
+              <div class="flex items-center gap-3">
+                <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-blue-600 text-white flex items-center justify-center shadow-md">
+                  <span class="text-lg font-bold">02</span>
+                </div>
+                <div>
+                  <p class="text-xs uppercase tracking-[0.3em] text-slate-400">Pain Point</p>
+                  <h3 class="text-lg font-bold text-slate-900">복잡한 통관 & 배송</h3>
                 </div>
               </div>
-              <div class="font-bold text-base sm:text-lg text-gray-800 mb-3 px-2 leading-relaxed">"비브랜드 제품, 정보도 없고<br class="sm:hidden">후기 찾기도 힘들었는데..."</div>
-              <div class="text-gray-500 text-sm sm:text-base mb-3">- 박OO, 40대 주부</div>
-              <div class="text-gray-700 text-sm sm:text-base px-2 leading-relaxed">검색해도 정보가 부족해 망설였는데,<br class="sm:hidden">PriceHunter가 상세 비교와 후기까지<br class="sm:hidden">안내해줘서 안심하고 구매했어요.</div>
-            </div>
+              <p class="text-sm text-slate-600 leading-relaxed">“해외 직구가 더 싸다길래 시도했는데 복잡한 통관과 배송 때문에 결국 포기했어요...”라는 경험을 줄이기 위해, 가격 비교만큼 물류 프로세스도 함께 설계합니다.</p>
+              <ul class="text-sm text-slate-700 space-y-2">
+                <li class="flex items-start gap-2"><span class="mt-1 h-1.5 w-1.5 rounded-full bg-indigo-500"></span>관세·배송비 포함 실제 구매가까지 비교</li>
+                <li class="flex items-start gap-2"><span class="mt-1 h-1.5 w-1.5 rounded-full bg-indigo-500"></span>통관 대행, 배송 옵션까지 단계별 안내</li>
+              </ul>
+              <span class="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 bg-indigo-50 px-3 py-1 rounded-full w-fit">이OO · 20대 직장인</span>
+            </article>
+            
+            <!-- 카드 3 -->
+            <article class="bg-white rounded-[22px] border border-slate-100 shadow-xl p-6 flex flex-col gap-4">
+              <div class="flex items-center gap-3">
+                <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-rose-500 to-orange-500 text-white flex items-center justify-center shadow-md">
+                  <span class="text-lg font-bold">03</span>
+                </div>
+                <div>
+                  <p class="text-xs uppercase tracking-[0.3em] text-slate-400">Pain Point</p>
+                  <h3 class="text-lg font-bold text-slate-900">브랜드리스 제품</h3>
+                </div>
+              </div>
+              <p class="text-sm text-slate-600 leading-relaxed">“실용적인 브랜드리스 제품을 찾고 있는데 정보도 후기 자료도 없어서 힘들었어요...”라는 고민을 토대로, 객관적인 지표와 인증된 후기만 모아드립니다.</p>
+              <ul class="text-sm text-slate-700 space-y-2">
+                <li class="flex items-start gap-2"><span class="mt-1 h-1.5 w-1.5 rounded-full bg-rose-500"></span>동일 스펙 비교표와 필터링된 후기 제공</li>
+                <li class="flex items-start gap-2"><span class="mt-1 h-1.5 w-1.5 rounded-full bg-rose-500"></span>검증된 공급망과 A/S 가능 여부까지 확인</li>
+              </ul>
+              <span class="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 bg-rose-50 px-3 py-1 rounded-full w-fit">박OO · 40대 주부</span>
+            </article>
           </div>
-          <div class="mt-8 sm:mt-12 text-center animate-fadein-up" style="animation-delay:0.7s;">
-            <div class="inline-block bg-yellow-100 px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 rounded-full shadow-lg border border-yellow-200">
-              <span class="text-sm sm:text-base md:text-lg lg:text-xl text-blue-700 font-bold leading-tight">
-                고객의 고민, <span class="text-blue-800">PriceHunter</span>가<br class="sm:hidden">직접 해결해드립니다!
-              </span>
+          
+          <div class="mt-12 flex justify-center">
+            <div class="inline-flex items-center gap-2 px-5 py-3 rounded-full border border-amber-200 bg-amber-50 text-sm sm:text-base font-semibold text-amber-700 shadow-sm">
+              고객의 고민, PriceHunter가 개인 맞춤으로 해결해드립니다.
             </div>
           </div>
           
-          <!-- 고객 후기 보러가기 버튼 -->
-          <div class="mt-6 sm:mt-8 text-center animate-fadein-up" style="animation-delay:0.9s;">
-            <a href="reviews.html" class="inline-flex items-center justify-center px-6 sm:px-8 md:px-10 py-3 sm:py-4 md:py-5 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold text-base sm:text-lg md:text-xl rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 ease-in-out">
-              <svg class="w-5 h-5 sm:w-6 sm:h-6 mr-2 sm:mr-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <div class="mt-10 text-center">
+            <a href="reviews.html" class="inline-flex items-center justify-center gap-2 px-8 py-3 rounded-full bg-gradient-to-r from-blue-600 to-blue-700 text-white font-bold shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
               </svg>
-              <span>실제 고객 후기 보러가기</span>
-              <svg class="w-4 h-4 sm:w-5 sm:h-5 ml-2 sm:ml-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              실제 고객 후기 보러가기
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path>
               </svg>
             </a>
           </div>
         </div>
-        <style>
-          .animate-fadein-up { animation: fadein-up 1.2s cubic-bezier(.4,0,.2,1) both; }
-          @keyframes fadein-up { 0% { opacity: 0; transform: translateY(40px);} 100% { opacity: 1; transform: translateY(0);} }
-        </style>
       </section>
 
       <!-- 상세 서비스 프로세스 섹션 -->
@@ -1692,23 +1686,22 @@
         
         <div class="max-w-6xl mx-auto relative z-10">
           <div class="text-center mb-8 sm:mb-12 md:mb-16">
-            <div class="inline-flex items-center gap-2 text-white px-4 sm:px-6 py-2 rounded-full text-xs sm:text-sm font-semibold mb-3 sm:mb-4 animate-fade-in-up" style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%); box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);">
-              <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <div class="inline-flex items-center gap-4 text-white px-6 sm:px-9 py-3.5 sm:py-4 rounded-full text-base sm:text-lg font-semibold mb-5 sm:mb-7 animate-fade-in-up" style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%); box-shadow: 0 10px 28px rgba(99, 102, 241, 0.4);">
+              <svg class="w-6 h-6 sm:w-7 sm:h-7" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                 <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
               </svg>
               단계별 서비스 과정
             </div>
-            <h2 class="text-2xl sm:text-3xl md:text-5xl font-extrabold mb-4 sm:mb-6 animate-fade-in-up" style="animation-delay: 0.2s;">
-              <span style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
-                구매 프로세스
+            <h2 class="text-3xl sm:text-4xl md:text-5xl font-extrabold mb-4 sm:mb-6 leading-tight animate-fade-in-up" style="animation-delay: 0.2s;">
+              <span class="block text-2xl sm:text-3xl md:text-4xl font-extrabold" style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #9333ea 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+                5단계 상세 검증 과정
               </span>
-              <br class="sm:hidden">
-              <span class="text-lg sm:text-xl md:text-2xl lg:text-3xl font-medium" style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #9333ea 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">5단계 상세 검증 과정</span>
-              <br class="sm:hidden">
-              <span class="text-base sm:text-lg md:text-xl lg:text-2xl font-medium" style="background: linear-gradient(135deg, #64748b 0%, #475569 50%, #334155 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">투명하고 체계적인 서비스</span>
+              <span class="block mt-2 text-xl sm:text-2xl md:text-3xl font-semibold" style="background: linear-gradient(135deg, #64748b 0%, #475569 50%, #334155 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+                투명하고 체계적인 서비스
+              </span>
             </h2>
             <p class="text-sm sm:text-base md:text-lg text-gray-600 max-w-3xl mx-auto animate-fade-in-up px-2 leading-relaxed" style="animation-delay: 0.4s;">
-              고객님의 의뢰부터 최종 결과 제공까지,<br class="sm:hidden"> 모든 과정을 투명하게 안내해드립니다
+              고객님의 의뢰부터 최종 결과 제공까지, <br class="sm:hidden"> 모든 과정을 투명하게 안내해드립니다
             </p>
           </div>
           
@@ -1725,7 +1718,7 @@
                 <div class="flex-1 text-center sm:text-left">
                   <h3 class="text-lg sm:text-xl md:text-2xl font-bold text-gray-800 mb-2 sm:mb-3 leading-tight">의뢰 접수 및 분석</h3>
                   <p class="text-sm sm:text-base text-gray-600 mb-3 sm:mb-4 leading-relaxed break-words">
-                    고객님이 원하는 상품의 <span class="font-semibold text-blue-600">제품명, 요청가격,<br class="sm:hidden">참고링크</span>를 입력하시면<br class="sm:hidden">전문 검증팀이 즉시<br class="sm:hidden">분석을 시작합니다.
+                    고객님이 원하는 상품의 <span class="font-semibold text-blue-600">제품명, 요청 가격, <br class="sm:hidden"> 참고 링크</span>를 입력하시면<br class="sm:hidden">전문 검증팀이 즉시<br class="sm:hidden">분석을 시작합니다.
                   </p>
                   <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
                     <div class="bg-blue-50 rounded-lg p-3 sm:p-4 min-h-[90px] sm:min-h-[100px] flex flex-col justify-center">
@@ -1765,7 +1758,7 @@
                 <div class="flex-1 text-center sm:text-left">
                   <h3 class="text-lg sm:text-xl md:text-2xl font-bold text-gray-800 mb-2 sm:mb-3 leading-tight">실시간 검증 진행</h3>
                   <p class="text-sm sm:text-base text-gray-600 mb-3 sm:mb-4 leading-relaxed break-words">
-                    전문 검증팀이 <span class="font-semibold text-green-600">도매처 연동,<br class="sm:hidden">공장 직거래, 특별 경로</span> 등<br class="sm:hidden">다양한 경로를 통해<br class="sm:hidden">최저가를 찾아갑니다.
+                    전문 검증팀이 <span class="font-semibold text-green-600">도매처 연동, 공장 직거래, <br class="sm:hidden"> 특별 경로</span> 등<br class="sm:hidden">다양한 경로를 통해<br class="sm:hidden">최저가를 찾아갑니다.
                   </p>
                   <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
                     <div class="bg-green-50 rounded-lg p-3 sm:p-4 min-h-[90px] sm:min-h-[100px] flex flex-col justify-center">
@@ -1805,7 +1798,7 @@
                 <div class="flex-1 text-center sm:text-left">
                   <h3 class="text-lg sm:text-xl md:text-2xl font-bold text-gray-800 mb-2 sm:mb-3 leading-tight">종합 가격 분석</h3>
                   <p class="text-sm sm:text-base text-gray-600 mb-3 sm:mb-4 leading-relaxed break-words">
-                    수집된 모든 가격 정보를 <span class="font-semibold text-yellow-600">배송비, 관세,<br class="sm:hidden">수수료</span>를 포함하여<br class="sm:hidden">정확히 비교<br class="sm:hidden">분석합니다.
+                    수집된 모든 가격 정보를 <span class="font-semibold text-yellow-600">배송비, 관세, <br class="sm:hidden"> 수수료</span>를 포함하여<br class="sm:hidden">정확히 비교<br class="sm:hidden">분석합니다.
                   </p>
                   <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
                     <div class="bg-yellow-50 rounded-lg p-3 sm:p-4 min-h-[90px] sm:min-h-[100px] flex flex-col justify-center">
@@ -1845,7 +1838,7 @@
                 <div class="flex-1 text-center sm:text-left">
                   <h3 class="text-lg sm:text-xl md:text-2xl font-bold text-gray-800 mb-2 sm:mb-3 leading-tight">검증 증거 수집</h3>
                   <p class="text-sm sm:text-base text-gray-600 mb-3 sm:mb-4 leading-relaxed break-words">
-                    최저가 발견 시 <span class="font-semibold text-purple-600">실시간 스크린샷,<br class="sm:hidden">구매링크, 검증 시점</span>을<br class="sm:hidden">모두 기록하여<br class="sm:hidden">객관적인 증거를 확보합니다.
+                    최저가 발견 시 <span class="font-semibold text-purple-600">실시간 스크린샷, <br class="sm:hidden"> 구매 링크, 검증 시점</span>을<br class="sm:hidden">모두 기록하여<br class="sm:hidden">객관적인 증거를 확보합니다.
                   </p>
                   <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
                     <div class="bg-purple-50 rounded-lg p-3 sm:p-4 min-h-[90px] sm:min-h-[100px] flex flex-col justify-center">
@@ -1885,7 +1878,7 @@
                 <div class="flex-1 text-center sm:text-left">
                   <h3 class="text-lg sm:text-xl md:text-2xl font-bold text-gray-800 mb-2 sm:mb-3 leading-tight">상세 결과 제공</h3>
                   <p class="text-sm sm:text-base text-gray-600 mb-3 sm:mb-4 leading-relaxed break-words">
-                    검증 완료 후 <span class="font-semibold text-red-600">최저가, 구매링크,<br class="sm:hidden">절약금액, 상세 분석</span>을<br class="sm:hidden">포함한 종합적인<br class="sm:hidden">결과를 제공합니다.
+                    검증 완료 후 <span class="font-semibold text-red-600">최저가, 구매 링크, <br class="sm:hidden"> 절약 금액, 상세 분석</span>을<br class="sm:hidden">포함한 종합적인<br class="sm:hidden">결과를 제공합니다.
                   </p>
                   <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
                     <div class="bg-red-50 rounded-lg p-3 sm:p-4 min-h-[90px] sm:min-h-[100px] flex flex-col justify-center">
@@ -1926,8 +1919,8 @@
               <div class="relative z-10">
                 <h3 class="text-2xl font-bold text-gray-800 mb-4 animate-fade-in-up" style="animation-delay: 1s;">투명하고 체계적인<br class="sm:hidden"> 검증 서비스</h3>
                 <p class="text-gray-600 mb-6 max-w-2xl mx-auto animate-fade-in-up leading-relaxed" style="animation-delay: 1.2s;">
-                  5단계 상세 프로세스를 통해<br class="sm:hidden"> 고객님께 최고의 가치를 제공합니다.<br class="hidden sm:inline"><br class="sm:hidden">
-                  모든 과정이 투명하게 진행되며,<br class="sm:hidden"> 객관적인 증거와 함께<br class="sm:hidden"> 결과를 제공합니다.
+                  5단계 상세 검증 과정을 통해<br class="sm:hidden"> 고객님께 최고의 가치를 제공합니다.<br class="hidden sm:inline"><br class="sm:hidden">
+                  모든 과정이 투명하게 진행되며, <br class="sm:hidden"> 객관적인 증거와 함께<br class="sm:hidden"> 결과를 제공합니다.
                 </p>
                 <a href="request-v2.html" class="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-xl font-bold text-base sm:text-lg shadow-lg hover:shadow-xl transition-all duration-500 transform hover:scale-105 hover:rotate-1 animate-fade-in-up group text-center" style="animation-delay: 1.4s;">
                   <svg class="w-4 h-4 sm:w-5 sm:h-5 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -2182,7 +2175,7 @@
       <div class="bg-white rounded-2xl shadow-2xl p-4 sm:p-6 md:p-8 max-w-xs sm:max-w-sm w-full mx-4 text-center animate-fadein-up">
         <div class="text-xl font-bold text-pink-600 mb-2" id="min-order-popup-title">안내</div>
         <div class="text-gray-800 mb-4 leading-relaxed">
-          현재는 <span class="font-semibold">초기 테스트 버전</span>으로,<br>
+          현재는 <span class="font-semibold">초기 테스트 버전</span>으로, <br>
           <span class="font-bold text-blue-700">하루 최대 2건까지만 의뢰하실 수 있습니다.</span><br>
           <span class="font-bold text-blue-700">또한 최소 의뢰 금액이 1만원 이상</span>으로 제한됩니다.<br>
         </div>
@@ -4241,8 +4234,8 @@ if (mypageBtn) {
                 <div class="border-t border-gray-800 pt-6 mt-8 text-center">
                   <p class="text-gray-500 text-sm">
                     © 2024 PriceHunter. All rights reserved. | 
-                    <a href="#" onclick="openPrivacyPolicy()" class="hover:text-blue-400 transition">개인정보처리방침</a> | 
-                    <a href="#" onclick="openTermsOfService()" class="hover:text-blue-400 transition">이용약관</a>
+                    <a href="privacy.html" class="hover:text-blue-400 transition">개인정보처리방침</a> | 
+                    <a href="terms.html" class="hover:text-blue-400 transition">이용약관</a>
                   </p>
                 </div>
       </div>
