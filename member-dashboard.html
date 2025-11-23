@@ -571,6 +571,25 @@
 
   <script>
     // 전역 변수
+    // 공통 가격 포맷 함수 (컴마 표시)
+    function formatPrice(price) {
+      if (!price && price !== 0) return '가격 정보 없음';
+      
+      // 숫자로 변환
+      let numPrice;
+      if (typeof price === 'number') {
+        numPrice = price;
+      } else if (typeof price === 'string') {
+        // 문자열에서 숫자만 추출
+        numPrice = parseInt(price.replace(/[^\d]/g, '')) || 0;
+      } else {
+        return '가격 정보 없음';
+      }
+      
+      // 컴마 포맷팅
+      return numPrice.toLocaleString() + '원';
+    }
+    
     let currentReqKey = null;
     let currentDisplayedReq = null;
     let fileData = '';
@@ -952,7 +971,7 @@
           <h4 class="font-semibold text-gray-800 mb-2">의뢰 상세 정보</h4>
           <div class="space-y-2 text-sm text-gray-600">
             <p><span class="font-medium">상품명:</span> ${requestData.name || '정보 없음'}</p>
-            <p><span class="font-medium">요청가격:</span> ${requestData.price ? (typeof requestData.price === 'number' ? requestData.price.toLocaleString() + '원' : requestData.price) : '정보 없음'}</p>
+            <p><span class="font-medium">요청가격:</span> ${requestData.price ? formatPrice(requestData.price) : '정보 없음'}</p>
             <p><span class="font-medium">상품 설명:</span> ${requestData.desc || '정보 없음'}</p>
             ${requestData.urls && requestData.urls.length > 0 ? `<p><span class="font-medium">참고 링크:</span> <a href="${requestData.urls[0]}" target="_blank" class="text-blue-600 hover:underline">${requestData.urls[0]}</a></p>` : ''}
           </div>
@@ -975,14 +994,7 @@
         productName.textContent = requestData.name || requestData.productName || '';
       }
       if (originalPrice) {
-        const price = requestData.price;
-        if (typeof price === 'number') {
-          originalPrice.textContent = price.toLocaleString() + '원';
-        } else if (typeof price === 'string') {
-          originalPrice.textContent = price;
-        } else {
-          originalPrice.textContent = '';
-        }
+        originalPrice.textContent = formatPrice(requestData.price);
       }
       
       // 증거자료 섹션 숨기기 (결과가 없으므로)
@@ -2473,7 +2485,7 @@
       document.getElementById('modal-request-number').textContent = request.reqNum || request.requestNumber || 'N/A';
       document.getElementById('modal-request-date').textContent = request.reqDate ? new Date(request.reqDate).toLocaleString('ko-KR') : 'N/A';
       document.getElementById('modal-product-name').textContent = request.productName || request.name || 'N/A';
-      document.getElementById('modal-original-price').textContent = request.originalPrice || request.price || 'N/A';
+      document.getElementById('modal-original-price').textContent = formatPrice(request.originalPrice || request.price);
       
       // 상태 및 진행률
       const status = request.status || '처리중';

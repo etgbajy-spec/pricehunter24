@@ -152,6 +152,25 @@
     </main>
 
     <script>
+      // 공통 가격 포맷 함수 (컴마 표시)
+      function formatPrice(price) {
+        if (!price && price !== 0) return '가격 정보 없음';
+        
+        // 숫자로 변환
+        let numPrice;
+        if (typeof price === 'number') {
+          numPrice = price;
+        } else if (typeof price === 'string') {
+          // 문자열에서 숫자만 추출
+          numPrice = parseInt(price.replace(/[^\d]/g, '')) || 0;
+        } else {
+          return '가격 정보 없음';
+        }
+        
+        // 컴마 포맷팅
+        return numPrice.toLocaleString() + '원';
+      }
+      
       // 관리자 권한 확인
       function isAdmin() {
         const adminMode = localStorage.getItem('adminMode') === 'true';
@@ -462,7 +481,7 @@
         document.getElementById('detail-name').textContent = req.name || '';
         document.getElementById('detail-desc').textContent = req.description || '';
         document.getElementById('detail-url').textContent = req.url || '';
-        document.getElementById('detail-price').textContent = req.price || '';
+        document.getElementById('detail-price').textContent = formatPrice(req.price);
         document.getElementById('detail-username').textContent = req.userName || '';
         document.getElementById('detail-email').textContent = req.email || '';
         document.getElementById('detail-phone').textContent = req.phone || '';

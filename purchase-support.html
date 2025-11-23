@@ -195,6 +195,25 @@
     </main>
 
     <script>
+        // 공통 가격 포맷 함수 (컴마 표시)
+        function formatPrice(price) {
+            if (!price && price !== 0) return '가격 정보 없음';
+            
+            // 숫자로 변환
+            let numPrice;
+            if (typeof price === 'number') {
+                numPrice = price;
+            } else if (typeof price === 'string') {
+                // 문자열에서 숫자만 추출
+                numPrice = parseInt(price.replace(/[^\d]/g, '')) || 0;
+            } else {
+                return '가격 정보 없음';
+            }
+            
+            // 컴마 포맷팅
+            return numPrice.toLocaleString() + '원';
+        }
+        
         let currentRequestData = null;
         let currentResultData = null;
         let currentReqNumber = '';
@@ -410,7 +429,7 @@
                             <div><span class="font-medium">의뢰번호:</span> ${currentReqNumber}</div>
                             <div><span class="font-medium">제품명:</span> ${currentRequestData.name || '정보 없음'}</div>
                             <div><span class="font-medium">제품설명:</span> ${currentRequestData.desc || '정보 없음'}</div>
-                            <div><span class="font-medium">희망가격:</span> ${currentRequestData.price ? currentRequestData.price + '원' : '정보 없음'}</div>
+                            <div><span class="font-medium">희망가격:</span> ${currentRequestData.price ? formatPrice(currentRequestData.price) : '정보 없음'}</div>
                         </div>
                     </div>
                 `;
@@ -423,7 +442,7 @@
                     <div class="bg-green-50 p-4 rounded-lg mb-4">
                         <h3 class="text-lg font-semibold text-green-800 mb-2">✅ 찾은 최저가 정보</h3>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                            <div><span class="font-medium">최저가:</span> ${currentResultData.price || '정보 없음'}</div>
+                            <div><span class="font-medium">최저가:</span> ${currentResultData.price ? formatPrice(currentResultData.price) : '정보 없음'}</div>
                             <div><span class="font-medium">원산지/공급처:</span> ${currentResultData.origin || '정보 없음'}</div>
                         </div>
                     </div>

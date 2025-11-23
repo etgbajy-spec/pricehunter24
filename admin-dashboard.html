@@ -516,6 +516,25 @@
             });
         }
 
+        // 공통 가격 포맷 함수 (컴마 표시)
+        function formatPrice(price) {
+            if (!price && price !== 0) return '가격 정보 없음';
+            
+            // 숫자로 변환
+            let numPrice;
+            if (typeof price === 'number') {
+                numPrice = price;
+            } else if (typeof price === 'string') {
+                // 문자열에서 숫자만 추출
+                numPrice = parseInt(price.replace(/[^\d]/g, '')) || 0;
+            } else {
+                return '가격 정보 없음';
+            }
+            
+            // 컴마 포맷팅
+            return numPrice.toLocaleString() + '원';
+        }
+        
         // 실시간 사용자 목록 구독 (Firebase 전용)
         function subscribeToUsers() {
             console.log('👥 사용자 목록 구독 시작...');
@@ -3461,7 +3480,7 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             document.getElementById('admin-modal-request-number').textContent = request.reqNum || request.requestNumber || 'N/A';
             document.getElementById('admin-modal-request-date').textContent = request.reqDate ? new Date(request.reqDate).toLocaleString('ko-KR') : 'N/A';
             document.getElementById('admin-modal-product-name').textContent = request.productName || request.name || 'N/A';
-            document.getElementById('admin-modal-original-price').textContent = request.originalPrice || request.price || 'N/A';
+            document.getElementById('admin-modal-original-price').textContent = formatPrice(request.originalPrice || request.price);
             
             // 상태 및 진행률
             const status = request.status || '처리중';
@@ -5025,7 +5044,7 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                     // 후기 내용
                             review: requestData.adminResponse?.additionalInfo || 
                                    `PriceHunter를 통해 ${requestData.productName || requestData.name || '제품'}을 검증받았습니다. ` +
-                                   `의뢰 가격 ${originalPrice}에서 ${finalPrice}로 절약했습니다!`,
+                                   `의뢰 가격 ${formatPrice(originalPrice)}에서 ${formatPrice(finalPrice)}로 절약했습니다!`,
                     rating: 5, // 기본 평점
                     
                     // 이미지
@@ -5392,8 +5411,8 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                         </td>
                         <td class="px-6 py-4">
                             <div class="text-sm">
-                                <div class="text-gray-500 line-through">의뢰 가격: ${review.originalPrice || '0원'}</div>
-                                <div class="text-green-600 font-semibold">${review.finalPrice || '0원'}</div>
+                                <div class="text-gray-500 line-through">의뢰 가격: ${formatPrice(review.originalPrice)}</div>
+                                <div class="text-green-600 font-semibold">${formatPrice(review.finalPrice)}</div>
                                 <div class="text-red-600 font-bold">${savings} (${savingsPercent}%)</div>
                             </div>
                         </td>

@@ -144,6 +144,25 @@
       </div>
     </main>
     <script>
+      // 공통 가격 포맷 함수 (컴마 표시)
+      function formatPrice(price) {
+        if (!price && price !== 0) return '가격 정보 없음';
+        
+        // 숫자로 변환
+        let numPrice;
+        if (typeof price === 'number') {
+          numPrice = price;
+        } else if (typeof price === 'string') {
+          // 문자열에서 숫자만 추출
+          numPrice = parseInt(price.replace(/[^\d]/g, '')) || 0;
+        } else {
+          return '가격 정보 없음';
+        }
+        
+        // 컴마 포맷팅
+        return numPrice.toLocaleString() + '원';
+      }
+      
       const searchBtn = document.getElementById('search-btn');
       let currentReqKey = ''; // 현재 표시된 의뢰의 키
       let currentDisplayedReq = ''; // 현재 표시된 의뢰 번호 (토글용)
@@ -1093,7 +1112,7 @@
           // 4. 가격 정보 표시
           const resultPriceElement = document.getElementById('result-price');
           if (resultPriceElement) {
-            resultPriceElement.textContent = resultData.price || '가격 정보 없음';
+            resultPriceElement.textContent = formatPrice(resultData.price);
             resultPriceElement.style.cssText = `
               color: #059669 !important;
               font-weight: bold !important;
