@@ -163,6 +163,14 @@
             });
         }
 
+        function formatCurrency(value, { suffix = '원', prefix = '', fallback = `0${suffix}` } = {}) {
+            const numeric = parseInt(String(value ?? '').replace(/[^0-9]/g, ''), 10);
+            if (isNaN(numeric) || numeric === 0) {
+                return fallback;
+            }
+            return `${prefix}${numeric.toLocaleString('ko-KR')}${suffix}`;
+        }
+
         // 후기 렌더링
         function renderReviews() {
             const container = document.getElementById('reviews-container');
@@ -184,6 +192,10 @@
                 const date = review.createdAt ? new Date(review.createdAt).toLocaleDateString('ko-KR') : '날짜 없음';
                 const images = review.images || review.photos || [];
                 const mainImage = images.length > 0 ? images[0] : 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400&h=300&fit=crop';
+
+                const originalPriceText = formatCurrency(review.originalPrice);
+                const finalPriceText = formatCurrency(review.finalPrice);
+                const savingsText = formatCurrency(review.savings);
 
                 return `
                     <div class="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
@@ -218,17 +230,17 @@
                             <div class="grid grid-cols-2 gap-4 pt-4 border-t border-gray-200">
                                 <div>
                                     <div class="text-xs text-gray-500 mb-1">의뢰 가격</div>
-                                    <div class="text-sm line-through text-gray-400">${review.originalPrice || '0원'}</div>
+                                    <div class="text-sm line-through text-gray-400">${originalPriceText}</div>
                                 </div>
                                 <div>
                                     <div class="text-xs text-gray-500 mb-1">구매 가격</div>
-                                    <div class="text-lg font-bold text-green-600">${review.finalPrice || '0원'}</div>
+                                    <div class="text-lg font-bold text-green-600">${finalPriceText}</div>
                                 </div>
                             </div>
                             <div class="mt-4 pt-4 border-t border-gray-200">
                                 <div class="flex items-center justify-between">
                                     <span class="text-sm text-gray-600">절약액</span>
-                                    <span class="text-xl font-bold text-red-600">${review.savings || '0원'}</span>
+                                    <span class="text-xl font-bold text-red-600">${savingsText}</span>
                                 </div>
                             </div>
                             ${review.badge ? `
