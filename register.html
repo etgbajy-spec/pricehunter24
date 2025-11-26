@@ -46,7 +46,7 @@
   <!-- Firebase v9 SDK (모듈식) -->
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
-    import { getAuth, signInWithCustomToken, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
+    import { getAuth, signInWithCustomToken, onAuthStateChanged, signOut, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, getAdditionalUserInfo } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
     import { getFirestore, doc, setDoc, getDoc, collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, getDocs, where, deleteDoc } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
     
     // Firebase 설정
@@ -69,6 +69,7 @@
     window.firebaseApp = app;
     window.firebaseAuth = auth;
     window.firebaseDb = db;
+    window.firebaseAuthFunctions = { signInWithPopup, signInWithRedirect, getRedirectResult, getAdditionalUserInfo };
     window.firebaseFirestoreFunctions = { 
       collection, 
       addDoc, 
@@ -77,8 +78,13 @@
       where, 
       query, 
       deleteDoc,
-      getDoc
+      getDoc,
+      doc,
+      setDoc
     };
+    const googleProvider = new GoogleAuthProvider();
+    googleProvider.setCustomParameters({ prompt: 'select_account' });
+    window.firebaseGoogleProvider = googleProvider;
     window.firebase = {
       firestore: () => db,
       auth: () => auth,
@@ -92,6 +98,13 @@
     };
 
     console.log('✅ Firebase v9 초기화 완료 (register.html)');
+    
+    // 구글 리디렉션 결과 처리 (초기화 후)
+    setTimeout(() => {
+      if (typeof handleGoogleRedirectResult === 'function') {
+        handleGoogleRedirectResult();
+      }
+    }, 500);
   </script>
   
   <style>
@@ -161,7 +174,29 @@
     </div>
 
       <!-- 회원가입 옵션 -->
-      <div class="max-w-xs sm:max-w-sm md:max-w-md mx-auto mb-12 mx-4">
+      <div class="max-w-xs sm:max-w-sm md:max-w-md mx-auto mb-12 mx-4 space-y-6">
+        <!-- 구글 회원가입 -->
+        <div class="bg-white rounded-2xl shadow-lg p-8 text-center fade-in-up">
+          <div class="mb-6">
+            <div class="w-16 h-16 bg-gradient-to-br from-red-500 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" class="w-8 h-8">
+            </div>
+            <h3 class="text-xl font-semibold text-gray-900 mb-2">구글 계정으로<br class="sm:hidden">간편 가입</h3>
+            <p class="text-gray-600">빠르고 안전하게<br class="sm:hidden">가입하세요</p>
+          </div>
+          <button id="google-register" class="w-full flex items-center justify-center gap-3 py-2 sm:py-3 px-4 sm:px-6 border-2 border-gray-200 rounded-lg hover:border-gray-300 transition duration-200 bg-white text-gray-700 font-semibold text-sm sm:text-base">
+            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="" class="w-5 h-5" loading="lazy">
+            <span>Google 계정으로 가입하기</span>
+          </button>
+          <p class="text-sm text-blue-600 mt-3">⚡ 별도 정보 입력 없이<br class="sm:hidden">즉시 가입 완료!</p>
+        </div>
+
+        <div class="flex items-center gap-3 text-gray-400 text-xs uppercase tracking-wide">
+          <span class="flex-1 h-px bg-gray-200"></span>
+          <span>또는</span>
+          <span class="flex-1 h-px bg-gray-200"></span>
+        </div>
+
         <!-- 일반 회원가입 -->
         <div class="bg-white rounded-2xl shadow-lg p-8 text-center fade-in-up">
       <div class="mb-6">
@@ -420,6 +455,111 @@
         // 포인트 추가
       // 포인트 시스템 제거됨
 
+      // 구글 회원가입/로그인 함수
+      async function registerWithGoogle() {
+        try {
+          await waitForFirebase();
+          
+          if (!window.firebaseAuthFunctions || !window.firebaseGoogleProvider) {
+            throw new Error('구글 로그인 구성이 완료되지 않았습니다.');
+          }
+          
+          const { signInWithPopup, signInWithRedirect, getAdditionalUserInfo } = window.firebaseAuthFunctions;
+          let result = null;
+          
+          try {
+            result = await signInWithPopup(window.firebaseAuth, window.firebaseGoogleProvider);
+          } catch (popupError) {
+            console.warn('팝업 로그인 실패, 리디렉션 시도:', popupError.code);
+            const shouldFallback = popupError.code === 'auth/popup-blocked' ||
+              popupError.code === 'auth/cancelled-popup-request' ||
+              popupError.code === 'auth/popup-closed-by-user' ||
+              popupError.code === 'auth/operation-not-supported-in-this-environment';
+            
+            if (shouldFallback && signInWithRedirect) {
+              alert('새 창이 차단되어 전체 페이지로 이동합니다.');
+              await signInWithRedirect(window.firebaseAuth, window.firebaseGoogleProvider);
+              return;
+            }
+            throw popupError;
+          }
+          
+          if (result?.user) {
+            const additionalInfo = getAdditionalUserInfo ? getAdditionalUserInfo(result) : null;
+            const isNewUser = additionalInfo?.isNewUser ?? true;
+            
+            // 사용자 데이터 준비
+            const firebaseUser = result.user;
+            const userData = {
+              uid: firebaseUser.uid,
+              email: firebaseUser.email || '',
+              name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || '',
+              displayName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || '',
+              photoURL: firebaseUser.photoURL || '',
+              phone: '', // 구글 로그인은 휴대폰 번호가 없을 수 있음
+              password: '', // 구글 로그인은 비밀번호 불필요
+              emailVerification: firebaseUser.email || '',
+              agreeTerms: true, // 구글 로그인 시 자동 동의
+              agreePrivacy: true,
+              agreeMarketing: false,
+              loginMethod: 'google',
+              isActive: true,
+              emailVerified: firebaseUser.emailVerified,
+              createdAt: firebaseUser.metadata?.creationTime ? new Date(firebaseUser.metadata.creationTime) : new Date(),
+              updatedAt: new Date()
+            };
+            
+            // Firestore에 사용자 데이터 저장 (upsert)
+            try {
+              await waitForFirebase();
+              const { doc, setDoc, serverTimestamp } = window.firebaseFirestoreFunctions;
+              const userRef = doc(window.firebaseDb, 'users', userData.uid);
+              
+              await setDoc(userRef, {
+                ...userData,
+                createdAt: serverTimestamp(),
+                updatedAt: serverTimestamp(),
+                lastLogin: serverTimestamp()
+              }, { merge: true });
+              
+              console.log('✅ 구글 사용자 데이터 저장 완료:', userData.email);
+            } catch (error) {
+              console.error('❌ 구글 사용자 데이터 저장 실패:', error);
+              // 저장 실패해도 로그인은 진행
+            }
+            
+            // localStorage에 사용자 정보 저장
+            localStorage.setItem('user', JSON.stringify(userData));
+            localStorage.setItem('currentUser', JSON.stringify(userData));
+            localStorage.setItem('loggedIn', 'true');
+            localStorage.setItem('loggedInEmail', userData.email);
+            
+            // 성공 메시지 및 리디렉션
+            if (isNewUser) {
+              alert('구글 계정으로 회원가입이 완료되었습니다!\n\n실제 고객 후기를 확인해보세요!');
+            } else {
+              alert('구글 계정으로 로그인되었습니다!');
+            }
+            
+            // 후기 페이지로 이동
+            window.location.href = 'reviews.html';
+          }
+        } catch (error) {
+          console.error('❌ Google 회원가입 실패:', error);
+          let errorMessage = '구글 회원가입 중 오류가 발생했습니다.';
+          
+          if (error.code === 'auth/popup-closed-by-user') {
+            errorMessage = '로그인 창이 닫혔습니다. 다시 시도해주세요.';
+          } else if (error.code === 'auth/account-exists-with-different-credential') {
+            errorMessage = '이미 다른 방법으로 가입된 이메일입니다.';
+          } else if (error.message) {
+            errorMessage = error.message;
+          }
+          
+          alert(errorMessage);
+        }
+      }
+
       // EmailJS 초기화
       function initEmailJS() {
         // EmailJS 공개 키 (실제 사용 시 https://dashboard.emailjs.com/admin/integration 에서 발급받아야 함)
@@ -627,9 +767,84 @@
           console.log('❌ 회원가입 버튼 비활성화됨');
         }
       }
+      // 구글 리디렉션 결과 처리
+      async function handleGoogleRedirectResult() {
+        try {
+          await waitForFirebase();
+          
+          if (!window.firebaseAuthFunctions) return;
+          
+          const { getRedirectResult, getAdditionalUserInfo } = window.firebaseAuthFunctions;
+          const result = await getRedirectResult(window.firebaseAuth);
+          
+          if (result?.user) {
+            const additionalInfo = getAdditionalUserInfo ? getAdditionalUserInfo(result) : null;
+            const isNewUser = additionalInfo?.isNewUser ?? true;
+            
+            // 사용자 데이터 준비
+            const firebaseUser = result.user;
+            const userData = {
+              uid: firebaseUser.uid,
+              email: firebaseUser.email || '',
+              name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || '',
+              displayName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || '',
+              photoURL: firebaseUser.photoURL || '',
+              phone: '',
+              password: '',
+              emailVerification: firebaseUser.email || '',
+              agreeTerms: true,
+              agreePrivacy: true,
+              agreeMarketing: false,
+              loginMethod: 'google',
+              isActive: true,
+              emailVerified: firebaseUser.emailVerified,
+              createdAt: firebaseUser.metadata?.creationTime ? new Date(firebaseUser.metadata.creationTime) : new Date(),
+              updatedAt: new Date()
+            };
+            
+            // Firestore에 사용자 데이터 저장
+            try {
+              const { doc, setDoc, serverTimestamp } = window.firebaseFirestoreFunctions;
+              const userRef = doc(window.firebaseDb, 'users', userData.uid);
+              
+              await setDoc(userRef, {
+                ...userData,
+                createdAt: serverTimestamp(),
+                updatedAt: serverTimestamp(),
+                lastLogin: serverTimestamp()
+              }, { merge: true });
+              
+              console.log('✅ 구글 사용자 데이터 저장 완료:', userData.email);
+            } catch (error) {
+              console.error('❌ 구글 사용자 데이터 저장 실패:', error);
+            }
+            
+            // localStorage에 사용자 정보 저장
+            localStorage.setItem('user', JSON.stringify(userData));
+            localStorage.setItem('currentUser', JSON.stringify(userData));
+            localStorage.setItem('loggedIn', 'true');
+            localStorage.setItem('loggedInEmail', userData.email);
+            
+            // 성공 메시지 및 리디렉션
+            if (isNewUser) {
+              alert('구글 계정으로 회원가입이 완료되었습니다!\n\n실제 고객 후기를 확인해보세요!');
+            } else {
+              alert('구글 계정으로 로그인되었습니다!');
+            }
+            
+            window.location.href = 'reviews.html';
+          }
+        } catch (error) {
+          console.error('❌ 구글 리디렉션 결과 처리 실패:', error);
+        }
+      }
+
       // 이벤트 리스너 등록
       document.addEventListener('DOMContentLoaded', function() {
         console.log('🚀 register.html v3.2 로드됨 (실제 이메일 인증 시스템)');
+        
+        // 구글 리디렉션 결과 처리
+        handleGoogleRedirectResult();
         
         // 기존 사용자 데이터 정리
         cleanupUserData();
@@ -727,6 +942,11 @@
             console.error('회원가입 실패:', error);
             alert('회원가입 중 오류가 발생했습니다: ' + error.message);
         }
+      });
+
+      // 구글 회원가입 버튼
+      document.getElementById('google-register').addEventListener('click', function() {
+        registerWithGoogle();
       });
 
       // 일반 회원가입 폼 표시
