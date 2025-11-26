@@ -111,7 +111,126 @@
       console.log('🔄 구글 리디렉션 후 복귀 감지 - 인증 상태 처리 준비');
       authStateProcessed = false; // 리디렉션 후에는 플래그 리셋
       sessionStorage.removeItem('googleRedirectStarted');
+      
+      // 리디렉션 후 즉시 현재 사용자 확인 (onAuthStateChanged가 트리거되지 않을 수 있음)
+      // 여러 번 시도 (인증 상태가 설정되는 데 시간이 걸릴 수 있음)
+      let checkCount = 0;
+      const maxChecks = 10; // 최대 5초간 확인
+      
+      const checkUser = async () => {
+        try {
+          checkCount++;
+          const currentUser = auth.currentUser;
+          console.log(`🔍 리디렉션 후 수동 확인 (${checkCount}/${maxChecks}):`, currentUser ? currentUser.email : '사용자 없음');
+          
+          if (currentUser) {
+            const isGoogleUser = currentUser.providerData?.some(provider => provider.providerId === 'google.com');
+            if (isGoogleUser) {
+              console.log('✅ 리디렉션 후 수동 확인 - 구글 사용자 발견:', currentUser.email);
+              
+              // authStateProcessed를 임시로 리셋하여 처리 가능하도록 함
+              const wasProcessed = authStateProcessed;
+              authStateProcessed = false;
+              
+              // processGoogleUser 함수 호출 (전역 또는 로컬)
+              const processFn = window.processGoogleUser || processGoogleUser;
+              if (processFn) {
+                await processFn(currentUser);
+              } else {
+                console.error('❌ processGoogleUser 함수를 찾을 수 없습니다');
+              }
+              return; // 성공하면 중단
+            } else {
+              console.log('⏭️ 구글 사용자가 아님');
+            }
+          }
+          
+          // 아직 사용자가 없고 최대 시도 횟수에 도달하지 않았으면 다시 시도
+          if (!currentUser && checkCount < maxChecks) {
+            setTimeout(checkUser, 500);
+          } else if (checkCount >= maxChecks) {
+            console.log('⚠️ 리디렉션 후 수동 확인 실패 - 최대 시도 횟수 도달');
+          }
+        } catch (error) {
+          console.error('리디렉션 후 수동 확인 중 오류:', error);
+          if (checkCount < maxChecks) {
+            setTimeout(checkUser, 500);
+          }
+        }
+      };
+      
+      // 즉시 확인 및 지연 후 확인
+      checkUser();
+      setTimeout(checkUser, 500);
+      setTimeout(checkUser, 1500);
+      setTimeout(checkUser, 3000);
     }
+    
+    // 구글 사용자 처리 함수
+    async function processGoogleUser(user) {
+      if (authStateProcessed) {
+        console.log('⏭️ 이미 처리됨');
+        return;
+      }
+      
+      if (localStorage.getItem('googleAuthProcessing') === 'true') {
+        console.log('⏭️ 이미 처리 중');
+        return;
+      }
+      
+      localStorage.setItem('googleAuthProcessing', 'true');
+      authStateProcessed = true;
+      
+      try {
+        console.log('📝 구글 사용자 데이터 저장 시작...');
+        const userData = {
+          uid: user.uid,
+          email: user.email || '',
+          name: user.displayName || user.email?.split('@')[0] || '',
+          displayName: user.displayName || user.email?.split('@')[0] || '',
+          photoURL: user.photoURL || '',
+          phone: '',
+          password: '',
+          emailVerification: user.email || '',
+          agreeTerms: true,
+          agreePrivacy: true,
+          agreeMarketing: false,
+          loginMethod: 'google',
+          isActive: true,
+          emailVerified: user.emailVerified,
+          createdAt: user.metadata?.creationTime ? new Date(user.metadata.creationTime) : new Date(),
+          updatedAt: new Date()
+        };
+        
+        // Firestore에 저장
+        const { doc, setDoc, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js');
+        const userRef = doc(db, 'users', userData.uid);
+        await setDoc(userRef, {
+          ...userData,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+          lastLogin: serverTimestamp()
+        }, { merge: true });
+        
+        // localStorage에 저장
+        localStorage.setItem('user', JSON.stringify(userData));
+        localStorage.setItem('currentUser', JSON.stringify(userData));
+        localStorage.setItem('loggedIn', 'true');
+        localStorage.setItem('loggedInEmail', userData.email);
+        
+        console.log('✅ 구글 사용자 데이터 저장 완료');
+        alert('구글 계정으로 회원가입이 완료되었습니다!\n\n실제 고객 후기를 확인해보세요!');
+        window.location.href = 'reviews.html';
+      } catch (error) {
+        console.error('❌ 구글 사용자 처리 실패:', error);
+        alert('회원가입 처리 중 오류가 발생했습니다. 다시 시도해주세요.');
+      } finally {
+        localStorage.removeItem('googleAuthProcessing');
+      }
+    }
+    
+    // 전역으로 노출 (리디렉션 후 수동 확인에서도 접근 가능하도록)
+    window.processGoogleUser = processGoogleUser;
     
     onAuthStateChanged(auth, async (user) => {
       console.log('🔔 Firebase Auth 상태 변경:', user ? `로그인됨 (${user.email})` : '로그아웃됨');
@@ -138,54 +257,16 @@
           const isGoogleUser = user.providerData?.some(provider => provider.providerId === 'google.com');
           if (!isGoogleUser) {
             console.log('⏭️ 구글 로그인이 아니므로 건너뜀');
+            authStateProcessed = true;
             return;
           }
           
-          console.log('✅ 구글 로그인 사용자 확인됨 - 데이터 저장 시작...');
+          console.log('✅ 구글 로그인 사용자 확인됨 - processGoogleUser 호출');
           
-          // 직접 처리 (더 안정적)
-          console.log('📝 사용자 데이터 저장 시작...');
-            const userData = {
-              uid: user.uid,
-              email: user.email || '',
-              name: user.displayName || user.email?.split('@')[0] || '',
-              displayName: user.displayName || user.email?.split('@')[0] || '',
-              photoURL: user.photoURL || '',
-              phone: '',
-              password: '',
-              emailVerification: user.email || '',
-              agreeTerms: true,
-              agreePrivacy: true,
-              agreeMarketing: false,
-              loginMethod: 'google',
-              isActive: true,
-              emailVerified: user.emailVerified,
-              createdAt: user.metadata?.creationTime ? new Date(user.metadata.creationTime) : new Date(),
-              updatedAt: new Date()
-            };
-            
-            // Firestore에 저장
-            const { doc, setDoc, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js');
-            const userRef = doc(db, 'users', userData.uid);
-            await setDoc(userRef, {
-              ...userData,
-              createdAt: serverTimestamp(),
-              updatedAt: serverTimestamp(),
-              lastLogin: serverTimestamp()
-            }, { merge: true });
-            
-            // localStorage에 저장
-            localStorage.setItem('user', JSON.stringify(userData));
-            localStorage.setItem('currentUser', JSON.stringify(userData));
-            localStorage.setItem('loggedIn', 'true');
-            localStorage.setItem('loggedInEmail', userData.email);
-            
-            console.log('✅ 구글 사용자 데이터 저장 완료');
-            alert('구글 계정으로 회원가입이 완료되었습니다!\n\n실제 고객 후기를 확인해보세요!');
-            window.location.href = 'reviews.html';
+          // processGoogleUser 함수 사용
+          await processGoogleUser(user);
         } catch (error) {
           console.error('❌ Auth 상태 변경 처리 실패:', error);
-        } finally {
           localStorage.removeItem('googleAuthProcessing');
           authStateProcessed = true;
         }
