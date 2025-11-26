@@ -226,48 +226,16 @@
       
       try {
         console.log('📝 구글 사용자 데이터 저장 시작...');
-        const userData = {
-          uid: user.uid,
-          email: user.email || '',
-          name: user.displayName || user.email?.split('@')[0] || '',
-          displayName: user.displayName || user.email?.split('@')[0] || '',
-          photoURL: user.photoURL || '',
-          phone: '',
-          password: '',
-          emailVerification: user.email || '',
-          agreeTerms: true,
-          agreePrivacy: true,
-          agreeMarketing: false,
+        
+        // finalizeSocialLogin 사용
+        await finalizeSocialLogin(user, {
           loginMethod: 'google',
-          isActive: true,
-          emailVerified: user.emailVerified,
-          createdAt: user.metadata?.creationTime ? new Date(user.metadata.creationTime) : new Date(),
-          updatedAt: new Date()
-        };
-        
-        // Firestore에 저장
-        const { doc, setDoc, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js');
-        const userRef = doc(db, 'users', userData.uid);
-        await setDoc(userRef, {
-          ...userData,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-          lastLogin: serverTimestamp()
-        }, { merge: true });
-        
-        // localStorage에 저장
-        localStorage.setItem('user', JSON.stringify(userData));
-        localStorage.setItem('currentUser', JSON.stringify(userData));
-        localStorage.setItem('loggedIn', 'true');
-        localStorage.setItem('loggedInEmail', userData.email);
-        
-        console.log('✅ 구글 사용자 데이터 저장 완료');
-        alert('구글 계정으로 회원가입이 완료되었습니다!\n\n실제 고객 후기를 확인해보세요!');
-        window.location.href = 'reviews.html';
+          additionalInfo: null,
+          toastMessage: 'Google 계정으로 로그인되었습니다.'
+        });
       } catch (error) {
         console.error('❌ 구글 사용자 처리 실패:', error);
         alert('회원가입 처리 중 오류가 발생했습니다. 다시 시도해주세요.');
-      } finally {
         localStorage.removeItem('googleAuthProcessing');
       }
     }
@@ -740,103 +708,124 @@
         // 포인트 추가
       // 포인트 시스템 제거됨
 
+      // 사용자 데이터 upsert 함수 (모든 로그인 경로에서 공통 사용)
+      async function upsertUser(userData, extra = {}) {
+        try {
+          await waitForFirebase();
+          
+          const { doc, setDoc, getDoc } = window.firebaseFirestoreFunctions;
+          const userRef = doc(window.firebaseDb, 'users', userData.uid);
+          
+          // 기존 사용자 문서 존재 여부 확인
+          const userDocSnapshot = await getDoc(userRef);
+          const isNewUser = !userDocSnapshot.exists();
+          
+          const userDoc = {
+            uid: userData.uid,
+            email: userData.email,
+            displayName: userData.displayName || userData.name || userData.nickname || '',
+            photoURL: userData.photoURL || userData.profileImage || '',
+            loginMethod: userData.loginMethod || 'email',
+            createdAt: userData.createdAt || new Date(),
+            updatedAt: new Date(),
+            isActive: true,
+            ...extra
+          };
+
+          await setDoc(userRef, userDoc, { merge: true });
+          console.log('✅ 사용자 데이터 upsert 완료:', userData.email);
+          return { success: true, isNewUser };
+        } catch (error) {
+          console.error('❌ 사용자 데이터 upsert 실패:', error);
+          return { success: false, isNewUser: false };
+        }
+      }
+
+      async function finalizeSocialLogin(firebaseUser, options = {}) {
+        if (!firebaseUser) return;
+        
+        const additionalInfo = options.additionalInfo || {};
+        const providerData = firebaseUser.providerData?.[0] || {};
+        const userData = {
+          uid: firebaseUser.uid,
+          email: firebaseUser.email || '',
+          displayName: firebaseUser.displayName || providerData.displayName || firebaseUser.email?.split('@')[0] || '',
+          photoURL: firebaseUser.photoURL || providerData.photoURL || '',
+          phoneNumber: firebaseUser.phoneNumber || providerData.phoneNumber || '',
+          loginMethod: options.loginMethod || providerData.providerId || 'google',
+          emailVerified: firebaseUser.emailVerified,
+          createdAt: firebaseUser.metadata?.creationTime ? new Date(firebaseUser.metadata.creationTime) : new Date(),
+          updatedAt: new Date()
+        };
+        
+        const upsertResult = await upsertUser(userData, {
+          lastLogin: new Date(),
+          providerId: additionalInfo.providerId || providerData.providerId || 'google',
+          isNewUser: additionalInfo.isNewUser ?? options.isNewUser ?? false
+        });
+        
+        // 새 사용자인지 확인 (additionalInfo.isNewUser 또는 upsertResult.isNewUser 사용)
+        const isNewUser = additionalInfo.isNewUser ?? upsertResult?.isNewUser ?? false;
+        
+        localStorage.setItem('loggedIn', 'true');
+        localStorage.setItem('currentUser', JSON.stringify(userData));
+        localStorage.setItem('user', JSON.stringify(userData));
+        if (userData.email) {
+          localStorage.setItem('loggedInEmail', userData.email);
+        }
+        
+        // 성공 메시지 및 리디렉션
+        if (isNewUser) {
+          alert('구글 로그인 회원가입이 완료되었습니다!\n\n실제 고객 후기를 확인해보세요!');
+        } else {
+          alert('이미 가입된 계정입니다. 로그인되었습니다.');
+        }
+        
+        window.location.href = 'reviews.html';
+      }
+
       // 구글 회원가입/로그인 함수
       async function registerWithGoogle() {
         try {
-          console.log('🚀 구글 회원가입 시작...');
           await waitForFirebase();
           
           if (!window.firebaseAuthFunctions || !window.firebaseGoogleProvider) {
             throw new Error('구글 로그인 구성이 완료되지 않았습니다.');
           }
           
-          const { signInWithRedirect } = window.firebaseAuthFunctions;
-          
-          // Cross-Origin-Opener-Policy 문제로 인해 리디렉션 방식만 사용
-          console.log('🔄 리디렉션 방식으로 구글 로그인 시작...');
-          console.log('📍 현재 URL:', window.location.href);
-          
-          // 리디렉션 시작 플래그 설정 (리디렉션 후 복귀 시 인식용)
-          sessionStorage.setItem('googleRedirectStarted', 'true');
-          console.log('🏷️ 리디렉션 플래그 설정 완료');
-          
-          console.log('🔄 signInWithRedirect 호출 중...');
-          console.log('🔍 Firebase Auth 상태:', {
-            currentUser: window.firebaseAuth.currentUser ? window.firebaseAuth.currentUser.email : '없음',
-            provider: window.firebaseGoogleProvider ? '설정됨' : '없음'
-          });
+          const { signInWithPopup, signInWithRedirect, getAdditionalUserInfo } = window.firebaseAuthFunctions;
+          let result = null;
           
           try {
-            // 리디렉션 전에 현재 시간 저장 (리디렉션 후 복귀 시간 확인용)
-            const redirectStartTime = Date.now();
-            sessionStorage.setItem('googleRedirectStartTime', redirectStartTime.toString());
+            result = await signInWithPopup(window.firebaseAuth, window.firebaseGoogleProvider);
+          } catch (popupError) {
+            console.warn('팝업 로그인 실패, 리디렉션 시도:', popupError.code);
+            const shouldFallback = popupError.code === 'auth/popup-blocked' ||
+              popupError.code === 'auth/cancelled-popup-request' ||
+              popupError.code === 'auth/popup-closed-by-user' ||
+              popupError.code === 'auth/operation-not-supported-in-this-environment';
             
-          console.log('🔄 signInWithRedirect 실행 중...');
-          console.log('⏰ 리디렉션 시작 시간:', new Date(redirectStartTime).toISOString());
-          console.log('🔍 Firebase Auth 설정:', {
-            authDomain: window.firebaseAuth.app.options.authDomain,
-            apiKey: window.firebaseAuth.app.options.apiKey ? '설정됨' : '없음',
-            provider: window.firebaseGoogleProvider ? '설정됨' : '없음'
-          });
-          
-          // 사용자에게 리디렉션 안내
-          const userConfirmed = confirm('구글 로그인 페이지로 이동합니다.\n\n구글 로그인 페이지에서 로그인을 완료해주세요.\n\n"확인"을 누르면 구글 로그인 페이지로 이동합니다.');
-          if (!userConfirmed) {
-            console.log('❌ 사용자가 리디렉션을 취소했습니다.');
-            sessionStorage.removeItem('googleRedirectStarted');
-            sessionStorage.removeItem('googleRedirectStartTime');
-            return;
-          }
-          
-          // signInWithRedirect는 리디렉션이 발생하면 Promise가 해결되지 않고 페이지가 이동함
-          // 따라서 이 코드는 리디렉션이 발생하지 않았을 때만 실행됨
-          console.log('📤 signInWithRedirect 호출 직전...');
-          console.log('📍 현재 URL:', window.location.href);
-          const redirectPromise = signInWithRedirect(window.firebaseAuth, window.firebaseGoogleProvider);
-          console.log('📤 signInWithRedirect 호출 완료 (Promise 반환됨)');
-          console.log('💡 리디렉션이 발생하면 이 로그는 보이지 않아야 합니다.');
-          
-          // 리디렉션이 즉시 발생하지 않으면 타임아웃 설정
-          const timeoutPromise = new Promise((_, reject) => 
-            setTimeout(() => {
-              console.log('⏰ 리디렉션 타임아웃 (1초 경과)');
-              reject(new Error('리디렉션 타임아웃'));
-            }, 1000)
-          );
-          
-          try {
-            await Promise.race([redirectPromise, timeoutPromise]);
-            // 여기 도달했다면 리디렉션이 발생하지 않은 것
-            console.warn('⚠️ 리디렉션이 발생하지 않았습니다.');
-            alert('구글 로그인 페이지로 이동하지 못했습니다.\n\n브라우저 설정을 확인하거나 잠시 후 다시 시도해주세요.');
-            sessionStorage.removeItem('googleRedirectStarted');
-            sessionStorage.removeItem('googleRedirectStartTime');
-          } catch (error) {
-            // 타임아웃 에러는 정상 (리디렉션이 발생했을 수 있음)
-            if (error.message === '리디렉션 타임아웃') {
-              console.log('⏰ 리디렉션 타임아웃 - 리디렉션이 발생했을 수 있습니다.');
-              // 리디렉션이 발생했을 수 있으므로 에러를 throw하지 않음
+            if (shouldFallback && signInWithRedirect) {
+              // 리디렉션 시작 플래그 설정
+              sessionStorage.setItem('googleRedirectStarted', 'true');
+              sessionStorage.setItem('googleRedirectStartTime', Date.now().toString());
+              await signInWithRedirect(window.firebaseAuth, window.firebaseGoogleProvider);
               return;
             }
-            throw error;
-          }
-          } catch (redirectError) {
-            console.error('❌ signInWithRedirect 에러:', redirectError);
-            
-            // 타임아웃 에러는 무시 (리디렉션이 발생했을 수 있음)
-            if (redirectError.message === '리디렉션 타임아웃') {
-              console.log('⏰ 리디렉션 타임아웃 - 리디렉션이 발생했을 수 있습니다.');
-              return; // 리디렉션이 발생했을 수 있으므로 에러를 throw하지 않음
-            }
-            
-            throw redirectError;
+            throw popupError;
           }
           
-          // 이 코드는 실행되지 않아야 함 (리디렉션 발생 시)
-          return;
+          if (result?.user) {
+            const additionalInfo = getAdditionalUserInfo ? getAdditionalUserInfo(result) : null;
+            await finalizeSocialLogin(result.user, {
+              loginMethod: 'google',
+              additionalInfo,
+              toastMessage: 'Google 계정으로 로그인되었습니다.'
+            });
+          }
         } catch (error) {
-          console.error('❌ Google 회원가입 실패:', error);
-          let errorMessage = '구글 회원가입 중 오류가 발생했습니다.';
+          console.error('❌ Google 로그인 실패:', error);
+          let errorMessage = '구글 로그인 중 오류가 발생했습니다. 다시 시도해주세요.';
           
           if (error.code === 'auth/popup-closed-by-user') {
             errorMessage = '로그인 창이 닫혔습니다. 다시 시도해주세요.';
@@ -1197,66 +1186,15 @@
           if (result?.user || firebaseUser) {
             const user = result?.user || firebaseUser;
             console.log('✅ 구글 로그인 성공:', user.email);
-            console.log('👤 사용자 정보:', {
-              uid: user.uid,
-              email: user.email,
-              displayName: user.displayName
-            });
+            
             const additionalInfo = getAdditionalUserInfo && result ? getAdditionalUserInfo(result) : null;
-            const isNewUser = additionalInfo?.isNewUser ?? true;
             
-            // 사용자 데이터 준비
-            const firebaseUser = user;
-            const userData = {
-              uid: firebaseUser.uid,
-              email: firebaseUser.email || '',
-              name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || '',
-              displayName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || '',
-              photoURL: firebaseUser.photoURL || '',
-              phone: '',
-              password: '',
-              emailVerification: firebaseUser.email || '',
-              agreeTerms: true,
-              agreePrivacy: true,
-              agreeMarketing: false,
+            // finalizeSocialLogin 사용
+            await finalizeSocialLogin(user, {
               loginMethod: 'google',
-              isActive: true,
-              emailVerified: firebaseUser.emailVerified,
-              createdAt: firebaseUser.metadata?.creationTime ? new Date(firebaseUser.metadata.creationTime) : new Date(),
-              updatedAt: new Date()
-            };
-            
-            // Firestore에 사용자 데이터 저장
-            try {
-              const { doc, setDoc, serverTimestamp } = window.firebaseFirestoreFunctions;
-              const userRef = doc(window.firebaseDb, 'users', userData.uid);
-              
-              await setDoc(userRef, {
-                ...userData,
-                createdAt: serverTimestamp(),
-                updatedAt: serverTimestamp(),
-                lastLogin: serverTimestamp()
-              }, { merge: true });
-              
-              console.log('✅ 구글 사용자 데이터 저장 완료:', userData.email);
-            } catch (error) {
-              console.error('❌ 구글 사용자 데이터 저장 실패:', error);
-            }
-            
-            // localStorage에 사용자 정보 저장
-            localStorage.setItem('user', JSON.stringify(userData));
-            localStorage.setItem('currentUser', JSON.stringify(userData));
-            localStorage.setItem('loggedIn', 'true');
-            localStorage.setItem('loggedInEmail', userData.email);
-            
-            // 성공 메시지 및 리디렉션
-            if (isNewUser) {
-              alert('구글 계정으로 회원가입이 완료되었습니다!\n\n실제 고객 후기를 확인해보세요!');
-            } else {
-              alert('구글 계정으로 로그인되었습니다!');
-            }
-            
-            window.location.href = 'reviews.html';
+              additionalInfo,
+              toastMessage: 'Google 계정으로 로그인되었습니다.'
+            });
           } else {
             console.log('ℹ️ 구글 리디렉션 결과 없음 (정상적인 접근 또는 아직 리디렉션되지 않음)');
             console.log('💡 구글 회원가입 버튼을 클릭하면 구글 로그인 페이지로 이동합니다.');
