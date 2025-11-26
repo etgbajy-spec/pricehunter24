@@ -16,7 +16,10 @@
     <!-- Content Security Policy - Firebase iframe 허용 -->
     <meta http-equiv="Content-Security-Policy" content="frame-src 'self' https://www.google.com https://accounts.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com https://apis.google.com https://*.gstatic.com; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com https://*.gstatic.com https://accounts.google.com https://oauth2.googleapis.com https://apis.google.com; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://www.gstatic.com https://*.gstatic.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com;" />
     
-    <meta name="cache-buster" content="v3.2-20241220" />
+    <!-- Cross-Origin-Opener-Policy 설정 -->
+    <meta http-equiv="Cross-Origin-Opener-Policy" content="same-origin-allow-popups" />
+    
+    <meta name="cache-buster" content="v3.3-20250126" />
     <script>
       // 강제 캐시 무효화 및 디버깅
       console.log('🚀 register.html v3.2 로드됨 (실제 이메일 인증 시스템)');
@@ -464,120 +467,13 @@
             throw new Error('구글 로그인 구성이 완료되지 않았습니다.');
           }
           
-          const { signInWithPopup, signInWithRedirect, getAdditionalUserInfo } = window.firebaseAuthFunctions;
+          const { signInWithRedirect } = window.firebaseAuthFunctions;
           
-          // 팝업이 차단될 가능성이 높은 환경에서는 바로 리디렉션 사용
-          // 또는 팝업을 시도하되 실패 시 리디렉션으로 전환
-          const useRedirect = window.navigator.userAgent.includes('Mobile') || 
-                             window.navigator.userAgent.includes('Android') ||
-                             window.navigator.userAgent.includes('iPhone');
-          
-          if (useRedirect || !signInWithPopup) {
-            console.log('📱 모바일 환경 또는 팝업 미지원: 리디렉션 방식 사용');
-            await signInWithRedirect(window.firebaseAuth, window.firebaseGoogleProvider);
-            return;
-          }
-          
-          // 팝업 방식 시도
-          let result = null;
-          let popupError = null;
-          
-          try {
-            console.log('🪟 팝업 방식으로 구글 로그인 시도...');
-            result = await Promise.race([
-              signInWithPopup(window.firebaseAuth, window.firebaseGoogleProvider),
-              new Promise((_, reject) => 
-                setTimeout(() => reject(new Error('auth/popup-timeout')), 10000)
-              )
-            ]);
-          } catch (error) {
-            popupError = error;
-            console.warn('❌ 팝업 로그인 실패:', error.code || error.message);
-          }
-          
-          // 팝업 실패 시 리디렉션으로 전환
-          if (!result && popupError) {
-            const shouldFallback = !popupError.code || 
-              popupError.code === 'auth/popup-blocked' ||
-              popupError.code === 'auth/cancelled-popup-request' ||
-              popupError.code === 'auth/popup-closed-by-user' ||
-              popupError.code === 'auth/operation-not-supported-in-this-environment' ||
-              popupError.code === 'auth/popup-timeout' ||
-              popupError.message?.includes('popup') ||
-              popupError.message?.includes('Cross-Origin');
-            
-            if (shouldFallback && signInWithRedirect) {
-              console.log('🔄 리디렉션 방식으로 전환...');
-              await signInWithRedirect(window.firebaseAuth, window.firebaseGoogleProvider);
-              return;
-            }
-            throw popupError;
-          }
-          
-          if (!result) {
-            throw new Error('로그인 결과를 받을 수 없습니다.');
-          }
-          
-          if (result?.user) {
-            const additionalInfo = getAdditionalUserInfo ? getAdditionalUserInfo(result) : null;
-            const isNewUser = additionalInfo?.isNewUser ?? true;
-            
-            // 사용자 데이터 준비
-            const firebaseUser = result.user;
-            const userData = {
-              uid: firebaseUser.uid,
-              email: firebaseUser.email || '',
-              name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || '',
-              displayName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || '',
-              photoURL: firebaseUser.photoURL || '',
-              phone: '', // 구글 로그인은 휴대폰 번호가 없을 수 있음
-              password: '', // 구글 로그인은 비밀번호 불필요
-              emailVerification: firebaseUser.email || '',
-              agreeTerms: true, // 구글 로그인 시 자동 동의
-              agreePrivacy: true,
-              agreeMarketing: false,
-              loginMethod: 'google',
-              isActive: true,
-              emailVerified: firebaseUser.emailVerified,
-              createdAt: firebaseUser.metadata?.creationTime ? new Date(firebaseUser.metadata.creationTime) : new Date(),
-              updatedAt: new Date()
-            };
-            
-            // Firestore에 사용자 데이터 저장 (upsert)
-            try {
-              await waitForFirebase();
-              const { doc, setDoc, serverTimestamp } = window.firebaseFirestoreFunctions;
-              const userRef = doc(window.firebaseDb, 'users', userData.uid);
-              
-              await setDoc(userRef, {
-                ...userData,
-                createdAt: serverTimestamp(),
-                updatedAt: serverTimestamp(),
-                lastLogin: serverTimestamp()
-              }, { merge: true });
-              
-              console.log('✅ 구글 사용자 데이터 저장 완료:', userData.email);
-            } catch (error) {
-              console.error('❌ 구글 사용자 데이터 저장 실패:', error);
-              // 저장 실패해도 로그인은 진행
-            }
-            
-            // localStorage에 사용자 정보 저장
-            localStorage.setItem('user', JSON.stringify(userData));
-            localStorage.setItem('currentUser', JSON.stringify(userData));
-            localStorage.setItem('loggedIn', 'true');
-            localStorage.setItem('loggedInEmail', userData.email);
-            
-            // 성공 메시지 및 리디렉션
-            if (isNewUser) {
-              alert('구글 계정으로 회원가입이 완료되었습니다!\n\n실제 고객 후기를 확인해보세요!');
-            } else {
-              alert('구글 계정으로 로그인되었습니다!');
-            }
-            
-            // 후기 페이지로 이동
-            window.location.href = 'reviews.html';
-          }
+          // Cross-Origin-Opener-Policy 문제로 인해 리디렉션 방식만 사용
+          console.log('🔄 리디렉션 방식으로 구글 로그인 시작...');
+          await signInWithRedirect(window.firebaseAuth, window.firebaseGoogleProvider);
+          // 리디렉션 후에는 handleGoogleRedirectResult에서 처리됨
+          return;
         } catch (error) {
           console.error('❌ Google 회원가입 실패:', error);
           let errorMessage = '구글 회원가입 중 오류가 발생했습니다.';
