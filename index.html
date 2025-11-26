@@ -448,7 +448,7 @@
     <!-- Firebase v9 SDK (모듈식) -->
     <script type="module">
       import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
-      import { getAuth, signInWithCustomToken, onAuthStateChanged, signOut, sendPasswordResetEmail } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
+      import { getAuth, signInWithCustomToken, onAuthStateChanged, signOut, sendPasswordResetEmail, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, getAdditionalUserInfo } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
       import { getFirestore, doc, setDoc, getDoc, collection, query, orderBy, onSnapshot, getDocs, where, serverTimestamp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
       
       // Firebase 설정
@@ -472,13 +472,17 @@
         window.firebaseApp = app;
         window.firebaseAuth = auth;
         window.firebaseDb = db;
-        window.firebaseAuthFunctions = { signInWithCustomToken, onAuthStateChanged, signOut, sendPasswordResetEmail };
+        window.firebaseAuthFunctions = { signInWithCustomToken, onAuthStateChanged, signOut, sendPasswordResetEmail, signInWithPopup, signInWithRedirect, getRedirectResult, getAdditionalUserInfo };
         window.firebaseFirestoreFunctions = { doc, setDoc, getDoc, collection, query, orderBy, onSnapshot, getDocs, where, serverTimestamp };
+        const googleProvider = new GoogleAuthProvider();
+        googleProvider.setCustomParameters({ prompt: 'select_account' });
+        window.firebaseGoogleProvider = googleProvider;
         
         console.log('✅ Firebase v9 초기화 완료');
         
         // 절약왕 데이터 로드
         loadSavingsKingData();
+        handleGoogleRedirectResult();
         
       } catch (error) {
         console.error('❌ Firebase 초기화 실패:', error);
@@ -486,8 +490,18 @@
         window.firebaseApp = null;
         window.firebaseAuth = null;
         window.firebaseDb = null;
-        window.firebaseAuthFunctions = { signInWithCustomToken: () => {}, onAuthStateChanged: () => {}, signOut: () => {} };
+        window.firebaseAuthFunctions = { 
+          signInWithCustomToken: () => Promise.reject(new Error('Firebase not ready')), 
+          onAuthStateChanged: () => {}, 
+          signOut: () => Promise.reject(new Error('Firebase not ready')),
+          sendPasswordResetEmail: () => Promise.reject(new Error('Firebase not ready')),
+          signInWithPopup: () => Promise.reject(new Error('Firebase not ready')),
+          signInWithRedirect: () => Promise.reject(new Error('Firebase not ready')),
+          getRedirectResult: () => Promise.resolve(null),
+          getAdditionalUserInfo: () => null
+        };
         window.firebaseFirestoreFunctions = { doc: () => {}, setDoc: () => {}, getDoc: () => {}, collection: () => {}, query: () => {}, orderBy: () => {}, onSnapshot: () => {}, getDocs: () => {}, where: () => {}, serverTimestamp: () => {} };
+        window.firebaseGoogleProvider = null;
         
         // Firebase 초기화 실패 시에도 기본 절약왕 데이터 로드
         loadSavingsKingData();
@@ -734,6 +748,31 @@
       // 전역 함수로 등록
       window.loadSavingsKingData = loadSavingsKingData;
       window.updateSavingsKingUI = updateSavingsKingUI;
+      async function handleGoogleRedirectResult() {
+        try {
+          if (!window.firebaseAuthFunctions?.getRedirectResult || !window.firebaseAuth) {
+            return;
+          }
+          
+          const redirectResult = await window.firebaseAuthFunctions.getRedirectResult(window.firebaseAuth);
+          if (redirectResult && redirectResult.user) {
+            const additionalInfo = window.firebaseAuthFunctions.getAdditionalUserInfo 
+              ? window.firebaseAuthFunctions.getAdditionalUserInfo(redirectResult)
+              : null;
+            window.pendingGoogleResult = {
+              user: redirectResult.user,
+              additionalInfo
+            };
+            console.log('✅ 구글 리디렉션 로그인 결과 확보:', redirectResult.user.email);
+          }
+        } catch (error) {
+          if (error?.code === 'auth/no-auth-event') {
+            return;
+          }
+          console.error('❌ 구글 리디렉션 처리 실패:', error);
+          window.pendingGoogleRedirectError = error;
+        }
+      }
     </script>
 
   </head>
@@ -2056,6 +2095,19 @@
            <button type="submit" class="w-full py-1 bg-blue-600 text-white font-bold rounded shadow hover:bg-blue-700 transition-colors text-sm" aria-label="로그인" title="로그인">로그인</button>
          </form>
         
+        <div class="mt-4">
+          <div class="flex items-center gap-3 text-gray-400 text-xs uppercase tracking-wide mb-3">
+            <span class="flex-1 h-px bg-gray-200"></span>
+            <span>또는</span>
+            <span class="flex-1 h-px bg-gray-200"></span>
+          </div>
+          <button type="button" id="google-login-btn" class="w-full flex items-center justify-center gap-3 py-2 border border-gray-200 rounded-xl shadow-sm hover:shadow transition bg-white" aria-label="구글 계정으로 로그인" title="구글 계정으로 로그인">
+            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="" class="w-5 h-5" loading="lazy">
+            <span class="text-sm font-semibold text-gray-700">Google 계정으로 간편 로그인/가입</span>
+          </button>
+          <p class="mt-2 text-xs text-center text-gray-500">기존 회원도 구글 계정을 연동하면 자동으로 연결됩니다.</p>
+        </div>
+        
         <!-- 아이디/비밀번호 찾기 -->
         <div class="mt-4 text-center">
           <div class="flex justify-center gap-4 text-sm">
@@ -2345,6 +2397,89 @@
           console.error('❌ Firebase 로그아웃 실패:', error);
         }
       }
+
+      async function finalizeSocialLogin(firebaseUser, options = {}) {
+        if (!firebaseUser) return;
+        
+        const additionalInfo = options.additionalInfo || {};
+        const providerData = firebaseUser.providerData?.[0] || {};
+        const userData = {
+          uid: firebaseUser.uid,
+          email: firebaseUser.email || '',
+          displayName: firebaseUser.displayName || providerData.displayName || firebaseUser.email?.split('@')[0] || '',
+          photoURL: firebaseUser.photoURL || providerData.photoURL || '',
+          phoneNumber: firebaseUser.phoneNumber || providerData.phoneNumber || '',
+          loginMethod: options.loginMethod || providerData.providerId || 'google',
+          emailVerified: firebaseUser.emailVerified,
+          createdAt: firebaseUser.metadata?.creationTime ? new Date(firebaseUser.metadata.creationTime) : new Date(),
+          updatedAt: new Date()
+        };
+        
+        await upsertUser(userData, {
+          lastLogin: new Date(),
+          providerId: additionalInfo.providerId || providerData.providerId || 'google',
+          isNewUser: additionalInfo.isNewUser ?? options.isNewUser ?? false
+        });
+        
+        localStorage.setItem('loggedIn', 'true');
+        localStorage.setItem('currentUser', JSON.stringify(userData));
+        localStorage.setItem('user', JSON.stringify(userData));
+        if (userData.email) {
+          localStorage.setItem('loggedInEmail', userData.email);
+        }
+        
+        const loginModal = document.getElementById('login-modal');
+        if (loginModal) {
+          loginModal.classList.add('hidden');
+        }
+        document.body.style.overflow = '';
+        updateAuthUI();
+        showToast(options.toastMessage || 'Google 계정으로 로그인되었습니다.', 'success');
+      }
+
+      async function loginWithGoogle() {
+        try {
+          await waitForFirebase();
+          
+          if (!window.firebaseAuthFunctions || !window.firebaseGoogleProvider) {
+            throw new Error('구글 로그인 구성이 완료되지 않았습니다.');
+          }
+          
+          const { signInWithPopup, signInWithRedirect, getAdditionalUserInfo } = window.firebaseAuthFunctions;
+          let result = null;
+          
+          try {
+            result = await signInWithPopup(window.firebaseAuth, window.firebaseGoogleProvider);
+          } catch (popupError) {
+            console.warn('팝업 로그인 실패, 리디렉션 시도:', popupError.code);
+            const shouldFallback = popupError.code === 'auth/popup-blocked' ||
+              popupError.code === 'auth/cancelled-popup-request' ||
+              popupError.code === 'auth/popup-closed-by-user' ||
+              popupError.code === 'auth/operation-not-supported-in-this-environment';
+            
+            if (shouldFallback && signInWithRedirect) {
+              showToast('새 창이 차단되어 전체 페이지로 이동합니다.', 'warning');
+              await signInWithRedirect(window.firebaseAuth, window.firebaseGoogleProvider);
+              return;
+            }
+            throw popupError;
+          }
+          
+          if (result?.user) {
+            const additionalInfo = getAdditionalUserInfo ? getAdditionalUserInfo(result) : null;
+            await finalizeSocialLogin(result.user, {
+              loginMethod: 'google',
+              additionalInfo,
+              toastMessage: 'Google 계정으로 로그인되었습니다.'
+            });
+          }
+        } catch (error) {
+          console.error('❌ Google 로그인 실패:', error);
+          showToast('구글 로그인 중 오류가 발생했습니다. 다시 시도해주세요.', 'error');
+        }
+      }
+
+      window.loginWithGoogle = loginWithGoogle;
 
       // 사용자 로그아웃 함수
       async function signOutUser() {
@@ -2770,6 +2905,25 @@
     // 페이지 로드 시 알림 권한 요청 및 기존 회원 마이그레이션
     window.addEventListener('DOMContentLoaded', function() {
       requestNotificationPermission();
+      
+      const googleLoginBtn = document.getElementById('google-login-btn');
+      if (googleLoginBtn) {
+        googleLoginBtn.addEventListener('click', () => {
+          loginWithGoogle();
+        });
+      }
+      
+      if (window.pendingGoogleResult?.user) {
+        finalizeSocialLogin(window.pendingGoogleResult.user, {
+          loginMethod: 'google',
+          additionalInfo: window.pendingGoogleResult.additionalInfo,
+          toastMessage: 'Google 계정으로 로그인되었습니다.'
+        });
+        window.pendingGoogleResult = null;
+      } else if (window.pendingGoogleRedirectError) {
+        showToast('구글 로그인 중 오류가 발생했습니다. 다시 시도해주세요.', 'error');
+        window.pendingGoogleRedirectError = null;
+      }
       
       // 브라우저 뒤로가기/앞으로가기 이벤트 처리 (KOE205 에러 방지)
       window.addEventListener('popstate', function(event) {
