@@ -14,7 +14,7 @@
     <meta http-equiv="Expires" content="0" />
     
     <!-- Content Security Policy - Firebase iframe 허용 -->
-    <meta http-equiv="Content-Security-Policy" content="frame-src 'self' https://www.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com https://apis.google.com; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com https://*.gstatic.com;" />
+    <meta http-equiv="Content-Security-Policy" content="frame-src 'self' https://www.google.com https://accounts.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com https://apis.google.com https://*.gstatic.com; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com https://*.gstatic.com https://accounts.google.com https://oauth2.googleapis.com; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://www.gstatic.com https://*.gstatic.com; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com;" />
     
     <meta name="cache-buster" content="v3.2-20241220" />
     <script>
@@ -465,23 +465,57 @@
           }
           
           const { signInWithPopup, signInWithRedirect, getAdditionalUserInfo } = window.firebaseAuthFunctions;
+          
+          // 팝업이 차단될 가능성이 높은 환경에서는 바로 리디렉션 사용
+          // 또는 팝업을 시도하되 실패 시 리디렉션으로 전환
+          const useRedirect = window.navigator.userAgent.includes('Mobile') || 
+                             window.navigator.userAgent.includes('Android') ||
+                             window.navigator.userAgent.includes('iPhone');
+          
+          if (useRedirect || !signInWithPopup) {
+            console.log('📱 모바일 환경 또는 팝업 미지원: 리디렉션 방식 사용');
+            await signInWithRedirect(window.firebaseAuth, window.firebaseGoogleProvider);
+            return;
+          }
+          
+          // 팝업 방식 시도
           let result = null;
+          let popupError = null;
           
           try {
-            result = await signInWithPopup(window.firebaseAuth, window.firebaseGoogleProvider);
-          } catch (popupError) {
-            console.warn('팝업 로그인 실패, 리디렉션 시도:', popupError.code);
-            const shouldFallback = popupError.code === 'auth/popup-blocked' ||
+            console.log('🪟 팝업 방식으로 구글 로그인 시도...');
+            result = await Promise.race([
+              signInWithPopup(window.firebaseAuth, window.firebaseGoogleProvider),
+              new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('auth/popup-timeout')), 10000)
+              )
+            ]);
+          } catch (error) {
+            popupError = error;
+            console.warn('❌ 팝업 로그인 실패:', error.code || error.message);
+          }
+          
+          // 팝업 실패 시 리디렉션으로 전환
+          if (!result && popupError) {
+            const shouldFallback = !popupError.code || 
+              popupError.code === 'auth/popup-blocked' ||
               popupError.code === 'auth/cancelled-popup-request' ||
               popupError.code === 'auth/popup-closed-by-user' ||
-              popupError.code === 'auth/operation-not-supported-in-this-environment';
+              popupError.code === 'auth/operation-not-supported-in-this-environment' ||
+              popupError.code === 'auth/popup-timeout' ||
+              popupError.message?.includes('popup') ||
+              popupError.message?.includes('Cross-Origin');
             
             if (shouldFallback && signInWithRedirect) {
-              alert('새 창이 차단되어 전체 페이지로 이동합니다.');
+              console.log('🔄 리디렉션 방식으로 전환...');
               await signInWithRedirect(window.firebaseAuth, window.firebaseGoogleProvider);
               return;
             }
             throw popupError;
+          }
+          
+          if (!result) {
+            throw new Error('로그인 결과를 받을 수 없습니다.');
           }
           
           if (result?.user) {
