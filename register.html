@@ -14,7 +14,7 @@
     <meta http-equiv="Expires" content="0" />
     
     <!-- Content Security Policy - Firebase iframe 허용 -->
-    <meta http-equiv="Content-Security-Policy" content="frame-src 'self' https://www.google.com https://accounts.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com https://apis.google.com https://*.gstatic.com; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com https://*.gstatic.com https://accounts.google.com https://oauth2.googleapis.com https://apis.google.com; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://www.gstatic.com https://*.gstatic.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com;" />
+    <meta http-equiv="Content-Security-Policy" content="frame-src 'self' https://www.google.com https://accounts.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com https://apis.google.com https://*.gstatic.com https://*.google.com https://*.googleapis.com; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com https://*.gstatic.com https://accounts.google.com https://oauth2.googleapis.com https://apis.google.com https://*.google.com https://*.googleapis.com; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://www.gstatic.com https://*.gstatic.com https://apis.google.com https://*.google.com; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com;" />
     
     <!-- Cross-Origin-Opener-Policy 제거 - Firebase와 충돌 방지 -->
     
@@ -117,74 +117,96 @@
       console.log('📍 현재 URL:', window.location.href);
       
       authStateProcessed = false; // 리디렉션 후에는 플래그 리셋
-      sessionStorage.removeItem('googleRedirectStarted');
-      sessionStorage.removeItem('googleRedirectStartTime');
       
-      // 리디렉션 후 즉시 현재 사용자 확인 (onAuthStateChanged가 트리거되지 않을 수 있음)
-      // 여러 번 시도 (인증 상태가 설정되는 데 시간이 걸릴 수 있음)
-      let checkCount = 0;
-      const maxChecks = 10; // 최대 5초간 확인
-      
-      const checkUser = async () => {
+      // getRedirectResult를 먼저 호출 (리디렉션 후 한 번만 호출 가능)
+      setTimeout(async () => {
         try {
-          checkCount++;
-          const currentUser = auth.currentUser;
-          console.log(`🔍 리디렉션 후 수동 확인 (${checkCount}/${maxChecks}):`, currentUser ? currentUser.email : '사용자 없음');
+          const { getRedirectResult } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js');
+          console.log('📞 리디렉션 후 getRedirectResult 호출 중...');
+          const result = await getRedirectResult(auth);
           
-          if (currentUser) {
-            const isGoogleUser = currentUser.providerData?.some(provider => provider.providerId === 'google.com');
+          if (result && result.user) {
+            console.log('✅ getRedirectResult에서 사용자 발견:', result.user.email);
+            const isGoogleUser = result.user.providerData?.some(provider => provider.providerId === 'google.com');
             if (isGoogleUser) {
-              console.log('✅ 리디렉션 후 수동 확인 - 구글 사용자 발견:', currentUser.email);
-              
-              // authStateProcessed를 임시로 리셋하여 처리 가능하도록 함
-              const wasProcessed = authStateProcessed;
-              authStateProcessed = false;
-              
-              // processGoogleUser 함수 호출 (전역 또는 로컬)
+              authStateProcessed = false; // 처리 가능하도록 리셋
               const processFn = window.processGoogleUser || processGoogleUser;
               if (processFn) {
-                await processFn(currentUser);
-              } else {
-                console.error('❌ processGoogleUser 함수를 찾을 수 없습니다');
+                await processFn(result.user);
+                sessionStorage.removeItem('googleRedirectStarted');
+                sessionStorage.removeItem('googleRedirectStartTime');
+                return;
               }
-              return; // 성공하면 중단
-            } else {
-              console.log('⏭️ 구글 사용자가 아님');
             }
-          }
-          
-          // 아직 사용자가 없고 최대 시도 횟수에 도달하지 않았으면 다시 시도
-          if (!currentUser && checkCount < maxChecks) {
-            setTimeout(checkUser, 500);
-          } else if (checkCount >= maxChecks) {
-            console.log('⚠️ 리디렉션 후 수동 확인 실패 - 최대 시도 횟수 도달');
-            console.log('💡 리디렉션이 발생했지만 인증 상태가 설정되지 않았습니다.');
-            console.log('💡 가능한 원인:');
-            console.log('   1. 구글 로그인 페이지에서 로그인이 완료되지 않았을 수 있습니다.');
-            console.log('   2. 리디렉션 후 돌아왔지만 Firebase Auth가 인증 상태를 인식하지 못했습니다.');
-            console.log('   3. CSP 오류로 인해 인증 프로세스가 차단되었을 수 있습니다.');
-            
-            // 사용자에게 안내
-            const shouldRetry = confirm('구글 로그인이 완료되지 않았습니다.\n\n구글 로그인 페이지에서 로그인을 완료하셨나요?\n\n"확인"을 누르면 다시 시도합니다.');
-            if (shouldRetry) {
-              // 다시 시도
-              checkCount = 0;
-              setTimeout(checkUser, 1000);
-            }
+          } else {
+            console.log('⚠️ getRedirectResult가 null을 반환했습니다.');
           }
         } catch (error) {
-          console.error('리디렉션 후 수동 확인 중 오류:', error);
-          if (checkCount < maxChecks) {
-            setTimeout(checkUser, 500);
-          }
+          console.error('❌ getRedirectResult 호출 중 오류:', error);
         }
-      };
-      
-      // 즉시 확인 및 지연 후 확인
-      checkUser();
-      setTimeout(checkUser, 500);
-      setTimeout(checkUser, 1500);
-      setTimeout(checkUser, 3000);
+        
+        // getRedirectResult가 실패했거나 null을 반환한 경우 수동 확인 시작
+        sessionStorage.removeItem('googleRedirectStarted');
+        sessionStorage.removeItem('googleRedirectStartTime');
+        
+        // 리디렉션 후 즉시 현재 사용자 확인 (onAuthStateChanged가 트리거되지 않을 수 있음)
+        // 여러 번 시도 (인증 상태가 설정되는 데 시간이 걸릴 수 있음)
+        let checkCount = 0;
+        const maxChecks = 20; // 최대 10초간 확인
+        
+        const checkUser = async () => {
+          try {
+            checkCount++;
+            const currentUser = auth.currentUser;
+            console.log(`🔍 리디렉션 후 수동 확인 (${checkCount}/${maxChecks}):`, currentUser ? currentUser.email : '사용자 없음');
+            
+            if (currentUser) {
+              const isGoogleUser = currentUser.providerData?.some(provider => provider.providerId === 'google.com');
+              if (isGoogleUser) {
+                console.log('✅ 리디렉션 후 수동 확인 - 구글 사용자 발견:', currentUser.email);
+                
+                // authStateProcessed를 임시로 리셋하여 처리 가능하도록 함
+                authStateProcessed = false;
+                
+                // processGoogleUser 함수 호출 (전역 또는 로컬)
+                const processFn = window.processGoogleUser || processGoogleUser;
+                if (processFn) {
+                  await processFn(currentUser);
+                } else {
+                  console.error('❌ processGoogleUser 함수를 찾을 수 없습니다');
+                }
+                return; // 성공하면 중단
+              } else {
+                console.log('⏭️ 구글 사용자가 아님');
+              }
+            }
+            
+            // 아직 사용자가 없고 최대 시도 횟수에 도달하지 않았으면 다시 시도
+            if (!currentUser && checkCount < maxChecks) {
+              setTimeout(checkUser, 500);
+            } else if (checkCount >= maxChecks) {
+              console.log('⚠️ 리디렉션 후 수동 확인 실패 - 최대 시도 횟수 도달');
+              console.log('💡 리디렉션이 발생했지만 인증 상태가 설정되지 않았습니다.');
+              console.log('💡 가능한 원인:');
+              console.log('   1. 구글 로그인 페이지에서 로그인이 완료되지 않았을 수 있습니다.');
+              console.log('   2. 리디렉션 후 돌아왔지만 Firebase Auth가 인증 상태를 인식하지 못했습니다.');
+              console.log('   3. CSP 오류로 인해 인증 프로세스가 차단되었을 수 있습니다.');
+            }
+          } catch (error) {
+            console.error('리디렉션 후 수동 확인 중 오류:', error);
+            if (checkCount < maxChecks) {
+              setTimeout(checkUser, 500);
+            }
+          }
+        };
+        
+        // 즉시 확인 및 지연 후 확인
+        checkUser();
+        setTimeout(checkUser, 500);
+        setTimeout(checkUser, 1000);
+        setTimeout(checkUser, 2000);
+        setTimeout(checkUser, 3000);
+      }, 100); // Firebase 초기화 후 약간의 지연
     }
     
     // 구글 사용자 처리 함수
@@ -1046,7 +1068,7 @@
           // URL에 인증 관련 파라미터가 있는지 확인
           const urlParams = new URLSearchParams(window.location.search);
           const hashParams = new URLSearchParams(window.location.hash.substring(1));
-          const hasAuthParams = urlParams.has('apiKey') || urlParams.has('mode') || hashParams.has('access_token');
+          const hasAuthParams = urlParams.has('apiKey') || urlParams.has('mode') || hashParams.has('access_token') || hashParams.has('id_token');
           console.log('🔍 인증 관련 URL 파라미터:', hasAuthParams ? '있음' : '없음');
           
           await waitForFirebase();
@@ -1079,6 +1101,12 @@
             });
           }
           
+          // 리디렉션 후 복귀인 경우 약간의 지연 후 getRedirectResult 호출 (Firebase Auth가 인증 상태를 설정할 시간을 줌)
+          if (isRedirectReturn || hasAuthParams) {
+            console.log('⏳ 리디렉션 후 복귀 감지 - 잠시 대기 후 getRedirectResult 호출...');
+            await new Promise(resolve => setTimeout(resolve, 500));
+          }
+          
           let result = null;
           try {
             console.log('📞 getRedirectResult 호출 직전...');
@@ -1099,10 +1127,10 @@
               console.log('   4. 리디렉션 후 돌아왔지만 Firebase Auth가 인증 상태를 인식하지 못했습니다.');
               
               // 리디렉션 후 복귀인 경우 추가 확인
-              const isRedirectReturn = sessionStorage.getItem('googleRedirectStarted') === 'true';
-              if (isRedirectReturn) {
+              if (isRedirectReturn || hasAuthParams) {
                 console.log('🔄 리디렉션 후 복귀로 확인됨 - 인증 상태를 수동으로 확인합니다.');
-                // 이미 위에서 수동 확인 로직이 실행되고 있음
+                // onAuthStateChanged가 트리거될 때까지 대기
+                await new Promise(resolve => setTimeout(resolve, 1000));
               }
             }
           } catch (redirectError) {
@@ -1117,16 +1145,26 @@
           }
           
           // getRedirectResult가 null을 반환했지만, 실제로는 사용자가 로그인되어 있을 수 있음
-          // Firebase Auth의 현재 사용자 상태 확인
+          // Firebase Auth의 현재 사용자 상태 확인 (여러 번 시도)
           let firebaseUser = result?.user;
           if (!firebaseUser && window.firebaseAuth) {
             console.log('🔍 getRedirectResult 결과가 없음 - 현재 인증 상태 확인 중...');
-            firebaseUser = window.firebaseAuth.currentUser;
-            if (firebaseUser) {
-              console.log('✅ 현재 로그인된 사용자 발견:', firebaseUser.email);
-              // result 객체를 생성하여 일관된 처리
-              result = { user: firebaseUser };
-            } else {
+            
+            // 여러 번 시도 (인증 상태가 설정되는 데 시간이 걸릴 수 있음)
+            for (let i = 0; i < 5; i++) {
+              firebaseUser = window.firebaseAuth.currentUser;
+              if (firebaseUser) {
+                console.log(`✅ 현재 로그인된 사용자 발견 (${i + 1}번째 시도):`, firebaseUser.email);
+                // result 객체를 생성하여 일관된 처리
+                result = { user: firebaseUser };
+                break;
+              } else {
+                console.log(`⏳ 인증 상태 확인 중... (${i + 1}/5)`);
+                await new Promise(resolve => setTimeout(resolve, 500));
+              }
+            }
+            
+            if (!firebaseUser) {
               console.log('ℹ️ 현재 로그인된 사용자 없음');
             }
           }
