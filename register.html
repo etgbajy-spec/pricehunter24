@@ -16,8 +16,7 @@
     <!-- Content Security Policy - Firebase iframe 허용 -->
     <meta http-equiv="Content-Security-Policy" content="frame-src 'self' https://www.google.com https://accounts.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com https://apis.google.com https://*.gstatic.com; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com https://*.gstatic.com https://accounts.google.com https://oauth2.googleapis.com https://apis.google.com; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://www.gstatic.com https://*.gstatic.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com;" />
     
-    <!-- Cross-Origin-Opener-Policy 설정 -->
-    <meta http-equiv="Cross-Origin-Opener-Policy" content="same-origin-allow-popups" />
+    <!-- Cross-Origin-Opener-Policy 제거 - Firebase와 충돌 방지 -->
     
     <meta name="cache-buster" content="v3.3-20250126" />
     <script>
@@ -700,14 +699,20 @@
       // 구글 리디렉션 결과 처리
       async function handleGoogleRedirectResult() {
         try {
+          console.log('🔄 구글 리디렉션 결과 확인 시작...');
           await waitForFirebase();
           
-          if (!window.firebaseAuthFunctions) return;
+          if (!window.firebaseAuthFunctions) {
+            console.log('⚠️ Firebase Auth 함수가 없습니다.');
+            return;
+          }
           
           const { getRedirectResult, getAdditionalUserInfo } = window.firebaseAuthFunctions;
+          console.log('📞 getRedirectResult 호출 중...');
           const result = await getRedirectResult(window.firebaseAuth);
           
           if (result?.user) {
+            console.log('✅ 구글 로그인 성공:', result.user.email);
             const additionalInfo = getAdditionalUserInfo ? getAdditionalUserInfo(result) : null;
             const isNewUser = additionalInfo?.isNewUser ?? true;
             
@@ -763,9 +768,12 @@
             }
             
             window.location.href = 'reviews.html';
+          } else {
+            console.log('ℹ️ 구글 리디렉션 결과 없음 (정상적인 접근)');
           }
         } catch (error) {
           console.error('❌ 구글 리디렉션 결과 처리 실패:', error);
+          // 에러가 발생해도 페이지는 정상 작동해야 함
         }
       }
 
