@@ -108,9 +108,17 @@
     // 리디렉션 여부 확인 (URL에 특정 파라미터가 있거나, sessionStorage에 플래그가 있는지)
     const isRedirectReturn = sessionStorage.getItem('googleRedirectStarted') === 'true';
     if (isRedirectReturn) {
+      const redirectStartTime = sessionStorage.getItem('googleRedirectStartTime');
+      const currentTime = Date.now();
+      const elapsedTime = redirectStartTime ? currentTime - parseInt(redirectStartTime) : 0;
+      
       console.log('🔄 구글 리디렉션 후 복귀 감지 - 인증 상태 처리 준비');
+      console.log('⏰ 리디렉션 경과 시간:', elapsedTime, 'ms');
+      console.log('📍 현재 URL:', window.location.href);
+      
       authStateProcessed = false; // 리디렉션 후에는 플래그 리셋
       sessionStorage.removeItem('googleRedirectStarted');
+      sessionStorage.removeItem('googleRedirectStartTime');
       
       // 리디렉션 후 즉시 현재 사용자 확인 (onAuthStateChanged가 트리거되지 않을 수 있음)
       // 여러 번 시도 (인증 상태가 설정되는 데 시간이 걸릴 수 있음)
@@ -676,10 +684,49 @@
           sessionStorage.setItem('googleRedirectStarted', 'true');
           console.log('🏷️ 리디렉션 플래그 설정 완료');
           
-          await signInWithRedirect(window.firebaseAuth, window.firebaseGoogleProvider);
+          console.log('🔄 signInWithRedirect 호출 중...');
+          console.log('🔍 Firebase Auth 상태:', {
+            currentUser: window.firebaseAuth.currentUser ? window.firebaseAuth.currentUser.email : '없음',
+            provider: window.firebaseGoogleProvider ? '설정됨' : '없음'
+          });
           
-          console.log('✅ 리디렉션 요청 완료 - 구글 로그인 페이지로 이동합니다.');
-          // 리디렉션 후에는 onAuthStateChanged 리스너가 처리함
+          try {
+            // 리디렉션 전에 현재 시간 저장 (리디렉션 후 복귀 시간 확인용)
+            const redirectStartTime = Date.now();
+            sessionStorage.setItem('googleRedirectStartTime', redirectStartTime.toString());
+            
+            console.log('🔄 signInWithRedirect 실행 중...');
+            console.log('⏰ 리디렉션 시작 시간:', new Date(redirectStartTime).toISOString());
+            
+            // signInWithRedirect는 리디렉션이 발생하면 Promise가 해결되지 않고 페이지가 이동함
+            // 따라서 이 코드는 리디렉션이 발생하지 않았을 때만 실행됨
+            const redirectPromise = signInWithRedirect(window.firebaseAuth, window.firebaseGoogleProvider);
+            
+            // 리디렉션이 즉시 발생하지 않으면 타임아웃 설정
+            const timeoutPromise = new Promise((_, reject) => 
+              setTimeout(() => reject(new Error('리디렉션 타임아웃')), 1000)
+            );
+            
+            await Promise.race([redirectPromise, timeoutPromise]);
+            
+            // 여기 도달했다면 리디렉션이 발생하지 않은 것
+            console.warn('⚠️ 리디렉션이 발생하지 않았습니다.');
+            alert('구글 로그인 페이지로 이동하지 못했습니다.\n\n브라우저 설정을 확인하거나 잠시 후 다시 시도해주세요.');
+            sessionStorage.removeItem('googleRedirectStarted');
+            sessionStorage.removeItem('googleRedirectStartTime');
+          } catch (redirectError) {
+            console.error('❌ signInWithRedirect 에러:', redirectError);
+            
+            // 타임아웃 에러는 무시 (리디렉션이 발생했을 수 있음)
+            if (redirectError.message === '리디렉션 타임아웃') {
+              console.log('⏰ 리디렉션 타임아웃 - 리디렉션이 발생했을 수 있습니다.');
+              return; // 리디렉션이 발생했을 수 있으므로 에러를 throw하지 않음
+            }
+            
+            throw redirectError;
+          }
+          
+          // 이 코드는 실행되지 않아야 함 (리디렉션 발생 시)
           return;
         } catch (error) {
           console.error('❌ Google 회원가입 실패:', error);
@@ -910,6 +957,13 @@
           console.log('🔄 구글 리디렉션 결과 확인 시작...');
           console.log('📍 현재 URL:', window.location.href);
           console.log('🔍 URL 파라미터:', window.location.search);
+          console.log('🔍 URL 해시:', window.location.hash);
+          
+          // URL에 인증 관련 파라미터가 있는지 확인
+          const urlParams = new URLSearchParams(window.location.search);
+          const hashParams = new URLSearchParams(window.location.hash.substring(1));
+          const hasAuthParams = urlParams.has('apiKey') || urlParams.has('mode') || hashParams.has('access_token');
+          console.log('🔍 인증 관련 URL 파라미터:', hasAuthParams ? '있음' : '없음');
           
           await waitForFirebase();
           
@@ -920,6 +974,10 @@
           
           const { getRedirectResult, getAdditionalUserInfo } = window.firebaseAuthFunctions;
           console.log('📞 getRedirectResult 호출 중...');
+          console.log('🔍 Firebase Auth 상태:', {
+            currentUser: window.firebaseAuth.currentUser ? window.firebaseAuth.currentUser.email : '없음',
+            app: window.firebaseAuth.app ? '있음' : '없음'
+          });
           
           let result = null;
           try {
@@ -931,14 +989,18 @@
                 credential: result.credential ? '있음' : '없음',
                 operationType: result.operationType || '없음'
               });
+            } else {
+              console.log('⚠️ getRedirectResult가 null을 반환했습니다.');
+              console.log('💡 이는 리디렉션이 발생하지 않았거나, 이미 처리되었을 수 있습니다.');
             }
           } catch (redirectError) {
             console.error('❌ getRedirectResult 에러:', redirectError);
             console.error('에러 코드:', redirectError.code);
             console.error('에러 메시지:', redirectError.message);
+            console.error('에러 스택:', redirectError.stack);
             // 에러를 다시 throw하지 않고 계속 진행 (정상적인 경우일 수 있음)
             if (redirectError.code && !redirectError.code.includes('no-auth-event')) {
-              throw redirectError;
+              console.warn('⚠️ 인증 이벤트가 아닌 에러이지만 계속 진행합니다.');
             }
           }
           
