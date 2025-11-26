@@ -14,7 +14,7 @@
     <meta http-equiv="Expires" content="0" />
     
     <!-- Content Security Policy - Firebase iframe 허용 -->
-    <meta http-equiv="Content-Security-Policy" content="frame-src 'self' https://www.google.com https://accounts.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com https://apis.google.com https://*.gstatic.com https://*.google.com https://*.googleapis.com; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com https://*.gstatic.com https://accounts.google.com https://oauth2.googleapis.com https://apis.google.com https://*.google.com https://*.googleapis.com; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://www.gstatic.com https://*.gstatic.com https://apis.google.com https://*.google.com; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com;" />
+    <meta http-equiv="Content-Security-Policy" content="frame-src 'self' https://www.google.com https://accounts.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com https://apis.google.com https://*.gstatic.com https://*.google.com; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com https://*.gstatic.com https://accounts.google.com https://oauth2.googleapis.com https://apis.google.com https://*.google.com https://*.googleapis.com; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://www.gstatic.com https://*.gstatic.com https://apis.google.com https://*.google.com; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com;" />
     
     <!-- Cross-Origin-Opener-Policy 제거 - Firebase와 충돌 방지 -->
     
@@ -1110,11 +1110,24 @@
           let result = null;
           try {
             console.log('📞 getRedirectResult 호출 직전...');
+            console.log('🔍 현재 인증 상태:', {
+              currentUser: window.firebaseAuth.currentUser ? window.firebaseAuth.currentUser.email : '없음',
+              authDomain: window.firebaseAuth.app?.options?.authDomain
+            });
+            
             result = await getRedirectResult(window.firebaseAuth);
-            console.log('📋 리디렉션 결과:', result ? '결과 있음' : '결과 없음');
+            
+            console.log('📋 getRedirectResult 완료');
+            console.log('📋 리디렉션 결과:', result ? '결과 있음' : '결과 없음 (null)');
+            
             if (result) {
+              console.log('✅ getRedirectResult 성공!');
               console.log('📋 결과 상세:', {
-                user: result.user ? result.user.email : '없음',
+                user: result.user ? {
+                  email: result.user.email,
+                  uid: result.user.uid,
+                  providerId: result.user.providerData?.[0]?.providerId
+                } : '없음',
                 credential: result.credential ? '있음' : '없음',
                 operationType: result.operationType || '없음'
               });
@@ -1125,22 +1138,34 @@
               console.log('   2. 리디렉션이 발생했지만 인증이 완료되지 않았습니다.');
               console.log('   3. 이미 처리되었습니다.');
               console.log('   4. 리디렉션 후 돌아왔지만 Firebase Auth가 인증 상태를 인식하지 못했습니다.');
+              console.log('   5. CSP 오류로 인해 인증 프로세스가 차단되었을 수 있습니다.');
               
               // 리디렉션 후 복귀인 경우 추가 확인
               if (isRedirectReturn || hasAuthParams) {
                 console.log('🔄 리디렉션 후 복귀로 확인됨 - 인증 상태를 수동으로 확인합니다.');
+                console.log('💡 onAuthStateChanged가 트리거될 때까지 대기 중...');
                 // onAuthStateChanged가 트리거될 때까지 대기
-                await new Promise(resolve => setTimeout(resolve, 1000));
+                await new Promise(resolve => setTimeout(resolve, 2000));
               }
             }
           } catch (redirectError) {
-            console.error('❌ getRedirectResult 에러:', redirectError);
+            console.error('❌ getRedirectResult 에러 발생!');
+            console.error('에러 전체:', redirectError);
             console.error('에러 코드:', redirectError.code);
             console.error('에러 메시지:', redirectError.message);
-            console.error('에러 스택:', redirectError.stack);
+            if (redirectError.stack) {
+              console.error('에러 스택:', redirectError.stack);
+            }
+            
             // 에러를 다시 throw하지 않고 계속 진행 (정상적인 경우일 수 있음)
-            if (redirectError.code && !redirectError.code.includes('no-auth-event')) {
-              console.warn('⚠️ 인증 이벤트가 아닌 에러이지만 계속 진행합니다.');
+            if (redirectError.code) {
+              if (redirectError.code.includes('no-auth-event') || redirectError.code === 'auth/no-auth-event') {
+                console.log('ℹ️ auth/no-auth-event - 정상적인 경우입니다 (리디렉션이 발생하지 않음)');
+              } else {
+                console.warn('⚠️ 인증 이벤트가 아닌 에러이지만 계속 진행합니다:', redirectError.code);
+              }
+            } else {
+              console.warn('⚠️ 알 수 없는 에러이지만 계속 진행합니다.');
             }
           }
           

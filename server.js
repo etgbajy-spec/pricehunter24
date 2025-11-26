@@ -55,9 +55,9 @@ app.use((req, res, next) => {
     // 폰트 허용
     "font-src 'self' https://fonts.gstatic.com",
     // Firebase + Kakao API 연결 허용
-    "connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://firebase.googleapis.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com",
-    // iframe 허용 (reCAPTCHA, Google 로그인, Kakao)
-    "frame-src 'self' https://www.google.com https://recaptcha.google.com https://kauth.kakao.com",
+    "connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://firebase.googleapis.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com https://*.gstatic.com https://accounts.google.com https://oauth2.googleapis.com https://apis.google.com https://*.google.com https://*.googleapis.com",
+    // iframe 허용 (reCAPTCHA, Google 로그인, Kakao, Firebase)
+    "frame-src 'self' https://www.google.com https://accounts.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com https://apis.google.com https://*.gstatic.com https://*.google.com",
     // 보안 정책 강화
     "object-src 'none'",
     "base-uri 'self'",
