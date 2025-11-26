@@ -2320,8 +2320,12 @@
         try {
           await waitForFirebase();
           
-          const { doc, setDoc } = window.firebaseFirestoreFunctions;
+          const { doc, setDoc, getDoc } = window.firebaseFirestoreFunctions;
           const userRef = doc(window.firebaseDb, 'users', userData.uid);
+          
+          // 기존 사용자 문서 존재 여부 확인
+          const userDocSnapshot = await getDoc(userRef);
+          const isNewUser = !userDocSnapshot.exists();
           
           const userDoc = {
             uid: userData.uid,
@@ -2337,10 +2341,10 @@
 
           await setDoc(userRef, userDoc, { merge: true });
           console.log('✅ 사용자 데이터 upsert 완료:', userData.email);
-          return true;
+          return { success: true, isNewUser };
         } catch (error) {
           console.error('❌ 사용자 데이터 upsert 실패:', error);
-          return false;
+          return { success: false, isNewUser: false };
         }
       }
 
@@ -2415,11 +2419,14 @@
           updatedAt: new Date()
         };
         
-        await upsertUser(userData, {
+        const upsertResult = await upsertUser(userData, {
           lastLogin: new Date(),
           providerId: additionalInfo.providerId || providerData.providerId || 'google',
           isNewUser: additionalInfo.isNewUser ?? options.isNewUser ?? false
         });
+        
+        // 새 사용자인지 확인 (additionalInfo.isNewUser 또는 upsertResult.isNewUser 사용)
+        const isNewUser = additionalInfo.isNewUser ?? upsertResult?.isNewUser ?? false;
         
         localStorage.setItem('loggedIn', 'true');
         localStorage.setItem('currentUser', JSON.stringify(userData));
@@ -2434,7 +2441,13 @@
         }
         document.body.style.overflow = '';
         updateAuthUI();
-        showToast(options.toastMessage || 'Google 계정으로 로그인되었습니다.', 'success');
+        
+        // 새 사용자면 회원가입 완료 메시지, 기존 사용자면 이미 가입된 계정 메시지
+        if (isNewUser) {
+          showToast('구글 로그인 회원가입이 완료되었습니다!', 'success');
+        } else {
+          showToast('이미 가입된 계정입니다. 로그인되었습니다.', 'success');
+        }
       }
 
       async function loginWithGoogle() {
