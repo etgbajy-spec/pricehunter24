@@ -757,11 +757,22 @@
             provider: window.firebaseGoogleProvider ? '설정됨' : '없음'
           });
           
+          // 사용자에게 리디렉션 안내
+          const userConfirmed = confirm('구글 로그인 페이지로 이동합니다.\n\n구글 로그인 페이지에서 로그인을 완료해주세요.\n\n"확인"을 누르면 구글 로그인 페이지로 이동합니다.');
+          if (!userConfirmed) {
+            console.log('❌ 사용자가 리디렉션을 취소했습니다.');
+            sessionStorage.removeItem('googleRedirectStarted');
+            sessionStorage.removeItem('googleRedirectStartTime');
+            return;
+          }
+          
           // signInWithRedirect는 리디렉션이 발생하면 Promise가 해결되지 않고 페이지가 이동함
           // 따라서 이 코드는 리디렉션이 발생하지 않았을 때만 실행됨
           console.log('📤 signInWithRedirect 호출 직전...');
+          console.log('📍 현재 URL:', window.location.href);
           const redirectPromise = signInWithRedirect(window.firebaseAuth, window.firebaseGoogleProvider);
           console.log('📤 signInWithRedirect 호출 완료 (Promise 반환됨)');
+          console.log('💡 리디렉션이 발생하면 이 로그는 보이지 않아야 합니다.');
           
           // 리디렉션이 즉시 발생하지 않으면 타임아웃 설정
           const timeoutPromise = new Promise((_, reject) => 
@@ -1049,11 +1060,28 @@
           console.log('📞 getRedirectResult 호출 중...');
           console.log('🔍 Firebase Auth 상태:', {
             currentUser: window.firebaseAuth.currentUser ? window.firebaseAuth.currentUser.email : '없음',
-            app: window.firebaseAuth.app ? '있음' : '없음'
+            app: window.firebaseAuth.app ? '있음' : '없음',
+            authDomain: window.firebaseAuth.app?.options?.authDomain || '없음',
+            apiKey: window.firebaseAuth.app?.options?.apiKey ? '설정됨' : '없음'
           });
+          
+          // 리디렉션 후 복귀 여부 확인
+          const isRedirectReturn = sessionStorage.getItem('googleRedirectStarted') === 'true';
+          console.log('🔍 리디렉션 후 복귀 여부:', isRedirectReturn ? '예' : '아니오');
+          
+          // URL에 인증 관련 파라미터 확인 (이미 위에서 선언된 변수 사용)
+          const hasAuthParamsExtended = urlParams.has('apiKey') || urlParams.has('mode') || hashParams.has('access_token') || hashParams.has('id_token');
+          console.log('🔍 URL 인증 파라미터 (확장):', hasAuthParamsExtended ? '있음' : '없음');
+          if (hasAuthParamsExtended) {
+            console.log('🔍 URL 파라미터 상세:', {
+              search: window.location.search,
+              hash: window.location.hash.substring(0, 100) // 해시는 길 수 있으므로 일부만
+            });
+          }
           
           let result = null;
           try {
+            console.log('📞 getRedirectResult 호출 직전...');
             result = await getRedirectResult(window.firebaseAuth);
             console.log('📋 리디렉션 결과:', result ? '결과 있음' : '결과 없음');
             if (result) {
