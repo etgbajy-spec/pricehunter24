@@ -4994,6 +4994,93 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
         window.addSavingsKingLog = addSavingsKingLog;
         window.clearSavingsKingLogs = clearSavingsKingLogs;
 
+        // Base64 이미지 압축 함수 (Firebase Storage 없이 사용)
+        function compressBase64Image(base64DataUrl, targetSizeKB = 200) {
+            return new Promise((resolve, reject) => {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                const img = new Image();
+                
+                img.onload = function() {
+                    let { width, height } = img;
+                    let quality = 0.8;
+                    let maxWidth = 1200;
+                    
+                    // 초기 압축: 너비가 크면 리사이즈
+                    if (width > maxWidth) {
+                        height = (height * maxWidth) / width;
+                        width = maxWidth;
+                    }
+                    
+                    canvas.width = width;
+                    canvas.height = height;
+                    ctx.drawImage(img, 0, 0, width, height);
+                    
+                    // 크기 체크 및 재압축 (목표 크기까지 품질 조정)
+                    const checkSize = (q) => {
+                        const dataUrl = canvas.toDataURL('image/jpeg', q);
+                        const sizeKB = (dataUrl.length * 0.75) / 1024; // base64 to KB
+                        
+                        if (sizeKB > targetSizeKB && q > 0.1) {
+                            return checkSize(q - 0.1);
+                        }
+                        return dataUrl;
+                    };
+                    
+                    const compressedDataUrl = checkSize(quality);
+                    const finalSizeKB = (compressedDataUrl.length * 0.75) / 1024;
+                    console.log(`📷 이미지 압축 완료: ${finalSizeKB.toFixed(2)}KB (목표: ${targetSizeKB}KB)`);
+                    resolve(compressedDataUrl);
+                };
+                
+                img.onerror = () => reject(new Error('이미지 로드 실패'));
+                img.src = base64DataUrl; // Base64 데이터를 직접 사용
+            });
+        }
+
+        // 이미지 배열을 처리하여 압축 (Firebase Storage 없이 사용)
+        async function processImagesForStorage(images) {
+            if (!images || !Array.isArray(images) || images.length === 0) {
+                return [];
+            }
+
+            const processedImages = [];
+            for (let i = 0; i < images.length; i++) {
+                const image = images[i];
+                
+                // 이미 URL인 경우 그대로 사용
+                if (typeof image === 'string' && (image.startsWith('http://') || image.startsWith('https://'))) {
+                    processedImages.push(image);
+                } 
+                // base64 데이터인 경우 압축 (200KB 이하로)
+                else if (typeof image === 'string' && image.startsWith('data:image/')) {
+                    try {
+                        // 먼저 200KB로 압축 시도
+                        let compressed = await compressBase64Image(image, 200);
+                        const sizeKB = (compressed.length * 0.75) / 1024;
+                        
+                        // 여전히 크면 100KB로 더 강하게 압축
+                        if (sizeKB > 200) {
+                            console.warn(`⚠️ 이미지 ${i+1}이 여전히 큽니다 (${sizeKB.toFixed(2)}KB). 더 강하게 압축합니다.`);
+                            compressed = await compressBase64Image(image, 100);
+                        }
+                        
+                        processedImages.push(compressed);
+                    } catch (error) {
+                        console.error(`❌ 이미지 ${i+1} 압축 실패:`, error);
+                        // 압축 실패 시 원본 사용 (크기 초과 가능성 있음)
+                        processedImages.push(image);
+                    }
+                } 
+                // 기타 경우 그대로 추가
+                else {
+                    processedImages.push(image);
+                }
+            }
+
+            return processedImages;
+        }
+
         // 의뢰 데이터를 후기 게시판에 올리기
         async function publishToReviewBoard(requestId) {
             try {
@@ -5022,6 +5109,14 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                     return;
                 }
 
+                // 이미지 처리: base64 데이터를 압축하여 크기 줄이기
+                let processedImages = [];
+                if (requestData.images && Array.isArray(requestData.images) && requestData.images.length > 0) {
+                    console.log('📷 이미지 압축 시작...', requestData.images.length, '개');
+                    processedImages = await processImagesForStorage(requestData.images);
+                    console.log('✅ 이미지 압축 완료:', processedImages.length, '개');
+                }
+
                 // 의뢰 데이터에서 후기 데이터 생성
                 const originalPrice = requestData.price || requestData.originalPrice || '0';
                 const finalPrice = requestData.adminResponse?.lowestPrice || requestData.finalPrice || '0';
@@ -5042,14 +5137,14 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                     savingsPercent: savingsPercent,
                     
                     // 후기 내용
-                            review: requestData.adminResponse?.additionalInfo || 
-                                   `PriceHunter를 통해 ${requestData.productName || requestData.name || '제품'}을 검증받았습니다. ` +
-                                   `의뢰 가격 ${formatPrice(originalPrice)}에서 ${formatPrice(finalPrice)}로 절약했습니다!`,
+                    review: requestData.adminResponse?.additionalInfo || 
+                           `PriceHunter를 통해 ${requestData.productName || requestData.name || '제품'}을 검증받았습니다. ` +
+                           `의뢰 가격 ${formatPrice(originalPrice)}에서 ${formatPrice(finalPrice)}로 절약했습니다!`,
                     rating: 5, // 기본 평점
                     
-                    // 이미지
-                    images: requestData.images || [],
-                    photos: requestData.images || [], // 호환성
+                    // 이미지 (압축된 base64 이미지 사용)
+                    images: processedImages,
+                    photos: processedImages, // 호환성
                     
                     // 의뢰 정보
                     requestId: requestId,
