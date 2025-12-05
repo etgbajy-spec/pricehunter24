@@ -1,34 +1,494 @@
-<!-- Google Analytics 설정 완료 -->
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-N7R437NT77"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- Content Security Policy -->
+    <meta http-equiv="Content-Security-Policy" content="frame-src 'self' https://www.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com https://apis.google.com; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com https://*.gstatic.com https://firebasejs.com https://images.unsplash.com https://*.unsplash.com https://apis.google.com https://*.firebasejs.com https://accounts.google.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://www.gstatic.com https://*.gstatic.com https://firebasejs.com https://apis.google.com; img-src 'self' data: https: http: blob:;" />
+    
+    <title>애널리틱스 - PriceHunter</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🔍%3C/text%3E%3C/svg%3E">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Firebase v9 SDK -->
+    <script type="module">
+      import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
+      import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
+      import { getFirestore, collection, query, where, getDocs, addDoc, serverTimestamp, orderBy, limit } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
+      
+      // Firebase 설정
+      const firebaseConfig = {
+        apiKey: "AIzaSyDBZxKyMS7eeBTbPnbZkj0WWOZQHNldoL4",
+        authDomain: "pricehunter-99a1b.firebaseapp.com",
+        projectId: "pricehunter-99a1b",
+        storageBucket: "pricehunter-99a1b.firebasestorage.app",
+        messagingSenderId: "242265693919",
+        appId: "1:242265693919:web:74234d942b82a51541136a",
+        measurementId: "G-4BKLV4EVB9"
+      };
 
-  gtag('config', 'G-N7R437NT77');
+      // Firebase 초기화
+      try {
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // 전역으로 노출
+        window.firebaseApp = app;
+        window.firebaseAuth = auth;
+        window.firebaseDb = db;
+        window.firebaseAuthFunctions = { onAuthStateChanged };
+        window.firebaseFirestoreFunctions = { 
+          collection, 
+          query, 
+          where, 
+          getDocs, 
+          addDoc, 
+          serverTimestamp, 
+          orderBy, 
+          limit 
+        };
+        
+        console.log('✅ Firebase v9 초기화 완료 (analytics.html)');
+      } catch (error) {
+        console.error('❌ Firebase 초기화 실패:', error);
+      }
 </script>
 
-<!-- Google Analytics 4 설정 완료 -->
-<!-- 
-✅ 모든 페이지에 구글 애널리틱스 태그가 설치되었습니다.
-📊 측정 ID: G-N7R437NT77
-🌐 적용된 페이지:
-- index.html (메인 페이지)
-- request-v2.html (의뢰 폼)
-- member-dashboard.html (회원 대시보드)
-- savings-king.html (절감왕)
-- gallery.html (고객 후기)
-- contact.html (문의하기)
-- support.html (FAQ)
-- about.html (회사 소개)
-- request.html (기존 의뢰 폼)
-- notice.html (공지사항)
-- price-info.html (가격 정보)
-- payment.html (결제)
-- payment-success.html (결제 성공)
-- payment-fail.html (결제 실패)
-- refund.html (환불 정책)
-
-📈 데이터 수집 시작: 24-48시간 후 구글 애널리틱스에서 확인 가능
---> 
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+        }
+        
+        .analytics-card {
+            background: #1e293b;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .metric-card {
+            background: #0f172a;
+            border-radius: 8px;
+            padding: 20px;
+            border: 1px solid #334155;
+        }
+        
+        .metric-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: #60a5fa;
+            margin: 12px 0;
+        }
+        
+        .metric-label {
+            font-size: 14px;
+            color: #94a3b8;
+            margin-bottom: 8px;
+        }
+        
+        .no-data {
+            color: #64748b;
+            font-size: 14px;
+        }
+        
+        .revenue-graphic {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .currency-circle {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .currency-symbols {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .currency-symbol {
+            position: absolute;
+            font-size: 20px;
+            color: rgba(255, 255, 255, 0.6);
+        }
+        
+        .phone-icon {
+            width: 50px;
+            height: 70px;
+            background: #60a5fa;
+            border-radius: 8px;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(96, 165, 250, 0.3);
+            border-radius: 50%;
+            border-top-color: #60a5fa;
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="min-h-screen p-4">
+    <div class="max-w-7xl mx-auto">
+        <!-- 헤더 -->
+        <div class="flex items-center justify-between mb-6">
+            <h1 class="text-3xl font-bold text-white">애널리틱스</h1>
+            <button id="menu-toggle" class="text-gray-400 hover:text-white">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                </svg>
+            </button>
+        </div>
+        
+        <!-- 메인 카드 -->
+        <div class="analytics-card">
+            <!-- 카드 헤더 -->
+            <div class="flex items-center justify-between mb-6">
+                <div class="flex items-center gap-2">
+                    <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                    </svg>
+                    <h2 class="text-xl font-semibold text-white">Analytics</h2>
+                </div>
+                <button class="text-gray-400 hover:text-white">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <!-- 메트릭 섹션 -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <!-- 일일 활성 사용자 수 -->
+                <div class="metric-card">
+                    <div class="metric-label">일일 활성 사용자 수</div>
+                    <div id="daily-active-users" class="metric-value">---</div>
+                    <div id="daily-active-users-subtitle" class="no-data">데이터 없음</div>
+                    <div class="text-xs text-gray-500 mt-2">for the last 14 days</div>
+                </div>
+                
+                <!-- 1일차 유지 -->
+                <div class="metric-card">
+                    <div class="metric-label">1일차 유지</div>
+                    <div id="retention-rate" class="metric-value">---</div>
+                    <div id="retention-rate-subtitle" class="no-data">데이터 없음</div>
+                    <div class="text-xs text-gray-500 mt-2">for the last 14 days</div>
+                </div>
+            </div>
+            
+            <!-- Revenue 섹션 -->
+            <div class="flex flex-col md:flex-row items-center justify-between gap-6 pt-6 border-t border-gray-700">
+                <div class="revenue-graphic">
+                    <div class="currency-circle">
+                        <div class="currency-symbols">
+                            <span class="currency-symbol" style="top: 10%; left: 20%;">$</span>
+                            <span class="currency-symbol" style="top: 20%; right: 15%;">€</span>
+                            <span class="currency-symbol" style="bottom: 25%; left: 15%;">¥</span>
+                            <span class="currency-symbol" style="bottom: 15%; right: 20%;">£</span>
+                            <span class="currency-symbol" style="top: 50%; left: 5%;">₩</span>
+                        </div>
+                        <div class="phone-icon"></div>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-white mb-2">Track your revenue!</h3>
+                        <div class="flex flex-col gap-2">
+                            <a href="#" class="text-blue-400 hover:text-blue-300 text-sm">AdMob에 연결</a>
+                            <a href="#" class="text-blue-400 hover:text-blue-300 text-sm">Google Play에 연결</a>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="text-sm text-gray-400">
+                    이번 주 -- 지난주
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Firebase 초기화 대기
+        async function waitForFirebase() {
+            let attempts = 0;
+            while ((!window.firebaseDb || !window.firebaseFirestoreFunctions) && attempts < 50) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+                attempts++;
+            }
+            if (!window.firebaseDb) {
+                throw new Error('Firebase 초기화 실패');
+            }
+        }
+        
+        // 날짜를 YYYY-MM-DD 형식으로 변환
+        function formatDate(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+        
+        // 일일 활성 사용자 수 계산
+        async function calculateDailyActiveUsers() {
+            try {
+                await waitForFirebase();
+                
+                const { collection, query, where, getDocs } = window.firebaseFirestoreFunctions;
+                const db = window.firebaseDb;
+                
+                // 최근 14일간의 데이터 가져오기
+                const today = new Date();
+                const fourteenDaysAgo = new Date(today);
+                fourteenDaysAgo.setDate(today.getDate() - 14);
+                
+                const visitsRef = collection(db, 'visits');
+                const q = query(
+                    visitsRef,
+                    where('date', '>=', formatDate(fourteenDaysAgo)),
+                    where('date', '<=', formatDate(today))
+                );
+                
+                const snapshot = await getDocs(q);
+                
+                // 날짜별로 방문자 수 집계
+                const dailyCounts = {};
+                const uniqueUsers = new Set();
+                
+                snapshot.forEach((doc) => {
+                    const data = doc.data();
+                    const date = data.date;
+                    const userId = data.userId || data.sessionId || 'anonymous';
+                    
+                    if (!dailyCounts[date]) {
+                        dailyCounts[date] = new Set();
+                    }
+                    dailyCounts[date].add(userId);
+                    uniqueUsers.add(userId);
+                });
+                
+                // 오늘의 일일 활성 사용자 수
+                const todayDate = formatDate(today);
+                const todayCount = dailyCounts[todayDate] ? dailyCounts[todayDate].size : 0;
+                
+                // 평균 일일 활성 사용자 수 (최근 14일)
+                const dates = Object.keys(dailyCounts).sort();
+                const avgDailyActive = dates.length > 0 
+                    ? Math.round(dates.reduce((sum, date) => sum + dailyCounts[date].size, 0) / dates.length)
+                    : 0;
+                
+                // UI 업데이트
+                const dailyActiveElement = document.getElementById('daily-active-users');
+                const dailyActiveSubtitle = document.getElementById('daily-active-users-subtitle');
+                
+                if (todayCount > 0 || avgDailyActive > 0) {
+                    dailyActiveElement.textContent = todayCount > 0 ? todayCount : avgDailyActive;
+                    dailyActiveSubtitle.textContent = todayCount > 0 
+                        ? `오늘 ${todayCount}명 방문` 
+                        : `평균 ${avgDailyActive}명/일`;
+                    dailyActiveSubtitle.classList.remove('no-data');
+                    dailyActiveSubtitle.classList.add('text-blue-400');
+                } else {
+                    dailyActiveElement.textContent = '---';
+                    dailyActiveSubtitle.textContent = '데이터 없음';
+                    dailyActiveSubtitle.classList.add('no-data');
+                }
+                
+                console.log('📊 일일 활성 사용자 수:', {
+                    today: todayCount,
+                    average: avgDailyActive,
+                    totalUnique: uniqueUsers.size,
+                    dailyCounts: Object.fromEntries(
+                        Object.entries(dailyCounts).map(([date, users]) => [date, users.size])
+                    )
+                });
+                
+            } catch (error) {
+                console.error('❌ 일일 활성 사용자 수 계산 실패:', error);
+                document.getElementById('daily-active-users').textContent = '---';
+                document.getElementById('daily-active-users-subtitle').textContent = '데이터 없음';
+            }
+        }
+        
+        // 1일차 유지율 계산
+        async function calculateRetentionRate() {
+            try {
+                await waitForFirebase();
+                
+                const { collection, query, where, getDocs } = window.firebaseFirestoreFunctions;
+                const db = window.firebaseDb;
+                
+                // 최근 14일간의 데이터 가져오기
+                const today = new Date();
+                const fourteenDaysAgo = new Date(today);
+                fourteenDaysAgo.setDate(today.getDate() - 14);
+                
+                const visitsRef = collection(db, 'visits');
+                const q = query(
+                    visitsRef,
+                    where('date', '>=', formatDate(fourteenDaysAgo)),
+                    where('date', '<=', formatDate(today))
+                );
+                
+                const snapshot = await getDocs(q);
+                
+                // 사용자별 첫 방문일과 마지막 방문일 추적
+                const userFirstVisit = {};
+                const userLastVisit = {};
+                
+                snapshot.forEach((doc) => {
+                    const data = doc.data();
+                    const userId = data.userId || data.sessionId || 'anonymous';
+                    const visitDate = data.date;
+                    
+                    if (!userFirstVisit[userId] || visitDate < userFirstVisit[userId]) {
+                        userFirstVisit[userId] = visitDate;
+                    }
+                    if (!userLastVisit[userId] || visitDate > userLastVisit[userId]) {
+                        userLastVisit[userId] = visitDate;
+                    }
+                });
+                
+                // 1일차 유지율 계산 (첫 방문 후 다음날 다시 방문한 사용자 비율)
+                let retainedUsers = 0;
+                let totalNewUsers = 0;
+                
+                Object.keys(userFirstVisit).forEach(userId => {
+                    const firstVisitDate = userFirstVisit[userId];
+                    const lastVisitDate = userLastVisit[userId];
+                    
+                    // 첫 방문일 다음날에 다시 방문했는지 확인
+                    const firstVisit = new Date(firstVisitDate);
+                    const nextDay = new Date(firstVisit);
+                    nextDay.setDate(firstVisit.getDate() + 1);
+                    const nextDayStr = formatDate(nextDay);
+                    
+                    if (lastVisitDate >= nextDayStr) {
+                        retainedUsers++;
+                    }
+                    totalNewUsers++;
+                });
+                
+                const retentionRate = totalNewUsers > 0 
+                    ? Math.round((retainedUsers / totalNewUsers) * 100) 
+                    : 0;
+                
+                // UI 업데이트
+                const retentionElement = document.getElementById('retention-rate');
+                const retentionSubtitle = document.getElementById('retention-rate-subtitle');
+                
+                if (retentionRate > 0) {
+                    retentionElement.textContent = `${retentionRate}%`;
+                    retentionSubtitle.textContent = `${retainedUsers}명 유지`;
+                    retentionSubtitle.classList.remove('no-data');
+                    retentionSubtitle.classList.add('text-blue-400');
+                } else {
+                    retentionElement.textContent = '---';
+                    retentionSubtitle.textContent = '데이터 없음';
+                    retentionSubtitle.classList.add('no-data');
+                }
+                
+                console.log('📊 1일차 유지율:', {
+                    retentionRate: `${retentionRate}%`,
+                    retainedUsers,
+                    totalNewUsers
+                });
+                
+            } catch (error) {
+                console.error('❌ 유지율 계산 실패:', error);
+                document.getElementById('retention-rate').textContent = '---';
+                document.getElementById('retention-rate-subtitle').textContent = '데이터 없음';
+            }
+        }
+        
+        // 페이지 로드 시 데이터 로드
+        document.addEventListener('DOMContentLoaded', async () => {
+            console.log('🚀 애널리틱스 페이지 로드 시작...');
+            
+            // 로딩 표시
+            document.getElementById('daily-active-users').innerHTML = '<span class="loading"></span>';
+            document.getElementById('retention-rate').innerHTML = '<span class="loading"></span>';
+            
+            // 데이터 계산
+            await calculateDailyActiveUsers();
+            await calculateRetentionRate();
+            
+            // 5분마다 데이터 갱신
+            setInterval(async () => {
+                await calculateDailyActiveUsers();
+                await calculateRetentionRate();
+            }, 5 * 60 * 1000);
+        });
+        
+        // 방문 로그 기록 (이 페이지 방문 시)
+        async function logVisit() {
+            try {
+                await waitForFirebase();
+                
+                const { collection, addDoc, serverTimestamp } = window.firebaseFirestoreFunctions;
+                const db = window.firebaseDb;
+                
+                // 세션 ID 생성 (localStorage 사용)
+                let sessionId = localStorage.getItem('analytics_session_id');
+                if (!sessionId) {
+                    sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                    localStorage.setItem('analytics_session_id', sessionId);
+                }
+                
+                // 사용자 ID (로그인한 경우)
+                let userId = null;
+                if (window.firebaseAuth && window.firebaseAuth.currentUser) {
+                    userId = window.firebaseAuth.currentUser.uid;
+                }
+                
+                const visitData = {
+                    date: formatDate(new Date()),
+                    timestamp: serverTimestamp(),
+                    userId: userId,
+                    sessionId: sessionId,
+                    page: 'analytics',
+                    userAgent: navigator.userAgent
+                };
+                
+                const visitsRef = collection(db, 'visits');
+                await addDoc(visitsRef, visitData);
+                
+                console.log('✅ 방문 로그 기록 완료:', visitData);
+            } catch (error) {
+                console.error('❌ 방문 로그 기록 실패:', error);
+            }
+        }
+        
+        // 페이지 로드 시 방문 로그 기록
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(logVisit, 1000);
+        });
+    </script>
+</body>
+</html>

@@ -1315,7 +1315,62 @@
     }
     
     // 사용자 정보 자동 채우기
+    // 방문 로그 기록 함수
+    async function logPageVisit() {
+      try {
+        // Firebase 초기화 대기
+        let attempts = 0;
+        while ((!window.firebaseDb || !window.firebaseFirestoreFunctions) && attempts < 50) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+          attempts++;
+        }
+        
+        if (!window.firebaseDb) {
+          console.warn('⚠️ Firebase 초기화 대기 중...');
+          return;
+        }
+        
+        const { collection, addDoc, serverTimestamp } = window.firebaseFirestoreFunctions;
+        const db = window.firebaseDb;
+        
+        // 세션 ID 생성 (localStorage 사용)
+        let sessionId = localStorage.getItem('analytics_session_id');
+        if (!sessionId) {
+          sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+          localStorage.setItem('analytics_session_id', sessionId);
+        }
+        
+        // 사용자 ID (로그인한 경우)
+        let userId = null;
+        if (window.firebaseAuth && window.firebaseAuth.currentUser) {
+          userId = window.firebaseAuth.currentUser.uid;
+        }
+        
+        // 날짜를 YYYY-MM-DD 형식으로 변환
+        const today = new Date();
+        const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        
+        const visitData = {
+          date: dateStr,
+          timestamp: serverTimestamp(),
+          userId: userId,
+          sessionId: sessionId,
+          page: 'request-v2',
+          userAgent: navigator.userAgent
+        };
+        
+        const visitsRef = collection(db, 'visits');
+        await addDoc(visitsRef, visitData);
+        
+        console.log('✅ 방문 로그 기록 완료:', visitData);
+      } catch (error) {
+        console.error('❌ 방문 로그 기록 실패:', error);
+      }
+    }
+    
     window.addEventListener('DOMContentLoaded', function() {
+      // 방문 로그 기록 (1초 후 실행하여 Firebase 초기화 대기)
+      setTimeout(logPageVisit, 1000);
       let user = null;
       let loggedIn = false;
       
