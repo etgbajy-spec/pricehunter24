@@ -13,7 +13,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     
     <!-- Content Security Policy - Firebase iframe 허용 -->
-    <meta http-equiv="Content-Security-Policy" content="frame-src 'self' https://www.google.com https://accounts.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com https://apis.google.com https://*.gstatic.com; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com https://*.gstatic.com https://accounts.google.com https://oauth2.googleapis.com https://apis.google.com; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://www.gstatic.com https://*.gstatic.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com;" />
+    <meta http-equiv="Content-Security-Policy" content="frame-src 'self' https://www.google.com https://accounts.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com https://apis.google.com https://*.gstatic.com; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com https://*.gstatic.com https://accounts.google.com https://oauth2.googleapis.com https://apis.google.com https://www.google-analytics.com https://*.google-analytics.com https://analytics.google.com https://*.googletagmanager.com; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://www.gstatic.com https://*.gstatic.com https://apis.google.com https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; img-src 'self' data: https: http: blob: https://www.google-analytics.com https://*.google-analytics.com;" />
     
     <title>PriceHunter</title>
     
@@ -450,6 +450,7 @@
       import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
       import { getAuth, signInWithCustomToken, onAuthStateChanged, signOut, sendPasswordResetEmail, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, getAdditionalUserInfo } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
       import { getFirestore, doc, setDoc, getDoc, collection, query, orderBy, onSnapshot, getDocs, where, serverTimestamp, addDoc } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
+      import { getAnalytics, logEvent } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-analytics.js';
       
       // Firebase 설정
       const firebaseConfig = {
@@ -467,6 +468,22 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
+        
+        // Firebase Analytics 초기화
+        let analytics = null;
+        try {
+          analytics = getAnalytics(app);
+          window.firebaseAnalytics = analytics;
+          console.log('✅ Firebase Analytics 초기화 완료');
+          
+          // 페이지뷰 이벤트 로깅
+          logEvent(analytics, 'page_view', {
+            page_title: 'Home',
+            page_location: window.location.href
+          });
+        } catch (analyticsError) {
+          console.warn('⚠️ Firebase Analytics 초기화 실패 (브라우저 환경 문제일 수 있음):', analyticsError);
+        }
 
         // 전역으로 노출
         window.firebaseApp = app;

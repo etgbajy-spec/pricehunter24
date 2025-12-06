@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
     <!-- Content Security Policy -->
-    <meta http-equiv="Content-Security-Policy" content="frame-src 'self' https://www.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com https://apis.google.com; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com https://*.gstatic.com https://firebasejs.com https://images.unsplash.com https://*.unsplash.com https://apis.google.com https://*.firebasejs.com https://accounts.google.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://www.gstatic.com https://*.gstatic.com https://firebasejs.com https://apis.google.com; img-src 'self' data: https: http: blob:;" />
+    <meta http-equiv="Content-Security-Policy" content="frame-src 'self' https://www.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com https://apis.google.com; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com https://*.gstatic.com https://firebasejs.com https://images.unsplash.com https://*.unsplash.com https://apis.google.com https://*.firebasejs.com https://accounts.google.com https://www.google-analytics.com https://*.google-analytics.com https://analytics.google.com https://*.googletagmanager.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://www.gstatic.com https://*.gstatic.com https://firebasejs.com https://apis.google.com https://www.googletagmanager.com; img-src 'self' data: https: http: blob: https://www.google-analytics.com https://*.google-analytics.com;" />
     
     <title>애널리틱스 - PriceHunter</title>
     
@@ -24,6 +24,7 @@
       import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
       import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
       import { getFirestore, collection, query, where, getDocs, addDoc, serverTimestamp, orderBy, limit } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
+      import { getAnalytics, logEvent } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-analytics.js';
       
       // Firebase 설정
       const firebaseConfig = {
@@ -41,6 +42,35 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
+        
+        // Firebase Analytics 초기화
+        let analytics = null;
+        try {
+          analytics = getAnalytics(app);
+          window.firebaseAnalytics = analytics;
+          console.log('✅ Firebase Analytics 초기화 완료');
+          console.log('📊 Measurement ID:', firebaseConfig.measurementId);
+          
+          // 페이지뷰 이벤트 로깅
+          logEvent(analytics, 'page_view', {
+            page_title: 'Analytics Dashboard',
+            page_location: window.location.href,
+            page_path: '/analytics.html'
+          });
+          
+          // 커스텀 이벤트: Analytics 페이지 방문
+          logEvent(analytics, 'analytics_page_view', {
+            timestamp: new Date().toISOString()
+          });
+          
+          console.log('✅ Firebase Analytics 이벤트 로깅 완료');
+        } catch (analyticsError) {
+          console.warn('⚠️ Firebase Analytics 초기화 실패:', analyticsError);
+          console.warn('💡 Firebase Analytics가 작동하지 않는 경우:');
+          console.warn('1. Firebase 콘솔에서 Google Analytics가 활성화되어 있는지 확인');
+          console.warn('2. measurementId가 올바르게 설정되어 있는지 확인');
+          console.warn('3. 브라우저가 Analytics를 지원하는지 확인 (일부 브라우저 확장 프로그램이 차단할 수 있음)');
+        }
 
         // 전역으로 노출
         window.firebaseApp = app;
@@ -186,8 +216,37 @@
                 </button>
             </div>
             
+            <!-- Firebase Analytics 안내 -->
+            <div class="mb-6 p-4 bg-blue-900/20 border border-blue-500/30 rounded-lg">
+                <div class="flex items-start gap-3">
+                    <svg class="w-5 h-5 text-blue-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <div class="flex-1">
+                        <h3 class="text-sm font-semibold text-blue-300 mb-1">Firebase Analytics 콘솔 사용 안내</h3>
+                        <p class="text-xs text-gray-400 mb-2">
+                            Firebase 콘솔에서 Analytics를 보려면 Google Analytics 4(GA4)가 연결되어 있어야 합니다.
+                        </p>
+                        <div class="text-xs text-gray-500 space-y-1">
+                            <p>• <strong>현재 상태:</strong> <span id="analytics-status" class="text-yellow-400">확인 중...</span></p>
+                            <p>• <strong>Measurement ID:</strong> <code class="text-blue-400">G-4BKLV4EVB9</code></p>
+                            <p>• Firebase 콘솔 → Analytics 메뉴에서 상세 통계 확인 가능</p>
+                            <p>• GA4가 연결되지 않은 경우: 프로젝트 설정 → 통합 → Google Analytics 추가</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
             <!-- 메트릭 섹션 -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                <!-- 누적 방문자 수 -->
+                <div class="metric-card">
+                    <div class="metric-label">누적 방문자 수</div>
+                    <div id="total-visitors" class="metric-value">---</div>
+                    <div id="total-visitors-subtitle" class="no-data">데이터 없음</div>
+                    <div class="text-xs text-gray-500 mt-2">전체 기간 (Firestore 기반)</div>
+                </div>
+                
                 <!-- 일일 활성 사용자 수 -->
                 <div class="metric-card">
                     <div class="metric-label">일일 활성 사용자 수</div>
@@ -253,6 +312,100 @@
             const month = String(date.getMonth() + 1).padStart(2, '0');
             const day = String(date.getDate()).padStart(2, '0');
             return `${year}-${month}-${day}`;
+        }
+        
+        // 누적 방문자 수 계산 (전체 기간)
+        async function calculateTotalVisitors() {
+            try {
+                await waitForFirebase();
+                
+                const { collection, getDocs, query, orderBy } = window.firebaseFirestoreFunctions;
+                const db = window.firebaseDb;
+                
+                // 전체 방문 데이터 가져오기 (날짜순 정렬)
+                const visitsRef = collection(db, 'visits');
+                const q = query(visitsRef, orderBy('timestamp', 'desc'));
+                const snapshot = await getDocs(q);
+                
+                // 고유 사용자 집계 (userId 우선, 없으면 sessionId 사용)
+                const uniqueUsers = new Set();
+                const uniqueSessions = new Set();
+                let totalVisits = 0;
+                const dateRange = { first: null, last: null };
+                
+                snapshot.forEach((doc) => {
+                    const data = doc.data();
+                    totalVisits++;
+                    
+                    // 사용자 식별 (로그인 사용자 우선)
+                    if (data.userId && data.userId !== 'anonymous') {
+                        uniqueUsers.add(data.userId);
+                    } else if (data.sessionId) {
+                        uniqueSessions.add(data.sessionId);
+                    }
+                    
+                    // 날짜 범위 추적
+                    const visitDate = data.date || (data.timestamp ? new Date(data.timestamp.toDate()).toISOString().split('T')[0] : null);
+                    if (visitDate) {
+                        if (!dateRange.first || visitDate < dateRange.first) {
+                            dateRange.first = visitDate;
+                        }
+                        if (!dateRange.last || visitDate > dateRange.last) {
+                            dateRange.last = visitDate;
+                        }
+                    }
+                });
+                
+                // 총 고유 방문자 수 (로그인 사용자 + 세션 기반 사용자)
+                const totalUniqueVisitors = uniqueUsers.size + uniqueSessions.size;
+                
+                // UI 업데이트
+                const totalVisitorsElement = document.getElementById('total-visitors');
+                const totalVisitorsSubtitle = document.getElementById('total-visitors-subtitle');
+                
+                if (totalUniqueVisitors > 0 || totalVisits > 0) {
+                    totalVisitorsElement.textContent = totalUniqueVisitors > 0 
+                        ? totalUniqueVisitors.toLocaleString() 
+                        : totalVisits.toLocaleString();
+                    
+                    let subtitleText = `총 ${totalVisits.toLocaleString()}회 방문`;
+                    if (dateRange.first && dateRange.last) {
+                        subtitleText += ` (${dateRange.first} ~ ${dateRange.last})`;
+                    }
+                    totalVisitorsSubtitle.textContent = subtitleText;
+                    totalVisitorsSubtitle.classList.remove('no-data');
+                    totalVisitorsSubtitle.classList.add('text-blue-400');
+                } else {
+                    totalVisitorsElement.textContent = '0';
+                    totalVisitorsSubtitle.textContent = '데이터 수집 중...';
+                    totalVisitorsSubtitle.classList.remove('no-data');
+                    totalVisitorsSubtitle.classList.add('text-yellow-400');
+                }
+                
+                console.log('📊 누적 방문자 수:', {
+                    totalUniqueVisitors: totalUniqueVisitors,
+                    loggedInUsers: uniqueUsers.size,
+                    sessionUsers: uniqueSessions.size,
+                    totalVisits: totalVisits,
+                    dateRange: dateRange
+                });
+                
+            } catch (error) {
+                console.error('❌ 누적 방문자 수 계산 실패:', error);
+                const totalVisitorsElement = document.getElementById('total-visitors');
+                const totalVisitorsSubtitle = document.getElementById('total-visitors-subtitle');
+                
+                // 에러가 인덱스 관련인 경우 (timestamp 필드 인덱스 필요)
+                if (error.message && error.message.includes('index')) {
+                    totalVisitorsElement.textContent = '---';
+                    totalVisitorsSubtitle.textContent = '인덱스 설정 필요 (Firestore 콘솔 확인)';
+                    totalVisitorsSubtitle.classList.add('text-yellow-400');
+                } else {
+                    totalVisitorsElement.textContent = '---';
+                    totalVisitorsSubtitle.textContent = '데이터 로드 실패';
+                    totalVisitorsSubtitle.classList.add('no-data');
+                }
+            }
         }
         
         // 일일 활성 사용자 수 계산
@@ -427,20 +580,40 @@
             }
         }
         
+        // Firebase Analytics 상태 확인
+        function checkAnalyticsStatus() {
+            const statusElement = document.getElementById('analytics-status');
+            if (!statusElement) return;
+            
+            if (window.firebaseAnalytics) {
+                statusElement.textContent = '활성화됨 ✅';
+                statusElement.className = 'text-green-400';
+            } else {
+                statusElement.textContent = '비활성화됨 (GA4 연결 필요)';
+                statusElement.className = 'text-yellow-400';
+            }
+        }
+        
         // 페이지 로드 시 데이터 로드
         document.addEventListener('DOMContentLoaded', async () => {
             console.log('🚀 애널리틱스 페이지 로드 시작...');
             
+            // Analytics 상태 확인
+            checkAnalyticsStatus();
+            
             // 로딩 표시
+            document.getElementById('total-visitors').innerHTML = '<span class="loading"></span>';
             document.getElementById('daily-active-users').innerHTML = '<span class="loading"></span>';
             document.getElementById('retention-rate').innerHTML = '<span class="loading"></span>';
             
             // 데이터 계산
+            await calculateTotalVisitors();
             await calculateDailyActiveUsers();
             await calculateRetentionRate();
             
             // 5분마다 데이터 갱신
             setInterval(async () => {
+                await calculateTotalVisitors();
                 await calculateDailyActiveUsers();
                 await calculateRetentionRate();
             }, 5 * 60 * 1000);
@@ -486,8 +659,21 @@
         }
         
         // 페이지 로드 시 방문 로그 기록
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
             setTimeout(logVisit, 1000);
+            
+            // Firebase Analytics 이벤트도 함께 기록
+            if (window.firebaseAnalytics) {
+                try {
+                    const { logEvent } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-analytics.js');
+                    logEvent(window.firebaseAnalytics, 'analytics_dashboard_view', {
+                        timestamp: new Date().toISOString()
+                    });
+                    console.log('✅ Analytics 대시보드 방문 이벤트 로깅 완료');
+                } catch (error) {
+                    console.warn('Analytics 이벤트 로깅 실패:', error);
+                }
+            }
         });
     </script>
 </body>
