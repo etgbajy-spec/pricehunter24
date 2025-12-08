@@ -2605,8 +2605,8 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
         }
         
         // 방문자 리포트 로드
-        async function loadVisitorReport(period) {
-            console.log('📊 방문자 리포트 로드:', period);
+        async function loadVisitorReport(period, customStartDate = null, customEndDate = null) {
+            console.log('📊 방문자 리포트 로드:', period, customStartDate, customEndDate);
             
             // 탭 활성화
             document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -2615,6 +2615,16 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             const activeTab = document.querySelector(`[data-period="${period}"]`);
             if (activeTab) {
                 activeTab.classList.add('active');
+            }
+            
+            // 사용자 정의 날짜 범위 UI 표시/숨김
+            const customDateRange = document.getElementById('custom-date-range');
+            if (customDateRange) {
+                if (period === 'custom') {
+                    customDateRange.classList.remove('hidden');
+                } else {
+                    customDateRange.classList.add('hidden');
+                }
             }
             
             try {
@@ -2628,7 +2638,15 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 const today = new Date();
                 
                 // 기간별 날짜 범위 설정
-                if (period === 'daily') {
+                if (period === 'all') {
+                    // 전체 기간 - 날짜 필터 없이 모든 데이터 가져오기
+                    startDate = null;
+                    endDate = null;
+                } else if (period === 'custom' && customStartDate && customEndDate) {
+                    // 사용자 정의 날짜 범위
+                    startDate = new Date(customStartDate);
+                    endDate = new Date(customEndDate);
+                } else if (period === 'daily') {
                     // 최근 30일
                     startDate = new Date(today);
                     startDate.setDate(today.getDate() - 30);
@@ -2643,15 +2661,26 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                     startDate = new Date(today);
                     startDate.setMonth(today.getMonth() - 12);
                     endDate = today;
+                } else {
+                    // 기본값: 최근 30일
+                    startDate = new Date(today);
+                    startDate.setDate(today.getDate() - 30);
+                    endDate = today;
                 }
                 
                 // 방문 데이터 가져오기
-                const q = query(
-                    visitsRef,
-                    where('date', '>=', formatDate(startDate)),
-                    where('date', '<=', formatDate(endDate)),
-                    orderBy('date', 'asc')
-                );
+                let q;
+                if (period === 'all') {
+                    // 전체 기간은 날짜 필터 없이 가져오기
+                    q = query(visitsRef, orderBy('date', 'asc'));
+                } else {
+                    q = query(
+                        visitsRef,
+                        where('date', '>=', formatDate(startDate)),
+                        where('date', '<=', formatDate(endDate)),
+                        orderBy('date', 'asc')
+                    );
+                }
                 
                 const snapshot = await getDocs(q);
                 
@@ -2671,7 +2700,14 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                     
                     // 기간별 그룹핑
                     let key;
-                    if (period === 'daily') {
+                    if (period === 'all') {
+                        // 전체 기간은 월 단위로 그룹핑 (데이터가 많을 수 있으므로)
+                        const dateObj = new Date(date + 'T00:00:00');
+                        key = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}`;
+                    } else if (period === 'custom') {
+                        // 사용자 정의 기간은 일일 단위로 표시
+                        key = date;
+                    } else if (period === 'daily') {
                         key = date;
                     } else if (period === 'weekly') {
                         // 주 단위로 그룹핑 (월요일 기준)
@@ -2684,6 +2720,8 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                         // 월 단위로 그룹핑
                         const dateObj = new Date(date + 'T00:00:00');
                         key = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}`;
+                    } else {
+                        key = date;
                     }
                     
                     if (!dataMap.has(key)) {
@@ -2731,12 +2769,20 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 document.getElementById('max-visitors-count').textContent = maxVisitors.toLocaleString();
                 
                 // 차트 제목 업데이트
-                const titles = {
-                    daily: '일일 방문자 추이 (최근 30일)',
-                    weekly: '주간 방문자 추이 (최근 12주)',
-                    monthly: '월간 방문자 추이 (최근 12개월)'
-                };
-                document.getElementById('chart-title').textContent = titles[period] || '방문자 추이';
+                let chartTitle = '방문자 추이';
+                if (period === 'all') {
+                    chartTitle = '전체 기간 방문자 추이';
+                } else if (period === 'custom' && customStartDate && customEndDate) {
+                    chartTitle = `방문자 추이 (${formatDate(new Date(customStartDate))} ~ ${formatDate(new Date(customEndDate))})`;
+                } else {
+                    const titles = {
+                        daily: '일일 방문자 추이 (최근 30일)',
+                        weekly: '주간 방문자 추이 (최근 12주)',
+                        monthly: '월간 방문자 추이 (최근 12개월)'
+                    };
+                    chartTitle = titles[period] || '방문자 추이';
+                }
+                document.getElementById('chart-title').textContent = chartTitle;
                 
                 // 차트 렌더링
                 renderVisitorChart(chartData, period);
@@ -2868,7 +2914,59 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
         function refreshVisitorData() {
             const activeTab = document.querySelector('.tab-btn.active');
             const period = activeTab ? activeTab.getAttribute('data-period') : 'daily';
-            loadVisitorReport(period);
+            
+            if (period === 'custom') {
+                const startDate = document.getElementById('start-date').value;
+                const endDate = document.getElementById('end-date').value;
+                if (startDate && endDate) {
+                    loadVisitorReport(period, startDate, endDate);
+                } else {
+                    alert('시작일과 종료일을 선택해주세요.');
+                }
+            } else {
+                loadVisitorReport(period);
+            }
+        }
+        
+        // 사용자 정의 날짜 범위 로드
+        function loadCustomDateRange() {
+            const startDate = document.getElementById('start-date').value;
+            const endDate = document.getElementById('end-date').value;
+            
+            if (!startDate || !endDate) {
+                alert('시작일과 종료일을 모두 선택해주세요.');
+                return;
+            }
+            
+            if (new Date(startDate) > new Date(endDate)) {
+                alert('시작일이 종료일보다 늦을 수 없습니다.');
+                return;
+            }
+            
+            loadVisitorReport('custom', startDate, endDate);
+        }
+        
+        // 빠른 날짜 범위 설정
+        function setQuickDateRange(range) {
+            const today = new Date();
+            const startDateInput = document.getElementById('start-date');
+            const endDateInput = document.getElementById('end-date');
+            
+            let startDate = new Date(today);
+            
+            if (range === 'last30') {
+                startDate.setDate(today.getDate() - 30);
+            } else if (range === 'last90') {
+                startDate.setDate(today.getDate() - 90);
+            } else if (range === 'lastYear') {
+                startDate.setFullYear(today.getFullYear() - 1);
+            }
+            
+            startDateInput.value = formatDate(startDate);
+            endDateInput.value = formatDate(today);
+            
+            // 자동으로 조회
+            loadCustomDateRange();
         }
         
         // 섹션 전환
@@ -2928,7 +3026,9 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                     loadDashboardData();
                     break;
                 case 'visitors':
+                    // 방문자 리포트 섹션 진입 시 기본값으로 일일 리포트 로드
                     loadVisitorReport('daily');
+                    // 전체 기간 데이터도 미리 로드할 수 있도록 옵션 제공
                     break;
             }
         }
@@ -3541,16 +3641,58 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                     </div>
 
                     <!-- 기간 선택 탭 -->
-                    <div class="mb-6 flex gap-2 border-b border-gray-200">
-                        <button onclick="loadVisitorReport('daily')" class="tab-btn px-6 py-3 font-semibold text-gray-700 hover:text-pink-600 transition active" data-period="daily">
-                            📅 일일 리포트
-                        </button>
-                        <button onclick="loadVisitorReport('weekly')" class="tab-btn px-6 py-3 font-semibold text-gray-700 hover:text-pink-600 transition" data-period="weekly">
-                            📆 주간 리포트
-                        </button>
-                        <button onclick="loadVisitorReport('monthly')" class="tab-btn px-6 py-3 font-semibold text-gray-700 hover:text-pink-600 transition" data-period="monthly">
-                            📊 월간 리포트
-                        </button>
+                    <div class="mb-6">
+                        <div class="flex gap-2 border-b border-gray-200 mb-4">
+                            <button onclick="loadVisitorReport('daily')" class="tab-btn px-6 py-3 font-semibold text-gray-700 hover:text-pink-600 transition active" data-period="daily">
+                                📅 일일 리포트
+                            </button>
+                            <button onclick="loadVisitorReport('weekly')" class="tab-btn px-6 py-3 font-semibold text-gray-700 hover:text-pink-600 transition" data-period="weekly">
+                                📆 주간 리포트
+                            </button>
+                            <button onclick="loadVisitorReport('monthly')" class="tab-btn px-6 py-3 font-semibold text-gray-700 hover:text-pink-600 transition" data-period="monthly">
+                                📊 월간 리포트
+                            </button>
+                            <button onclick="loadVisitorReport('custom')" class="tab-btn px-6 py-3 font-semibold text-gray-700 hover:text-pink-600 transition" data-period="custom">
+                                🗓️ 기간 선택
+                            </button>
+                            <button onclick="loadVisitorReport('all')" class="tab-btn px-6 py-3 font-semibold text-gray-700 hover:text-pink-600 transition" data-period="all">
+                                📈 전체 기간
+                            </button>
+                        </div>
+                        
+                        <!-- 사용자 정의 날짜 범위 선택 -->
+                        <div id="custom-date-range" class="hidden bg-gray-50 rounded-lg p-4 mb-4">
+                            <div class="flex flex-wrap items-center gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">시작일</label>
+                                    <input type="date" id="start-date" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">종료일</label>
+                                    <input type="date" id="end-date" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">
+                                </div>
+                                <div class="flex items-end">
+                                    <button onclick="loadCustomDateRange()" class="px-4 py-2 bg-pink-600 text-white rounded-lg font-semibold hover:bg-pink-700 transition">
+                                        🔍 조회
+                                    </button>
+                                </div>
+                                <div class="flex items-end">
+                                    <button onclick="setQuickDateRange('last30')" class="px-3 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm hover:bg-gray-300 transition">
+                                        최근 30일
+                                    </button>
+                                </div>
+                                <div class="flex items-end">
+                                    <button onclick="setQuickDateRange('last90')" class="px-3 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm hover:bg-gray-300 transition">
+                                        최근 90일
+                                    </button>
+                                </div>
+                                <div class="flex items-end">
+                                    <button onclick="setQuickDateRange('lastYear')" class="px-3 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm hover:bg-gray-300 transition">
+                                        최근 1년
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- 통계 카드 -->
