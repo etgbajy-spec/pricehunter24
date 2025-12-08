@@ -1,0 +1,44 @@
+name: Deploy to Netlify
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:  # 수동 실행 허용
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Run linting (선택사항)
+      run: npm run lint || true
+      continue-on-error: true
+      
+    - name: Deploy to Netlify
+      uses: netlify/actions/cli@master
+      env:
+        NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+        NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+      with:
+        args: deploy --prod --dir=. --functions=netlify/functions
+        
+    - name: Clear Netlify cache (선택사항)
+      if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+      run: |
+        curl -X POST "https://api.netlify.com/api/v1/sites/${{ secrets.NETLIFY_SITE_ID }}/purge_cache" \
+          -H "Authorization: Bearer ${{ secrets.NETLIFY_AUTH_TOKEN }}" \
+          || true
