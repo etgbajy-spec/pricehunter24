@@ -135,6 +135,9 @@
             }, true);
         })();
     </script>
+    <!-- 캐싱 유틸리티 (Firestore 읽기 횟수 감소) -->
+    <script src="cache-utils.js"></script>
+    
     <!-- Chart.js 로드 (소스맵 자동 요청 방지) -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" crossorigin="anonymous"></script>
     <script>
@@ -1196,21 +1199,43 @@
             });
         }
         
-        // Firebase에서 의뢰 데이터 가져오기 (일회성 조회 - 호환성 유지)
+        // Firebase에서 의뢰 데이터 가져오기 (캐싱 및 쿼리 최적화 적용)
         async function getRequestsFromFirebase() {
             try {
-                const { collection, getDocs } = window.firebaseFirestoreFunctions;
+                // 캐싱된 데이터 확인
+                if (window.cacheUtils) {
+                    const cached = window.cacheUtils.getCachedData('ph_cache_requests_all');
+                    if (cached) {
+                        console.log(`✅ 캐시에서 의뢰 데이터 로드: ${cached.length}개`);
+                        return cached.map(item => ({
+                            ...item,
+                            createdAt: item.createdAt ? new Date(item.createdAt) : new Date(0)
+                        }));
+                    }
+                }
+
+                const { collection, getDocs, query, orderBy, limit } = window.firebaseFirestoreFunctions;
                 const db = window.firebaseDb;
                 
-                // orderBy 없이 모든 데이터 가져오기 (복합 인덱스 문제 방지)
+                // 쿼리 최적화: 최신 500개만 가져오기
                 const requestsRef = collection(db, 'requests');
-                const querySnapshot = await getDocs(requestsRef);
+                let q;
+                try {
+                    q = query(requestsRef, orderBy('createdAt', 'desc'), limit(500));
+                } catch (e) {
+                    // 인덱스가 없으면 limit만 적용
+                    console.warn('⚠️ createdAt 인덱스 없음, limit만 적용:', e);
+                    q = query(requestsRef, limit(500));
+                }
+                
+                const querySnapshot = await getDocs(q);
                 const requests = [];
                 
                 querySnapshot.forEach((doc) => {
+                    const data = doc.data();
                     requests.push({
                         id: doc.id,
-                        ...doc.data()
+                        ...data
                     });
                 });
                 
@@ -1221,8 +1246,16 @@
                     return bTime - aTime;
                 });
                 
+                // 캐시에 저장 (1분 캐시)
+                if (window.cacheUtils) {
+                    const cacheData = requests.map(item => ({
+                        ...item,
+                        createdAt: item.createdAt?.toDate ? item.createdAt.toDate().toISOString() : (item.createdAt || new Date(0).toISOString())
+                    }));
+                    window.cacheUtils.setCachedData('ph_cache_requests_all', cacheData, 'SHORT');
+                }
+                
                 console.log(`✅ Firebase에서 의뢰 데이터 ${requests.length}개 가져옴`);
-                console.log('📊 의뢰 데이터 상세:', requests);
                 return requests;
             } catch (error) {
                 console.error('❌ Firebase에서 의뢰 데이터 가져오기 실패:', error);
@@ -2736,40 +2769,84 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                     endDate = today;
                 }
                 
-                // 방문 데이터 가져오기
-                // Firestore 쿼리 제한을 피하기 위해 모든 데이터를 가져온 후 클라이언트에서 필터링
+                // 방문 데이터 가져오기 (캐싱 및 쿼리 최적화)
+                const cacheKey = `ph_cache_visits_${period}_${customStartDate || ''}_${customEndDate || ''}`;
+                
+                // 캐싱된 데이터 확인
+                if (window.cacheUtils && period !== 'custom') {
+                    const cached = window.cacheUtils.getCachedData(cacheKey);
+                    if (cached) {
+                        console.log(`✅ 캐시에서 방문 데이터 로드: ${cached.length}개`);
+                        // 캐시된 데이터로 통계 계산
+                        processVisitData(cached, startDate, endDate);
+                        return;
+                    }
+                }
+
+                // Firestore 쿼리 최적화: 최신 1000개만 가져오기 (통계용)
                 let q;
                 try {
                     // timestamp로 정렬 시도 (더 정확하고 인덱스가 있을 가능성이 높음)
-                    q = query(visitsRef, orderBy('timestamp', 'desc'));
+                    q = query(visitsRef, orderBy('timestamp', 'desc'), limit(1000));
                 } catch (e) {
                     // timestamp 인덱스가 없으면 date로 시도
                     console.warn('⚠️ timestamp 인덱스 없음, date로 시도:', e);
                     try {
-                        q = query(visitsRef, orderBy('date', 'desc'));
+                        q = query(visitsRef, orderBy('date', 'desc'), limit(1000));
                     } catch (e2) {
-                        // date 인덱스도 없으면 정렬 없이 가져오기
-                        console.warn('⚠️ date 인덱스도 없음, 정렬 없이 가져오기:', e2);
-                        q = query(visitsRef);
+                        // date 인덱스도 없으면 limit만 적용
+                        console.warn('⚠️ date 인덱스도 없음, limit만 적용:', e2);
+                        q = query(visitsRef, limit(1000));
                     }
                 }
                 
                 const snapshot = await getDocs(q);
                 console.log('📊 Firestore에서 가져온 총 데이터 개수:', snapshot.size);
                 
-                // 데이터 집계
-                const dataMap = new Map();
-                const uniqueVisitorsMap = new Map();
-                let totalVisits = 0;
-                let totalUniqueVisitors = new Set();
-                let dateRange = { min: null, max: null };
-                
+                // 데이터를 배열로 변환
+                const visitDataArray = [];
                 snapshot.forEach((doc) => {
                     const data = doc.data();
+                    visitDataArray.push({
+                        id: doc.id,
+                        ...data,
+                        timestamp: data.timestamp?.toDate ? data.timestamp.toDate().toISOString() : (data.timestamp || null),
+                        date: data.date || null
+                    });
+                });
+                
+                // 캐시에 저장 (5분 캐시)
+                if (window.cacheUtils && period !== 'custom') {
+                    window.cacheUtils.setCachedData(cacheKey, visitDataArray, 'DEFAULT');
+                }
+                
+                // 데이터 집계 함수 호출
+                processVisitData(visitDataArray, startDate, endDate);
+            } catch (error) {
+                console.error('❌ 방문 통계 로드 실패:', error);
+                document.getElementById('stats-container').innerHTML = `
+                    <div class="text-red-500 text-center p-4">
+                        통계를 불러오는데 실패했습니다: ${error.message}
+                    </div>
+                `;
+            }
+        }
+        
+        // 방문 데이터 집계 함수 (캐시된 데이터 처리용)
+        function processVisitData(visitDataArray, startDate, endDate) {
+            // 데이터 집계
+            const dataMap = new Map();
+            const uniqueVisitorsMap = new Map();
+            let totalVisits = 0;
+            let totalUniqueVisitors = new Set();
+            let dateRange = { min: null, max: null };
+            
+            visitDataArray.forEach((item) => {
+                    const data = item;
                     // date 필드가 있으면 사용, 없으면 timestamp에서 추출
                     let date = data.date;
                     if (!date && data.timestamp) {
-                        const timestamp = data.timestamp.toDate ? data.timestamp.toDate() : new Date(data.timestamp);
+                        const timestamp = typeof data.timestamp === 'string' ? new Date(data.timestamp) : (data.timestamp?.toDate ? data.timestamp.toDate() : new Date(data.timestamp));
                         date = formatDate(timestamp);
                     }
                     
@@ -6005,18 +6082,41 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
         let filteredReviews = [];
         let reviewsUnsubscribe = null;
 
-        // 후기 데이터 로드
+        // 후기 데이터 로드 (캐싱 적용)
         async function loadReviewsData() {
             try {
                 console.log('📋 후기 데이터 로드 시작...');
                 
                 await waitForFirebase();
-                const { collection, getDocs, query, where } = window.firebaseFirestoreFunctions;
+                const { collection, getDocs, query, orderBy, limit } = window.firebaseFirestoreFunctions;
                 const db = window.firebaseDb;
 
+                // 캐싱된 데이터 확인
+                if (window.cacheUtils) {
+                    const cached = window.cacheUtils.getCachedData('ph_cache_reviews_all');
+                    if (cached) {
+                        allReviews = cached.map(item => ({
+                            ...item,
+                            createdAt: new Date(item.createdAt)
+                        }));
+                        console.log(`✅ 캐시에서 후기 데이터 로드: ${allReviews.length}개`);
+                        filteredReviews = [...allReviews];
+                        updateReviewStatistics();
+                        renderReviewsTable();
+                        return;
+                    }
+                }
+
                 const reviewsRef = collection(db, 'reviews');
-                // 인덱스 없이도 작동하도록 모든 후기 가져오기 (클라이언트에서 필터링)
-                const q = query(reviewsRef);
+                // 쿼리 최적화: 최신 500개만 가져오기 (관리자 대시보드용)
+                let q;
+                try {
+                    q = query(reviewsRef, orderBy('createdAt', 'desc'), limit(500));
+                } catch (e) {
+                    // 인덱스가 없으면 limit만 적용
+                    console.warn('⚠️ createdAt 인덱스 없음, limit만 적용:', e);
+                    q = query(reviewsRef, limit(500));
+                }
                 
                 const querySnapshot = await getDocs(q);
                 allReviews = [];
@@ -6030,8 +6130,17 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                     });
                 });
 
-                // 클라이언트에서 최신순 정렬
+                // 클라이언트에서 최신순 정렬 (이미 orderBy로 정렬되었지만 안전을 위해)
                 allReviews.sort((a, b) => b.createdAt - a.createdAt);
+                
+                // 캐시에 저장 (1분 캐시 - 자주 변경될 수 있음)
+                if (window.cacheUtils) {
+                    const cacheData = allReviews.map(item => ({
+                        ...item,
+                        createdAt: item.createdAt.toISOString()
+                    }));
+                    window.cacheUtils.setCachedData('ph_cache_reviews_all', cacheData, 'SHORT');
+                }
                 
                 console.log(`📊 로드된 후기: ${allReviews.length}개 (승인: ${allReviews.filter(r => r.approved === true).length}개, 대기: ${allReviews.filter(r => r.approved !== true).length}개)`);
 

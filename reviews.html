@@ -78,6 +78,9 @@
         </div>
     </main>
 
+    <!-- 캐싱 유틸리티 (Firestore 읽기 횟수 감소) -->
+    <script src="cache-utils.js"></script>
+    
     <!-- Firebase 초기화 -->
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
@@ -99,13 +102,36 @@
         let allReviews = [];
         let filteredReviews = [];
 
-        // 후기 데이터 로드
+        // 후기 데이터 로드 (캐싱 및 쿼리 최적화 적용)
         async function loadReviews() {
             try {
+                // 캐싱된 데이터 확인
+                if (window.cacheUtils) {
+                    const cached = window.cacheUtils.getCachedData('ph_cache_reviews_approved');
+                    if (cached) {
+                        allReviews = cached.map(item => ({
+                            ...item,
+                            createdAt: new Date(item.createdAt)
+                        }));
+                        filteredReviews = [...allReviews];
+                        renderReviews();
+                        updateStatistics();
+                        document.getElementById('loading').classList.add('hidden');
+                        document.getElementById('reviews-container').classList.remove('hidden');
+                        console.log('✅ 캐시에서 후기 데이터 로드:', allReviews.length, '개');
+                        return;
+                    }
+                }
+
                 const reviewsRef = collection(db, 'reviews');
                 
-                // 인덱스 없이도 작동하도록 where만 사용하고 클라이언트에서 정렬
-                const q = query(reviewsRef, where('approved', '==', true));
+                // 쿼리 최적화: 승인된 후기만 가져오기 + 최신 200개 제한
+                const q = query(
+                    reviewsRef, 
+                    where('approved', '==', true),
+                    orderBy('createdAt', 'desc'),
+                    limit(200)
+                );
                 
                 const querySnapshot = await getDocs(q);
                 allReviews = [];
@@ -119,8 +145,17 @@
                     });
                 });
 
-                // 클라이언트에서 최신순 정렬
+                // 클라이언트에서 최신순 정렬 (이미 정렬되었지만 안전을 위해)
                 allReviews.sort((a, b) => b.createdAt - a.createdAt);
+                
+                // 캐시에 저장 (5분 캐시)
+                if (window.cacheUtils) {
+                    const cacheData = allReviews.map(item => ({
+                        ...item,
+                        createdAt: item.createdAt.toISOString()
+                    }));
+                    window.cacheUtils.setCachedData('ph_cache_reviews_approved', cacheData, 'DEFAULT');
+                }
                 
                 filteredReviews = [...allReviews];
                 renderReviews();
@@ -130,7 +165,30 @@
                 
             } catch (error) {
                 console.error('후기 로드 실패:', error);
-                document.getElementById('loading').innerHTML = '<p class="text-red-600">후기를 불러오는데 실패했습니다.</p>';
+                // 인덱스 오류 시 기본 쿼리로 재시도
+                try {
+                    const reviewsRef = collection(db, 'reviews');
+                    const q = query(reviewsRef, where('approved', '==', true));
+                    const querySnapshot = await getDocs(q);
+                    allReviews = [];
+                    querySnapshot.forEach((doc) => {
+                        const data = doc.data();
+                        allReviews.push({
+                            id: doc.id,
+                            ...data,
+                            createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt || Date.now())
+                        });
+                    });
+                    allReviews.sort((a, b) => b.createdAt - a.createdAt);
+                    filteredReviews = [...allReviews];
+                    renderReviews();
+                    updateStatistics();
+                    document.getElementById('loading').classList.add('hidden');
+                    document.getElementById('reviews-container').classList.remove('hidden');
+                } catch (retryError) {
+                    console.error('후기 로드 재시도 실패:', retryError);
+                    document.getElementById('loading').innerHTML = '<p class="text-red-600">후기를 불러오는데 실패했습니다.</p>';
+                }
             }
         }
 

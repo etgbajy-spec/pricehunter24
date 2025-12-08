@@ -479,6 +479,9 @@
       document.head.appendChild(style);
     </script>
     
+    <!-- 캐싱 유틸리티 (Firestore 읽기 횟수 감소) -->
+    <script src="cache-utils.js"></script>
+    
     <!-- Firebase v9 SDK (모듈식) -->
     <script type="module">
       import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
@@ -598,8 +601,32 @@
         let data = { ...defaultData };
         
         try {
-          // Firebase에서 데이터 로드 시도
-          if (window.firebaseDb) {
+          // Firebase에서 데이터 로드 시도 (캐싱 적용)
+          if (window.firebaseDb && window.cacheUtils) {
+            const { collection, doc, getDoc } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js');
+            
+            // 캐싱된 데이터 확인
+            const cached = window.cacheUtils.getCachedData('ph_cache_adminSettings_savingsKing');
+            if (cached) {
+              data = { ...defaultData, ...cached };
+              console.log('✅ 캐시에서 절약왕 데이터 로드:', data);
+            } else {
+              // 캐시에 없으면 Firestore에서 가져오기
+              const savingsKingRef = doc(collection(window.firebaseDb, 'adminSettings'), 'savingsKing');
+              const docSnap = await getDoc(savingsKingRef);
+              
+              if (docSnap.exists()) {
+                const firebaseData = docSnap.data();
+                data = { ...defaultData, ...firebaseData };
+                // 캐시에 저장 (30분 캐시 - 자주 변경되지 않음)
+                window.cacheUtils.setCachedData('ph_cache_adminSettings_savingsKing', firebaseData, 'LONG');
+                console.log('✅ Firebase에서 절약왕 데이터 로드 성공:', data);
+              } else {
+                console.log('⚠️ Firebase에 절약왕 데이터가 없음, 기본값 사용');
+              }
+            }
+          } else if (window.firebaseDb) {
+            // 캐싱 유틸리티가 없으면 기존 방식 사용
             const { collection, doc, getDoc } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js');
             
             const savingsKingRef = doc(collection(window.firebaseDb, 'adminSettings'), 'savingsKing');
@@ -3897,22 +3924,48 @@
           try {
             console.log('🔄 사용자 데이터 동기화 시작...');
             
-            // Firebase 데이터 가져오기
+            // Firebase 데이터 가져오기 (캐싱 적용)
             let firebaseUsers = [];
             if (window.firebaseDb) {
               try {
-                const { collection, getDocs } = window.firebaseFirestoreFunctions;
-                const usersRef = collection(window.firebaseDb, 'users');
-                const snapshot = await getDocs(usersRef);
-                
-                snapshot.forEach(doc => {
-                  const userData = doc.data();
-                  firebaseUsers.push({
-                    id: doc.id,
-                    ...userData
+                // 캐싱된 데이터 확인
+                if (window.cacheUtils) {
+                  const cached = window.cacheUtils.getCachedData('ph_cache_users_all');
+                  if (cached) {
+                    firebaseUsers = cached;
+                    console.log('✅ 캐시에서 사용자 데이터 로드:', firebaseUsers.length, '명');
+                  } else {
+                    // 캐시에 없으면 Firestore에서 가져오기
+                    const { collection, getDocs } = window.firebaseFirestoreFunctions;
+                    const usersRef = collection(window.firebaseDb, 'users');
+                    const snapshot = await getDocs(usersRef);
+                    
+                    snapshot.forEach(doc => {
+                      const userData = doc.data();
+                      firebaseUsers.push({
+                        id: doc.id,
+                        ...userData
+                      });
+                    });
+                    // 캐시에 저장 (5분 캐시)
+                    window.cacheUtils.setCachedData('ph_cache_users_all', firebaseUsers, 'DEFAULT');
+                    console.log('📊 Firebase에서 가져온 사용자:', firebaseUsers.length, '명');
+                  }
+                } else {
+                  // 캐싱 유틸리티가 없으면 기존 방식 사용
+                  const { collection, getDocs } = window.firebaseFirestoreFunctions;
+                  const usersRef = collection(window.firebaseDb, 'users');
+                  const snapshot = await getDocs(usersRef);
+                  
+                  snapshot.forEach(doc => {
+                    const userData = doc.data();
+                    firebaseUsers.push({
+                      id: doc.id,
+                      ...userData
+                    });
                   });
-                });
-                console.log('📊 Firebase에서 가져온 사용자:', firebaseUsers.length, '명');
+                  console.log('📊 Firebase에서 가져온 사용자:', firebaseUsers.length, '명');
+                }
               } catch (error) {
                 console.error('❌ Firebase 사용자 데이터 가져오기 실패:', error);
               }
