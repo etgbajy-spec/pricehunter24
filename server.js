@@ -46,16 +46,16 @@ app.use((req, res, next) => {
   const cspPolicy = [
     "default-src 'self'",
     // Firebase + Kakao 스크립트 허용 (unsafe-eval 제거로 보안 강화)
-    "script-src 'self' 'unsafe-inline' https://www.gstatic.com https://www.gstatic.com/firebasejs https://cdn.tailwindcss.com https://developers.kakao.com https://t1.kakaocdn.net https://apis.google.com https://apis.google.com/js https://*.googleapis.com https://*.google.com",
-    "script-src-elem 'self' 'unsafe-inline' https://www.gstatic.com https://www.gstatic.com/firebasejs https://cdn.tailwindcss.com https://developers.kakao.com https://t1.kakaocdn.net https://apis.google.com https://apis.google.com/js https://*.googleapis.com https://*.google.com",
+    "script-src 'self' 'unsafe-inline' https://www.gstatic.com https://www.gstatic.com/firebasejs https://cdn.tailwindcss.com https://developers.kakao.com https://t1.kakaocdn.net https://apis.google.com https://apis.google.com/js https://*.googleapis.com https://*.google.com https://cdn.jsdelivr.net https://*.jsdelivr.net",
+    "script-src-elem 'self' 'unsafe-inline' https://www.gstatic.com https://www.gstatic.com/firebasejs https://cdn.tailwindcss.com https://developers.kakao.com https://t1.kakaocdn.net https://apis.google.com https://apis.google.com/js https://*.googleapis.com https://*.google.com https://cdn.jsdelivr.net https://*.jsdelivr.net",
     // 스타일 허용
     "style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://fonts.googleapis.com",
     // 이미지 허용
     "img-src 'self' data: blob: https:",
     // 폰트 허용
     "font-src 'self' https://fonts.gstatic.com",
-    // Firebase + Kakao API 연결 허용
-    "connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://firebase.googleapis.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com https://*.gstatic.com https://accounts.google.com https://oauth2.googleapis.com https://apis.google.com https://*.google.com https://*.googleapis.com",
+    // Firebase + Kakao API 연결 허용 (Chart.js 소스맵 포함)
+    "connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://firebase.googleapis.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com https://*.gstatic.com https://accounts.google.com https://oauth2.googleapis.com https://apis.google.com https://*.google.com https://*.googleapis.com https://cdn.jsdelivr.net https://*.jsdelivr.net",
     // iframe 허용 (reCAPTCHA, Google 로그인, Kakao, Firebase)
     "frame-src 'self' https://www.google.com https://accounts.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com https://apis.google.com https://*.gstatic.com https://*.google.com",
     // 보안 정책 강화
