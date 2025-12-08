@@ -2669,30 +2669,74 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 }
                 
                 // 방문 데이터 가져오기
+                // Firestore 쿼리 제한을 피하기 위해 모든 데이터를 가져온 후 클라이언트에서 필터링
                 let q;
-                if (period === 'all') {
-                    // 전체 기간은 날짜 필터 없이 가져오기
-                    q = query(visitsRef, orderBy('date', 'asc'));
-                } else {
-                    q = query(
-                        visitsRef,
-                        where('date', '>=', formatDate(startDate)),
-                        where('date', '<=', formatDate(endDate)),
-                        orderBy('date', 'asc')
-                    );
+                try {
+                    // timestamp로 정렬 시도 (더 정확하고 인덱스가 있을 가능성이 높음)
+                    q = query(visitsRef, orderBy('timestamp', 'desc'));
+                } catch (e) {
+                    // timestamp 인덱스가 없으면 date로 시도
+                    console.warn('⚠️ timestamp 인덱스 없음, date로 시도:', e);
+                    try {
+                        q = query(visitsRef, orderBy('date', 'desc'));
+                    } catch (e2) {
+                        // date 인덱스도 없으면 정렬 없이 가져오기
+                        console.warn('⚠️ date 인덱스도 없음, 정렬 없이 가져오기:', e2);
+                        q = query(visitsRef);
+                    }
                 }
                 
                 const snapshot = await getDocs(q);
+                console.log('📊 Firestore에서 가져온 총 데이터 개수:', snapshot.size);
                 
                 // 데이터 집계
                 const dataMap = new Map();
                 const uniqueVisitorsMap = new Map();
                 let totalVisits = 0;
                 let totalUniqueVisitors = new Set();
+                let dateRange = { min: null, max: null };
                 
                 snapshot.forEach((doc) => {
                     const data = doc.data();
-                    const date = data.date;
+                    // date 필드가 있으면 사용, 없으면 timestamp에서 추출
+                    let date = data.date;
+                    if (!date && data.timestamp) {
+                        const timestamp = data.timestamp.toDate ? data.timestamp.toDate() : new Date(data.timestamp);
+                        date = formatDate(timestamp);
+                    }
+                    
+                    if (!date) {
+                        console.warn('⚠️ 날짜 정보가 없는 데이터:', doc.id, data);
+                        return; // 날짜가 없으면 스킵
+                    }
+                    
+                    // 날짜 범위 추적
+                    if (date) {
+                        if (!dateRange.min || date < dateRange.min) {
+                            dateRange.min = date;
+                        }
+                        if (!dateRange.max || date > dateRange.max) {
+                            dateRange.max = date;
+                        }
+                    }
+                    
+                    // 기간 필터링 (클라이언트 사이드)
+                    if (period !== 'all') {
+                        if (period === 'custom' && customStartDate && customEndDate) {
+                            const startStr = formatDate(new Date(customStartDate));
+                            const endStr = formatDate(new Date(customEndDate));
+                            if (date < startStr || date > endStr) {
+                                return; // 범위 밖이면 스킵
+                            }
+                        } else if (startDate && endDate) {
+                            const startStr = formatDate(startDate);
+                            const endStr = formatDate(endDate);
+                            if (date < startStr || date > endStr) {
+                                return; // 범위 밖이면 스킵
+                            }
+                        }
+                    }
+                    
                     const userId = data.userId || data.sessionId || 'anonymous';
                     
                     totalVisits++;
@@ -2767,6 +2811,28 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                     ? Math.round(totalPeriodVisitors / sortedKeys.length).toLocaleString() 
                     : '0';
                 document.getElementById('max-visitors-count').textContent = maxVisitors.toLocaleString();
+                
+                // 디버깅: 날짜 범위 출력
+                console.log('📅 데이터 날짜 범위:', dateRange);
+                console.log('📊 집계된 기간 수:', sortedKeys.length);
+                if (dateRange.min && dateRange.max) {
+                    console.log(`📅 최초 데이터: ${dateRange.min}, 최신 데이터: ${dateRange.max}`);
+                    
+                    // UI에 날짜 범위 표시
+                    const dataRangeInfo = document.getElementById('data-range-info');
+                    if (dataRangeInfo) {
+                        dataRangeInfo.textContent = `데이터 범위: ${dateRange.min} ~ ${dateRange.max} (총 ${snapshot.size}건)`;
+                        dataRangeInfo.classList.remove('text-gray-500');
+                        dataRangeInfo.classList.add('text-blue-600');
+                    }
+                } else {
+                    const dataRangeInfo = document.getElementById('data-range-info');
+                    if (dataRangeInfo) {
+                        dataRangeInfo.textContent = `데이터 없음 (총 ${snapshot.size}건)`;
+                        dataRangeInfo.classList.remove('text-blue-600');
+                        dataRangeInfo.classList.add('text-gray-500');
+                    }
+                }
                 
                 // 차트 제목 업데이트
                 let chartTitle = '방문자 추이';
@@ -3634,7 +3700,10 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 <!-- 방문자 리포트 섹션 -->
                 <div id="visitors-section" class="section-content p-8 hidden">
                     <div class="flex justify-between items-center mb-6">
-                        <h2 class="text-2xl font-bold text-gray-800">📈 방문자 리포트</h2>
+                        <div>
+                            <h2 class="text-2xl font-bold text-gray-800">📈 방문자 리포트</h2>
+                            <p id="data-range-info" class="text-sm text-gray-500 mt-1">데이터 로딩 중...</p>
+                        </div>
                         <button onclick="refreshVisitorData()" class="px-4 py-2 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition">
                             🔄 새로고침
                         </button>
