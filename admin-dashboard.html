@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
     <!-- Content Security Policy - Firebase iframe 허용 -->
-    <meta http-equiv="Content-Security-Policy" content="frame-src 'self' https://www.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com https://apis.google.com https://accounts.google.com; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com https://*.gstatic.com https://firebasejs.com https://images.unsplash.com https://*.unsplash.com https://apis.google.com https://*.firebasejs.com https://accounts.google.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://www.gstatic.com https://*.gstatic.com https://firebasejs.com https://apis.google.com; img-src 'self' data: https: http: blob:;" />
+    <meta http-equiv="Content-Security-Policy" content="frame-src 'self' https://www.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com https://apis.google.com https://accounts.google.com; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com https://*.gstatic.com https://firebasejs.com https://images.unsplash.com https://*.unsplash.com https://apis.google.com https://*.firebasejs.com https://accounts.google.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://www.gstatic.com https://*.gstatic.com https://firebasejs.com https://apis.google.com; img-src 'self' data: https: http: blob:;" />
     
     <title>관리자 대시보드 - PriceHunter</title>
     
@@ -73,6 +73,9 @@
       }
     </script>
     
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     
     <!-- Tailwind CSS (개선된 로딩 방식) -->
     <script>
@@ -2578,6 +2581,296 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             }
         }
 
+        // 방문자 리포트 관련 변수
+        let visitorChart = null;
+        
+        // 날짜 포맷 함수
+        function formatDate(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+        
+        // Firebase 초기화 대기
+        async function waitForFirebase() {
+            let attempts = 0;
+            while ((!window.firebaseDb || !window.firebaseFirestoreFunctions) && attempts < 50) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+                attempts++;
+            }
+            if (!window.firebaseDb) {
+                throw new Error('Firebase 초기화 실패');
+            }
+        }
+        
+        // 방문자 리포트 로드
+        async function loadVisitorReport(period) {
+            console.log('📊 방문자 리포트 로드:', period);
+            
+            // 탭 활성화
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            const activeTab = document.querySelector(`[data-period="${period}"]`);
+            if (activeTab) {
+                activeTab.classList.add('active');
+            }
+            
+            try {
+                await waitForFirebase();
+                
+                const { collection, query, where, getDocs, orderBy } = window.firebaseFirestoreFunctions;
+                const db = window.firebaseDb;
+                
+                const visitsRef = collection(db, 'visits');
+                let startDate, endDate;
+                const today = new Date();
+                
+                // 기간별 날짜 범위 설정
+                if (period === 'daily') {
+                    // 최근 30일
+                    startDate = new Date(today);
+                    startDate.setDate(today.getDate() - 30);
+                    endDate = today;
+                } else if (period === 'weekly') {
+                    // 최근 12주
+                    startDate = new Date(today);
+                    startDate.setDate(today.getDate() - 84); // 12주
+                    endDate = today;
+                } else if (period === 'monthly') {
+                    // 최근 12개월
+                    startDate = new Date(today);
+                    startDate.setMonth(today.getMonth() - 12);
+                    endDate = today;
+                }
+                
+                // 방문 데이터 가져오기
+                const q = query(
+                    visitsRef,
+                    where('date', '>=', formatDate(startDate)),
+                    where('date', '<=', formatDate(endDate)),
+                    orderBy('date', 'asc')
+                );
+                
+                const snapshot = await getDocs(q);
+                
+                // 데이터 집계
+                const dataMap = new Map();
+                const uniqueVisitorsMap = new Map();
+                let totalVisits = 0;
+                let totalUniqueVisitors = new Set();
+                
+                snapshot.forEach((doc) => {
+                    const data = doc.data();
+                    const date = data.date;
+                    const userId = data.userId || data.sessionId || 'anonymous';
+                    
+                    totalVisits++;
+                    totalUniqueVisitors.add(userId);
+                    
+                    // 기간별 그룹핑
+                    let key;
+                    if (period === 'daily') {
+                        key = date;
+                    } else if (period === 'weekly') {
+                        // 주 단위로 그룹핑 (월요일 기준)
+                        const dateObj = new Date(date + 'T00:00:00');
+                        const dayOfWeek = dateObj.getDay();
+                        const monday = new Date(dateObj);
+                        monday.setDate(dateObj.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+                        key = formatDate(monday) + ' 주';
+                    } else if (period === 'monthly') {
+                        // 월 단위로 그룹핑
+                        const dateObj = new Date(date + 'T00:00:00');
+                        key = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}`;
+                    }
+                    
+                    if (!dataMap.has(key)) {
+                        dataMap.set(key, { visits: 0, uniqueVisitors: new Set() });
+                    }
+                    
+                    const periodData = dataMap.get(key);
+                    periodData.visits++;
+                    periodData.uniqueVisitors.add(userId);
+                });
+                
+                // 데이터 정렬 및 변환
+                const sortedKeys = Array.from(dataMap.keys()).sort();
+                const chartData = {
+                    labels: [],
+                    visitors: [],
+                    visits: [],
+                    uniqueVisitors: []
+                };
+                
+                let maxVisitors = 0;
+                let totalPeriodVisitors = 0;
+                
+                sortedKeys.forEach(key => {
+                    const periodData = dataMap.get(key);
+                    const uniqueCount = periodData.uniqueVisitors.size;
+                    
+                    chartData.labels.push(key);
+                    chartData.visitors.push(uniqueCount);
+                    chartData.visits.push(periodData.visits);
+                    chartData.uniqueVisitors.push(uniqueCount);
+                    
+                    totalPeriodVisitors += uniqueCount;
+                    if (uniqueCount > maxVisitors) {
+                        maxVisitors = uniqueCount;
+                    }
+                });
+                
+                // 통계 업데이트
+                document.getElementById('total-visitors-count').textContent = totalUniqueVisitors.size.toLocaleString();
+                document.getElementById('total-visits-count').textContent = totalVisits.toLocaleString();
+                document.getElementById('avg-visitors-count').textContent = sortedKeys.length > 0 
+                    ? Math.round(totalPeriodVisitors / sortedKeys.length).toLocaleString() 
+                    : '0';
+                document.getElementById('max-visitors-count').textContent = maxVisitors.toLocaleString();
+                
+                // 차트 제목 업데이트
+                const titles = {
+                    daily: '일일 방문자 추이 (최근 30일)',
+                    weekly: '주간 방문자 추이 (최근 12주)',
+                    monthly: '월간 방문자 추이 (최근 12개월)'
+                };
+                document.getElementById('chart-title').textContent = titles[period] || '방문자 추이';
+                
+                // 차트 렌더링
+                renderVisitorChart(chartData, period);
+                
+                // 테이블 업데이트
+                updateVisitorTable(sortedKeys, dataMap, period);
+                
+            } catch (error) {
+                console.error('❌ 방문자 리포트 로드 실패:', error);
+                const tbody = document.getElementById('visitor-data-table');
+                if (tbody) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-8 text-center text-red-500">데이터를 불러오는 중 오류가 발생했습니다: ' + error.message + '</td></tr>';
+                }
+            }
+        }
+        
+        // 차트 렌더링
+        function renderVisitorChart(data, period) {
+            const ctx = document.getElementById('visitor-chart');
+            if (!ctx) return;
+            
+            // 기존 차트 제거
+            if (visitorChart) {
+                visitorChart.destroy();
+            }
+            
+            visitorChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.labels,
+                    datasets: [
+                        {
+                            label: '방문자 수',
+                            data: data.visitors,
+                            borderColor: 'rgb(236, 72, 153)',
+                            backgroundColor: 'rgba(236, 72, 153, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        },
+                        {
+                            label: '방문 수',
+                            data: data.visits,
+                            borderColor: 'rgb(59, 130, 246)',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        title: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                precision: 0
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // 테이블 업데이트
+        function updateVisitorTable(keys, dataMap, period) {
+            const tbody = document.getElementById('visitor-data-table');
+            if (!tbody) return;
+            
+            if (keys.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-8 text-center text-gray-500">데이터가 없습니다.</td></tr>';
+                return;
+            }
+            
+            let totalVisitors = 0;
+            let totalVisits = 0;
+            
+            keys.forEach(key => {
+                const periodData = dataMap.get(key);
+                const uniqueCount = periodData.uniqueVisitors.size;
+                totalVisitors += uniqueCount;
+                totalVisits += periodData.visits;
+            });
+            
+            tbody.innerHTML = keys.map(key => {
+                const periodData = dataMap.get(key);
+                const uniqueCount = periodData.uniqueVisitors.size;
+                const percentage = totalVisitors > 0 ? ((uniqueCount / totalVisitors * 100).toFixed(1)) : 0;
+                
+                return `
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">${key}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">${uniqueCount.toLocaleString()}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">${periodData.visits.toLocaleString()}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">${uniqueCount.toLocaleString()}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
+                            <div class="flex items-center">
+                                <div class="w-16 bg-gray-200 rounded-full h-2 mr-2">
+                                    <div class="bg-pink-600 h-2 rounded-full" style="width: ${percentage}%"></div>
+                                </div>
+                                <span>${percentage}%</span>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+            
+            // 합계 행 추가
+            tbody.innerHTML += `
+                <tr class="bg-gray-50 font-semibold">
+                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">합계</td>
+                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">${totalVisitors.toLocaleString()}</td>
+                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">${totalVisits.toLocaleString()}</td>
+                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">${totalVisitors.toLocaleString()}</td>
+                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">100%</td>
+                </tr>
+            `;
+        }
+        
+        // 방문자 데이터 새로고침
+        function refreshVisitorData() {
+            const activeTab = document.querySelector('.tab-btn.active');
+            const period = activeTab ? activeTab.getAttribute('data-period') : 'daily';
+            loadVisitorReport(period);
+        }
+        
         // 섹션 전환
         function switchSection(section) {
             // 기존 활성 섹션 숨기기
@@ -2633,6 +2926,9 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                     break;
                 case 'dashboard':
                     loadDashboardData();
+                    break;
+                case 'visitors':
+                    loadVisitorReport('daily');
                     break;
             }
         }
@@ -2716,6 +3012,9 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                         </button>
                         <button class="sidebar-item w-full text-left px-4 py-3 rounded-lg font-semibold hover:bg-pink-50 transition" data-section="savings-king" onclick="switchSection('savings-king')">
                             🏆 절약왕 관리
+                        </button>
+                        <button class="sidebar-item w-full text-left px-4 py-3 rounded-lg font-semibold hover:bg-pink-50 transition" data-section="visitors" onclick="switchSection('visitors')">
+                            📈 방문자 리포트
                         </button>
                     </div>
                 </nav>
@@ -3228,6 +3527,111 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                         </div>
                         <div id="savings-king-logs" class="bg-gray-50 rounded-lg p-4 h-48 overflow-y-auto font-mono text-sm">
                             <div class="text-gray-500">로그가 여기에 표시됩니다...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 방문자 리포트 섹션 -->
+                <div id="visitors-section" class="section-content p-8 hidden">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-bold text-gray-800">📈 방문자 리포트</h2>
+                        <button onclick="refreshVisitorData()" class="px-4 py-2 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition">
+                            🔄 새로고침
+                        </button>
+                    </div>
+
+                    <!-- 기간 선택 탭 -->
+                    <div class="mb-6 flex gap-2 border-b border-gray-200">
+                        <button onclick="loadVisitorReport('daily')" class="tab-btn px-6 py-3 font-semibold text-gray-700 hover:text-pink-600 transition active" data-period="daily">
+                            📅 일일 리포트
+                        </button>
+                        <button onclick="loadVisitorReport('weekly')" class="tab-btn px-6 py-3 font-semibold text-gray-700 hover:text-pink-600 transition" data-period="weekly">
+                            📆 주간 리포트
+                        </button>
+                        <button onclick="loadVisitorReport('monthly')" class="tab-btn px-6 py-3 font-semibold text-gray-700 hover:text-pink-600 transition" data-period="monthly">
+                            📊 월간 리포트
+                        </button>
+                    </div>
+
+                    <!-- 통계 카드 -->
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                        <div class="bg-white rounded-xl shadow-lg p-6">
+                            <div class="flex items-center">
+                                <div class="p-3 bg-blue-100 rounded-lg">
+                                    <span class="text-2xl">👥</span>
+                                </div>
+                                <div class="ml-4">
+                                    <p class="text-sm text-gray-500">총 방문자</p>
+                                    <p class="text-2xl font-bold text-gray-800" id="total-visitors-count">0</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-white rounded-xl shadow-lg p-6">
+                            <div class="flex items-center">
+                                <div class="p-3 bg-green-100 rounded-lg">
+                                    <span class="text-2xl">🔄</span>
+                                </div>
+                                <div class="ml-4">
+                                    <p class="text-sm text-gray-500">총 방문 수</p>
+                                    <p class="text-2xl font-bold text-gray-800" id="total-visits-count">0</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-white rounded-xl shadow-lg p-6">
+                            <div class="flex items-center">
+                                <div class="p-3 bg-orange-100 rounded-lg">
+                                    <span class="text-2xl">📈</span>
+                                </div>
+                                <div class="ml-4">
+                                    <p class="text-sm text-gray-500">평균 방문자</p>
+                                    <p class="text-2xl font-bold text-gray-800" id="avg-visitors-count">0</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-white rounded-xl shadow-lg p-6">
+                            <div class="flex items-center">
+                                <div class="p-3 bg-purple-100 rounded-lg">
+                                    <span class="text-2xl">📊</span>
+                                </div>
+                                <div class="ml-4">
+                                    <p class="text-sm text-gray-500">최대 방문자</p>
+                                    <p class="text-2xl font-bold text-gray-800" id="max-visitors-count">0</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 차트 영역 -->
+                    <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4" id="chart-title">일일 방문자 추이</h3>
+                        <div class="relative" style="height: 400px;">
+                            <canvas id="visitor-chart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- 상세 데이터 테이블 -->
+                    <div class="bg-white rounded-xl shadow-lg p-6">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">상세 데이터</h3>
+                        <div class="overflow-x-auto">
+                            <table class="w-full">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">기간</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">방문자 수</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">방문 수</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">고유 방문자</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">비율</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="visitor-data-table" class="bg-white divide-y divide-gray-200">
+                                    <tr>
+                                        <td colspan="5" class="px-4 py-8 text-center text-gray-500">데이터를 불러오는 중...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
