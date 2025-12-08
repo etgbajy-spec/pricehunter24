@@ -74,32 +74,53 @@
     </script>
     
     
-    <!-- Chart.js -->
+    <!-- Chart.js - 소스맵 요청 차단 -->
     <script>
-        // 소스맵 요청 차단 (Chart.js 로드 전에 설정)
+        // 소스맵 요청 완전 차단 (Chart.js 로드 전에 설정)
         (function() {
+            // fetch 차단
             const originalFetch = window.fetch;
             window.fetch = function(...args) {
                 const url = args[0];
-                if (url && typeof url === 'string' && (url.includes('.map') || url.includes('sourcemap'))) {
-                    console.log('🚫 소스맵 요청 차단:', url);
-                    return Promise.reject(new Error('Source map blocked by CSP'));
+                if (url && typeof url === 'string' && (url.includes('.map') || url.includes('sourcemap') || url.includes('chart.umd.js.map'))) {
+                    console.warn('🚫 소스맵 요청 차단:', url);
+                    return Promise.reject(new Error('Source map blocked'));
                 }
                 return originalFetch.apply(this, args);
             };
             
-            // XMLHttpRequest도 차단
+            // XMLHttpRequest 차단
             const originalOpen = XMLHttpRequest.prototype.open;
             XMLHttpRequest.prototype.open = function(method, url, ...rest) {
-                if (url && typeof url === 'string' && (url.includes('.map') || url.includes('sourcemap'))) {
-                    console.log('🚫 소스맵 요청 차단:', url);
+                this._url = url; // URL 저장
+                if (url && typeof url === 'string' && (url.includes('.map') || url.includes('sourcemap') || url.includes('chart.umd.js.map'))) {
+                    console.warn('🚫 소스맵 요청 차단:', url);
+                    this._blocked = true;
                     return;
                 }
                 return originalOpen.apply(this, [method, url, ...rest]);
             };
+            
+            // send도 차단
+            const originalSend = XMLHttpRequest.prototype.send;
+            XMLHttpRequest.prototype.send = function(...args) {
+                if (this._blocked || (this._url && typeof this._url === 'string' && (this._url.includes('.map') || this._url.includes('sourcemap') || this._url.includes('chart.umd.js.map')))) {
+                    return; // 차단된 요청은 실행하지 않음
+                }
+                return originalSend.apply(this, args);
+            };
+            
+            // Error 이벤트 리스너로 소스맵 로딩 실패 무시
+            window.addEventListener('error', function(e) {
+                if (e.message && (e.message.includes('.map') || e.message.includes('sourcemap'))) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return false;
+                }
+            }, true);
         })();
     </script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" crossorigin="anonymous"></script>
     
     <!-- Tailwind CSS (개선된 로딩 방식) -->
     <script>
