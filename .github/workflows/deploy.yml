@@ -22,7 +22,7 @@ jobs:
         cache: 'npm'
         
     - name: Install dependencies
-      run: npm ci
+      run: npm install
       
     - name: Run linting (선택사항)
       run: npm run lint || true
@@ -42,3 +42,4 @@ jobs:
         curl -X POST "https://api.netlify.com/api/v1/sites/${{ secrets.NETLIFY_SITE_ID }}/purge_cache" \
           -H "Authorization: Bearer ${{ secrets.NETLIFY_AUTH_TOKEN }}" \
           || true
+
