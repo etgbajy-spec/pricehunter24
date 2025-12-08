@@ -75,20 +75,31 @@
     
     
     <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script>
-        // Chart.js 소스맵 로딩 비활성화 (CSP 오류 방지)
-        if (typeof Chart !== 'undefined') {
-            // 소스맵 요청을 차단
+        // 소스맵 요청 차단 (Chart.js 로드 전에 설정)
+        (function() {
             const originalFetch = window.fetch;
             window.fetch = function(...args) {
-                if (args[0] && typeof args[0] === 'string' && args[0].includes('.map')) {
-                    return Promise.reject(new Error('Source map blocked'));
+                const url = args[0];
+                if (url && typeof url === 'string' && (url.includes('.map') || url.includes('sourcemap'))) {
+                    console.log('🚫 소스맵 요청 차단:', url);
+                    return Promise.reject(new Error('Source map blocked by CSP'));
                 }
                 return originalFetch.apply(this, args);
             };
-        }
+            
+            // XMLHttpRequest도 차단
+            const originalOpen = XMLHttpRequest.prototype.open;
+            XMLHttpRequest.prototype.open = function(method, url, ...rest) {
+                if (url && typeof url === 'string' && (url.includes('.map') || url.includes('sourcemap'))) {
+                    console.log('🚫 소스맵 요청 차단:', url);
+                    return;
+                }
+                return originalOpen.apply(this, [method, url, ...rest]);
+            };
+        })();
     </script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     
     <!-- Tailwind CSS (개선된 로딩 방식) -->
     <script>
