@@ -21,6 +21,7 @@
       import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
       import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
       import { getFirestore, collection, query, orderBy, onSnapshot, getDocs, getDoc, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, where } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
+      import { init } from './admin.js';
       
       // Firebase 설정
       const firebaseConfig = {
@@ -248,62 +249,21 @@
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🚀 관리자 대시보드 초기화 시작...');
             
-            // 초기 상태 설정: 로그인 섹션 표시, 대시보드 섹션 및 모든 모달 숨김
-            const loginSection = document.getElementById('login-section');
-            const dashboardSection = document.getElementById('dashboard-section');
-            if (loginSection) {
-                loginSection.classList.remove('hidden');
-                loginSection.style.display = '';
-            }
-            if (dashboardSection) {
-                dashboardSection.classList.add('hidden');
-                dashboardSection.style.display = 'none';
-            }
-            
-            // 모든 모달 숨김
-            const modals = [
-                'user-detail-modal',
-                'admin-request-detail-modal',
-                'inquiry-detail-modal'
-            ];
-            modals.forEach(modalId => {
-                const modal = document.getElementById(modalId);
-                if (modal) {
-                    modal.classList.add('hidden');
-                    modal.style.display = 'none';
+            // admin.js 초기화 (모듈 로드 후)
+            setTimeout(() => {
+                if (typeof init === 'function') {
+                    console.log('✅ admin.js 초기화 시작');
+                    init();
+                } else {
+                    console.warn('⚠️ admin.js의 init 함수를 찾을 수 없습니다. 인라인 스크립트 사용');
                 }
-            });
+            }, 100);
             
             // 함수 등록 상태 확인
             console.log('🔍 함수 등록 상태 확인:');
             console.log('- window.editReview:', typeof window.editReview);
             console.log('- window.editReviewWithModal:', typeof window.editReviewWithModal);
             console.log('- window.closeEditReviewModal:', typeof window.closeEditReviewModal);
-            
-            // Firebase 상태 모니터링 추가
-            if (window.firebaseAuthFunctions && window.firebaseAuthFunctions.onAuthStateChanged) {
-                window.firebaseAuthFunctions.onAuthStateChanged(window.firebaseAuth, async (user) => {
-                    console.log('🔐 Firebase Auth 상태 변경:', user ? user.email : '로그아웃됨');
-                    
-                    if (!user) {
-                        // 로그아웃 상태 - 로그인 섹션 표시
-                        showLoginSection();
-                    } else {
-                        // 로그인 상태 - 관리자 권한 확인 후 대시보드 표시
-                        const isAdmin = await checkAdminPermission(user);
-                        if (isAdmin) {
-                            document.getElementById('login-section').classList.add('hidden');
-                            document.getElementById('dashboard-section').classList.remove('hidden');
-                            loadDashboardData();
-                        } else {
-                            showLoginSection();
-                        }
-                    }
-                });
-            } else {
-                // Firebase 함수가 아직 로드되지 않은 경우, 초기 상태만 설정
-                console.log('⏳ Firebase 함수 로딩 대기 중...');
-            }
             
             // Firebase 준비 대기 후 실시간 구독 시작
             setTimeout(async () => {
@@ -489,7 +449,7 @@
                 
                 // 로그인 성공 시 대시보드 표시
                 document.getElementById('login-section').classList.add('hidden');
-                document.getElementById('dashboard-section').classList.remove('hidden');
+                document.getElementById('dashboard').classList.remove('hidden');
                 
                 // 관리자 정보 표시
                 if (document.getElementById('admin-info')) {
@@ -1876,7 +1836,7 @@
         // 로그인 섹션 표시 함수
         function showLoginSection() {
             const loginSection = document.getElementById('login-section');
-            const dashboardSection = document.getElementById('dashboard-section');
+            const dashboardSection = document.getElementById('dashboard');
             
             if (loginSection) {
                 loginSection.classList.remove('hidden');
@@ -3306,7 +3266,7 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
         .filter-btn.active { background-color: #6b7280; color: white; }
         
         /* 초기 상태: 대시보드 및 모든 모달 숨김 */
-        #dashboard-section {
+        #dashboard {
             display: none !important;
         }
         #user-detail-modal,
@@ -3336,7 +3296,7 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 }
                 
                 // 대시보드 섹션 숨김
-                const dashboardSection = document.getElementById('dashboard-section');
+                const dashboardSection = document.getElementById('dashboard');
                 if (dashboardSection) {
                     dashboardSection.classList.add('hidden');
                     dashboardSection.style.display = 'none';
@@ -3387,16 +3347,18 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 <p class="text-gray-600">관리자 로그인</p>
             </div>
             
-            <form onsubmit="event.preventDefault(); adminLogin();" class="space-y-6">
+            <form id="loginForm" class="space-y-6">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">이메일</label>
-                    <input type="email" id="admin-email" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-400 focus:outline-none" placeholder="admin@pricehunter.com">
+                    <input type="email" id="email" name="email" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-400 focus:outline-none" placeholder="admin@pricehunter.com" value="admin@pricehunter.com">
                 </div>
                 
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">비밀번호</label>
-                    <input type="password" id="admin-password" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-400 focus:outline-none" placeholder="비밀번호">
+                    <input type="password" id="password" name="password" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-400 focus:outline-none" placeholder="비밀번호">
                 </div>
+                
+                <div id="loginError" class="text-red-500 text-sm text-center hidden"></div>
                 
                 <button type="submit" class="w-full bg-gradient-to-r from-pink-500 to-purple-500 text-white font-bold py-3 px-4 rounded-lg hover:from-pink-600 hover:to-purple-600 transition shadow-lg">
                     🔐 로그인
@@ -3407,9 +3369,6 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 <button onclick="goToPage('index.html')" class="text-pink-600 hover:text-pink-700 text-sm block w-full">
                     🏠 메인페이지로 돌아가기
                 </button>
-                <button onclick="createAdminAccount()" class="text-blue-600 hover:text-blue-700 text-sm block w-full">
-                    🔧 테스트 관리자 계정 생성
-                </button>
                 <div class="text-xs text-gray-500 mt-2">
                     테스트용 계정: admin@pricehunter.com / admin1234
                 </div>
@@ -3418,7 +3377,7 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
     </div>
 
     <!-- 대시보드 섹션 -->
-    <div id="dashboard-section" class="hidden">
+    <div id="dashboard" class="hidden">
         <div class="flex h-screen">
             <!-- 사이드바 -->
             <div class="w-64 bg-white shadow-lg">

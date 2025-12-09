@@ -37,6 +37,22 @@ function init() {
   requestsTable = document.getElementById('requestsTable');
   inquiriesTable = document.getElementById('inquiriesTable');
   
+  // loginForm이 없으면 login-section 내부에서 찾기
+  if (!loginForm) {
+    const loginSection = document.getElementById('login-section');
+    if (loginSection) {
+      loginForm = loginSection.querySelector('#loginForm');
+    }
+  }
+  
+  console.log('📋 DOM 요소 확인:', {
+    loginForm: !!loginForm,
+    dashboard: !!dashboard,
+    membersTable: !!membersTable,
+    requestsTable: !!requestsTable,
+    inquiriesTable: !!inquiriesTable
+  });
+  
   // 이벤트 리스너 설정
   setupEventListeners();
   
@@ -136,25 +152,51 @@ async function handleLogout() {
 
 // 로그인 폼 표시
 function showLoginForm(message = '') {
-  if (loginForm) loginForm.style.display = 'block';
-  if (dashboard) dashboard.style.display = 'none';
+  // loginForm이 있으면 사용, 없으면 login-section 사용
+  const loginSection = document.getElementById('login-section');
+  if (loginForm) {
+    loginForm.style.display = 'block';
+  } else if (loginSection) {
+    loginSection.classList.remove('hidden');
+    loginSection.style.display = '';
+  }
+  
+  if (dashboard) {
+    dashboard.style.display = 'none';
+    dashboard.classList.add('hidden');
+  }
   
   if (message) {
     const errorDiv = document.getElementById('loginError');
     if (errorDiv) {
       errorDiv.textContent = message;
       errorDiv.style.display = 'block';
+      errorDiv.classList.remove('hidden');
     }
   }
 }
 
 // 대시보드 표시
 function showDashboard() {
-  if (loginForm) loginForm.style.display = 'none';
-  if (dashboard) dashboard.style.display = 'block';
+  // loginForm이 있으면 사용, 없으면 login-section 사용
+  const loginSection = document.getElementById('login-section');
+  if (loginForm) {
+    loginForm.style.display = 'none';
+  } else if (loginSection) {
+    loginSection.classList.add('hidden');
+    loginSection.style.display = 'none';
+  }
+  
+  if (dashboard) {
+    dashboard.style.display = 'block';
+    dashboard.classList.remove('hidden');
+  }
   
   const errorDiv = document.getElementById('loginError');
-  if (errorDiv) errorDiv.style.display = 'none';
+  if (errorDiv) {
+    errorDiv.style.display = 'none';
+    errorDiv.classList.add('hidden');
+  }
 }
 
 // 실시간 리스너 설정
