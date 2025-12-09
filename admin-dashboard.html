@@ -248,6 +248,16 @@
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🚀 관리자 대시보드 초기화 시작...');
             
+            // 초기 상태 설정: 로그인 섹션 표시, 대시보드 섹션 숨김
+            const loginSection = document.getElementById('login-section');
+            const dashboardSection = document.getElementById('dashboard-section');
+            if (loginSection) {
+                loginSection.classList.remove('hidden');
+            }
+            if (dashboardSection) {
+                dashboardSection.classList.add('hidden');
+            }
+            
             // 함수 등록 상태 확인
             console.log('🔍 함수 등록 상태 확인:');
             console.log('- window.editReview:', typeof window.editReview);
@@ -274,6 +284,9 @@
                         }
                     }
                 });
+            } else {
+                // Firebase 함수가 아직 로드되지 않은 경우, 초기 상태만 설정
+                console.log('⏳ Firebase 함수 로딩 대기 중...');
             }
             
             // Firebase 준비 대기 후 실시간 구독 시작
@@ -3253,6 +3266,33 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
         .tab-btn.active { background-color: #ec4899; color: white; }
         .filter-btn.active { background-color: #6b7280; color: white; }
     </style>
+    
+    <!-- 초기 상태 설정 스크립트 (DOM 로드 전 실행) -->
+    <script>
+        // 즉시 실행 함수로 초기 상태 설정
+        (function initDisplayState() {
+            function setInitialState() {
+                const loginSection = document.getElementById('login-section');
+                const dashboardSection = document.getElementById('dashboard-section');
+                if (loginSection) {
+                    loginSection.classList.remove('hidden');
+                    loginSection.style.display = '';
+                }
+                if (dashboardSection) {
+                    dashboardSection.classList.add('hidden');
+                    dashboardSection.style.display = 'none';
+                }
+            }
+            
+            // DOM이 준비되면 즉시 실행
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', setInitialState);
+            } else {
+                // DOM이 이미 로드된 경우 즉시 실행
+                setInitialState();
+            }
+        })();
+    </script>
 </head>
 <body class="bg-gradient-to-br from-gray-50 via-blue-50 to-emerald-50 min-h-screen">
     <!-- 로그인 섹션 -->
