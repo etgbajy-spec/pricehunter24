@@ -20,7 +20,7 @@
     <script type="module">
       import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
       import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
-      import { getFirestore, collection, query, orderBy, onSnapshot, getDocs, getDoc, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, where } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
+      import { getFirestore, collection, query, orderBy, onSnapshot, getDocs, getDoc, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, where, limit } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
       
       // admin.js는 선택적으로 로드 (파일이 없어도 작동하도록)
       (async function loadAdminModule() {
@@ -57,7 +57,7 @@
         window.firebaseAuth = auth;
         window.firebaseDb = db;
         window.firebaseAuthFunctions = { onAuthStateChanged };
-        window.firebaseFirestoreFunctions = { collection, query, orderBy, onSnapshot, getDocs, getDoc, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, where };
+        window.firebaseFirestoreFunctions = { collection, query, orderBy, onSnapshot, getDocs, getDoc, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, where, limit };
         
         console.log('✅ 관리자 대시보드 Firebase v9 초기화 완료');
       } catch (error) {
@@ -82,7 +82,8 @@
           doc: () => {},
           updateDoc: () => {},
           deleteDoc: () => {},
-          where: () => {}
+          where: () => {},
+          limit: () => {}
         };
         
         // 사용자에게 상세한 오류 메시지 표시
@@ -575,13 +576,32 @@
                 // 대시보드 데이터 로드
                 console.log('📊 대시보드 데이터 로드 시작...');
                 try {
+                    // Firebase 준비 대기
+                    await waitForFirebase();
+                    console.log('✅ Firebase 준비 완료, 데이터 로드 시작');
+                    
+                    // 모든 데이터 구독 시작
+                    console.log('📡 데이터 구독 시작...');
+                    if (!requestsUnsubscribe) {
+                        console.log('📡 의뢰 데이터 구독 시작...');
+                        subscribeToRequests();
+                    }
+                    if (!inquiriesUnsubscribe) {
+                        console.log('📡 문의 데이터 구독 시작...');
+                        subscribeToInquiries();
+                    }
+                    if (!usersUnsubscribe) {
+                        console.log('📡 사용자 데이터 구독 시작...');
+                        subscribeToUsers();
+                    }
+                    
                     await loadDashboardData();
                     console.log('✅ 대시보드 데이터 로드 완료');
                 } catch (loadError) {
                     console.error('❌ 대시보드 데이터 로드 실패:', loadError);
                     console.error('오류 스택:', loadError.stack);
                     // 데이터 로드 실패해도 대시보드는 표시
-                    alert('대시보드 데이터를 불러오는 중 오류가 발생했습니다. 콘솔을 확인하세요.');
+                    alert('대시보드 데이터를 불러오는 중 오류가 발생했습니다. 콘솔을 확인하세요.\n\n오류: ' + loadError.message);
                 }
                 
             } catch (error) {
@@ -1273,7 +1293,7 @@
             }
         }
         
-        // 의뢰 목록 UI 업데이트
+        // 의뢰 목록 UI 업데이트 (실시간 구독용)
         function updateRequestListUI(requests) {
             const requestList = document.getElementById('request-list');
             
@@ -1285,45 +1305,58 @@
             requestList.innerHTML = '';
             
             if (requests.length === 0) {
-                requestList.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-gray-500">의뢰가 없습니다.</td></tr>';
+                requestList.innerHTML = '<li class="p-4 text-center text-gray-500">의뢰 내역이 없습니다.</li>';
                 return;
             }
             
             requests.forEach((request) => {
-                const row = document.createElement('tr');
-                row.className = 'hover:bg-gray-50';
-                row.innerHTML = `
-                    <td class="px-4 py-3">
-                        <input type="checkbox" class="request-checkbox" value="${request.id}">
-                    </td>
-                    <td class="px-4 py-3 text-sm">${request.reqNum || request.requestNumber || 'N/A'}</td>
-                    <td class="px-4 py-3 text-sm">${request.productName || request.name || 'N/A'}</td>
-                    <td class="px-4 py-3 text-sm">${request.userName || request.name || 'N/A'}</td>
-                    <td class="px-4 py-3 text-sm">
-                        <span class="px-2 py-1 text-xs rounded-full ${request.status === '답변완료' ? 'bg-green-100 text-green-800' : request.status === '처리중' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'}">
-                            ${request.status || '대기'}
+                const listItem = document.createElement('li');
+                listItem.className = 'grid grid-cols-9 gap-2 px-4 py-3 hover:bg-pink-100 transition-colors';
+                
+                const createdAt = request.createdAt ? 
+                    (request.createdAt.toDate ? request.createdAt.toDate() : 
+                     request.createdAt.seconds ? new Date(request.createdAt.seconds * 1000) : 
+                     new Date(request.createdAt)).toLocaleDateString('ko-KR') : 
+                    '날짜 없음';
+                
+                listItem.innerHTML = `
+                    <div class="col-span-1 flex items-center">
+                        <input type="checkbox" class="request-checkbox" data-id="${request.id}">
+                    </div>
+                    <div class="col-span-2">
+                        <div class="font-semibold text-blue-600">${request.reqNum || request.requestNumber || '번호 없음'}</div>
+                        <div class="text-sm text-gray-600">${request.userName || request.name || '이름 없음'}</div>
+                    </div>
+                    <div class="col-span-1 text-center text-sm">${createdAt}</div>
+                    <div class="col-span-1 text-center">
+                        <span class="px-2 py-1 text-xs rounded-full ${request.status === 'completed' || request.status === '답변완료' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}">
+                            ${request.status === 'completed' || request.status === '답변완료' ? '완료' : '진행중'}
                         </span>
-                    </td>
-                    <td class="px-4 py-3 text-sm">
+                    </div>
+                    <div class="col-span-1 text-center text-sm">${request.purchaseMethod || '-'}</div>
+                    <div class="col-span-1 text-center text-sm">${request.purchaseStatus || '-'}</div>
+                    <div class="col-span-1 text-center">
                         <span class="px-2 py-1 text-xs rounded-full ${request.reviewBoardAgree ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-500'}">
                             ${request.reviewBoardAgree ? '✓ 동의' : '✗ 미동의'}
                         </span>
-                    </td>
-                    <td class="px-4 py-3 text-sm">
-                        <div class="flex gap-2">
-                        <button onclick="viewRequestDetail('${request.id}')" class="px-2 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600">
-                            상세보기
-                        </button>
+                    </div>
+                    <div class="col-span-1 text-center">
+                        <div class="flex gap-2 justify-center">
+                            <button onclick="viewRequestDetail('${request.id}')" class="px-2 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600">
+                                상세보기
+                            </button>
                             ${request.reviewBoardAgree ? `
                             <button onclick="publishToReviewBoard('${request.id}')" class="px-2 py-1 bg-purple-500 text-white text-xs rounded hover:bg-purple-600" title="후기게시판에 올리기">
                                 후기등록
                             </button>
                             ` : ''}
                         </div>
-                    </td>
+                    </div>
                 `;
-                requestList.appendChild(row);
+                requestList.appendChild(listItem);
             });
+            
+            console.log(`✅ 의뢰 목록 UI 업데이트 완료: ${requests.length}개`);
         }
         
         // Firebase에서 의뢰 데이터 가져오기 (캐싱 및 쿼리 최적화 적용)
@@ -1458,7 +1491,9 @@
                 row.className = 'hover:bg-blue-50 transition-colors';
                 
                 const createdAt = inquiry.createdAt ? 
-                    new Date(inquiry.createdAt.seconds * 1000).toLocaleDateString('ko-KR') : 
+                    (inquiry.createdAt.toDate ? inquiry.createdAt.toDate() : 
+                     inquiry.createdAt.seconds ? new Date(inquiry.createdAt.seconds * 1000) : 
+                     new Date(inquiry.createdAt)).toLocaleDateString('ko-KR') : 
                     '날짜 없음';
                 
                 row.innerHTML = `
@@ -1779,7 +1814,8 @@
             try {
                 await Promise.all(deletePromises);
                 alert('선택된 의뢰가 삭제되었습니다.');
-                renderRequestList(); // 목록 새로고침
+                // 실시간 구독이 활성화되어 있으면 자동으로 업데이트됨
+                // renderRequestList(); // 실시간 구독이 없을 때만 필요
             } catch (error) {
                 console.error('의뢰 삭제 실패:', error);
                 alert('의뢰 삭제 중 오류가 발생했습니다.');
@@ -1806,7 +1842,8 @@
             try {
                 await Promise.all(deletePromises);
                 alert('선택된 문의가 삭제되었습니다.');
-                renderInquiryList(); // 목록 새로고침
+                // 실시간 구독이 활성화되어 있으면 자동으로 업데이트됨
+                // renderInquiryList(); // 실시간 구독이 없을 때만 필요
             } catch (error) {
                 console.error('문의 삭제 실패:', error);
                 alert('문의 삭제 중 오류가 발생했습니다.');
@@ -1823,7 +1860,8 @@
                 
                 if (success) {
                     alert('의뢰 상태가 업데이트되었습니다.');
-                    renderRequestList(); // 목록 새로고침
+                    // 실시간 구독이 활성화되어 있으면 자동으로 업데이트됨
+                    // renderRequestList(); // 실시간 구독이 없을 때만 필요
                 } else {
                     alert('의뢰 상태 업데이트에 실패했습니다.');
                 }
@@ -1843,7 +1881,8 @@
                 
                 if (success) {
                     alert('문의 상태가 업데이트되었습니다.');
-                    renderInquiryList(); // 목록 새로고침
+                    // 실시간 구독이 활성화되어 있으면 자동으로 업데이트됨
+                    // renderInquiryList(); // 실시간 구독이 없을 때만 필요
                 } else {
                     alert('문의 상태 업데이트에 실패했습니다.');
                 }
@@ -2045,35 +2084,87 @@
                 }
                 
                 console.log('📡 실시간 구독 시작...');
+                console.log('🔍 현재 구독 상태:', {
+                    requestsUnsubscribe: !!requestsUnsubscribe,
+                    inquiriesUnsubscribe: !!inquiriesUnsubscribe,
+                    usersUnsubscribe: !!usersUnsubscribe
+                });
+                
                 // 실시간 구독 시작 (이미 시작되어 있으면 무시)
                 if (!requestsUnsubscribe) {
                     console.log('📡 의뢰 데이터 구독 시작...');
-                    subscribeToRequests();
+                    try {
+                        subscribeToRequests();
+                        console.log('✅ 의뢰 데이터 구독 성공');
+                    } catch (error) {
+                        console.error('❌ 의뢰 데이터 구독 실패:', error);
+                    }
                 } else {
-                    console.log('⚠️ 의뢰 데이터 구독이 이미 시작되어 있음');
+                    console.log('✅ 의뢰 데이터 구독이 이미 활성화됨');
                 }
                 
                 if (!inquiriesUnsubscribe) {
                     console.log('📡 문의 데이터 구독 시작...');
-                    subscribeToInquiries();
+                    try {
+                        subscribeToInquiries();
+                        console.log('✅ 문의 데이터 구독 성공');
+                    } catch (error) {
+                        console.error('❌ 문의 데이터 구독 실패:', error);
+                    }
                 } else {
-                    console.log('⚠️ 문의 데이터 구독이 이미 시작되어 있음');
+                    console.log('✅ 문의 데이터 구독이 이미 활성화됨');
+                }
+                
+                if (!usersUnsubscribe) {
+                    console.log('📡 사용자 데이터 구독 시작...');
+                    try {
+                        subscribeToUsers();
+                        console.log('✅ 사용자 데이터 구독 성공');
+                    } catch (error) {
+                        console.error('❌ 사용자 데이터 구독 실패:', error);
+                    }
+                } else {
+                    console.log('✅ 사용자 데이터 구독이 이미 활성화됨');
+                }
+                
+                // 후기 데이터 구독도 시작 (아직 시작되지 않았으면)
+                if (!reviewsUnsubscribe) {
+                    console.log('📡 후기 데이터 구독 시작...');
+                    try {
+                        subscribeToReviews();
+                        console.log('✅ 후기 데이터 구독 성공');
+                    } catch (error) {
+                        console.error('❌ 후기 데이터 구독 실패:', error);
+                    }
+                } else {
+                    console.log('✅ 후기 데이터 구독이 이미 활성화됨');
                 }
                 
                 console.log('📋 데이터 렌더링 시작...');
-                // 초기 데이터 로드 (호환성 유지)
-                try {
-                    renderRequestList();
-                    console.log('✅ 의뢰 목록 렌더링 완료');
-                } catch (renderError) {
-                    console.error('❌ 의뢰 목록 렌더링 실패:', renderError);
+                // 실시간 구독이 활성화되어 있으면 일회성 조회는 건너뛰기 (중복 방지)
+                // 실시간 구독이 자동으로 UI를 업데이트하므로 불필요
+                if (!requestsUnsubscribe) {
+                    console.log('⚠️ 의뢰 데이터 구독이 아직 시작되지 않음, 일회성 조회 수행');
+                    try {
+                        renderRequestList();
+                        console.log('✅ 의뢰 목록 렌더링 완료');
+                    } catch (renderError) {
+                        console.error('❌ 의뢰 목록 렌더링 실패:', renderError);
+                    }
+                } else {
+                    console.log('✅ 의뢰 데이터는 실시간 구독으로 자동 업데이트됨');
                 }
                 
-                try {
-                    renderInquiryList();
-                    console.log('✅ 문의 목록 렌더링 완료');
-                } catch (renderError) {
-                    console.error('❌ 문의 목록 렌더링 실패:', renderError);
+                if (!inquiriesUnsubscribe) {
+                    console.log('⚠️ 문의 데이터 구독이 아직 시작되지 않음, 일회성 조회 수행');
+                    try {
+                        renderInquiryList();
+                        console.log('✅ 문의 목록 렌더링 완료');
+                    } catch (renderError) {
+                        console.error('❌ 문의 목록 렌더링 실패:', renderError);
+                    }
+                } else {
+                    console.log('✅ 문의 데이터는 실시간 구독으로 자동 업데이트됨');
                 }
                 
                 console.log('📊 통계 업데이트 시작...');
@@ -3403,34 +3494,49 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 activeItem.classList.add('active');
             }
             
-            // 섹션별 데이터 새로고침
+            // 섹션별 데이터 새로고침 (실시간 구독 우선, 중복 방지)
             switch(section) {
                 case 'requests':
-                    // 의뢰 관리 섹션인 경우 실시간 구독 시작 (이미 시작되어 있으면 무시)
+                    // 의뢰 관리 섹션: 실시간 구독 시작 (이미 시작되어 있으면 무시)
                     if (!requestsUnsubscribe) {
+                        console.log('📡 의뢰 데이터 실시간 구독 시작...');
                         subscribeToRequests();
+                    } else {
+                        console.log('✅ 의뢰 데이터 실시간 구독 이미 활성화됨');
                     }
-                    renderRequestList();
+                    // 실시간 구독이 활성화되어 있으면 일회성 조회는 건너뛰기 (중복 방지)
+                    // 실시간 구독이 데이터를 자동으로 업데이트하므로 불필요
                     break;
                 case 'inquiries':
-                    // 문의 관리 섹션인 경우 실시간 구독 시작 (이미 시작되어 있으면 무시)
+                    // 문의 관리 섹션: 실시간 구독 시작 (이미 시작되어 있으면 무시)
                     if (!inquiriesUnsubscribe) {
+                        console.log('📡 문의 데이터 실시간 구독 시작...');
                         subscribeToInquiries();
+                    } else {
+                        console.log('✅ 문의 데이터 실시간 구독 이미 활성화됨');
                     }
-                    renderInquiryList();
+                    // 실시간 구독이 활성화되어 있으면 일회성 조회는 건너뛰기 (중복 방지)
                     break;
                 case 'members':
-                    // 회원 관리 섹션인 경우 실시간 구독 시작 (이미 시작되어 있으면 무시)
+                    // 회원 관리 섹션: 실시간 구독 시작 (이미 시작되어 있으면 무시)
                     if (!usersUnsubscribe) {
+                        console.log('📡 사용자 데이터 실시간 구독 시작...');
                         subscribeToUsers();
+                    } else {
+                        console.log('✅ 사용자 데이터 실시간 구독 이미 활성화됨');
                     }
+                    // 실시간 구독이 활성화되어 있으면 자동으로 UI 업데이트됨
                     break;
                 case 'reviews':
-                    // 후기 관리 섹션인 경우 실시간 구독 시작
+                    // 후기 관리 섹션: 실시간 구독 시작
                     if (!reviewsUnsubscribe) {
+                        console.log('📡 후기 데이터 실시간 구독 시작...');
                         subscribeToReviews();
+                    } else {
+                        console.log('✅ 후기 데이터 실시간 구독 이미 활성화됨');
                     }
-                    loadReviewsData();
+                    // 실시간 구독이 활성화되어 있으면 loadReviewsData는 건너뛰기 (중복 방지)
+                    // 실시간 구독이 데이터를 자동으로 업데이트하므로 불필요
                     break;
                 case 'dashboard':
                     loadDashboardData();
@@ -3471,6 +3577,28 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
         #dashboard {
             min-height: 100vh;
             background-color: #f9fafb;
+        }
+        
+        /* 레이아웃 수정 */
+        #dashboard .flex {
+            min-height: 100vh;
+        }
+        
+        /* 사이드바 스타일 개선 */
+        #dashboard .w-64 {
+            position: relative;
+            min-height: 100vh;
+            height: 100vh;
+        }
+        
+        /* 메인 콘텐츠 영역 개선 */
+        #dashboard .flex-1 {
+            min-width: 0; /* flexbox 오버플로우 방지 */
+        }
+        
+        /* 섹션 컨텐츠 패딩 */
+        .section-content {
+            min-height: calc(100vh - 2rem);
         }
     </style>
     
@@ -3667,16 +3795,16 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
 
     <!-- 대시보드 섹션 -->
     <div id="dashboard" class="hidden">
-        <div class="flex h-screen">
+        <div class="flex h-screen overflow-hidden">
             <!-- 사이드바 -->
-            <div class="w-64 bg-white shadow-lg">
-                <div class="p-6 border-b">
+            <div class="w-64 bg-white shadow-lg flex flex-col relative">
+                <div class="p-6 border-b flex-shrink-0">
                     <h1 class="text-xl font-bold text-pink-600">PriceHunter</h1>
                     <p class="text-sm text-gray-500">관리자 대시보드</p>
                     <p id="admin-info" class="text-xs text-gray-400 mt-1"></p>
                 </div>
                 
-                <nav class="p-4">
+                <nav class="p-4 flex-1 overflow-y-auto">
                     <div class="space-y-2">
                         <button class="sidebar-item w-full text-left px-4 py-3 rounded-lg font-semibold hover:bg-pink-50 transition active" data-section="dashboard" onclick="switchSection('dashboard')">
                             📊 대시보드
@@ -3702,7 +3830,7 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                     </div>
                 </nav>
                 
-                <div class="absolute bottom-4 left-4 right-4">
+                <div class="p-4 border-t flex-shrink-0">
                     <button onclick="adminLogout()" class="w-full px-4 py-2 bg-red-500 text-white rounded-lg font-semibold hover:bg-red-600 transition">
                         🔓 로그아웃
                     </button>
@@ -3710,7 +3838,7 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             </div>
 
             <!-- 메인 콘텐츠 -->
-            <div class="flex-1 overflow-auto">
+            <div class="flex-1 overflow-y-auto bg-gray-50">
                 <!-- 대시보드 섹션 -->
                 <div id="dashboard-content" class="section-content p-8">
                     <div class="flex justify-between items-center mb-6">
@@ -4856,8 +4984,8 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 // 폼 초기화
                 clearResponseForm();
                 
-                // 의뢰 목록 새로고침
-                renderRequestList();
+                // 실시간 구독이 활성화되어 있으면 자동으로 업데이트됨
+                // renderRequestList(); // 실시간 구독이 없을 때만 필요
                 
             } catch (error) {
                 console.error('❌ 답변 저장 실패:', error);
@@ -5297,8 +5425,8 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 // 폼 초기화
                 clearInquiryResponseForm();
                 
-                // 문의 목록 새로고침
-                renderInquiryList();
+                // 실시간 구독이 활성화되어 있으면 자동으로 업데이트됨
+                // renderInquiryList(); // 실시간 구독이 없을 때만 필요
                 
             } catch (error) {
                 console.error('❌ 문의 답변 저장 실패:', error);
@@ -6438,10 +6566,10 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
 
                 alert(`의뢰번호 ${requestNumber}의 후기 동의 상태를 true로 변경했습니다.`);
                 
-                // 의뢰 목록 새로고침
-                if (typeof renderRequestList === 'function') {
-                    renderRequestList();
-                }
+                // 실시간 구독이 활성화되어 있으면 자동으로 업데이트됨
+                // if (typeof renderRequestList === 'function') {
+                //     renderRequestList();
+                // }
 
             } catch (error) {
                 console.error('❌ 후기 동의 상태 업데이트 실패:', error);
