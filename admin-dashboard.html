@@ -248,15 +248,31 @@
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🚀 관리자 대시보드 초기화 시작...');
             
-            // 초기 상태 설정: 로그인 섹션 표시, 대시보드 섹션 숨김
+            // 초기 상태 설정: 로그인 섹션 표시, 대시보드 섹션 및 모든 모달 숨김
             const loginSection = document.getElementById('login-section');
             const dashboardSection = document.getElementById('dashboard-section');
             if (loginSection) {
                 loginSection.classList.remove('hidden');
+                loginSection.style.display = '';
             }
             if (dashboardSection) {
                 dashboardSection.classList.add('hidden');
+                dashboardSection.style.display = 'none';
             }
+            
+            // 모든 모달 숨김
+            const modals = [
+                'user-detail-modal',
+                'admin-request-detail-modal',
+                'inquiry-detail-modal'
+            ];
+            modals.forEach(modalId => {
+                const modal = document.getElementById(modalId);
+                if (modal) {
+                    modal.classList.add('hidden');
+                    modal.style.display = 'none';
+                }
+            });
             
             // 함수 등록 상태 확인
             console.log('🔍 함수 등록 상태 확인:');
@@ -1859,8 +1875,31 @@
 
         // 로그인 섹션 표시 함수
         function showLoginSection() {
-            document.getElementById('login-section').classList.remove('hidden');
-            document.getElementById('dashboard-section').classList.add('hidden');
+            const loginSection = document.getElementById('login-section');
+            const dashboardSection = document.getElementById('dashboard-section');
+            
+            if (loginSection) {
+                loginSection.classList.remove('hidden');
+                loginSection.style.display = '';
+            }
+            if (dashboardSection) {
+                dashboardSection.classList.add('hidden');
+                dashboardSection.style.display = 'none';
+            }
+            
+            // 모든 모달 숨김
+            const modals = [
+                'user-detail-modal',
+                'admin-request-detail-modal',
+                'inquiry-detail-modal'
+            ];
+            modals.forEach(modalId => {
+                const modal = document.getElementById(modalId);
+                if (modal) {
+                    modal.classList.add('hidden');
+                    modal.style.display = 'none';
+                }
+            });
             
             // 로그아웃 처리
             if (window.firebaseAuth) {
@@ -3265,30 +3304,75 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
         .sidebar-item.active { background-color: #ec4899; color: white; }
         .tab-btn.active { background-color: #ec4899; color: white; }
         .filter-btn.active { background-color: #6b7280; color: white; }
+        
+        /* 초기 상태: 대시보드 및 모든 모달 숨김 */
+        #dashboard-section {
+            display: none !important;
+        }
+        #user-detail-modal,
+        #admin-request-detail-modal,
+        #inquiry-detail-modal {
+            display: none !important;
+        }
     </style>
     
     <!-- 초기 상태 설정 스크립트 (DOM 로드 전 실행) -->
     <script>
         // 즉시 실행 함수로 초기 상태 설정
         (function initDisplayState() {
+            console.log('🔧 초기 상태 설정 스크립트 시작');
+            
             function setInitialState() {
+                console.log('📋 초기 상태 설정 중...');
+                
+                // 로그인 섹션 표시
                 const loginSection = document.getElementById('login-section');
-                const dashboardSection = document.getElementById('dashboard-section');
                 if (loginSection) {
                     loginSection.classList.remove('hidden');
                     loginSection.style.display = '';
+                    console.log('✅ 로그인 섹션 표시됨');
+                } else {
+                    console.warn('⚠️ 로그인 섹션을 찾을 수 없습니다');
                 }
+                
+                // 대시보드 섹션 숨김
+                const dashboardSection = document.getElementById('dashboard-section');
                 if (dashboardSection) {
                     dashboardSection.classList.add('hidden');
                     dashboardSection.style.display = 'none';
+                    console.log('✅ 대시보드 섹션 숨김됨');
+                } else {
+                    console.warn('⚠️ 대시보드 섹션을 찾을 수 없습니다');
                 }
+                
+                // 모든 모달 숨김
+                const modals = [
+                    'user-detail-modal',
+                    'admin-request-detail-modal',
+                    'inquiry-detail-modal'
+                ];
+                let hiddenModals = 0;
+                modals.forEach(modalId => {
+                    const modal = document.getElementById(modalId);
+                    if (modal) {
+                        modal.classList.add('hidden');
+                        modal.style.display = 'none';
+                        hiddenModals++;
+                    }
+                });
+                console.log(`✅ ${hiddenModals}개의 모달 숨김됨`);
             }
             
             // DOM이 준비되면 즉시 실행
             if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', setInitialState);
+                console.log('⏳ DOM 로딩 대기 중...');
+                document.addEventListener('DOMContentLoaded', function() {
+                    console.log('📄 DOM 로드 완료, 초기 상태 설정');
+                    setInitialState();
+                });
             } else {
                 // DOM이 이미 로드된 경우 즉시 실행
+                console.log('📄 DOM 이미 로드됨, 즉시 초기 상태 설정');
                 setInitialState();
             }
         })();
