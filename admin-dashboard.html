@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- Content Security Policy -->
+    <meta http-equiv="Content-Security-Policy" content="frame-src 'self' https://www.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com https://apis.google.com https://accounts.google.com; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com https://*.gstatic.com https://firebasejs.com https://images.unsplash.com https://*.unsplash.com https://apis.google.com https://*.firebasejs.com https://accounts.google.com https://cdn.jsdelivr.net https://*.jsdelivr.net; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://*.jsdelivr.net https://www.gstatic.com https://*.gstatic.com https://firebasejs.com https://apis.google.com; img-src 'self' data: https: http: blob:;" />
+    
+    <title>PriceHunter Admin v2 - 관리자 대시보드</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🔍%3C/text%3E%3C/svg%3E">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #f3f4f6;
+        }
+        
+        /* 스크롤바 스타일 */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        
+        /* 애니메이션 */
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        .slide-in {
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.2s ease-out;
+        }
+        
+        /* 로딩 스피너 */
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #ec4899;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* 알림 배지 */
+        .notification-badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            background: #ef4444;
+            color: white;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+    </style>
+    
+    <!-- Firebase v9 SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
+        import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
+        import { getFirestore, collection, query, orderBy, onSnapshot, getDocs, getDoc, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, where, limit, Timestamp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
+        
+        // Firebase 설정
+        const firebaseConfig = {
+            apiKey: "AIzaSyDBZxKyMS7eeBTbPnbZkj0WWOZQHNldoL4",
+            authDomain: "pricehunter-99a1b.firebaseapp.com",
+            projectId: "pricehunter-99a1b",
+            storageBucket: "pricehunter-99a1b.firebasestorage.app",
+            messagingSenderId: "242265693919",
+            appId: "1:242265693919:web:74234d942b82a51541136a",
+            measurementId: "G-4BKLV4EVB9"
+        };
+        
+        // Firebase 초기화
+        try {
+            const app = initializeApp(firebaseConfig);
+            const auth = getAuth(app);
+            const db = getFirestore(app);
+            
+            // 전역으로 노출
+            window.firebaseApp = app;
+            window.firebaseAuth = auth;
+            window.firebaseDb = db;
+            window.firebaseAuthFunctions = { onAuthStateChanged, signInWithEmailAndPassword, signOut };
+            window.firebaseFirestoreFunctions = { 
+                collection, query, orderBy, onSnapshot, getDocs, getDoc, addDoc, 
+                serverTimestamp, doc, updateDoc, deleteDoc, where, limit, Timestamp 
+            };
+            
+            console.log('✅ Firebase v9 초기화 완료');
+        } catch (error) {
+            console.error('❌ Firebase 초기화 실패:', error);
+        }
+    </script>
+</head>
+<body>
+    <!-- 로그인 화면 -->
+    <div id="login-screen" class="min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md">
+            <div class="text-center mb-8">
+                <div class="text-4xl mb-4">🔍</div>
+                <h1 class="text-3xl font-bold text-gray-800">PriceHunter Admin v2</h1>
+                <p class="text-gray-600 mt-2">관리자 로그인</p>
+            </div>
+            
+            <form id="login-form" class="space-y-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">이메일</label>
+                    <input 
+                        type="email" 
+                        id="login-email" 
+                        required
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                        placeholder="admin@pricehunter.com"
+                    >
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">비밀번호</label>
+                    <input 
+                        type="password" 
+                        id="login-password" 
+                        required
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                        placeholder="비밀번호를 입력하세요"
+                    >
+                </div>
+                
+                <button 
+                    type="submit"
+                    class="w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white py-3 rounded-lg font-semibold hover:from-pink-600 hover:to-purple-700 transition-all shadow-lg"
+                >
+                    로그인
+                </button>
+            </form>
+            
+            <div id="login-error" class="mt-4 text-red-500 text-sm text-center hidden"></div>
+        </div>
+    </div>
+    
+    <!-- 메인 대시보드 -->
+    <div id="dashboard" class="hidden min-h-screen bg-gray-50">
+        <!-- 상단 헤더 -->
+        <header class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
+            <div class="px-6 py-4 flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <h1 class="text-2xl font-bold text-gray-800">🔍 PriceHunter Admin v2</h1>
+                    <span class="text-sm text-gray-500" id="current-user-email"></span>
+                </div>
+                
+                <div class="flex items-center space-x-4">
+                    <!-- 전역 검색 -->
+                    <div class="relative">
+                        <input 
+                            type="text" 
+                            id="global-search"
+                            placeholder="전체 검색 (이메일, 이름, ID, 제목...)"
+                            class="w-80 px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                        >
+                        <svg class="absolute left-3 top-2.5 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                    </div>
+                    
+                    <!-- 알림 센터 -->
+                    <div class="relative">
+                        <button 
+                            id="notification-btn"
+                            class="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors relative"
+                        >
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+                            </svg>
+                            <span id="notification-badge" class="notification-badge hidden">0</span>
+                        </button>
+                    </div>
+                    
+                    <!-- 로그아웃 -->
+                    <button 
+                        id="logout-btn"
+                        class="px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                    >
+                        로그아웃
+                    </button>
+                </div>
+            </div>
+        </header>
+        
+        <div class="flex h-[calc(100vh-73px)]">
+            <!-- 좌측 사이드바 -->
+            <aside class="w-64 bg-white border-r border-gray-200 overflow-y-auto">
+                <nav class="p-4 space-y-2">
+                    <button 
+                        data-section="dashboard"
+                        class="section-btn w-full text-left px-4 py-3 rounded-lg hover:bg-gray-100 transition-colors font-medium text-gray-700 active-section"
+                    >
+                        📊 대시보드
+                    </button>
+                    <button 
+                        data-section="requests"
+                        class="section-btn w-full text-left px-4 py-3 rounded-lg hover:bg-gray-100 transition-colors font-medium text-gray-700"
+                    >
+                        📝 의뢰 관리
+                    </button>
+                    <button 
+                        data-section="inquiries"
+                        class="section-btn w-full text-left px-4 py-3 rounded-lg hover:bg-gray-100 transition-colors font-medium text-gray-700"
+                    >
+                        💬 1:1 문의
+                    </button>
+                    <button 
+                        data-section="users"
+                        class="section-btn w-full text-left px-4 py-3 rounded-lg hover:bg-gray-100 transition-colors font-medium text-gray-700"
+                    >
+                        👥 회원 관리
+                    </button>
+                    <button 
+                        data-section="reviews"
+                        class="section-btn w-full text-left px-4 py-3 rounded-lg hover:bg-gray-100 transition-colors font-medium text-gray-700"
+                    >
+                        ⭐ 후기 관리
+                    </button>
+                    <button 
+                        data-section="savings-king"
+                        class="section-btn w-full text-left px-4 py-3 rounded-lg hover:bg-gray-100 transition-colors font-medium text-gray-700"
+                    >
+                        👑 절약왕
+                    </button>
+                </nav>
+            </aside>
+            
+            <!-- 메인 콘텐츠 영역 -->
+            <main class="flex-1 overflow-hidden flex">
+                <!-- 좌측: 리스트 영역 -->
+                <div class="w-1/2 border-r border-gray-200 bg-white overflow-y-auto">
+                    <!-- 섹션별 콘텐츠 -->
+                    
+                    <!-- 대시보드 섹션 -->
+                    <div id="section-dashboard" class="section-content p-6">
+                        <h2 class="text-2xl font-bold text-gray-800 mb-6">오늘 해야 할 일</h2>
+                        
+                        <!-- 핵심 카드 -->
+                        <div class="grid grid-cols-4 gap-4 mb-6">
+                            <div class="bg-gradient-to-br from-pink-500 to-pink-600 text-white rounded-xl p-6 shadow-lg">
+                                <div class="text-sm opacity-90 mb-2">신규 의뢰</div>
+                                <div class="text-3xl font-bold" id="stat-new-requests">0</div>
+                            </div>
+                            <div class="bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-xl p-6 shadow-lg">
+                                <div class="text-sm opacity-90 mb-2">미답변 문의</div>
+                                <div class="text-3xl font-bold" id="stat-unanswered-inquiries">0</div>
+                            </div>
+                            <div class="bg-gradient-to-br from-yellow-500 to-yellow-600 text-white rounded-xl p-6 shadow-lg">
+                                <div class="text-sm opacity-90 mb-2">승인 대기 후기</div>
+                                <div class="text-3xl font-bold" id="stat-pending-reviews">0</div>
+                            </div>
+                            <div class="bg-gradient-to-br from-green-500 to-green-600 text-white rounded-xl p-6 shadow-lg">
+                                <div class="text-sm opacity-90 mb-2">오늘 처리 완료</div>
+                                <div class="text-3xl font-bold" id="stat-today-completed">0</div>
+                            </div>
+                        </div>
+                        
+                        <!-- 오늘 할 일 리스트 -->
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+                            <div class="p-4 border-b border-gray-200">
+                                <h3 class="font-semibold text-gray-800">할 일 목록</h3>
+                            </div>
+                            <div id="todo-list" class="divide-y divide-gray-200">
+                                <!-- 동적으로 생성됨 -->
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 의뢰 관리 섹션 -->
+                    <div id="section-requests" class="section-content hidden p-6">
+                        <div class="mb-4 flex items-center justify-between">
+                            <h2 class="text-2xl font-bold text-gray-800">의뢰 관리</h2>
+                            <button id="save-filter-requests" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm">
+                                필터 저장
+                            </button>
+                        </div>
+                        
+                        <!-- 필터 바 -->
+                        <div id="filter-bar-requests" class="mb-4 p-4 bg-gray-50 rounded-lg">
+                            <!-- 동적으로 생성됨 -->
+                        </div>
+                        
+                        <!-- 리스트 -->
+                        <div id="requests-list" class="space-y-2">
+                            <!-- 동적으로 생성됨 -->
+                        </div>
+                    </div>
+                    
+                    <!-- 문의 관리 섹션 -->
+                    <div id="section-inquiries" class="section-content hidden p-6">
+                        <div class="mb-4 flex items-center justify-between">
+                            <h2 class="text-2xl font-bold text-gray-800">1:1 문의</h2>
+                            <button id="save-filter-inquiries" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm">
+                                필터 저장
+                            </button>
+                        </div>
+                        
+                        <!-- 필터 바 -->
+                        <div id="filter-bar-inquiries" class="mb-4 p-4 bg-gray-50 rounded-lg">
+                            <!-- 동적으로 생성됨 -->
+                        </div>
+                        
+                        <!-- 리스트 -->
+                        <div id="inquiries-list" class="space-y-2">
+                            <!-- 동적으로 생성됨 -->
+                        </div>
+                    </div>
+                    
+                    <!-- 회원 관리 섹션 -->
+                    <div id="section-users" class="section-content hidden p-6">
+                        <h2 class="text-2xl font-bold text-gray-800 mb-4">회원 관리</h2>
+                        
+                        <!-- 필터 바 -->
+                        <div id="filter-bar-users" class="mb-4 p-4 bg-gray-50 rounded-lg">
+                            <!-- 동적으로 생성됨 -->
+                        </div>
+                        
+                        <!-- 리스트 -->
+                        <div id="users-list" class="space-y-2">
+                            <!-- 동적으로 생성됨 -->
+                        </div>
+                    </div>
+                    
+                    <!-- 후기 관리 섹션 -->
+                    <div id="section-reviews" class="section-content hidden p-6">
+                        <h2 class="text-2xl font-bold text-gray-800 mb-4">후기 관리</h2>
+                        
+                        <!-- 필터 바 -->
+                        <div id="filter-bar-reviews" class="mb-4 p-4 bg-gray-50 rounded-lg">
+                            <!-- 동적으로 생성됨 -->
+                        </div>
+                        
+                        <!-- 리스트 -->
+                        <div id="reviews-list" class="space-y-2">
+                            <!-- 동적으로 생성됨 -->
+                        </div>
+                    </div>
+                    
+                    <!-- 절약왕 섹션 -->
+                    <div id="section-savings-king" class="section-content hidden p-6">
+                        <h2 class="text-2xl font-bold text-gray-800 mb-4">절약왕 관리</h2>
+                        <div id="savings-king-content">
+                            <!-- 동적으로 생성됨 -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 우측: 상세 패널 -->
+                <div id="detail-panel" class="w-1/2 bg-gray-50 overflow-y-auto hidden">
+                    <div class="p-6">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-xl font-bold text-gray-800" id="detail-panel-title">상세 정보</h3>
+                            <button id="close-detail-panel" class="p-2 hover:bg-gray-200 rounded-lg">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                </svg>
+                            </button>
+                        </div>
+                        
+                        <div id="detail-panel-content">
+                            <!-- 동적으로 생성됨 -->
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+    
+    <!-- 알림 드롭다운 -->
+    <div id="notification-dropdown" class="hidden absolute right-4 top-16 w-96 bg-white rounded-lg shadow-xl border border-gray-200 z-50 max-h-96 overflow-y-auto">
+        <div class="p-4 border-b border-gray-200">
+            <h3 class="font-semibold text-gray-800">알림</h3>
+        </div>
+        <div id="notification-list" class="divide-y divide-gray-200">
+            <!-- 동적으로 생성됨 -->
+        </div>
+    </div>
+    
+    <!-- 모듈 로드 -->
+    <script type="module" src="admin-v2/main.js"></script>
+</body>
+</html>
+
