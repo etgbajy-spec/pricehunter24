@@ -149,9 +149,10 @@
         }
     </script>
     
-    <!-- Tailwind CSS (개선된 로딩 방식) -->
+    <!-- Tailwind CSS - 직접 로드 (파일 직접 열기 지원) -->
+    <script src="https://cdn.tailwindcss.com"></script>
     <script>
-        // Tailwind CSS 설정 - CSP 오류 방지
+        // Tailwind CSS 설정
         if (typeof tailwind !== 'undefined') {
             tailwind.config = {
                 theme: {
@@ -160,34 +161,21 @@
                 corePlugins: {
                     preflight: false
                 }
-            }
-        }
-        
-        // Tailwind CSS 동적 로딩
-        function loadTailwindCSS() {
-            return new Promise((resolve, reject) => {
-                const script = document.createElement('script');
-                script.src = 'https://cdn.tailwindcss.com';
-                script.onload = () => {
-                    console.log('✅ Tailwind CSS 로드됨 (개발용 CDN)');
-                    resolve();
-                };
-                script.onerror = (error) => {
-                    console.error('❌ Tailwind CSS 로드 실패:', error);
-                    // Tailwind 로드 실패 시 기본 스타일 적용
-                    applyFallbackStyles();
-                    reject(error);
-                };
-                document.head.appendChild(script);
-            });
-        }
-        
-        // Tailwind 로드 실패 시 대체 스타일
-        function applyFallbackStyles() {
+            };
+            console.log('✅ Tailwind CSS 로드됨');
+        } else {
+            console.warn('⚠️ Tailwind CSS 로드 실패, 대체 스타일 사용');
+            // Tailwind 로드 실패 시 대체 스타일
             const style = document.createElement('style');
             style.textContent = `
-                body { font-family: 'Noto Sans KR', sans-serif; }
-                .bg-gradient-to-br { background: linear-gradient(135deg, #f3f4f6, #dbeafe, #d1fae5); }
+                * { box-sizing: border-box; }
+                body { 
+                    font-family: 'Noto Sans KR', sans-serif; 
+                    margin: 0;
+                    padding: 0;
+                    background: linear-gradient(135deg, #f3f4f6, #dbeafe, #d1fae5);
+                    min-height: 100vh;
+                }
                 .min-h-screen { min-height: 100vh; }
                 .flex { display: flex; }
                 .items-center { align-items: center; }
@@ -195,52 +183,53 @@
                 .bg-white { background-color: white; }
                 .rounded-xl { border-radius: 0.75rem; }
                 .shadow-2xl { box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); }
+                .p-4 { padding: 1rem; }
+                .p-6 { padding: 1.5rem; }
                 .p-8 { padding: 2rem; }
                 .w-full { width: 100%; }
+                .max-w-xs { max-width: 20rem; }
+                .max-w-sm { max-width: 24rem; }
                 .max-w-md { max-width: 28rem; }
                 .text-center { text-align: center; }
                 .mb-8 { margin-bottom: 2rem; }
-                .text-3xl { font-size: 1.875rem; }
+                .text-3xl { font-size: 1.875rem; line-height: 2.25rem; }
                 .font-bold { font-weight: 700; }
                 .text-pink-600 { color: #db2777; }
                 .text-gray-600 { color: #4b5563; }
                 .space-y-6 > * + * { margin-top: 1.5rem; }
                 .block { display: block; }
-                .text-sm { font-size: 0.875rem; }
+                .text-sm { font-size: 0.875rem; line-height: 1.25rem; }
                 .font-medium { font-weight: 500; }
                 .text-gray-700 { color: #374151; }
                 .mb-2 { margin-bottom: 0.5rem; }
                 .px-4 { padding-left: 1rem; padding-right: 1rem; }
                 .py-3 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
-                .border { border-width: 1px; }
+                .border { border-width: 1px; border-style: solid; }
                 .border-gray-300 { border-color: #d1d5db; }
                 .rounded-lg { border-radius: 0.5rem; }
-                .focus\\:ring-2:focus { box-shadow: 0 0 0 2px rgba(236, 72, 153, 0.5); }
-                .focus\\:ring-pink-400:focus { box-shadow: 0 0 0 2px rgba(244, 114, 182, 0.5); }
-                .focus\\:outline-none:focus { outline: none; }
-                .bg-gradient-to-r { background: linear-gradient(to right, #ec4899, #8b5cf6); }
+                input:focus { 
+                    outline: none; 
+                    box-shadow: 0 0 0 2px rgba(244, 114, 182, 0.5); 
+                }
+                button { cursor: pointer; }
+                .bg-gradient-to-r { 
+                    background: linear-gradient(to right, #ec4899, #8b5cf6); 
+                    border: none;
+                }
                 .text-white { color: white; }
-                .hover\\:from-pink-600:hover { background: linear-gradient(to right, #db2777, #7c3aed); }
-                .hover\\:to-purple-600:hover { background: linear-gradient(to right, #ec4899, #7c3aed); }
+                button:hover { opacity: 0.9; }
                 .transition { transition: all 0.15s ease-in-out; }
                 .shadow-lg { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
                 .mt-6 { margin-top: 1.5rem; }
-                .text-pink-600 { color: #db2777; }
                 .hover\\:text-pink-700:hover { color: #be185d; }
-                .text-blue-600 { color: #2563eb; }
-                .hover\\:text-blue-700:hover { color: #1d4ed8; }
-                .text-xs { font-size: 0.75rem; }
+                .text-xs { font-size: 0.75rem; line-height: 1rem; }
                 .text-gray-500 { color: #6b7280; }
                 .mt-2 { margin-top: 0.5rem; }
+                .hidden { display: none !important; }
+                input { width: 100%; }
             `;
             document.head.appendChild(style);
-            console.log('⚠️ Tailwind CSS 대체 스타일 적용됨');
         }
-        
-        // Tailwind CSS 로딩 시작
-        loadTailwindCSS().catch(() => {
-            console.log('⚠️ Tailwind CSS 로딩 실패, 대체 스타일 사용');
-        });
     </script>
     
     
@@ -248,6 +237,21 @@
         // 관리자 대시보드 초기화
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🚀 관리자 대시보드 초기화 시작...');
+            
+            // 로그인 폼 제출 이벤트 리스너
+            const loginForm = document.getElementById('loginForm');
+            if (loginForm) {
+                loginForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    if (typeof adminLogin === 'function') {
+                        adminLogin();
+                    } else {
+                        console.error('❌ adminLogin 함수를 찾을 수 없습니다.');
+                        alert('로그인 함수를 찾을 수 없습니다. 페이지를 새로고침해주세요.');
+                    }
+                });
+                console.log('✅ 로그인 폼 이벤트 리스너 등록됨');
+            }
             
             // admin.js 초기화 (모듈 로드 후)
             setTimeout(() => {
@@ -408,8 +412,8 @@
         window.adminLogin = async function() {
             console.log('🔐 관리자 로그인 시도...');
             
-            const email = document.getElementById('admin-email').value;
-            const password = document.getElementById('admin-password').value;
+            const email = document.getElementById('email')?.value || document.getElementById('admin-email')?.value;
+            const password = document.getElementById('password')?.value || document.getElementById('admin-password')?.value;
             
             if (!email || !password) {
                 alert('이메일과 비밀번호를 입력해주세요.');
@@ -519,8 +523,10 @@
                 alert('✅ 테스트 관리자 계정이 생성되었습니다!\n\n이메일: admin@pricehunter.com\n비밀번호: admin1234\n\n이제 이 계정으로 로그인할 수 있습니다.');
                 
                 // 입력 필드에 자동 입력
-                document.getElementById('admin-email').value = 'admin@pricehunter.com';
-                document.getElementById('admin-password').value = 'admin1234';
+                const emailInput = document.getElementById('email') || document.getElementById('admin-email');
+                const passwordInput = document.getElementById('password') || document.getElementById('admin-password');
+                if (emailInput) emailInput.value = 'admin@pricehunter.com';
+                if (passwordInput) passwordInput.value = 'admin1234';
                 
             } catch (error) {
                 console.error('❌ 테스트 계정 생성 실패:', error);
@@ -529,8 +535,10 @@
                     alert('이미 존재하는 계정입니다!\n\n이메일: admin@pricehunter.com\n비밀번호: admin1234\n\n이 계정으로 로그인해보세요.');
                     
                     // 입력 필드에 자동 입력
-                    document.getElementById('admin-email').value = 'admin@pricehunter.com';
-                    document.getElementById('admin-password').value = 'admin1234';
+                    const emailInput = document.getElementById('email') || document.getElementById('admin-email');
+                    const passwordInput = document.getElementById('password') || document.getElementById('admin-password');
+                    if (emailInput) emailInput.value = 'admin@pricehunter.com';
+                    if (passwordInput) passwordInput.value = 'admin1234';
                 } else {
                     alert('계정 생성에 실패했습니다. 다시 시도해주세요.');
                 }
@@ -2790,7 +2798,7 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                     if (cached) {
                         console.log(`✅ 캐시에서 방문 데이터 로드: ${cached.length}개`);
                         // 캐시된 데이터로 통계 계산
-                        processVisitData(cached, startDate, endDate);
+                        processVisitData(cached, startDate, endDate, period, customStartDate, customEndDate, 0);
                         return;
                     }
                 }
@@ -2833,7 +2841,7 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 }
                 
                 // 데이터 집계 함수 호출
-                processVisitData(visitDataArray, startDate, endDate);
+                processVisitData(visitDataArray, startDate, endDate, period, customStartDate, customEndDate, snapshot.size);
             } catch (error) {
                 console.error('❌ 방문 통계 로드 실패:', error);
                 document.getElementById('stats-container').innerHTML = `
@@ -2845,7 +2853,7 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
         }
         
         // 방문 데이터 집계 함수 (캐시된 데이터 처리용)
-        function processVisitData(visitDataArray, startDate, endDate) {
+        function processVisitData(visitDataArray, startDate, endDate, period, customStartDate, customEndDate, snapshotSize) {
             // 데이터 집계
             const dataMap = new Map();
             const uniqueVisitorsMap = new Map();
@@ -2863,7 +2871,7 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                     }
                     
                     if (!date) {
-                        console.warn('⚠️ 날짜 정보가 없는 데이터:', doc.id, data);
+                        console.warn('⚠️ 날짜 정보가 없는 데이터:', item.id || 'unknown', data);
                         return; // 날짜가 없으면 스킵
                     }
                     
@@ -2978,14 +2986,14 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                     // UI에 날짜 범위 표시
                     const dataRangeInfo = document.getElementById('data-range-info');
                     if (dataRangeInfo) {
-                        dataRangeInfo.textContent = `데이터 범위: ${dateRange.min} ~ ${dateRange.max} (총 ${snapshot.size}건)`;
+                        dataRangeInfo.textContent = `데이터 범위: ${dateRange.min} ~ ${dateRange.max} (총 ${snapshotSize}건)`;
                         dataRangeInfo.classList.remove('text-gray-500');
                         dataRangeInfo.classList.add('text-blue-600');
                     }
                 } else {
                     const dataRangeInfo = document.getElementById('data-range-info');
                     if (dataRangeInfo) {
-                        dataRangeInfo.textContent = `데이터 없음 (총 ${snapshot.size}건)`;
+                        dataRangeInfo.textContent = `데이터 없음 (총 ${snapshotSize}건)`;
                         dataRangeInfo.classList.remove('text-blue-600');
                         dataRangeInfo.classList.add('text-gray-500');
                     }
@@ -3008,18 +3016,22 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 document.getElementById('chart-title').textContent = chartTitle;
                 
                 // 차트 렌더링
-                renderVisitorChart(chartData, period);
+                try {
+                    renderVisitorChart(chartData, period);
+                } catch (error) {
+                    console.error('❌ 차트 렌더링 실패:', error);
+                }
                 
                 // 테이블 업데이트
-                updateVisitorTable(sortedKeys, dataMap, period);
-                
-            } catch (error) {
-                console.error('❌ 방문자 리포트 로드 실패:', error);
-                const tbody = document.getElementById('visitor-data-table');
-                if (tbody) {
-                    tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-8 text-center text-red-500">데이터를 불러오는 중 오류가 발생했습니다: ' + error.message + '</td></tr>';
+                try {
+                    updateVisitorTable(sortedKeys, dataMap, period);
+                } catch (error) {
+                    console.error('❌ 테이블 업데이트 실패:', error);
+                    const tbody = document.getElementById('visitor-data-table');
+                    if (tbody) {
+                        tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-8 text-center text-red-500">데이터를 불러오는 중 오류가 발생했습니다: ' + error.message + '</td></tr>';
+                    }
                 }
-            }
         }
         
         // 차트 렌더링
@@ -3266,7 +3278,7 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
         .filter-btn.active { background-color: #6b7280; color: white; }
         
         /* 초기 상태: 대시보드 및 모든 모달 숨김 */
-        #dashboard {
+        #dashboard.hidden {
             display: none !important;
         }
         #user-detail-modal,
