@@ -21,7 +21,19 @@
       import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
       import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
       import { getFirestore, collection, query, orderBy, onSnapshot, getDocs, getDoc, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, where } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
-      import { init } from './admin.js';
+      
+      // admin.js는 선택적으로 로드 (파일이 없어도 작동하도록)
+      (async function loadAdminModule() {
+        try {
+          const adminModule = await import('./admin.js');
+          if (adminModule && adminModule.init) {
+            window.adminInitFunction = adminModule.init;
+            console.log('✅ admin.js 모듈 로드됨');
+          }
+        } catch (error) {
+          console.warn('⚠️ admin.js 모듈을 로드할 수 없습니다 (선택적):', error.message);
+        }
+      })();
       
       // Firebase 설정
       const firebaseConfig = {
@@ -50,6 +62,10 @@
         console.log('✅ 관리자 대시보드 Firebase v9 초기화 완료');
       } catch (error) {
         console.error('❌ 관리자 대시보드 Firebase 초기화 실패:', error);
+        
+        // 파일을 직접 열었는지 확인
+        const isLocalFile = window.location.protocol === 'file:';
+        
         // 초기화 실패시에도 기본 객체들을 생성하여 오류 방지
         window.firebaseApp = null;
         window.firebaseAuth = null;
@@ -69,8 +85,23 @@
           where: () => {}
         };
         
-        // 사용자에게 알림
-        alert('시스템 초기화에 실패했습니다. 페이지를 새로고침해주세요.');
+        // 사용자에게 상세한 오류 메시지 표시
+        if (isLocalFile) {
+          console.error('⚠️ 파일을 직접 열었습니다 (file://). ES6 모듈이 제대로 작동하지 않을 수 있습니다.');
+          console.error('💡 해결 방법: 로컬 웹 서버를 사용하거나 Netlify/Vercel에 배포하세요.');
+        } else {
+          console.error('⚠️ Firebase 모듈 로드 실패. 서버 CSP 헤더를 확인하세요.');
+        }
+        
+        // DOM이 준비된 후에만 알림 표시
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', () => {
+            const errorMsg = isLocalFile
+              ? 'Firebase SDK 로드에 실패했습니다.\n\n파일을 직접 열면 (file://) ES6 모듈이 제대로 작동하지 않을 수 있습니다.\n\n해결 방법:\n1. 로컬 웹 서버 사용 (Python: python -m http.server)\n2. Netlify/Vercel 등에 배포하여 사용'
+              : '시스템 초기화에 실패했습니다.\n\n서버 CSP 헤더를 확인하거나 페이지를 새로고침해주세요.';
+            // 알림은 나중에 로그인 시도 시 표시하도록 함 (여기서는 콘솔에만 기록)
+          });
+        }
       }
     </script>
     
@@ -420,15 +451,25 @@
                 return;
             }
             
-            // Firebase 가드 확인
-            if (!window.firebaseApp) {
-                alert('Firebase SDK가 로드되지 않았습니다. 서버 CSP 헤더를 확인해주세요.');
+            // Firebase 초기화 대기
+            try {
+                console.log('⏳ Firebase 초기화 대기 중...');
+                await waitForFirebase();
+                console.log('✅ Firebase 초기화 완료, 로그인 진행');
+            } catch (error) {
+                console.error('❌ Firebase 초기화 실패:', error);
+                const isLocalFile = window.location.protocol === 'file:';
+                const errorMessage = isLocalFile 
+                    ? 'Firebase SDK 로드에 실패했습니다.\n\n파일을 직접 열면 (file://) ES6 모듈이 제대로 작동하지 않을 수 있습니다.\n\n해결 방법:\n1. 로컬 웹 서버를 사용하세요 (예: Python: python -m http.server)\n2. 또는 Netlify/Vercel 등에 배포하여 사용하세요.'
+                    : 'Firebase SDK가 로드되지 않았습니다.\n\n서버 CSP 헤더를 확인해주세요.\n또는 페이지를 새로고침해주세요.';
+                alert(errorMessage);
                 return;
             }
             
-            if (!window.firebaseAuth) {
-                console.error('❌ Firebase Auth가 초기화되지 않았습니다.');
-                alert('인증 시스템 초기화에 실패했습니다. 페이지를 새로고침해주세요.');
+            // Firebase 가드 재확인
+            if (!window.firebaseApp || !window.firebaseAuth || !window.firebaseDb) {
+                console.error('❌ Firebase 서비스가 제대로 초기화되지 않았습니다.');
+                alert('Firebase 서비스 초기화에 실패했습니다. 페이지를 새로고침해주세요.');
                 return;
             }
             
@@ -549,18 +590,22 @@
         let isFirebaseReady = false;
         let usersUnsubscribe = null;
 
-        // Firebase 준비 상태 확인 (Firebase v8)
+        // Firebase 준비 상태 확인
         async function waitForFirebase() {
             return new Promise((resolve, reject) => {
                 console.log('🔄 Firebase 준비 상태 확인 중...');
+                const isLocalFile = window.location.protocol === 'file:';
+                const timeoutMs = isLocalFile ? 15000 : 10000; // 파일 직접 열기 시 더 긴 타임아웃
+                
                 console.log('🔍 Firebase 초기화 상태:', {
                     firebaseApp: !!window.firebaseApp,
                     firebaseAuth: !!window.firebaseAuth,
                     firebaseDb: !!window.firebaseDb,
-                    firebaseFirestoreFunctions: !!window.firebaseFirestoreFunctions
+                    firebaseFirestoreFunctions: !!window.firebaseFirestoreFunctions,
+                    protocol: window.location.protocol
                 });
                 
-                // Firebase v9 초기화 확인
+                // 즉시 확인
                 if (window.firebaseApp && window.firebaseAuth && window.firebaseDb && window.firebaseFirestoreFunctions) {
                     isFirebaseReady = true;
                     console.log('✅ Firebase v9 초기화 성공');
@@ -568,22 +613,27 @@
                     return;
                 }
                 
-                // 재시도
+                // 재시도 로직
+                let attempts = 0;
+                const maxAttempts = timeoutMs / 100; // 100ms마다 체크
                 const checkInterval = setInterval(() => {
+                    attempts++;
+                    console.log(`🔄 Firebase 초기화 확인 중... (${attempts}/${maxAttempts})`);
+                    
                     if (window.firebaseApp && window.firebaseAuth && window.firebaseDb && window.firebaseFirestoreFunctions) {
                         clearInterval(checkInterval);
                         isFirebaseReady = true;
-                        console.log('✅ Firebase v9 초기화 성공');
+                        console.log('✅ Firebase v9 초기화 성공 (재시도 후)');
                         resolve();
+                    } else if (attempts >= maxAttempts) {
+                        clearInterval(checkInterval);
+                        console.error('❌ Firebase 초기화 타임아웃');
+                        const errorMsg = isLocalFile
+                            ? 'Firebase 초기화 실패: 파일을 직접 열면 (file://) ES6 모듈이 제대로 작동하지 않을 수 있습니다.'
+                            : 'Firebase 초기화 실패: 서버 CSP 헤더를 확인하거나 네트워크 연결을 확인하세요.';
+                        reject(new Error(errorMsg));
                     }
                 }, 100);
-                
-                // 10초 후 타임아웃
-                setTimeout(() => {
-                    clearInterval(checkInterval);
-                    console.error('❌ Firebase 초기화 타임아웃');
-                    reject(new Error('Firebase 초기화 실패'));
-                }, 10000);
             });
         }
 

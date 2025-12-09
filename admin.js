@@ -178,18 +178,27 @@ function showLoginForm(message = '') {
 
 // 대시보드 표시
 function showDashboard() {
+  console.log('📊 대시보드 표시 함수 호출');
+  
   // loginForm이 있으면 사용, 없으면 login-section 사용
   const loginSection = document.getElementById('login-section');
   if (loginForm) {
     loginForm.style.display = 'none';
+    loginForm.classList.add('hidden');
   } else if (loginSection) {
     loginSection.classList.add('hidden');
     loginSection.style.display = 'none';
+    // CSS !important를 우회하기 위해 인라인 스타일 강제 적용
+    loginSection.setAttribute('style', 'display: none !important;');
   }
   
   if (dashboard) {
-    dashboard.style.display = 'block';
+    // CSS !important를 우회하기 위해 인라인 스타일 강제 적용
+    dashboard.setAttribute('style', 'display: block !important;');
     dashboard.classList.remove('hidden');
+    console.log('✅ 대시보드 표시됨');
+  } else {
+    console.warn('⚠️ dashboard 요소를 찾을 수 없습니다');
   }
   
   const errorDiv = document.getElementById('loginError');
@@ -261,7 +270,10 @@ function setupInquiriesListener() {
 
 // 회원 테이블 업데이트
 function updateMembersTable(snapshot) {
-  if (!membersTable) return;
+  if (!membersTable) {
+    console.log('⚠️ membersTable을 찾을 수 없습니다. 대시보드의 다른 구조를 사용합니다.');
+    return;
+  }
   
   const tbody = membersTable.querySelector('tbody');
   if (!tbody) return;
@@ -298,7 +310,10 @@ function updateMembersTable(snapshot) {
 
 // 의뢰 테이블 업데이트
 function updateRequestsTable(snapshot) {
-  if (!requestsTable) return;
+  if (!requestsTable) {
+    console.log('⚠️ requestsTable을 찾을 수 없습니다. 대시보드의 다른 구조를 사용합니다.');
+    return;
+  }
   
   const tbody = requestsTable.querySelector('tbody');
   if (!tbody) return;
@@ -329,7 +344,10 @@ function updateRequestsTable(snapshot) {
 
 // 문의 테이블 업데이트
 function updateInquiriesTable(snapshot) {
-  if (!inquiriesTable) return;
+  if (!inquiriesTable) {
+    console.log('⚠️ inquiriesTable을 찾을 수 없습니다. 대시보드의 다른 구조를 사용합니다.');
+    return;
+  }
   
   const tbody = inquiriesTable.querySelector('tbody');
   if (!tbody) return;
