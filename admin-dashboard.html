@@ -19,6 +19,9 @@
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    
     <style>
         * {
             box-sizing: border-box;
@@ -284,6 +287,12 @@
                     >
                         👑 절약왕
                     </button>
+                    <button 
+                        data-section="visitors"
+                        class="section-btn w-full text-left px-4 py-3 rounded-lg hover:bg-gray-100 transition-colors font-medium text-gray-700"
+                    >
+                        📈 방문자 리포트
+                    </button>
                 </nav>
             </aside>
             
@@ -403,6 +412,94 @@
                         <h2 class="text-2xl font-bold text-gray-800 mb-4">절약왕 관리</h2>
                         <div id="savings-king-content">
                             <!-- 동적으로 생성됨 -->
+                        </div>
+                    </div>
+                    
+                    <!-- 방문자 리포트 섹션 -->
+                    <div id="section-visitors" class="section-content hidden p-6">
+                        <div class="mb-4 flex items-center justify-between">
+                            <h2 class="text-2xl font-bold text-gray-800">📈 방문자 리포트</h2>
+                            <button onclick="window.adminApp.refreshVisitorData()" class="px-4 py-2 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition">
+                                🔄 새로고침
+                            </button>
+                        </div>
+                        
+                        <!-- 탭 -->
+                        <div class="flex space-x-2 mb-6 border-b border-gray-200">
+                            <button onclick="window.adminApp.loadVisitorReport('daily')" class="tab-btn px-6 py-3 font-semibold text-gray-700 hover:text-pink-600 transition active" data-period="daily">
+                                📅 일일 리포트
+                            </button>
+                            <button onclick="window.adminApp.loadVisitorReport('weekly')" class="tab-btn px-6 py-3 font-semibold text-gray-700 hover:text-pink-600 transition" data-period="weekly">
+                                📆 주간 리포트
+                            </button>
+                            <button onclick="window.adminApp.loadVisitorReport('monthly')" class="tab-btn px-6 py-3 font-semibold text-gray-700 hover:text-pink-600 transition" data-period="monthly">
+                                📊 월간 리포트
+                            </button>
+                            <button onclick="window.adminApp.loadVisitorReport('custom')" class="tab-btn px-6 py-3 font-semibold text-gray-700 hover:text-pink-600 transition" data-period="custom">
+                                📋 사용자 정의
+                            </button>
+                            <button onclick="window.adminApp.loadVisitorReport('all')" class="tab-btn px-6 py-3 font-semibold text-gray-700 hover:text-pink-600 transition" data-period="all">
+                                🌐 전체 기간
+                            </button>
+                        </div>
+                        
+                        <!-- 사용자 정의 날짜 범위 -->
+                        <div id="custom-date-range" class="mb-6 p-4 bg-gray-50 rounded-lg hidden">
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">시작일</label>
+                                    <input type="date" id="custom-start-date" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">종료일</label>
+                                    <input type="date" id="custom-end-date" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                </div>
+                            </div>
+                            <button onclick="window.adminApp.loadCustomVisitorReport()" class="mt-4 px-4 py-2 bg-pink-500 text-white rounded-lg hover:bg-pink-600">
+                                조회
+                            </button>
+                        </div>
+                        
+                        <!-- 통계 카드 -->
+                        <div class="grid grid-cols-3 gap-4 mb-6">
+                            <div class="bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-xl p-6 shadow-lg">
+                                <p class="text-sm opacity-90 mb-2">총 방문자</p>
+                                <p class="text-3xl font-bold" id="total-visitors-count">0</p>
+                            </div>
+                            <div class="bg-gradient-to-br from-green-500 to-green-600 text-white rounded-xl p-6 shadow-lg">
+                                <p class="text-sm opacity-90 mb-2">평균 방문자</p>
+                                <p class="text-3xl font-bold" id="avg-visitors-count">0</p>
+                            </div>
+                            <div class="bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-xl p-6 shadow-lg">
+                                <p class="text-sm opacity-90 mb-2">최대 방문자</p>
+                                <p class="text-3xl font-bold" id="max-visitors-count">0</p>
+                            </div>
+                        </div>
+                        
+                        <!-- 차트 -->
+                        <div class="bg-white rounded-lg p-6 shadow-sm mb-6">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4" id="chart-title">일일 방문자 추이</h3>
+                            <div class="h-64">
+                                <canvas id="visitor-chart"></canvas>
+                            </div>
+                        </div>
+                        
+                        <!-- 데이터 테이블 -->
+                        <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full divide-y divide-gray-200">
+                                    <thead class="bg-gray-50">
+                                        <tr>
+                                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">기간</th>
+                                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">방문자 수</th>
+                                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">고유 방문자</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="visitor-data-table" class="bg-white divide-y divide-gray-200">
+                                        <!-- 동적으로 생성됨 -->
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 </div>

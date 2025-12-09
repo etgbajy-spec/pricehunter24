@@ -7,6 +7,7 @@ import { requestsService } from './services/requests-service.js';
 import { inquiriesService } from './services/inquiries-service.js';
 import { usersService } from './services/users-service.js';
 import { reviewsService } from './services/reviews-service.js';
+import { visitorsService } from './services/visitors-service.js';
 import { TodoList } from './components/todo-list.js';
 import { DataTable } from './components/data-table.js';
 import { DetailPanel } from './components/detail-panel.js';
@@ -32,8 +33,13 @@ class AdminApp {
             requests: [],
             inquiries: [],
             users: [],
-            reviews: []
+            reviews: [],
+            visits: []
         };
+        
+        // 방문자 리포트 차트
+        this.visitorChart = null;
+        this.currentVisitorPeriod = 'daily';
     }
 
     async init() {
@@ -755,6 +761,103 @@ class AdminApp {
             console.error('후기 거부 실패:', error);
             alert('후기 거부에 실패했습니다.');
         }
+    }
+
+    async saveRequestResponse(requestId) {
+        const formData = {
+            lowestPrice: document.getElementById(`response-lowest-price-${requestId}`)?.value.trim() || '',
+            seller: document.getElementById(`response-seller-${requestId}`)?.value.trim() || '',
+            sellerLink: document.getElementById(`response-seller-link-${requestId}`)?.value.trim() || '',
+            shippingCost: document.getElementById(`response-shipping-cost-${requestId}`)?.value.trim() || '',
+            shippingTime: document.getElementById(`response-shipping-time-${requestId}`)?.value.trim() || '',
+            totalCost: document.getElementById(`response-total-cost-${requestId}`)?.value.trim() || '',
+            additionalInfo: document.getElementById(`response-additional-info-${requestId}`)?.value.trim() || ''
+        };
+
+        if (!formData.lowestPrice && !formData.seller && !formData.additionalInfo) {
+            alert('최소한 하나의 정보는 입력해주세요.');
+            return;
+        }
+
+        try {
+            await firebaseWrapper.init();
+            const docRef = firebaseWrapper.doc('requests', requestId);
+            await firebaseWrapper.updateDoc(docRef, {
+                adminResponse: formData,
+                responseDate: firebaseWrapper.serverTimestamp(),
+                status: '답변완료',
+                updatedAt: firebaseWrapper.serverTimestamp()
+            });
+
+            await requestsService.addHistory(requestId, '답변 완료', '관리자가 답변을 작성했습니다.', this.currentUser?.email || '관리자');
+
+            alert('답변이 성공적으로 저장되었습니다.');
+            
+            // 상세 정보 다시 로드
+            this.handleItemClick('request', requestId);
+            
+            // 알림 추가
+            this.notificationCenter.addNotification({
+                icon: '✅',
+                title: '의뢰 답변 완료',
+                message: '의뢰에 답변을 등록했습니다.',
+                type: 'request',
+                targetId: requestId
+            });
+        } catch (error) {
+            console.error('답변 저장 실패:', error);
+            alert('답변 저장에 실패했습니다.');
+        }
+    }
+
+    clearResponseForm(requestId) {
+        document.getElementById(`response-lowest-price-${requestId}`).value = '';
+        document.getElementById(`response-seller-${requestId}`).value = '';
+        document.getElementById(`response-seller-link-${requestId}`).value = '';
+        document.getElementById(`response-shipping-cost-${requestId}`).value = '';
+        document.getElementById(`response-shipping-time-${requestId}`).value = '';
+        document.getElementById(`response-total-cost-${requestId}`).value = '';
+        document.getElementById(`response-additional-info-${requestId}`).value = '';
+    }
+
+    openImageModal(imageSrc) {
+        const modal = document.createElement('div');
+        modal.className = 'fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4';
+        modal.innerHTML = `
+            <div class="relative max-w-4xl max-h-full">
+                <img 
+                    src="${imageSrc}" 
+                    alt="확대된 이미지" 
+                    class="max-w-full max-h-full object-contain rounded-lg"
+                >
+                <button 
+                    onclick="this.parentElement.parentElement.remove()" 
+                    class="absolute top-4 right-4 text-white text-3xl font-bold hover:text-gray-300 transition-colors"
+                >
+                    &times;
+                </button>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        document.body.style.overflow = 'hidden';
+        
+        // 배경 클릭 시 닫기
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.remove();
+                document.body.style.overflow = 'auto';
+            }
+        });
+        
+        // ESC 키로 닫기
+        const closeOnEscape = (e) => {
+            if (e.key === 'Escape') {
+                modal.remove();
+                document.body.style.overflow = 'auto';
+                document.removeEventListener('keydown', closeOnEscape);
+            }
+        };
+        document.addEventListener('keydown', closeOnEscape);
     }
 
     async addAnswer(inquiryId) {
