@@ -493,16 +493,96 @@
                 console.log('✅ 관리자 권한 확인됨');
                 
                 // 로그인 성공 시 대시보드 표시
-                document.getElementById('login-section').classList.add('hidden');
-                document.getElementById('dashboard').classList.remove('hidden');
+                console.log('🔄 대시보드 표시 시작...');
+                const loginSection = document.getElementById('login-section');
+                const dashboardSection = document.getElementById('dashboard');
+                
+                console.log('🔍 요소 확인:', {
+                    loginSection: !!loginSection,
+                    dashboardSection: !!dashboardSection,
+                    loginSectionDisplay: loginSection ? window.getComputedStyle(loginSection).display : '없음',
+                    dashboardSectionDisplay: dashboardSection ? window.getComputedStyle(dashboardSection).display : '없음',
+                    loginSectionClasses: loginSection ? loginSection.className : '없음',
+                    dashboardSectionClasses: dashboardSection ? dashboardSection.className : '없음'
+                });
+                
+                if (!loginSection) {
+                    console.error('❌ login-section 요소를 찾을 수 없습니다!');
+                    alert('로그인 섹션을 찾을 수 없습니다. 페이지 구조를 확인하세요.');
+                    return;
+                }
+                
+                if (!dashboardSection) {
+                    console.error('❌ dashboard 요소를 찾을 수 없습니다!');
+                    alert('대시보드 섹션을 찾을 수 없습니다. 페이지 구조를 확인하세요.');
+                    return;
+                }
+                
+                try {
+                    console.log('📝 로그인 섹션 숨김 중...');
+                    loginSection.classList.add('hidden');
+                    loginSection.style.display = 'none';
+                    console.log('✅ 로그인 섹션 숨김 완료');
+                    
+                    console.log('📝 대시보드 표시 중...');
+                    dashboardSection.classList.remove('hidden');
+                    dashboardSection.style.display = '';
+                    console.log('✅ 대시보드 표시 완료');
+                    
+                    // 초기화 플래그 설정 (재초기화 방지)
+                    window.dashboardInitialized = true;
+                    console.log('✅ dashboardInitialized 플래그 설정됨');
+                    
+                    // 표시 후 상태 재확인
+                    setTimeout(() => {
+                        console.log('🔍 표시 후 상태 확인:', {
+                            loginSectionDisplay: window.getComputedStyle(loginSection).display,
+                            dashboardSectionDisplay: window.getComputedStyle(dashboardSection).display,
+                            loginSectionVisible: loginSection.offsetParent !== null,
+                            dashboardSectionVisible: dashboardSection.offsetParent !== null,
+                            dashboardInitialized: window.dashboardInitialized
+                        });
+                        
+                        // 여전히 대시보드가 보이지 않으면 경고
+                        if (dashboardSection.offsetParent === null) {
+                            console.error('❌ 대시보드가 여전히 보이지 않습니다!');
+                            console.error('대시보드 요소:', dashboardSection);
+                            console.error('CSS 상태:', {
+                                display: window.getComputedStyle(dashboardSection).display,
+                                visibility: window.getComputedStyle(dashboardSection).visibility,
+                                opacity: window.getComputedStyle(dashboardSection).opacity,
+                                classes: dashboardSection.className,
+                                inlineStyle: dashboardSection.style.cssText
+                            });
+                        }
+                    }, 100);
+                    
+                } catch (displayError) {
+                    console.error('❌ 대시보드 표시 중 오류:', displayError);
+                    alert('대시보드 표시 중 오류가 발생했습니다: ' + displayError.message);
+                    return;
+                }
                 
                 // 관리자 정보 표시
-                if (document.getElementById('admin-info')) {
-                    document.getElementById('admin-info').textContent = userCredential.user.email;
+                const adminInfo = document.getElementById('admin-info');
+                if (adminInfo) {
+                    adminInfo.textContent = userCredential.user.email;
+                    console.log('✅ 관리자 정보 표시 완료:', userCredential.user.email);
+                } else {
+                    console.warn('⚠️ admin-info 요소를 찾을 수 없습니다');
                 }
                 
                 // 대시보드 데이터 로드
-                loadDashboardData();
+                console.log('📊 대시보드 데이터 로드 시작...');
+                try {
+                    await loadDashboardData();
+                    console.log('✅ 대시보드 데이터 로드 완료');
+                } catch (loadError) {
+                    console.error('❌ 대시보드 데이터 로드 실패:', loadError);
+                    console.error('오류 스택:', loadError.stack);
+                    // 데이터 로드 실패해도 대시보드는 표시
+                    alert('대시보드 데이터를 불러오는 중 오류가 발생했습니다. 콘솔을 확인하세요.');
+                }
                 
             } catch (error) {
                 console.error('❌ 로그인 실패:', error);
@@ -1930,42 +2010,87 @@
         // 대시보드 데이터 로드 함수
         async function loadDashboardData() {
             console.log('📊 대시보드 데이터 로드 시작...');
+            console.log('🔍 현재 상태:', {
+                firebaseAuth: !!window.firebaseAuth,
+                currentUser: !!window.firebaseAuth?.currentUser,
+                firebaseDb: !!window.firebaseDb,
+                requestsUnsubscribe: !!requestsUnsubscribe,
+                inquiriesUnsubscribe: !!inquiriesUnsubscribe
+            });
             
-            // 관리자 권한 재확인
-            if (!window.firebaseAuth || !window.firebaseAuth.currentUser) {
-                console.error('❌ 인증되지 않은 사용자입니다.');
-                showLoginSection();
-                return;
+            try {
+                // 관리자 권한 재확인
+                if (!window.firebaseAuth || !window.firebaseAuth.currentUser) {
+                    console.error('❌ 인증되지 않은 사용자입니다.');
+                    console.error('firebaseAuth:', window.firebaseAuth);
+                    console.error('currentUser:', window.firebaseAuth?.currentUser);
+                    showLoginSection();
+                    return;
+                }
+                
+                console.log('✅ 인증된 사용자 확인:', window.firebaseAuth.currentUser.email);
+                
+                const isAdmin = await checkAdminPermission(window.firebaseAuth.currentUser);
+                console.log('🔍 관리자 권한 확인 결과:', isAdmin);
+                
+                if (!isAdmin) {
+                    console.error('❌ 관리자 권한이 없습니다.');
+                    showLoginSection();
+                    return;
+                }
+                
+                if (!window.firebaseDb) {
+                    console.error('❌ Firestore가 초기화되지 않았습니다.');
+                    return;
+                }
+                
+                console.log('📡 실시간 구독 시작...');
+                // 실시간 구독 시작 (이미 시작되어 있으면 무시)
+                if (!requestsUnsubscribe) {
+                    console.log('📡 의뢰 데이터 구독 시작...');
+                    subscribeToRequests();
+                } else {
+                    console.log('⚠️ 의뢰 데이터 구독이 이미 시작되어 있음');
+                }
+                
+                if (!inquiriesUnsubscribe) {
+                    console.log('📡 문의 데이터 구독 시작...');
+                    subscribeToInquiries();
+                } else {
+                    console.log('⚠️ 문의 데이터 구독이 이미 시작되어 있음');
+                }
+                
+                console.log('📋 데이터 렌더링 시작...');
+                // 초기 데이터 로드 (호환성 유지)
+                try {
+                    renderRequestList();
+                    console.log('✅ 의뢰 목록 렌더링 완료');
+                } catch (renderError) {
+                    console.error('❌ 의뢰 목록 렌더링 실패:', renderError);
+                }
+                
+                try {
+                    renderInquiryList();
+                    console.log('✅ 문의 목록 렌더링 완료');
+                } catch (renderError) {
+                    console.error('❌ 문의 목록 렌더링 실패:', renderError);
+                }
+                
+                console.log('📊 통계 업데이트 시작...');
+                // 통계 업데이트
+                try {
+                    await updateDashboardStats();
+                    console.log('✅ 통계 업데이트 완료');
+                } catch (statsError) {
+                    console.error('❌ 통계 업데이트 실패:', statsError);
+                }
+                
+                console.log('✅ 대시보드 데이터 로드 완료');
+            } catch (error) {
+                console.error('❌ loadDashboardData 전체 오류:', error);
+                console.error('오류 스택:', error.stack);
+                throw error; // 상위로 오류 전달
             }
-            
-            const isAdmin = await checkAdminPermission(window.firebaseAuth.currentUser);
-            if (!isAdmin) {
-                console.error('❌ 관리자 권한이 없습니다.');
-                showLoginSection();
-                return;
-            }
-            
-            if (!window.firebaseDb) {
-                console.error('❌ Firestore가 초기화되지 않았습니다.');
-                return;
-            }
-            
-            // 실시간 구독 시작 (이미 시작되어 있으면 무시)
-            if (!requestsUnsubscribe) {
-                subscribeToRequests();
-            }
-            if (!inquiriesUnsubscribe) {
-                subscribeToInquiries();
-            }
-            
-            // 초기 데이터 로드 (호환성 유지)
-            renderRequestList();
-            renderInquiryList();
-            
-            // 통계 업데이트
-            updateDashboardStats();
-            
-            console.log('✅ 대시보드 데이터 로드 완료');
         }
         
         // Firebase 연결 테스트 함수
@@ -3330,22 +3455,49 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
         /* 초기 상태: 대시보드 및 모든 모달 숨김 */
         #dashboard.hidden {
             display: none !important;
+            visibility: hidden !important;
+        }
+        #dashboard:not(.hidden) {
+            display: block !important;
+            visibility: visible !important;
         }
         #user-detail-modal,
         #admin-request-detail-modal,
         #inquiry-detail-modal {
             display: none !important;
         }
+        
+        /* 디버깅용 - 대시보드가 보이지 않을 때 확인 */
+        #dashboard {
+            min-height: 100vh;
+            background-color: #f9fafb;
+        }
     </style>
     
     <!-- 초기 상태 설정 스크립트 (DOM 로드 전 실행) -->
     <script>
+        // 초기화 플래그 (로그인 후에는 초기화하지 않도록)
+        window.dashboardInitialized = false;
+        
         // 즉시 실행 함수로 초기 상태 설정
         (function initDisplayState() {
             console.log('🔧 초기 상태 설정 스크립트 시작');
             
             function setInitialState() {
+                // 이미 로그인되어 있으면 초기화하지 않음
+                if (window.dashboardInitialized) {
+                    console.log('⚠️ 대시보드가 이미 초기화되어 있습니다. 초기 상태 설정 건너뜀');
+                    return;
+                }
+                
                 console.log('📋 초기 상태 설정 중...');
+                
+                // Firebase 인증 상태 확인
+                if (window.firebaseAuth && window.firebaseAuth.currentUser) {
+                    console.log('✅ 이미 로그인된 사용자 감지:', window.firebaseAuth.currentUser.email);
+                    // 로그인된 사용자가 있으면 초기 상태 설정 건너뜀
+                    return;
+                }
                 
                 // 로그인 섹션 표시
                 const loginSection = document.getElementById('login-section');
@@ -3401,6 +3553,81 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
     </script>
 </head>
 <body class="bg-gradient-to-br from-gray-50 via-blue-50 to-emerald-50 min-h-screen">
+    <!-- 전역 오류 핸들러 -->
+    <script>
+        // 전역 오류 핸들러
+        window.addEventListener('error', function(event) {
+            console.error('❌ 전역 오류 발생:', {
+                message: event.message,
+                filename: event.filename,
+                lineno: event.lineno,
+                colno: event.colno,
+                error: event.error,
+                stack: event.error?.stack
+            });
+            
+            // 치명적인 오류인 경우 알림
+            if (event.error && !event.error.handled) {
+                console.error('❌ 처리되지 않은 치명적 오류:', event.error);
+            }
+        });
+        
+        // Promise rejection 핸들러
+        window.addEventListener('unhandledrejection', function(event) {
+            console.error('❌ 처리되지 않은 Promise 거부:', {
+                reason: event.reason,
+                promise: event.promise
+            });
+            
+            if (event.reason) {
+                console.error('오류 상세:', event.reason);
+                if (event.reason.stack) {
+                    console.error('스택 트레이스:', event.reason.stack);
+                }
+            }
+        });
+        
+        console.log('✅ 전역 오류 핸들러 등록 완료');
+        console.log('🔍 페이지 로드 상태:', {
+            readyState: document.readyState,
+            location: window.location.href,
+            protocol: window.location.protocol
+        });
+        
+        // 페이지 완전 로드 후 상태 확인
+        window.addEventListener('load', function() {
+            console.log('📄 페이지 완전 로드 완료');
+            console.log('🔍 DOM 요소 확인:', {
+                loginSection: !!document.getElementById('login-section'),
+                dashboard: !!document.getElementById('dashboard'),
+                body: !!document.body,
+                bodyChildren: document.body ? document.body.children.length : 0
+            });
+            
+            const loginSection = document.getElementById('login-section');
+            const dashboard = document.getElementById('dashboard');
+            
+            if (loginSection) {
+                console.log('🔍 로그인 섹션 상태:', {
+                    className: loginSection.className,
+                    display: window.getComputedStyle(loginSection).display,
+                    visibility: window.getComputedStyle(loginSection).visibility,
+                    offsetParent: loginSection.offsetParent !== null
+                });
+            }
+            
+            if (dashboard) {
+                console.log('🔍 대시보드 섹션 상태:', {
+                    className: dashboard.className,
+                    display: window.getComputedStyle(dashboard).display,
+                    visibility: window.getComputedStyle(dashboard).visibility,
+                    offsetParent: dashboard.offsetParent !== null,
+                    hasHidden: dashboard.classList.contains('hidden')
+                });
+            }
+        });
+    </script>
+    
     <!-- 로그인 섹션 -->
     <div id="login-section" class="min-h-screen flex items-center justify-center">
         <div class="bg-white rounded-xl shadow-2xl p-4 sm:p-6 md:p-8 w-full max-w-xs sm:max-w-sm md:max-w-md">
