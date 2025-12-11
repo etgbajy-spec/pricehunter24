@@ -4440,13 +4440,29 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             }
         }
 
-        function deleteRequestFromModal() {
+        async function deleteRequestFromModal() {
+            if (!currentRequestId) {
+                alert('의뢰 ID를 찾을 수 없습니다. 페이지를 새로고침하고 다시 시도해주세요.');
+                return;
+            }
+            
             const requestNumber = document.getElementById('admin-modal-request-number').textContent;
-            if (confirm(`의뢰 ${requestNumber}를 삭제하시겠습니까?`)) {
-                // 삭제 로직 구현
-                console.log('의뢰 삭제:', requestNumber);
-                alert('의뢰가 삭제되었습니다.');
-                closeAdminRequestDetailModal();
+            if (!confirm(`의뢰 ${requestNumber}를 삭제하시겠습니까?\n\n⚠️ 이 작업은 되돌릴 수 없습니다.`)) {
+                return;
+            }
+            
+            try {
+                const success = await deleteRequestFromFirebase(currentRequestId);
+                if (success) {
+                    alert('의뢰가 성공적으로 삭제되었습니다.');
+                    closeAdminRequestDetailModal();
+                    renderRequestList(); // 목록 새로고침
+                } else {
+                    alert('의뢰 삭제에 실패했습니다. 다시 시도해주세요.');
+                }
+            } catch (error) {
+                console.error('의뢰 삭제 실패:', error);
+                alert('의뢰 삭제 중 오류가 발생했습니다.');
             }
         }
 
@@ -4846,6 +4862,33 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             document.body.style.overflow = 'auto';
         }
 
+        // 문의 모달에서 삭제
+        async function deleteInquiryFromModal() {
+            if (!currentInquiryId) {
+                alert('문의 ID를 찾을 수 없습니다. 페이지를 새로고침하고 다시 시도해주세요.');
+                return;
+            }
+            
+            const inquiryId = document.getElementById('inquiry-modal-id').textContent;
+            if (!confirm(`문의 ${inquiryId}를 삭제하시겠습니까?\n\n⚠️ 이 작업은 되돌릴 수 없습니다.`)) {
+                return;
+            }
+            
+            try {
+                const success = await deleteInquiryFromFirebase(currentInquiryId);
+                if (success) {
+                    alert('문의가 성공적으로 삭제되었습니다.');
+                    closeInquiryDetailModal();
+                    renderInquiryList(); // 목록 새로고침
+                } else {
+                    alert('문의 삭제에 실패했습니다. 다시 시도해주세요.');
+                }
+            } catch (error) {
+                console.error('문의 삭제 실패:', error);
+                alert('문의 삭제 중 오류가 발생했습니다.');
+            }
+        }
+
         // 후기 모달 관련 함수들 (삭제됨)
     </script>
 
@@ -4937,6 +4980,20 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                                     <span class="font-semibold text-gray-700 w-20">카카오ID:</span> 
                                     <span id="inquiry-modal-user-kakao" class="text-purple-600"></span>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 관리자 액션 -->
+                    <div class="mb-6">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                            ⚙️ 관리자 액션
+                        </h3>
+                        <div class="bg-red-50 rounded-lg p-4 border-l-4 border-red-500">
+                            <div class="flex flex-wrap gap-3">
+                                <button onclick="deleteInquiryFromModal()" class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition">
+                                    문의 삭제
+                                </button>
                             </div>
                         </div>
                     </div>
