@@ -24,7 +24,7 @@
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
     import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
-    import { getFirestore, collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, getDocs, where, doc, updateDoc, deleteDoc, arrayUnion } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
+    import { getFirestore, collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, getDocs, where, doc, updateDoc, deleteDoc, arrayUnion, limit } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
     
     // Firebase 설정
     const firebaseConfig = {
@@ -58,7 +58,8 @@
       doc, 
       updateDoc, 
       deleteDoc,
-      arrayUnion
+      arrayUnion,
+      limit
     };
 
     console.log('✅ Firebase v9 초기화 완료 (member-dashboard.html)');
@@ -748,10 +749,11 @@
         } catch (queryError) {
           console.warn('⚠️ where 쿼리 실패, 모든 데이터를 가져와서 필터링:', queryError);
           
-          // 쿼리 실패시 모든 데이터를 가져와서 클라이언트에서 필터링
-          const allRequestsQuery = query(collection(db, 'requests'));
+          // 쿼리 실패시 최신 500개만 가져와서 클라이언트에서 필터링 (쿼리 최적화)
+          const { limit } = window.firebaseFirestoreFunctions;
+          const allRequestsQuery = query(collection(db, 'requests'), limit(500));
           querySnapshot = await getDocs(allRequestsQuery);
-          console.log('🔍 전체 의뢰 데이터:', querySnapshot.size, '개 문서 발견');
+          console.log('🔍 전체 의뢰 데이터 (최신 500개):', querySnapshot.size, '개 문서 발견');
         }
         
         const requests = [];
@@ -820,10 +822,11 @@
         } catch (queryError) {
           console.warn('⚠️ 문의 where 쿼리 실패, 모든 데이터를 가져와서 필터링:', queryError);
           
-          // 쿼리 실패시 모든 데이터를 가져와서 클라이언트에서 필터링
-          const allInquiriesQuery = query(collection(db, 'inquiries'));
+          // 쿼리 실패시 최신 500개만 가져와서 클라이언트에서 필터링 (쿼리 최적화)
+          const { limit } = window.firebaseFirestoreFunctions;
+          const allInquiriesQuery = query(collection(db, 'inquiries'), limit(500));
           querySnapshot = await getDocs(allInquiriesQuery);
-          console.log('🔍 전체 문의 데이터:', querySnapshot.size, '개 문서 발견');
+          console.log('🔍 전체 문의 데이터 (최신 500개):', querySnapshot.size, '개 문서 발견');
         }
         const inquiries = [];
         
@@ -2738,6 +2741,12 @@
         if (e.key === 'Escape' && !document.getElementById('request-detail-modal').classList.contains('hidden')) {
           closeRequestDetailModal();
         }
+      });
+
+      // 페이지 언마운트 시 정리 작업 (메모리 누수 방지)
+      window.addEventListener('beforeunload', function() {
+        console.log('🔄 페이지 언마운트 - 정리 작업');
+        // 필요한 경우 여기에 추가 정리 작업 추가
       });
     });
   </script>

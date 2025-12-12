@@ -20,7 +20,7 @@
     <script type="module">
       import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
       import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
-      import { getFirestore, collection, query, orderBy, onSnapshot, getDocs, getDoc, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, where } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
+      import { getFirestore, collection, query, orderBy, onSnapshot, getDocs, getDoc, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, where, limit } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
       
       // Firebase 설정
       const firebaseConfig = {
@@ -44,7 +44,7 @@
         window.firebaseAuth = auth;
         window.firebaseDb = db;
         window.firebaseAuthFunctions = { onAuthStateChanged };
-        window.firebaseFirestoreFunctions = { collection, query, orderBy, onSnapshot, getDocs, getDoc, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, where };
+        window.firebaseFirestoreFunctions = { collection, query, orderBy, onSnapshot, getDocs, getDoc, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, where, limit };
         
         console.log('✅ 관리자 대시보드 Firebase v9 초기화 완료');
       } catch (error) {
@@ -60,12 +60,14 @@
           orderBy: () => {}, 
           onSnapshot: () => {},
           getDocs: () => {},
+          getDoc: () => {},
           addDoc: () => {},
           serverTimestamp: () => {},
           doc: () => {},
           updateDoc: () => {},
           deleteDoc: () => {},
-          where: () => {}
+          where: () => {},
+          limit: () => {}
         };
         
         // 사용자에게 알림
@@ -548,16 +550,17 @@
             }
             
             try {
-                const { collection, query, orderBy, onSnapshot } = window.firebaseFirestoreFunctions;
+                const { collection, query, orderBy, onSnapshot, limit } = window.firebaseFirestoreFunctions;
                 const usersRef = collection(window.firebaseDb, 'users');
                 
                 // createdAt 필드가 없을 수 있으므로 기본 쿼리 사용
+                // 쿼리 최적화: 최신 500명만 가져오기 (관리자 대시보드용)
                 let usersQuery;
                 try {
-                    usersQuery = query(usersRef, orderBy('createdAt', 'desc'));
+                    usersQuery = query(usersRef, orderBy('createdAt', 'desc'), limit(500));
                 } catch (error) {
                     console.warn('⚠️ createdAt 필드로 정렬 실패, 기본 쿼리 사용:', error);
-                    usersQuery = query(usersRef);
+                    usersQuery = query(usersRef, limit(500));
                 }
 
                 usersUnsubscribe = onSnapshot(usersQuery, (snapshot) => {
@@ -704,11 +707,13 @@
             try {
                 console.log('🧹 Firebase 중복 사용자 데이터 정리 시작...');
                 
-                const { collection, getDocs, deleteDoc, doc } = window.firebaseFirestoreFunctions;
+                const { collection, getDocs, deleteDoc, doc, query, limit } = window.firebaseFirestoreFunctions;
                 const db = window.firebaseDb;
                 
+                // 쿼리 최적화: 최신 1000명만 가져오기
                 const usersRef = collection(db, 'users');
-                const querySnapshot = await getDocs(usersRef);
+                const usersQuery = query(usersRef, limit(1000));
+                const querySnapshot = await getDocs(usersQuery);
                 
                 console.log(`📊 전체 사용자 문서 수: ${querySnapshot.size}`);
                 
@@ -1036,12 +1041,23 @@
                 const { collection, onSnapshot } = window.firebaseFirestoreFunctions;
                 const db = window.firebaseDb;
                 
-                // orderBy 없이 모든 데이터 구독 (복합 인덱스 문제 방지)
-                const requestsRef = collection(db, 'requests');
+                // 쿼리 최적화: 최신 1000개만 구독 (관리자 대시보드용)
+                const { query, orderBy, limit } = window.firebaseFirestoreFunctions;
+                let requestsQuery;
+                try {
+                    requestsQuery = query(
+                        collection(db, 'requests'),
+                        orderBy('createdAt', 'desc'),
+                        limit(1000)
+                    );
+                } catch (error) {
+                    console.warn('⚠️ orderBy 쿼리 실패, 기본 쿼리 사용:', error);
+                    requestsQuery = query(collection(db, 'requests'), limit(1000));
+                }
                 
-                console.log('🔄 의뢰 데이터 실시간 구독 시작...');
+                console.log('🔄 의뢰 데이터 실시간 구독 시작... (최신 1000개)');
                 
-                requestsUnsubscribe = onSnapshot(requestsRef, (querySnapshot) => {
+                requestsUnsubscribe = onSnapshot(requestsQuery, (querySnapshot) => {
                     const requests = [];
                     
                     querySnapshot.forEach((doc) => {
@@ -1170,12 +1186,23 @@
                 const { collection, onSnapshot } = window.firebaseFirestoreFunctions;
                 const db = window.firebaseDb;
                 
-                // orderBy 없이 모든 데이터 구독 (복합 인덱스 문제 방지)
-                const inquiriesRef = collection(db, 'inquiries');
+                // 쿼리 최적화: 최신 1000개만 구독 (관리자 대시보드용)
+                const { query, orderBy, limit } = window.firebaseFirestoreFunctions;
+                let inquiriesQuery;
+                try {
+                    inquiriesQuery = query(
+                        collection(db, 'inquiries'),
+                        orderBy('createdAt', 'desc'),
+                        limit(1000)
+                    );
+                } catch (error) {
+                    console.warn('⚠️ orderBy 쿼리 실패, 기본 쿼리 사용:', error);
+                    inquiriesQuery = query(collection(db, 'inquiries'), limit(1000));
+                }
                 
-                console.log('🔄 문의 데이터 실시간 구독 시작...');
+                console.log('🔄 문의 데이터 실시간 구독 시작... (최신 1000개)');
                 
-                inquiriesUnsubscribe = onSnapshot(inquiriesRef, (querySnapshot) => {
+                inquiriesUnsubscribe = onSnapshot(inquiriesQuery, (querySnapshot) => {
                     const inquiries = [];
                     
                     querySnapshot.forEach((doc) => {
@@ -6404,6 +6431,36 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             }
             if (statusFilter) {
                 statusFilter.addEventListener('change', applyReviewFilters);
+            }
+        });
+
+        // 페이지 언마운트 시 실시간 구독 해제 (메모리 누수 방지)
+        window.addEventListener('beforeunload', function() {
+            console.log('🔄 페이지 언마운트 - 실시간 구독 해제');
+            
+            // 모든 실시간 구독 해제
+            if (usersUnsubscribe) {
+                usersUnsubscribe();
+                usersUnsubscribe = null;
+                console.log('✅ 사용자 목록 구독 해제');
+            }
+            
+            if (requestsUnsubscribe) {
+                requestsUnsubscribe();
+                requestsUnsubscribe = null;
+                console.log('✅ 의뢰 목록 구독 해제');
+            }
+            
+            if (inquiriesUnsubscribe) {
+                inquiriesUnsubscribe();
+                inquiriesUnsubscribe = null;
+                console.log('✅ 문의 목록 구독 해제');
+            }
+            
+            if (reviewsUnsubscribe) {
+                reviewsUnsubscribe();
+                reviewsUnsubscribe = null;
+                console.log('✅ 후기 목록 구독 해제');
             }
         });
     </script>

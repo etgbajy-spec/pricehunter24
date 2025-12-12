@@ -215,12 +215,18 @@ async function exchangeKakaoToken(accessToken) {
   try {
     console.log('🔄 카카오 토큰 교환 시작...');
     
-    const response = await fetch('/.netlify/functions/kakao-exchange', {
+    // Netlify Functions 사용 (배포 환경) 또는 Express 서버 사용 (로컬 환경)
+    // netlify.toml에서 /api/kakao-to-firebase-token을 Netlify Functions로 리다이렉트함
+    const apiUrl = '/api/kakao-to-firebase-token';
+    
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ accessToken })
+      body: JSON.stringify({ 
+        accessToken: accessToken // 서버에서 카카오 API로 사용자 정보를 가져옴
+      })
     });
     
     if (!response.ok) {
@@ -234,7 +240,7 @@ async function exchangeKakaoToken(accessToken) {
       console.log('📝 교환된 사용자 정보:', data.user);
       
       // Firebase 커스텀 토큰으로 로그인
-      await signInWithCustomToken(auth, data.customToken);
+      await signInWithCustomToken(auth, data.customToken || data.token);
       
       showSuccessMessage('카카오 로그인이 완료되었습니다!');
       

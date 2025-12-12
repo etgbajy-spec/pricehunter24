@@ -155,9 +155,184 @@
         transform: scale(0.9) translateY(-20px); 
       }
     }
+    
+    /* 모달 애니메이션 */
+    @keyframes fade-in {
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
+      }
+    }
+    .animate-fade-in {
+      animation: fade-in 0.3s ease-out;
+    }
+    
+    /* 체크박스 커스텀 스타일 */
+    #service-info-agree:checked {
+      background-color: #3b82f6;
+      border-color: #3b82f6;
+    }
+    
+    /* 버튼 비활성화 스타일 */
+    #confirm-service-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
   </style>
 </head>
 <body class="bg-gradient-to-br from-gray-100 via-blue-50 to-emerald-50 min-h-screen flex flex-col items-center justify-center py-4 md:py-12">
+  <!-- 서비스 모델 안내 모달 (고급화 버전) -->
+  <div id="service-info-modal" class="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-3xl max-w-3xl w-full max-h-[90vh] overflow-hidden shadow-2xl transform transition-all duration-300 scale-100 popup-enter" style="box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);">
+      <!-- 헤더 (고급스러운 그라데이션) -->
+      <div class="relative bg-gradient-to-br from-blue-600 via-purple-600 to-emerald-600 text-white px-8 py-6">
+        <div class="absolute inset-0 bg-gradient-to-r from-blue-600/90 to-emerald-600/90"></div>
+        <div class="relative flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
+              <span class="text-2xl">🎁</span>
+            </div>
+            <div>
+              <h2 class="text-2xl md:text-3xl font-bold">PriceHunter 서비스 안내</h2>
+              <p class="text-sm text-white/90 mt-1">의뢰 전 꼭 확인해주세요</p>
+            </div>
+          </div>
+          <button onclick="closeServiceInfoModal()" class="text-white hover:bg-white/20 transition-all rounded-full w-10 h-10 flex items-center justify-center text-2xl font-light hover:rotate-90 duration-300" aria-label="닫기">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- 콘텐츠 영역 (스크롤 가능) -->
+      <div class="px-8 py-6 overflow-y-auto max-h-[calc(90vh-200px)]">
+        <div class="space-y-5">
+          <!-- 무료 정보 제공 서비스 (카드 스타일) -->
+          <div class="group relative bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-2xl border-2 border-blue-200 hover:border-blue-300 transition-all duration-300 hover:shadow-lg">
+            <div class="absolute top-4 right-4 w-16 h-16 bg-blue-200/50 rounded-full blur-xl opacity-50 group-hover:opacity-75 transition-opacity"></div>
+            <div class="relative flex items-start gap-4">
+              <div class="flex-shrink-0 w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
+                <span class="text-3xl">🎁</span>
+              </div>
+              <div class="flex-1">
+                <h3 class="text-xl font-bold text-blue-900 mb-2 flex items-center gap-2">
+                  <span>무료로 최저가 정보만 알려드립니다</span>
+                  <span class="text-xs bg-blue-600 text-white px-2 py-1 rounded-full">100% 무료</span>
+                </h3>
+                <p class="text-gray-700 leading-relaxed mb-3">
+                  PriceHunter는 <span class="font-bold text-blue-700">완전 무료</span>로 최저가 정보를 제공하는 서비스입니다.<br>
+                  의뢰하시면 전문 검증팀이 <span class="font-semibold">도매처, 공장 직거래, 특별 경로</span> 등 다양한 경로를 통해 최저가를 찾아드립니다.
+                </p>
+                <div class="flex items-center gap-2 text-sm text-blue-700 mt-3">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                  </svg>
+                  <span>중개 수수료 없음</span>
+                  <span class="mx-2">•</span>
+                  <span>추가 비용 없음</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 구매 방법 안내 (카드 스타일) -->
+          <div class="group relative bg-gradient-to-br from-emerald-50 to-emerald-100 p-6 rounded-2xl border-2 border-emerald-200 hover:border-emerald-300 transition-all duration-300 hover:shadow-lg">
+            <div class="absolute top-4 right-4 w-16 h-16 bg-emerald-200/50 rounded-full blur-xl opacity-50 group-hover:opacity-75 transition-opacity"></div>
+            <div class="relative flex items-start gap-4">
+              <div class="flex-shrink-0 w-14 h-14 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg">
+                <span class="text-3xl">🛒</span>
+              </div>
+              <div class="flex-1">
+                <h3 class="text-xl font-bold text-emerald-900 mb-2">구매는 추천 쇼핑몰에서 직접 진행</h3>
+                <p class="text-gray-700 leading-relaxed mb-4">
+                  최저가 정보를 받으신 후, <span class="font-bold text-emerald-700">추천 쇼핑몰 링크로 이동하여 직접 구매</span>하시면 됩니다.<br>
+                  결제는 해당 쇼핑몰에서 진행하시며, PriceHunter는 어떤 수수료도 받지 않습니다.
+                </p>
+                <div class="bg-gradient-to-r from-blue-50 to-purple-50 backdrop-blur-sm p-4 rounded-xl border-2 border-blue-200">
+                  <div class="flex items-start gap-2">
+                    <svg class="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <div>
+                      <p class="text-sm font-semibold text-blue-800 mb-1">구매대행 서비스 준비 중</p>
+                      <p class="text-xs text-blue-700">
+                        나중에 더 저렴하게 구매할 수 있도록 구매대행 서비스를 준비하고 있습니다. 곧 만나보실 수 있습니다.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 서비스 범위 안내 (카드 스타일) -->
+          <div class="group relative bg-gradient-to-br from-purple-50 to-pink-50 p-6 rounded-2xl border-2 border-purple-200 hover:border-purple-300 transition-all duration-300 hover:shadow-lg">
+            <div class="absolute top-4 right-4 w-16 h-16 bg-purple-200/50 rounded-full blur-xl opacity-50 group-hover:opacity-75 transition-opacity"></div>
+            <div class="relative flex items-start gap-4">
+              <div class="flex-shrink-0 w-14 h-14 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center shadow-lg">
+                <span class="text-3xl">💝</span>
+              </div>
+              <div class="flex-1">
+                <h3 class="text-xl font-bold text-purple-900 mb-2">모든 제품 최저가 검증 서비스</h3>
+                <p class="text-gray-700 leading-relaxed mb-3">
+                  PriceHunter는 모든 제품의 최저가를 찾아드리기 위해 노력하고 있습니다.
+                </p>
+                <div class="bg-white/80 backdrop-blur-sm p-4 rounded-xl border border-purple-200">
+                  <div class="flex items-start gap-2">
+                    <svg class="w-5 h-5 text-purple-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <div>
+                      <p class="text-sm font-semibold text-purple-800 mb-1">브랜드 제품 안내</p>
+                      <p class="text-xs text-purple-700 leading-relaxed">
+                        브랜드 제품(애플, 삼성, LG, 명품 등)의 경우 공식 유통망의 가격 정책으로 인해 최저가 차이가 크지 않을 수 있습니다. 이 점 양해 부탁드립니다.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 확인 체크박스 (개선된 디자인) -->
+          <div class="bg-gradient-to-br from-gray-50 to-gray-100 p-5 rounded-2xl border-2 border-gray-200">
+            <label class="flex items-start gap-4 cursor-pointer group">
+              <div class="flex-shrink-0 mt-1">
+                <input type="checkbox" id="service-info-agree" class="w-6 h-6 text-blue-600 rounded-md border-2 border-gray-300 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer transition-all">
+              </div>
+              <div class="flex-1">
+                <p class="text-gray-800 leading-relaxed font-medium">
+                  위 내용을 모두 확인했으며, PriceHunter가 <span class="font-bold text-blue-700">무료 정보 제공 서비스</span>임을 이해했습니다.
+                </p>
+                <p class="text-xs text-gray-500 mt-2">
+                  체크하시면 의뢰를 진행하실 수 있습니다.
+                </p>
+              </div>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- 푸터 버튼 (고급스러운 디자인) -->
+      <div class="px-8 py-5 bg-gradient-to-r from-gray-50 to-gray-100 border-t border-gray-200 flex flex-col sm:flex-row gap-3">
+        <button onclick="closeServiceInfoModal()" class="flex-1 px-6 py-3.5 bg-white border-2 border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 shadow-sm hover:shadow-md">
+          나중에 확인하기
+        </button>
+        <button onclick="confirmServiceInfo()" id="confirm-service-btn" disabled class="flex-1 px-6 py-3.5 bg-gradient-to-r from-blue-600 via-purple-600 to-emerald-600 text-white font-bold rounded-xl hover:from-blue-700 hover:via-purple-700 hover:to-emerald-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100">
+          <span class="flex items-center justify-center gap-2">
+            <span>확인하고 의뢰하기</span>
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+            </svg>
+          </span>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <div class="w-full max-w-4xl bg-white/90 rounded-2xl shadow-2xl p-4 md:p-8 lg:p-10 backdrop-blur-md">
     <h2 class="text-2xl sm:text-3xl md:text-4xl font-bold text-blue-800 mb-4 md:mb-6 text-center">최저가<br class="sm:hidden">요청하기</h2>
     
@@ -233,15 +408,26 @@
           </div>
         </div>
 
-        <!-- 브랜드 배제 안내 -->
-        <div class="bg-pink-50 p-4 rounded-lg mb-6 border border-pink-200">
-          <div class="flex items-start">
-            <div class="text-pink-600 mr-3 text-xl">⚠️</div>
-            <div>
-              <div class="font-bold text-pink-800 mb-1">브랜드 제품 검증 제외 안내</div>
-              <div class="text-sm text-pink-700">
-                애플, 삼성, LG, 명품, 스니커즈, 대형TV 등 브랜드 제품은 가격 변동이 심하고 정확한 비교가 어려워 검증에서 제외됩니다.<br>
-                <span class="font-medium text-blue-600">💡 브랜드가 없는 제품, 또는 브랜드가 중요하지 않은 제품 위주로 의뢰해 주세요!</span>
+        <!-- 브랜드 제품 안내 (고객 친화적) -->
+        <div class="bg-gradient-to-br from-purple-50 to-pink-50 p-5 rounded-xl mb-6 border-2 border-purple-200 shadow-sm">
+          <div class="flex items-start gap-3">
+            <div class="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center shadow-md">
+              <span class="text-xl">💝</span>
+            </div>
+            <div class="flex-1">
+              <div class="font-bold text-purple-800 mb-2 text-base">모든 제품 최저가 검증 서비스</div>
+              <div class="text-sm text-gray-700 leading-relaxed mb-2">
+                PriceHunter는 모든 제품의 최저가를 찾아드리기 위해 노력하고 있습니다.
+              </div>
+              <div class="bg-white/80 backdrop-blur-sm p-3 rounded-lg border border-purple-200 mt-3">
+                <div class="flex items-start gap-2">
+                  <svg class="w-4 h-4 text-purple-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
+                  <p class="text-xs text-purple-700 leading-relaxed">
+                    <span class="font-semibold">브랜드 제품 안내:</span> 브랜드 제품(애플, 삼성, LG, 명품 등)의 경우 공식 유통망의 가격 정책으로 인해 최저가 차이가 크지 않을 수 있습니다. 이 점 양해 부탁드립니다.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
@@ -1368,7 +1554,113 @@
       }
     }
     
+    // 서비스 안내 모달 함수
+    function showServiceInfoModal() {
+      const modal = document.getElementById('service-info-modal');
+      if (modal) {
+        modal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+        // 모달이 표시될 때 버튼 상태 초기화
+        setTimeout(() => {
+          updateConfirmButton();
+        }, 100);
+      }
+    }
+
+    function closeServiceInfoModal() {
+      const modal = document.getElementById('service-info-modal');
+      if (modal) {
+        modal.classList.add('hidden');
+        document.body.style.overflow = 'auto';
+      }
+    }
+
+    function confirmServiceInfo() {
+      const agreeCheckbox = document.getElementById('service-info-agree');
+      if (agreeCheckbox && !agreeCheckbox.checked) {
+        // 체크박스에 포커스 및 애니메이션 효과
+        agreeCheckbox.focus();
+        agreeCheckbox.parentElement.parentElement.classList.add('animate-pulse');
+        setTimeout(() => {
+          agreeCheckbox.parentElement.parentElement.classList.remove('animate-pulse');
+        }, 1000);
+        
+        // 부드러운 알림 메시지
+        const notification = document.createElement('div');
+        notification.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg z-[60] animate-fade-in';
+        notification.textContent = '서비스 안내 내용을 확인하고 동의해주세요.';
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+          notification.style.opacity = '0';
+          notification.style.transition = 'opacity 0.3s';
+          setTimeout(() => notification.remove(), 300);
+        }, 3000);
+        return;
+      }
+      
+      // 동의 상태를 localStorage에 저장
+      localStorage.setItem('service-info-agreed', 'true');
+      
+      // 모달 닫기 애니메이션
+      const modal = document.getElementById('service-info-modal');
+      if (modal) {
+        modal.style.opacity = '0';
+        modal.style.transition = 'opacity 0.3s';
+        setTimeout(() => {
+          closeServiceInfoModal();
+        }, 300);
+      }
+    }
+    
+    // 체크박스 상태에 따라 버튼 활성화/비활성화
+    function updateConfirmButton() {
+      const agreeCheckbox = document.getElementById('service-info-agree');
+      const confirmBtn = document.getElementById('confirm-service-btn');
+      
+      if (agreeCheckbox && confirmBtn) {
+        if (agreeCheckbox.checked) {
+          confirmBtn.disabled = false;
+          confirmBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        } else {
+          confirmBtn.disabled = true;
+          confirmBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        }
+      }
+    }
+
+    // ESC 키로 모달 닫기
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        closeServiceInfoModal();
+      }
+    });
+
+    // 모달 외부 클릭 시 닫기
+    document.addEventListener('click', function(e) {
+      const modal = document.getElementById('service-info-modal');
+      if (modal && e.target === modal) {
+        closeServiceInfoModal();
+      }
+    });
+
     window.addEventListener('DOMContentLoaded', function() {
+      // 체크박스 변경 이벤트 리스너
+      const agreeCheckbox = document.getElementById('service-info-agree');
+      if (agreeCheckbox) {
+        agreeCheckbox.addEventListener('change', updateConfirmButton);
+      }
+      
+      // 서비스 안내 모달 표시 (최초 방문 시에만)
+      const serviceInfoAgreed = localStorage.getItem('service-info-agreed');
+      if (!serviceInfoAgreed) {
+        setTimeout(() => {
+          showServiceInfoModal();
+          // 모달이 표시된 후 버튼 상태 초기화
+          setTimeout(updateConfirmButton, 100);
+        }, 500);
+      }
+
       // 방문 로그 기록 (1초 후 실행하여 Firebase 초기화 대기)
       setTimeout(logPageVisit, 1000);
       let user = null;
