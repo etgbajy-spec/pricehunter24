@@ -478,6 +478,12 @@
         opacity: 0;
       }
       
+      /* "함께하세요" 텍스트는 로고 아래에 위치 */
+      .splash-text[data-index="5"] {
+        top: 60% !important;
+        transform: translate(-50%, -50%) !important;
+      }
+      
       .splash-text.active {
         display: flex;
         opacity: 1;
@@ -541,7 +547,7 @@
       
       .splash-logo-wrapper {
         position: absolute;
-        top: 25%;
+        top: 15%;
         left: 50%;
         transform: translate(-50%, -50%) scale(0.8);
         display: none; /* 초기에는 숨김 */
@@ -663,7 +669,7 @@
         .splash-logo-wrapper {
           padding: 0.8rem 1.2rem;
           border-radius: 12px;
-          top: 20% !important;
+          top: 12% !important;
         }
         
         .splash-logo {
@@ -673,6 +679,11 @@
         .splash-text {
           font-size: 1.5rem;
           min-height: 3rem;
+        }
+        
+        /* 모바일에서 "함께하세요" 텍스트 위치 조정 */
+        .splash-text[data-index="5"] {
+          top: 55% !important;
         }
         
         .splash-subtitle {
