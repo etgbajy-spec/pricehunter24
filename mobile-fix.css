@@ -356,4 +356,519 @@
     font-size: 0.8rem !important;
     line-height: 1.3 !important;
   }
+
+  /* ========== 모바일 중앙 정렬 강화 ========== */
+  
+  /* 모든 컨테이너 중앙 정렬 */
+  .max-w-7xl, .max-w-6xl, .max-w-5xl, .max-w-4xl, .max-w-3xl, .max-w-2xl {
+    margin-left: auto !important;
+    margin-right: auto !important;
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  
+  /* 모든 섹션 중앙 정렬 */
+  section {
+    text-align: center !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+  
+  /* 모든 div 컨테이너 중앙 정렬 */
+  div[class*="max-w"] {
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+  
+  /* flex 컨테이너 중앙 정렬 */
+  .flex {
+    justify-content: center !important;
+  }
+  
+  .flex.flex-col {
+    align-items: center !important;
+  }
+  
+  /* 텍스트 중앙 정렬 강화 */
+  h1, h2, h3, h4, h5, h6, p, span, div {
+    text-align: center !important;
+  }
+  
+  /* 왼쪽 정렬이 필요한 경우만 예외 처리 */
+  .text-left {
+    text-align: left !important;
+  }
+  
+  /* 그리드 아이템 중앙 정렬 */
+  .grid {
+    justify-items: center !important;
+  }
+  
+  /* 버튼 중앙 정렬 */
+  button, a[class*="btn"], a[class*="button"] {
+    margin-left: auto !important;
+    margin-right: auto !important;
+    display: block !important;
+  }
+  
+  /* 인라인 버튼은 예외 */
+  button.inline-block, a.inline-block {
+    display: inline-block !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+  
+  /* 카드 요소 중앙 정렬 */
+  .card, [class*="card"], .rounded-2xl, .rounded-xl, .rounded-lg {
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+  
+  /* 이미지 중앙 정렬 */
+  img {
+    display: block !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+  
+  /* 리스트 중앙 정렬 */
+  ul, ol {
+    text-align: center !important;
+    padding-left: 0 !important;
+  }
+  
+  li {
+    text-align: center !important;
+    list-style-position: inside !important;
+  }
+  
+  /* 헤더/푸터 중앙 정렬 */
+  header, footer {
+    text-align: center !important;
+  }
+  
+  header .flex, footer .flex {
+    justify-content: center !important;
+    align-items: center !important;
+  }
+  
+  /* 네비게이션 중앙 정렬 */
+  nav {
+    text-align: center !important;
+  }
+  
+  nav .flex {
+    justify-content: center !important;
+    align-items: center !important;
+  }
+  
+  /* 폼 요소 중앙 정렬 */
+  form {
+    text-align: center !important;
+  }
+  
+  input, textarea, select {
+    margin-left: auto !important;
+    margin-right: auto !important;
+    display: block !important;
+    width: calc(100% - 2rem) !important;
+    max-width: 100% !important;
+  }
+  
+  /* 특정 섹션별 중앙 정렬 강화 */
+  #hero-section, #main-content, #three-step-target-section {
+    text-align: center !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+  
+  /* px-4, px-6 등의 패딩 균형 맞추기 */
+  [class*="px-"] {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+  
+  /* mx-auto 강제 적용 */
+  [class*="mx-auto"], .mx-auto {
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+
+  /* ========== 가격 비교 카드 모바일 최적화 ========== */
+  
+  /* 절감왕 카드 전체 컨테이너 */
+  .hero-savings-card {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0.5rem auto !important;
+    padding: 1rem !important;
+    box-sizing: border-box !important;
+  }
+  
+  /* 제품 정보 섹션 */
+  .hero-savings-card .flex.items-center.gap-4 {
+    flex-direction: column !important;
+    align-items: center !important;
+    text-align: center !important;
+    gap: 0.75rem !important;
+    margin-bottom: 1rem !important;
+  }
+  
+  /* 제품 이미지 */
+  .hero-savings-card img {
+    width: 60px !important;
+    height: 60px !important;
+    border-radius: 0.75rem !important;
+    margin: 0 auto !important;
+  }
+  
+  /* 제품 제목 */
+  .hero-savings-card h3 {
+    font-size: 0.875rem !important;
+    line-height: 1.4 !important;
+    text-align: center !important;
+    margin-bottom: 0.25rem !important;
+  }
+  
+  /* 사용자 이름 */
+  .hero-savings-card p {
+    font-size: 0.75rem !important;
+    text-align: center !important;
+  }
+  
+  /* 가격 비교 섹션 */
+  .hero-savings-card .space-y-6 {
+    gap: 0.75rem !important;
+    margin-bottom: 1rem !important;
+  }
+  
+  /* 기존 가격 카드 */
+  .hero-savings-card .bg-white\/5 {
+    padding: 0.875rem !important;
+    border-radius: 0.75rem !important;
+    text-align: center !important;
+  }
+  
+  /* 기존 가격 라벨 */
+  .hero-savings-card .text-xs {
+    font-size: 0.625rem !important;
+    margin-bottom: 0.5rem !important;
+  }
+  
+  /* 기존 가격 금액 */
+  .hero-savings-card .text-3xl {
+    font-size: 1.25rem !important;
+    line-height: 1.3 !important;
+  }
+  
+  /* 화살표 */
+  .hero-savings-card svg {
+    width: 1.5rem !important;
+    height: 1.5rem !important;
+    margin: 0.25rem auto !important;
+  }
+  
+  /* 프라이스헌터 가격 카드 */
+  .hero-savings-card .bg-emerald-500\/20 {
+    padding: 0.875rem !important;
+    border-radius: 0.75rem !important;
+    text-align: center !important;
+    border-width: 2px !important;
+  }
+  
+  /* 프라이스헌터 가격 라벨 */
+  .hero-savings-card .text-emerald-300 {
+    font-size: 0.625rem !important;
+    margin-bottom: 0.5rem !important;
+  }
+  
+  /* 프라이스헌터 가격 금액 */
+  .hero-savings-card .text-emerald-300.text-3xl {
+    font-size: 1.25rem !important;
+    line-height: 1.3 !important;
+  }
+  
+  /* 절약 정보 섹션 */
+  .hero-savings-card .pt-6 {
+    padding-top: 1rem !important;
+    margin-top: 1rem !important;
+  }
+  
+  /* 절약액/절약률 그리드 */
+  .hero-savings-card .grid.grid-cols-2 {
+    gap: 0.5rem !important;
+  }
+  
+  /* 절약액/절약률 카드 */
+  .hero-savings-card .bg-white\/5.rounded-xl {
+    padding: 0.75rem 0.5rem !important;
+    border-radius: 0.5rem !important;
+    text-align: center !important;
+  }
+  
+  /* 절약액/절약률 라벨 */
+  .hero-savings-card .text-sm {
+    font-size: 0.625rem !important;
+    margin-bottom: 0.375rem !important;
+  }
+  
+  /* 절약액/절약률 금액 */
+  .hero-savings-card .text-2xl {
+    font-size: 1rem !important;
+    line-height: 1.3 !important;
+  }
+  
+  /* ========== FAQ 섹션 모바일 최적화 ========== */
+  
+  /* FAQ 섹션 전체 */
+  #faq-section {
+    padding: 2rem 1rem !important;
+  }
+  
+  /* FAQ 제목 */
+  #faq-section h2 {
+    font-size: 1.5rem !important;
+    line-height: 1.3 !important;
+    margin-bottom: 1.5rem !important;
+    text-align: center !important;
+  }
+  
+  /* FAQ 항목 간격 */
+  #faq-section .space-y-4 {
+    gap: 0.75rem !important;
+  }
+  
+  /* FAQ 카드 */
+  #faq-section .bg-white.rounded-lg {
+    border-radius: 0.75rem !important;
+    margin: 0 auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+  }
+  
+  /* FAQ 버튼 (터치 영역 확대) */
+  #faq-section button {
+    padding: 1rem 1rem !important;
+    min-height: 56px !important;
+    width: 100% !important;
+    text-align: left !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 0.75rem !important;
+  }
+  
+  /* FAQ 질문 텍스트 */
+  #faq-section button span {
+    font-size: 0.9375rem !important;
+    line-height: 1.5 !important;
+    flex: 1 !important;
+    text-align: left !important;
+  }
+  
+  /* FAQ 화살표 아이콘 */
+  #faq-section button svg {
+    width: 1.25rem !important;
+    height: 1.25rem !important;
+    flex-shrink: 0 !important;
+  }
+  
+  /* FAQ 답변 영역 */
+  #faq-section .hidden {
+    padding: 0 1rem 1rem 1rem !important;
+  }
+  
+  /* FAQ 답변 텍스트 */
+  #faq-section .text-gray-600 {
+    font-size: 0.875rem !important;
+    line-height: 1.6 !important;
+    text-align: left !important;
+  }
+  
+  /* FAQ 답변 단락 */
+  #faq-section p {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  
+  /* ========== 하단 CTA 섹션 모바일 최적화 ========== */
+  
+  /* CTA 섹션 */
+  #bottom-cta-section {
+    padding: 2rem 1rem !important;
+  }
+  
+  /* CTA 제목 */
+  #bottom-cta-section h2 {
+    font-size: 1.5rem !important;
+    line-height: 1.4 !important;
+    margin-bottom: 1rem !important;
+    text-align: center !important;
+  }
+  
+  /* CTA 설명 */
+  #bottom-cta-section p {
+    font-size: 0.875rem !important;
+    line-height: 1.6 !important;
+    margin-bottom: 1.5rem !important;
+    text-align: center !important;
+  }
+  
+  /* CTA 버튼 컨테이너 */
+  #bottom-cta-section .flex.flex-col {
+    gap: 0.75rem !important;
+    width: 100% !important;
+  }
+  
+  /* CTA 버튼 */
+  #bottom-cta-section button,
+  #bottom-cta-section a {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 1rem !important;
+    font-size: 1rem !important;
+    min-height: 48px !important;
+    text-align: center !important;
+    display: block !important;
+  }
+  
+  /* ========== 기타 모바일 최적화 ========== */
+  
+  /* 모든 섹션 패딩 조정 */
+  section {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+  
+  /* 컨테이너 최대 너비 조정 */
+  .max-w-4xl, .max-w-5xl, .max-w-6xl, .max-w-7xl {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+  
+  /* 텍스트 줄바꿈 개선 */
+  h1, h2, h3, h4, h5, h6 {
+    word-break: keep-all !important;
+    overflow-wrap: break-word !important;
+  }
+  
+  /* 긴 텍스트 처리 */
+  p, span, div {
+    word-break: keep-all !important;
+    overflow-wrap: break-word !important;
+  }
+  
+  /* ========== 관리자 버튼 모바일 최적화 ========== */
+  
+  /* 관리자 해제 버튼 */
+  #admin-logout-btn {
+    position: fixed !important;
+    top: 0.5rem !important;
+    right: 0.5rem !important;
+    z-index: 99999 !important;
+    padding: 0.75rem 1rem !important;
+    min-height: 44px !important;
+    min-width: 100px !important;
+    font-size: 0.875rem !important;
+    font-weight: 600 !important;
+    background-color: #1f2937 !important;
+    color: white !important;
+    border-radius: 0.5rem !important;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3) !important;
+    touch-action: manipulation !important;
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1) !important;
+    cursor: pointer !important;
+    display: block !important;
+  }
+  
+  #admin-logout-btn:active {
+    background-color: #f59e0b !important;
+    transform: scale(0.95) !important;
+  }
+  
+  /* 강제 해제 버튼 */
+  #force-logout-btn {
+    position: fixed !important;
+    top: 0.5rem !important;
+    right: 6.5rem !important;
+    z-index: 99999 !important;
+    padding: 0.75rem 0.875rem !important;
+    min-height: 44px !important;
+    min-width: 80px !important;
+    font-size: 0.75rem !important;
+    font-weight: 600 !important;
+    background-color: #991b1b !important;
+    color: white !important;
+    border-radius: 0.5rem !important;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3) !important;
+    touch-action: manipulation !important;
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1) !important;
+    cursor: pointer !important;
+    display: block !important;
+  }
+  
+  #force-logout-btn:active {
+    background-color: #7f1d1d !important;
+    transform: scale(0.95) !important;
+  }
+  
+  /* 관리자 대시보드 버튼 */
+  #admin-dashboard-btn {
+    position: fixed !important;
+    top: 3.5rem !important;
+    right: 0.5rem !important;
+    z-index: 99999 !important;
+    padding: 0.75rem 1rem !important;
+    min-height: 44px !important;
+    font-size: 0.75rem !important;
+    touch-action: manipulation !important;
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1) !important;
+    cursor: pointer !important;
+  }
+  
+  #admin-dashboard-btn:active {
+    transform: scale(0.95) !important;
+  }
+  
+  /* 정리 버튼 */
+  #admin-cleanup-btn {
+    position: fixed !important;
+    top: 3.5rem !important;
+    right: 6.5rem !important;
+    z-index: 99999 !important;
+    padding: 0.75rem 0.875rem !important;
+    min-height: 44px !important;
+    min-width: 60px !important;
+    font-size: 0.75rem !important;
+    touch-action: manipulation !important;
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1) !important;
+    cursor: pointer !important;
+  }
+  
+  #admin-cleanup-btn:active {
+    transform: scale(0.95) !important;
+  }
+  
+  /* 관리자 버튼이 숨겨져 있을 때도 모바일에서 보이도록 (디버깅용) */
+  #admin-logout-btn.hidden,
+  #force-logout-btn.hidden,
+  #admin-dashboard-btn.hidden,
+  #admin-cleanup-btn.hidden {
+    display: none !important;
+  }
+  
+  /* 관리자 버튼이 표시될 때 확실히 보이도록 */
+  #admin-logout-btn:not(.hidden),
+  #force-logout-btn:not(.hidden),
+  #admin-dashboard-btn:not(.hidden),
+  #admin-cleanup-btn:not(.hidden) {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
 }

@@ -1,5 +1,88 @@
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap');
 
+/* ============================================
+   프라이스헌터 디자인 시스템 v2.0
+   ============================================ */
+
+:root {
+  /* 컬러 팔레트 - 신뢰·데이터 중심 */
+  --color-oxford-navy: #1F3A5F;      /* 메인 컬러 - 신뢰감 */
+  --color-graphite: #2A2A2A;         /* 텍스트 - 다크그레이 */
+  --color-sandy-brown: #F2994A;      /* 포인트 컬러 - CTA */
+  --color-oasis-mint: #4FB6A1;       /* 포인트 컬러 - 보조 CTA */
+  --color-parchment: #F4F1EC;        /* 배경 컬러 */
+  
+  /* 폰트 시스템 */
+  --font-family: 'Noto Sans KR', sans-serif;
+  --font-weight-light: 300;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-bold: 700;
+  
+  /* 간격 시스템 */
+  --spacing-xs: 0.5rem;
+  --spacing-sm: 1rem;
+  --spacing-md: 1.5rem;
+  --spacing-lg: 2rem;
+  --spacing-xl: 3rem;
+  
+  /* 그림자 */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  
+  /* 전환 효과 */
+  --transition-fast: 150ms;
+  --transition-base: 300ms;
+  --transition-slow: 500ms;
+}
+
+/* 디자인 시스템 유틸리티 클래스 */
+.bg-oxford-navy { background-color: var(--color-oxford-navy); }
+.bg-graphite { background-color: var(--color-graphite); }
+.bg-sandy-brown { background-color: var(--color-sandy-brown); }
+.bg-oasis-mint { background-color: var(--color-oasis-mint); }
+.bg-parchment { background-color: var(--color-parchment); }
+
+.text-oxford-navy { color: var(--color-oxford-navy); }
+.text-graphite { color: var(--color-graphite); }
+.text-sandy-brown { color: var(--color-sandy-brown); }
+.text-oasis-mint { color: var(--color-oasis-mint); }
+
+/* CTA 버튼 스타일 */
+.btn-cta-primary {
+  background-color: var(--color-sandy-brown);
+  color: white;
+  font-weight: var(--font-weight-bold);
+  padding: 1rem 2rem;
+  border-radius: 0.5rem;
+  transition: all var(--transition-base);
+  box-shadow: var(--shadow-lg);
+}
+
+.btn-cta-primary:hover {
+  background-color: #E6893A;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-xl);
+}
+
+.btn-cta-secondary {
+  background-color: var(--color-oasis-mint);
+  color: white;
+  font-weight: var(--font-weight-bold);
+  padding: 1rem 2rem;
+  border-radius: 0.5rem;
+  transition: all var(--transition-base);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-cta-secondary:hover {
+  background-color: #45A690;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
 /* Tailwind CSS 대체 스타일 */
 * {
   margin: 0;
