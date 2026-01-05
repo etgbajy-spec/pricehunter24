@@ -5854,14 +5854,59 @@
           updatedAt: new Date()
         };
         
+        // 새 사용자인지 확인 (upsertUser 호출 전에 확인)
+        await waitForFirebase();
+        const { doc, getDoc } = window.firebaseFirestoreFunctions;
+        const userRefBeforeUpsert = doc(window.firebaseDb, 'users', firebaseUser.uid);
+        const userDocBeforeUpsert = await getDoc(userRefBeforeUpsert);
+        const isNewUserBeforeUpsert = !userDocBeforeUpsert.exists();
+        
+        // 구글 로그인 사용자의 경우 이름과 핸드폰번호 확인 (upsertUser 전에)
+        let needsProfile = false;
+        if (options.loginMethod === 'google' || providerData.providerId === 'google.com') {
+          if (userDocBeforeUpsert.exists()) {
+            const existingData = userDocBeforeUpsert.data();
+            // 이름이나 핸드폰번호가 없으면 프로필 완성 페이지로 이동
+            if (!existingData.name || !existingData.phone) {
+              needsProfile = true;
+            }
+          } else {
+            // 새 사용자는 무조건 프로필 완성 필요
+            needsProfile = true;
+          }
+        }
+        
+        // 프로필 완성이 필요한 경우 upsertUser 호출하지 않고 바로 이동
+        if (needsProfile) {
+          // 최소한의 사용자 정보만 localStorage에 저장 (프로필 완성 페이지에서 사용)
+          localStorage.setItem('loggedIn', 'true');
+          localStorage.setItem('currentUser', JSON.stringify(userData));
+          localStorage.setItem('user', JSON.stringify(userData));
+          if (userData.email) {
+            localStorage.setItem('loggedInEmail', userData.email);
+          }
+          
+          const loginModal = document.getElementById('login-modal');
+          if (loginModal) {
+            loginModal.classList.add('hidden');
+          }
+          document.body.style.overflow = '';
+          updateAuthUI();
+          
+          alert('구글 로그인 회원가입이 완료되었습니다!\n\n추가 정보를 입력해주세요.');
+          window.location.href = 'complete-profile.html';
+          return;
+        }
+        
+        // 프로필이 이미 완성된 경우에만 upsertUser 호출
         const upsertResult = await upsertUser(userData, {
           lastLogin: new Date(),
           providerId: additionalInfo.providerId || providerData.providerId || 'google',
-          isNewUser: additionalInfo.isNewUser ?? options.isNewUser ?? false
+          isNewUser: additionalInfo.isNewUser ?? options.isNewUser ?? isNewUserBeforeUpsert
         });
         
         // 새 사용자인지 확인 (additionalInfo.isNewUser 또는 upsertResult.isNewUser 사용)
-        const isNewUser = additionalInfo.isNewUser ?? upsertResult?.isNewUser ?? false;
+        const isNewUser = additionalInfo.isNewUser ?? upsertResult?.isNewUser ?? isNewUserBeforeUpsert;
         
         localStorage.setItem('loggedIn', 'true');
         localStorage.setItem('currentUser', JSON.stringify(userData));
