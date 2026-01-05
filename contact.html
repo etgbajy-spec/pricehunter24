@@ -23,7 +23,7 @@
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
     import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
-    import { getFirestore, collection, addDoc, serverTimestamp, query, orderBy, onSnapshot } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
+    import { getFirestore, collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, getDocs, where, limit } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
     
     // Firebase 설정
     const firebaseConfig = {
@@ -45,7 +45,7 @@
     window.firebaseApp = app;
     window.firebaseAuth = auth;
     window.firebaseDb = db;
-    window.firebaseFirestoreFunctions = { collection, addDoc, serverTimestamp, query, orderBy, onSnapshot };
+    window.firebaseFirestoreFunctions = { collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, getDocs, where, limit };
 
     console.log('✅ Firebase v9 초기화 완료 (contact.html)');
   </script>
@@ -182,36 +182,6 @@
         }
       });
     }
-    // Firebase 초기화 대기 함수
-    async function waitForFirebase() {
-      return new Promise((resolve, reject) => {
-        console.log('🔄 Firebase 초기화 상태 확인:', {
-          firebaseApp: !!window.firebaseApp,
-          firebaseDb: !!window.firebaseDb,
-          firebaseFirestoreFunctions: !!window.firebaseFirestoreFunctions
-        });
-        
-        if (window.firebaseApp && window.firebaseDb && window.firebaseFirestoreFunctions) {
-          console.log('✅ Firebase 초기화 완료');
-          resolve();
-        } else {
-          const checkInterval = setInterval(() => {
-            if (window.firebaseApp && window.firebaseDb && window.firebaseFirestoreFunctions) {
-              clearInterval(checkInterval);
-              console.log('✅ Firebase 초기화 완료');
-              resolve();
-            }
-          }, 100);
-          
-          setTimeout(() => {
-            clearInterval(checkInterval);
-            console.error('❌ Firebase 초기화 타임아웃');
-            reject(new Error('Firebase 초기화 실패'));
-          }, 10000);
-        }
-      });
-    }
-
     // 스마트 이미지 압축 함수 (자동으로 크기에 맞게 압축)
     function compressImage(file, targetSizeKB = 500) {
       return new Promise((resolve, reject) => {
@@ -498,10 +468,122 @@
       // 화면 새로고침
       renderHistory();
     }
+    // Firebase 초기화 대기 함수
+    async function waitForFirebase() {
+      return new Promise((resolve, reject) => {
+        if (window.firebaseApp && window.firebaseDb && window.firebaseFirestoreFunctions) {
+          resolve();
+        } else {
+          const checkInterval = setInterval(() => {
+            if (window.firebaseApp && window.firebaseDb && window.firebaseFirestoreFunctions) {
+              clearInterval(checkInterval);
+              resolve();
+            }
+          }, 100);
+          
+          setTimeout(() => {
+            clearInterval(checkInterval);
+            reject(new Error('Firebase 초기화 실패'));
+          }, 10000);
+        }
+      });
+    }
+
+    // 공통 함수: 사용자 이메일 가져오기
+    function getUserEmail() {
+      let userEmail = localStorage.getItem('loggedInEmail');
+      
+      if (!userEmail) {
+        const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        
+        if (currentUser.email) {
+          userEmail = currentUser.email;
+        } else if (user.email) {
+          userEmail = user.email;
+        }
+      }
+      
+      return userEmail;
+    }
+
+    // Firebase에서 문의 데이터 가져오기
+    async function getInquiriesFromFirebase() {
+      try {
+        await waitForFirebase();
+        const { collection, query, where, getDocs, limit } = window.firebaseFirestoreFunctions;
+        const db = window.firebaseDb;
+        
+        // 현재 사용자 이메일 가져오기
+        const userEmail = getUserEmail();
+        
+        if (!userEmail) {
+          console.log('❌ 사용자 이메일을 찾을 수 없어서 Firebase에서 문의 데이터를 가져올 수 없습니다.');
+          return [];
+        }
+        
+        // Firebase에서 해당 사용자의 문의 데이터 조회
+        console.log('🔍 사용자 이메일로 문의 데이터 조회:', userEmail);
+        
+        let querySnapshot;
+        try {
+          const inquiriesQuery = query(
+            collection(db, 'inquiries'),
+            where('email', '==', userEmail)
+          );
+          
+          querySnapshot = await getDocs(inquiriesQuery);
+          console.log('🔍 문의 쿼리 결과:', querySnapshot.size, '개 문서 발견');
+        } catch (queryError) {
+          console.warn('⚠️ 문의 where 쿼리 실패, 모든 데이터를 가져와서 필터링:', queryError);
+          
+          // 쿼리 실패시 최신 500개만 가져와서 클라이언트에서 필터링
+          const allInquiriesQuery = query(collection(db, 'inquiries'), limit(500));
+          querySnapshot = await getDocs(allInquiriesQuery);
+          console.log('🔍 전체 문의 데이터 (최신 500개):', querySnapshot.size, '개 문서 발견');
+        }
+        const inquiries = [];
+        
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          
+          // 이메일이 일치하는 경우만 추가
+          if (data.email === userEmail) {
+            inquiries.push({
+              id: doc.id,
+              ...data
+            });
+          }
+        });
+        
+        // 클라이언트 사이드에서 정렬 (date 또는 createdAt 기준 내림차순)
+        inquiries.sort((a, b) => {
+          const aTime = a.date ? new Date(a.date) : (a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt || 0));
+          const bTime = b.date ? new Date(b.date) : (b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt || 0));
+          return bTime - aTime;
+        });
+        
+        console.log(`✅ Firebase에서 문의 데이터 ${inquiries.length}개 가져옴`);
+        return inquiries;
+      } catch (error) {
+        console.error('❌ Firebase에서 문의 데이터 가져오기 실패:', error);
+        return [];
+      }
+    }
+
     // 문의 내역 렌더링
     function formatDateTime(dt) {
       if (!dt) return '';
-      const d = new Date(dt);
+      let d;
+      if (dt.toDate) {
+        // Firestore Timestamp인 경우
+        d = dt.toDate();
+      } else if (dt.seconds) {
+        // Timestamp 객체인 경우
+        d = new Date(dt.seconds * 1000);
+      } else {
+        d = new Date(dt);
+      }
       if (isNaN(d.getTime())) return dt;
       const y = d.getFullYear();
       const m = String(d.getMonth()+1).padStart(2,'0');
@@ -510,8 +592,26 @@
       const min = String(d.getMinutes()).padStart(2,'0');
       return `${y}-${m}-${day} ${h}:${min}`;
     }
-    function renderHistory() {
-      const history = JSON.parse(localStorage.getItem('contact-history') || '[]');
+    async function renderHistory() {
+      let history = [];
+      
+      try {
+        // 1. Firebase에서 데이터 가져오기 시도
+        const firebaseInquiries = await getInquiriesFromFirebase();
+        if (firebaseInquiries.length > 0) {
+          history = firebaseInquiries;
+          console.log('Firebase에서 문의 데이터 사용');
+        } else {
+          // Firebase에 데이터가 없으면 localStorage에서 가져오기
+          history = JSON.parse(localStorage.getItem('contact-history') || '[]');
+          console.log('localStorage에서 문의 데이터 사용');
+        }
+      } catch (error) {
+        console.error('Firebase 데이터 가져오기 실패:', error);
+        // Firebase 실패 시 localStorage에서 가져오기
+        history = JSON.parse(localStorage.getItem('contact-history') || '[]');
+      }
+      
       const ul = document.getElementById('contact-history');
       ul.innerHTML = '';
       if (history.length === 0) {
@@ -519,19 +619,45 @@
         return;
       }
       history.forEach(inq => {
-        // 답변 불러오기 (inquiry-...에서 answer 필드)
+        // 답변 불러오기 (Firebase에서 adminResponse 확인)
         let answer = '';
-        // inquiry-로 저장된 것과 매칭 (subject+date로 찾기)
-        for (let i = 0; i < localStorage.length; i++) {
-          const key = localStorage.key(i);
-          if (key.startsWith('inquiry-')) {
-            const obj = JSON.parse(localStorage.getItem(key));
-            if (obj && obj.subject === inq.subject && obj.date === inq.date) {
-              answer = obj.answer || '';
-              break;
+        let answerDate = null;
+        
+        // Firebase에서 가져온 adminResponse 확인
+        if (inq.adminResponse) {
+          if (typeof inq.adminResponse === 'object' && inq.adminResponse !== null) {
+            // 구조화된 답변 데이터
+            answer = inq.adminResponse.answer || '';
+          } else {
+            // 기존 텍스트 답변
+            answer = inq.adminResponse;
+          }
+        } else if (inq.answer) {
+          // 기존 answer 필드
+          answer = inq.answer;
+        }
+        
+        // 답변일시 확인 (responseDate 또는 answeredAt)
+        if (inq.responseDate) {
+          answerDate = inq.responseDate;
+        } else if (inq.answeredAt) {
+          answerDate = inq.answeredAt;
+        }
+        
+        // localStorage에서도 답변 확인 (호환성 유지)
+        if (!answer) {
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key.startsWith('inquiry-')) {
+              const obj = JSON.parse(localStorage.getItem(key));
+              if (obj && obj.subject === inq.subject && obj.date === inq.date) {
+                answer = obj.answer || '';
+                break;
+              }
             }
           }
         }
+        
         let fileHtml = '';
         if (inq.file) {
           if (inq.file.startsWith('data:image/')) {
@@ -541,27 +667,36 @@
             fileHtml = `<div class='mb-2 text-gray-600'>첨부파일: <a href='${inq.file}' download='${fileName}' class='text-blue-600 underline'>${fileName}</a></div>`;
           }
         }
+        
+        // 문의일시 포맷팅
+        const inquiryDate = inq.date || inq.createdAt;
+        const inquiryDateStr = formatDateTime(inquiryDate);
+        
+        // 답변일시 포맷팅
+        const answerDateStr = answerDate ? formatDateTime(answerDate) : '';
+        
         ul.innerHTML += `
           <li class='p-4 bg-blue-50 rounded-xl shadow mb-2 min-w-0'>
-            <div class='font-bold text-blue-700 mb-1'>${escapeHtml(inq.subject)}</div>
+            <div class='font-bold text-blue-700 mb-1'>${escapeHtml(inq.subject || inq.title || '')}</div>
             <div class='text-gray-700 mb-1 whitespace-pre-line'>${escapeHtml(inq.message || inq.content || '')}</div>
             ${fileHtml}
-            <div class='text-xs text-gray-400 mb-2'>문의일시: ${formatDateTime(inq.date)}</div>
+            <div class='text-xs text-gray-400 mb-2'>문의일시: ${inquiryDateStr}</div>
             <div class='mt-2 p-3 rounded bg-white border'>
               <span class='font-bold text-blue-700'>답변</span><br>
               <span class='text-gray-800'>${answer ? escapeHtml(answer) : '<span class="text-gray-400">답변 대기중</span>'}</span>
+              ${answerDateStr ? `<div class='text-xs text-gray-400 mt-2'>답변일시: ${answerDateStr}</div>` : ''}
             </div>
             <div class='mt-4'>
               <div class='font-bold text-blue-700 mb-2'>추가 댓글</div>
               <div class='comments-list'>${renderComments((inq.comments||[]))}</div>
-              <form class='comment-form' data-subject="${escapeHtml(inq.subject)}" data-date="${escapeHtml(inq.date)}">
+              <form class='comment-form' data-subject="${escapeHtml(inq.subject || inq.title || '')}" data-date="${escapeHtml(inq.date || '')}">
                 <div class='flex gap-2'>
                   <input type='text' name='comment' class='flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none' placeholder='댓글을 입력하세요' aria-label='댓글 입력' />
                   <button type='submit' class='px-4 py-2 bg-emerald-500 text-white rounded-lg font-bold hover:bg-emerald-600 transition' aria-label='댓글 추가'>등록</button>
                 </div>
               </form>
             </div>
-            <button class='mt-2 py-1 px-3 bg-red-500 text-white rounded font-bold hover:bg-red-600 transition' aria-label='문의 삭제' onclick='deleteInquiry(${JSON.stringify(inq.subject)}, ${JSON.stringify(inq.date)})'>삭제</button>
+            <button class='mt-2 py-1 px-3 bg-red-500 text-white rounded font-bold hover:bg-red-600 transition' aria-label='문의 삭제' onclick='deleteInquiry(${JSON.stringify(inq.subject || inq.title || '')}, ${JSON.stringify(inq.date || '')})'>삭제</button>
           </li>
         `;
       });
