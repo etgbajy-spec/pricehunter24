@@ -963,28 +963,58 @@
                 const profileImage = user.photoURL || user.profileImage || 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%236b7280"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>';
                 const loginMethod = user.loginMethod || user.loginType || 'email';
                 
-                // 날짜 처리 개선
+                // 날짜 처리 개선 (안전한 파싱)
                 let joinDate = '알 수 없음';
                 if (user.createdAt) {
-                    if (user.createdAt.seconds) {
-                        joinDate = new Date(user.createdAt.seconds * 1000).toLocaleDateString('ko-KR');
-                    } else if (user.createdAt.toDate) {
-                        joinDate = user.createdAt.toDate().toLocaleDateString('ko-KR');
-                    } else {
-                        joinDate = new Date(user.createdAt).toLocaleDateString('ko-KR');
+                    try {
+                        let date;
+                        if (user.createdAt.toDate) {
+                            date = user.createdAt.toDate();
+                        } else if (user.createdAt.seconds) {
+                            date = new Date(user.createdAt.seconds * 1000);
+                        } else if (typeof user.createdAt === 'string' || typeof user.createdAt === 'number') {
+                            date = new Date(user.createdAt);
+                        } else {
+                            date = null;
+                        }
+                        if (date && !isNaN(date.getTime())) {
+                            joinDate = date.toLocaleDateString('ko-KR');
+                        }
+                    } catch (error) {
+                        console.error('가입일 파싱 오류:', error);
+                        joinDate = '알 수 없음';
                     }
                 } else if (user.joinDate) {
-                    joinDate = new Date(user.joinDate).toLocaleDateString('ko-KR');
+                    try {
+                        const date = new Date(user.joinDate);
+                        if (!isNaN(date.getTime())) {
+                            joinDate = date.toLocaleDateString('ko-KR');
+                        }
+                    } catch (error) {
+                        console.error('가입일 파싱 오류:', error);
+                        joinDate = '알 수 없음';
+                    }
                 }
                 
                 let lastUpdate = '알 수 없음';
                 if (user.updatedAt) {
-                    if (user.updatedAt.seconds) {
-                        lastUpdate = new Date(user.updatedAt.seconds * 1000).toLocaleDateString('ko-KR');
-                    } else if (user.updatedAt.toDate) {
-                        lastUpdate = user.updatedAt.toDate().toLocaleDateString('ko-KR');
-                    } else {
-                        lastUpdate = new Date(user.updatedAt).toLocaleDateString('ko-KR');
+                    try {
+                        let date;
+                        if (user.updatedAt.toDate) {
+                            date = user.updatedAt.toDate();
+                        } else if (user.updatedAt.seconds) {
+                            date = new Date(user.updatedAt.seconds * 1000);
+                        } else if (typeof user.updatedAt === 'string' || typeof user.updatedAt === 'number') {
+                            date = new Date(user.updatedAt);
+                        } else {
+                            date = null;
+                        }
+                        if (date && !isNaN(date.getTime())) {
+                            lastUpdate = date.toLocaleDateString('ko-KR');
+                        }
+                    } catch (error) {
+                        console.error('마지막 업데이트 파싱 오류:', error);
+                        lastUpdate = '알 수 없음';
                     }
                 }
                 
@@ -1257,9 +1287,22 @@
                 const row = document.createElement('tr');
                 row.className = 'hover:bg-blue-50 transition-colors';
                 
-                const createdAt = inquiry.createdAt ? 
-                    new Date(inquiry.createdAt.seconds * 1000).toLocaleDateString('ko-KR') : 
-                    '날짜 없음';
+                let createdAt = '날짜 없음';
+                if (inquiry.createdAt) {
+                    try {
+                        let date;
+                        if (inquiry.createdAt.toDate) {
+                            date = inquiry.createdAt.toDate();
+                        } else if (inquiry.createdAt.seconds) {
+                            date = new Date(inquiry.createdAt.seconds * 1000);
+                        } else {
+                            date = new Date(inquiry.createdAt);
+                        }
+                        createdAt = isNaN(date.getTime()) ? '날짜 없음' : date.toLocaleDateString('ko-KR');
+                    } catch (e) {
+                        createdAt = '날짜 없음';
+                    }
+                }
                 
                 row.innerHTML = `
                     <td class="px-6 py-4 whitespace-nowrap">
@@ -1405,9 +1448,27 @@
                     const listItem = document.createElement('li');
                     listItem.className = 'grid grid-cols-9 gap-2 px-4 py-3 hover:bg-pink-100 transition-colors';
                     
-                    const createdAt = request.createdAt ? 
-                        new Date(request.createdAt.seconds * 1000).toLocaleDateString('ko-KR') : 
-                        '날짜 없음';
+                    let createdAt = '날짜 없음';
+                    if (request.createdAt) {
+                        try {
+                            let date;
+                            if (request.createdAt.toDate) {
+                                date = request.createdAt.toDate();
+                            } else if (request.createdAt.seconds) {
+                                date = new Date(request.createdAt.seconds * 1000);
+                            } else if (typeof request.createdAt === 'string' || typeof request.createdAt === 'number') {
+                                date = new Date(request.createdAt);
+                            } else {
+                                date = null;
+                            }
+                            if (date && !isNaN(date.getTime())) {
+                                createdAt = date.toLocaleDateString('ko-KR');
+                            }
+                        } catch (error) {
+                            console.error('날짜 포맷팅 오류:', error);
+                            createdAt = '날짜 없음';
+                        }
+                    }
                     
                     listItem.innerHTML = `
                         <div class="col-span-1 flex items-center">
@@ -1474,9 +1535,22 @@
                     const row = document.createElement('tr');
                     row.className = 'hover:bg-blue-50 transition-colors';
                     
-                    const createdAt = inquiry.createdAt ? 
-                        new Date(inquiry.createdAt.seconds * 1000).toLocaleDateString('ko-KR') : 
-                        '날짜 없음';
+                    let createdAt = '날짜 없음';
+                    if (inquiry.createdAt) {
+                        try {
+                            let date;
+                            if (inquiry.createdAt.toDate) {
+                                date = inquiry.createdAt.toDate();
+                            } else if (inquiry.createdAt.seconds) {
+                                date = new Date(inquiry.createdAt.seconds * 1000);
+                            } else {
+                                date = new Date(inquiry.createdAt);
+                            }
+                            createdAt = isNaN(date.getTime()) ? '날짜 없음' : date.toLocaleDateString('ko-KR');
+                        } catch (e) {
+                            createdAt = '날짜 없음';
+                        }
+                    }
                     
                     row.innerHTML = `
                         <td class="px-6 py-4 whitespace-nowrap">
@@ -2396,11 +2470,45 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                             <!-- 포인트 시스템 제거됨 -->
                             <div class="flex justify-between">
                                 <span class="text-gray-600">가입일:</span>
-                                <span class="font-medium">${user.createdAt ? new Date(user.createdAt).toLocaleDateString('ko-KR') : '정보 없음'}</span>
+                                <span class="font-medium">${(() => {
+                                    if (!user.createdAt) return '정보 없음';
+                                    try {
+                                        let date;
+                                        if (user.createdAt.toDate) {
+                                            date = user.createdAt.toDate();
+                                        } else if (user.createdAt.seconds) {
+                                            date = new Date(user.createdAt.seconds * 1000);
+                                        } else if (typeof user.createdAt === 'string' || typeof user.createdAt === 'number') {
+                                            date = new Date(user.createdAt);
+                                        } else {
+                                            return '정보 없음';
+                                        }
+                                        return isNaN(date.getTime()) ? '정보 없음' : date.toLocaleDateString('ko-KR');
+                                    } catch (e) {
+                                        return '정보 없음';
+                                    }
+                                })()}</span>
                             </div>
                             <div class="flex justify-between">
                                 <span class="text-gray-600">마지막 로그인:</span>
-                                <span class="font-medium">${user.lastLogin ? new Date(user.lastLogin).toLocaleDateString('ko-KR') : '정보 없음'}</span>
+                                <span class="font-medium">${(() => {
+                                    if (!user.lastLogin) return '정보 없음';
+                                    try {
+                                        let date;
+                                        if (user.lastLogin.toDate) {
+                                            date = user.lastLogin.toDate();
+                                        } else if (user.lastLogin.seconds) {
+                                            date = new Date(user.lastLogin.seconds * 1000);
+                                        } else if (typeof user.lastLogin === 'string' || typeof user.lastLogin === 'number') {
+                                            date = new Date(user.lastLogin);
+                                        } else {
+                                            return '정보 없음';
+                                        }
+                                        return isNaN(date.getTime()) ? '정보 없음' : date.toLocaleDateString('ko-KR');
+                                    } catch (e) {
+                                        return '정보 없음';
+                                    }
+                                })()}</span>
                             </div>
                         </div>
                     </div>
@@ -4117,11 +4225,41 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             document.body.style.overflow = 'hidden';
         }
 
+        // 날짜를 안전하게 포맷팅하는 함수
+        function formatDateForDisplay(dateValue) {
+            if (!dateValue) return 'N/A';
+            
+            try {
+                let date;
+                if (dateValue.toDate) {
+                    // Firestore Timestamp 객체
+                    date = dateValue.toDate();
+                } else if (dateValue.seconds) {
+                    // Timestamp 객체 (seconds 필드)
+                    date = new Date(dateValue.seconds * 1000);
+                } else if (typeof dateValue === 'string' || typeof dateValue === 'number') {
+                    // 문자열이나 숫자
+                    date = new Date(dateValue);
+                } else {
+                    return 'N/A';
+                }
+                
+                if (isNaN(date.getTime())) {
+                    return 'N/A';
+                }
+                
+                return date.toLocaleString('ko-KR');
+            } catch (error) {
+                console.error('날짜 포맷팅 오류:', error, dateValue);
+                return 'N/A';
+            }
+        }
+
         // 관리자용 모달 데이터 채우기
         function fillAdminRequestDetailModal(request) {
             // 의뢰 기본 정보
             document.getElementById('admin-modal-request-number').textContent = request.reqNum || request.requestNumber || 'N/A';
-            document.getElementById('admin-modal-request-date').textContent = request.reqDate ? new Date(request.reqDate).toLocaleString('ko-KR') : 'N/A';
+            document.getElementById('admin-modal-request-date').textContent = formatDateForDisplay(request.reqDate || request.createdAt);
             document.getElementById('admin-modal-product-name').textContent = request.productName || request.name || 'N/A';
             document.getElementById('admin-modal-original-price').textContent = formatPrice(request.originalPrice || request.price);
             
@@ -4164,7 +4302,7 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             // 관리자 답변 (있는 경우)
             if (request.adminResponse || request.response) {
                 document.getElementById('admin-modal-admin-response').classList.remove('hidden');
-                document.getElementById('admin-modal-response-date').textContent = request.responseDate ? new Date(request.responseDate).toLocaleString('ko-KR') : 'N/A';
+                document.getElementById('admin-modal-response-date').textContent = formatDateForDisplay(request.responseDate || request.answeredAt);
                 
                 // 답변이 구조화된 데이터인지 확인
                 if (typeof request.adminResponse === 'object' && request.adminResponse !== null) {
@@ -4543,7 +4681,7 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
         async function fillInquiryDetailModal(inquiry) {
             // 문의 기본 정보
             document.getElementById('inquiry-modal-id').textContent = inquiry.id || 'N/A';
-            document.getElementById('inquiry-modal-date').textContent = inquiry.date ? new Date(inquiry.date).toLocaleString('ko-KR') : 'N/A';
+            document.getElementById('inquiry-modal-date').textContent = formatDateForDisplay(inquiry.date || inquiry.createdAt);
             document.getElementById('inquiry-modal-subject').textContent = inquiry.subject || 'N/A';
             document.getElementById('inquiry-modal-message').textContent = inquiry.message || 'N/A';
             
@@ -4568,7 +4706,7 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             // 관리자 답변 (있는 경우)
             if (inquiry.adminResponse || inquiry.response) {
                 document.getElementById('inquiry-modal-admin-response').classList.remove('hidden');
-                document.getElementById('inquiry-modal-response-date').textContent = inquiry.responseDate ? new Date(inquiry.responseDate).toLocaleString('ko-KR') : 'N/A';
+                document.getElementById('inquiry-modal-response-date').textContent = formatDateForDisplay(inquiry.responseDate || inquiry.answeredAt);
                 
                 // 답변이 구조화된 데이터인지 확인
                 if (typeof inquiry.adminResponse === 'object' && inquiry.adminResponse !== null) {
@@ -4620,7 +4758,21 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                         <div class="bg-white rounded-lg p-3 border border-emerald-200">
                             <div class="flex items-center justify-between mb-2">
                                 <div class="font-semibold text-emerald-700 text-sm">${escapeHtml(comment.author)}</div>
-                                <div class="text-gray-400 text-xs">${new Date(comment.date).toLocaleString('ko-KR')}</div>
+                                <div class="text-gray-400 text-xs">${(() => {
+                                    try {
+                                        let date;
+                                        if (comment.date && comment.date.toDate) {
+                                            date = comment.date.toDate();
+                                        } else if (comment.date && comment.date.seconds) {
+                                            date = new Date(comment.date.seconds * 1000);
+                                        } else {
+                                            date = new Date(comment.date);
+                                        }
+                                        return isNaN(date.getTime()) ? '날짜 없음' : date.toLocaleString('ko-KR');
+                                    } catch (e) {
+                                        return '날짜 없음';
+                                    }
+                                })()}</div>
                             </div>
                             <div class="text-gray-800 text-sm whitespace-pre-wrap">${escapeHtml(comment.text)}</div>
                         </div>
@@ -6185,7 +6337,27 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 const savingsPercent = review.savingsPercent || 0;
                 const rating = review.rating || 5;
                 const stars = '★'.repeat(rating) + '☆'.repeat(5 - rating);
-                const date = review.createdAt ? new Date(review.createdAt).toLocaleDateString('ko-KR') : '날짜 없음';
+                let date = '날짜 없음';
+                if (review.createdAt) {
+                    try {
+                        let dateObj;
+                        if (review.createdAt.toDate) {
+                            dateObj = review.createdAt.toDate();
+                        } else if (review.createdAt.seconds) {
+                            dateObj = new Date(review.createdAt.seconds * 1000);
+                        } else if (typeof review.createdAt === 'string' || typeof review.createdAt === 'number') {
+                            dateObj = new Date(review.createdAt);
+                        } else {
+                            dateObj = null;
+                        }
+                        if (dateObj && !isNaN(dateObj.getTime())) {
+                            date = dateObj.toLocaleDateString('ko-KR');
+                        }
+                    } catch (error) {
+                        console.error('리뷰 날짜 파싱 오류:', error);
+                        date = '날짜 없음';
+                    }
+                }
                 const statusBadge = review.approved === true 
                     ? '<span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800 font-semibold">승인됨</span>'
                     : '<span class="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800 font-semibold">대기 중</span>';

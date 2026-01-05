@@ -571,26 +571,63 @@
       }
     }
 
+    // 날짜를 안전하게 포맷팅하는 함수
+    function formatDateForDisplay(dateValue) {
+      if (!dateValue) return 'N/A';
+      
+      try {
+        let date;
+        if (dateValue.toDate) {
+          // Firestore Timestamp 객체
+          date = dateValue.toDate();
+        } else if (dateValue.seconds) {
+          // Timestamp 객체 (seconds 필드)
+          date = new Date(dateValue.seconds * 1000);
+        } else if (typeof dateValue === 'string' || typeof dateValue === 'number') {
+          // 문자열이나 숫자
+          date = new Date(dateValue);
+        } else {
+          return 'N/A';
+        }
+        
+        if (isNaN(date.getTime())) {
+          return 'N/A';
+        }
+        
+        return date.toLocaleString('ko-KR');
+      } catch (error) {
+        console.error('날짜 포맷팅 오류:', error, dateValue);
+        return 'N/A';
+      }
+    }
+
     // 문의 내역 렌더링
     function formatDateTime(dt) {
       if (!dt) return '';
       let d;
-      if (dt.toDate) {
-        // Firestore Timestamp인 경우
-        d = dt.toDate();
-      } else if (dt.seconds) {
-        // Timestamp 객체인 경우
-        d = new Date(dt.seconds * 1000);
-      } else {
-        d = new Date(dt);
+      try {
+        if (dt.toDate) {
+          // Firestore Timestamp인 경우
+          d = dt.toDate();
+        } else if (dt.seconds) {
+          // Timestamp 객체인 경우
+          d = new Date(dt.seconds * 1000);
+        } else if (typeof dt === 'string' || typeof dt === 'number') {
+          d = new Date(dt);
+        } else {
+          return '';
+        }
+        if (isNaN(d.getTime())) return '';
+        const y = d.getFullYear();
+        const m = String(d.getMonth()+1).padStart(2,'0');
+        const day = String(d.getDate()).padStart(2,'0');
+        const h = String(d.getHours()).padStart(2,'0');
+        const min = String(d.getMinutes()).padStart(2,'0');
+        return `${y}-${m}-${day} ${h}:${min}`;
+      } catch (error) {
+        console.error('날짜 포맷팅 오류:', error, dt);
+        return '';
       }
-      if (isNaN(d.getTime())) return dt;
-      const y = d.getFullYear();
-      const m = String(d.getMonth()+1).padStart(2,'0');
-      const day = String(d.getDate()).padStart(2,'0');
-      const h = String(d.getHours()).padStart(2,'0');
-      const min = String(d.getMinutes()).padStart(2,'0');
-      return `${y}-${m}-${day} ${h}:${min}`;
     }
     async function renderHistory() {
       let history = [];

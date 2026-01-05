@@ -928,7 +928,22 @@
         const reqDate = request.reqDate || request.createdAt || request.data?.reqDate;
         const productName = request.productName || request.name || request.data?.productName;
         
-        const formattedDate = reqDate ? new Date(reqDate).toLocaleDateString('ko-KR') : '날짜 없음';
+        let formattedDate = '날짜 없음';
+        if (reqDate) {
+          try {
+            let date;
+            if (reqDate.toDate) {
+              date = reqDate.toDate();
+            } else if (reqDate.seconds) {
+              date = new Date(reqDate.seconds * 1000);
+            } else {
+              date = new Date(reqDate);
+            }
+            formattedDate = isNaN(date.getTime()) ? '날짜 없음' : date.toLocaleDateString('ko-KR');
+          } catch (e) {
+            formattedDate = '날짜 없음';
+          }
+        }
         
         // Firebase 상태 확인
         const requestStatus = request.status || '처리중';
@@ -1444,7 +1459,21 @@
         <div class='p-2 bg-white rounded border mb-2'>
           <div class='font-bold text-blue-700 text-sm'>${escapeHtml(comment.author)}</div>
           <div class='text-gray-800 text-sm'>${escapeHtml(comment.text)}</div>
-          <div class='text-gray-400 text-xs'>${new Date(comment.date).toLocaleString()}</div>
+          <div class='text-gray-400 text-xs'>${(() => {
+            try {
+              let date;
+              if (comment.date && comment.date.toDate) {
+                date = comment.date.toDate();
+              } else if (comment.date && comment.date.seconds) {
+                date = new Date(comment.date.seconds * 1000);
+              } else {
+                date = new Date(comment.date);
+              }
+              return isNaN(date.getTime()) ? '날짜 없음' : date.toLocaleString('ko-KR');
+            } catch (e) {
+              return '날짜 없음';
+            }
+          })()}</div>
         </div>
       `).join('');
     }
@@ -1514,48 +1543,60 @@
       
       let date;
       
-      // 다양한 날짜 형식 처리
-      if (typeof dateStr === 'string') {
-        // 이미 한국어 형식인 경우 (예: "2025. 1. 30. 오전 4:55:37")
-        if (dateStr.includes('오전') || dateStr.includes('오후')) {
-          // 한국어 날짜 형식을 파싱
-          const match = dateStr.match(/(\d{4})\.\s*(\d{1,2})\.\s*(\d{1,2})\.\s*(오전|오후)\s*(\d{1,2}):(\d{1,2}):(\d{1,2})/);
-          if (match) {
-            const [, year, month, day, ampm, hour, minute, second] = match;
-            let hour24 = parseInt(hour);
-            if (ampm === '오후' && hour24 !== 12) hour24 += 12;
-            if (ampm === '오전' && hour24 === 12) hour24 = 0;
-            
-            date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), hour24, parseInt(minute), parseInt(second));
-            console.log('한국어 날짜 파싱 결과:', date);
+      try {
+        // Firestore Timestamp 객체 처리
+        if (dateStr && typeof dateStr === 'object' && dateStr.toDate) {
+          date = dateStr.toDate();
+        } else if (dateStr && typeof dateStr === 'object' && dateStr.seconds) {
+          // Timestamp 객체 (seconds 필드)
+          date = new Date(dateStr.seconds * 1000);
+        } else if (typeof dateStr === 'string') {
+          // 이미 한국어 형식인 경우 (예: "2025. 1. 30. 오전 4:55:37")
+          if (dateStr.includes('오전') || dateStr.includes('오후')) {
+            // 한국어 날짜 형식을 파싱
+            const match = dateStr.match(/(\d{4})\.\s*(\d{1,2})\.\s*(\d{1,2})\.\s*(오전|오후)\s*(\d{1,2}):(\d{1,2}):(\d{1,2})/);
+            if (match) {
+              const [, year, month, day, ampm, hour, minute, second] = match;
+              let hour24 = parseInt(hour);
+              if (ampm === '오후' && hour24 !== 12) hour24 += 12;
+              if (ampm === '오전' && hour24 === 12) hour24 = 0;
+              
+              date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), hour24, parseInt(minute), parseInt(second));
+              console.log('한국어 날짜 파싱 결과:', date);
+            } else {
+              date = new Date(dateStr);
+            }
+          } else {
+            // 일반적인 날짜 형식
+            date = new Date(dateStr);
           }
+        } else if (typeof dateStr === 'number') {
+          // 타임스탬프인 경우
+          date = new Date(dateStr);
         } else {
-          // 일반적인 날짜 형식
+          // 기타 경우
           date = new Date(dateStr);
         }
-      } else if (typeof dateStr === 'number') {
-        // 타임스탬프인 경우
-        date = new Date(dateStr);
-      } else {
-        // 기타 경우
-        date = new Date(dateStr);
-      }
-      
-      // 유효하지 않은 날짜인지 확인
-      if (isNaN(date.getTime())) {
-        console.log('유효하지 않은 날짜:', dateStr);
+        
+        // 유효하지 않은 날짜인지 확인
+        if (isNaN(date.getTime())) {
+          console.log('유효하지 않은 날짜:', dateStr);
+          return '날짜 형식 오류';
+        }
+        
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const h = String(date.getHours()).padStart(2, '0');
+        const min = String(date.getMinutes()).padStart(2, '0');
+        const result = `${y}-${m}-${day} ${h}:${min}`;
+        
+        console.log('formatDateTime 결과:', result);
+        return result;
+      } catch (error) {
+        console.error('formatDateTime 오류:', error, dateStr);
         return '날짜 형식 오류';
       }
-      
-      const y = date.getFullYear();
-      const m = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
-      const h = String(date.getHours()).padStart(2, '0');
-      const min = String(date.getMinutes()).padStart(2, '0');
-      const result = `${y}-${m}-${day} ${h}:${min}`;
-      
-      console.log('formatDateTime 결과:', result);
-      return result;
     }
 
     // 문의 내역 렌더링 (Firebase + 로컬스토리지 통합)
@@ -2606,11 +2647,41 @@
       document.body.style.overflow = 'hidden';
     }
 
+    // 날짜를 안전하게 포맷팅하는 함수
+    function formatDateForDisplay(dateValue) {
+      if (!dateValue) return 'N/A';
+      
+      try {
+        let date;
+        if (dateValue.toDate) {
+          // Firestore Timestamp 객체
+          date = dateValue.toDate();
+        } else if (dateValue.seconds) {
+          // Timestamp 객체 (seconds 필드)
+          date = new Date(dateValue.seconds * 1000);
+        } else if (typeof dateValue === 'string' || typeof dateValue === 'number') {
+          // 문자열이나 숫자
+          date = new Date(dateValue);
+        } else {
+          return 'N/A';
+        }
+        
+        if (isNaN(date.getTime())) {
+          return 'N/A';
+        }
+        
+        return date.toLocaleString('ko-KR');
+      } catch (error) {
+        console.error('날짜 포맷팅 오류:', error, dateValue);
+        return 'N/A';
+      }
+    }
+
     // 모달 데이터 채우기
     function fillRequestDetailModal(request) {
       // 의뢰 기본 정보
       document.getElementById('modal-request-number').textContent = request.reqNum || request.requestNumber || 'N/A';
-      document.getElementById('modal-request-date').textContent = request.reqDate ? new Date(request.reqDate).toLocaleString('ko-KR') : 'N/A';
+      document.getElementById('modal-request-date').textContent = formatDateForDisplay(request.reqDate || request.createdAt);
       document.getElementById('modal-product-name').textContent = request.productName || request.name || 'N/A';
       document.getElementById('modal-original-price').textContent = formatPrice(request.originalPrice || request.price);
       
@@ -2644,7 +2715,7 @@
       // 관리자 답변 (있는 경우)
       if (request.adminResponse || request.response) {
         document.getElementById('modal-admin-response').classList.remove('hidden');
-        document.getElementById('modal-response-date').textContent = request.responseDate ? new Date(request.responseDate).toLocaleString('ko-KR') : 'N/A';
+        document.getElementById('modal-response-date').textContent = formatDateForDisplay(request.responseDate || request.answeredAt);
         
         // 답변이 구조화된 데이터인지 확인
         if (typeof request.adminResponse === 'object' && request.adminResponse !== null) {
