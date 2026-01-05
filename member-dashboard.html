@@ -24,7 +24,7 @@
   <!-- Firebase v9 SDK (모듈식) -->
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
-    import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
+    import { getAuth, onAuthStateChanged, GoogleAuthProvider, reauthenticateWithPopup, reauthenticateWithRedirect, deleteUser, signOut } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
     import { getFirestore, collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, getDocs, where, doc, updateDoc, deleteDoc, arrayUnion, limit } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
     
     // Firebase 설정
@@ -43,10 +43,21 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
+    // Google Auth Provider 설정
+    const googleProvider = new GoogleAuthProvider();
+    googleProvider.setCustomParameters({ prompt: 'select_account' });
+    
     // 전역 변수로 노출
     window.firebaseApp = app;
     window.firebaseAuth = auth;
     window.firebaseDb = db;
+    window.firebaseGoogleProvider = googleProvider;
+    window.firebaseAuthFunctions = {
+      reauthenticateWithPopup,
+      reauthenticateWithRedirect,
+      deleteUser,
+      signOut
+    };
     window.firebaseFirestoreFunctions = { 
       collection, 
       addDoc, 
@@ -2426,7 +2437,7 @@
       document.body.style.overflow = 'auto';
     }
     
-    // 회원탈퇴 확인 함수
+    // 회원탈퇴 확인 함수 (재인증 후 완전 삭제)
     async function confirmWithdraw() {
       if (!document.getElementById('withdraw-confirm').checked) {
         alert('회원탈퇴에 동의해주세요.');
@@ -2443,6 +2454,57 @@
           return;
         }
         
+        // 재인증 확인
+        const confirmReauth = confirm('회원탈퇴를 위해 재인증이 필요합니다.\n\n계속하시겠습니까?');
+        if (!confirmReauth) {
+          return;
+        }
+        
+        // 사용자의 로그인 방법 확인
+        const providerId = currentUser.providerData?.[0]?.providerId;
+        console.log('🔍 사용자 로그인 방법:', providerId);
+        
+        // 재인증 수행
+        let reauthResult;
+        try {
+          if (providerId === 'google.com') {
+            // Google 계정 재인증
+            console.log('🔄 Google 계정 재인증 시작...');
+            const { reauthenticateWithPopup } = window.firebaseAuthFunctions;
+            reauthResult = await reauthenticateWithPopup(currentUser, window.firebaseGoogleProvider);
+            console.log('✅ Google 재인증 성공');
+          } else if (providerId === 'password') {
+            // 이메일/비밀번호 계정 - 비밀번호 재입력 필요
+            const password = prompt('회원탈퇴를 위해 비밀번호를 입력해주세요:');
+            if (!password) {
+              alert('비밀번호를 입력하지 않아 회원탈퇴가 취소되었습니다.');
+              return;
+            }
+            
+            // 이메일/비밀번호 재인증은 EmailAuthProvider 필요
+            const { EmailAuthProvider, reauthenticateWithCredential } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js');
+            const emailCredential = EmailAuthProvider.credential(currentUser.email, password);
+            reauthResult = await reauthenticateWithCredential(currentUser, emailCredential);
+            console.log('✅ 이메일/비밀번호 재인증 성공');
+          } else {
+            throw new Error('지원하지 않는 로그인 방법입니다.');
+          }
+        } catch (reauthError) {
+          console.error('❌ 재인증 실패:', reauthError);
+          if (reauthError.code === 'auth/popup-closed-by-user' || reauthError.code === 'auth/cancelled-popup-request') {
+            alert('재인증이 취소되었습니다.');
+            return;
+          }
+          throw new Error('재인증에 실패했습니다: ' + reauthError.message);
+        }
+        
+        // 재인증 성공 후 Firebase Auth에서 사용자 삭제
+        console.log('🗑️ Firebase Auth에서 사용자 삭제 시작...');
+        const { deleteUser } = window.firebaseAuthFunctions;
+        await deleteUser(currentUser);
+        console.log('✅ Firebase Auth에서 사용자 삭제 완료');
+        
+        // Firestore에서 사용자 데이터 삭제
         const { doc, deleteDoc, collection, query, where, getDocs } = window.firebaseFirestoreFunctions;
         const db = window.firebaseDb;
         
@@ -2454,12 +2516,10 @@
         
         if (!querySnapshot.empty) {
           userDocId = querySnapshot.docs[0].id;
+          const userDocRef = doc(db, 'users', userDocId);
+          await deleteDoc(userDocRef);
+          console.log('✅ Firestore에서 사용자 데이터 삭제 완료');
         }
-        
-        // Firebase에서 사용자 데이터 삭제
-        const userDocRef = doc(db, 'users', userDocId);
-        await deleteDoc(userDocRef);
-        console.log('✅ Firebase에서 사용자 데이터 삭제 완료');
         
         // localStorage에서 사용자 정보 삭제
         localStorage.removeItem('user');
@@ -2467,22 +2527,22 @@
         localStorage.removeItem('loggedIn');
         localStorage.removeItem('loggedInEmail');
         
-        // Firebase Auth에서 로그아웃
-        try {
-          const { signOut } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js');
-          await signOut(window.firebaseAuth);
-        } catch (signOutError) {
-          console.warn('로그아웃 실패:', signOutError);
-        }
-        
         // 회원탈퇴 완료 메시지
-        alert('회원탈퇴가 완료되었습니다.\n그동안 이용해주셔서 감사했습니다.');
+        alert('회원탈퇴가 완료되었습니다.\n\n계정이 완전히 삭제되었으며, 같은 구글 계정으로 다시 가입하셔도 새 계정으로 생성됩니다.\n\n그동안 이용해주셔서 감사했습니다.');
         
         // 메인 페이지로 이동
         window.location.href = 'index.html';
       } catch (error) {
         console.error('회원탈퇴 실패:', error);
-        alert('회원탈퇴 처리 중 오류가 발생했습니다.\n다시 시도해주세요.\n\n오류: ' + error.message);
+        let errorMessage = '회원탈퇴 처리 중 오류가 발생했습니다.\n다시 시도해주세요.';
+        
+        if (error.code === 'auth/requires-recent-login') {
+          errorMessage = '보안을 위해 최근에 로그인한 상태여야 합니다.\n\n다시 로그인한 후 회원탈퇴를 시도해주세요.';
+        } else if (error.message) {
+          errorMessage += '\n\n오류: ' + error.message;
+        }
+        
+        alert(errorMessage);
       }
     }
   </script>
