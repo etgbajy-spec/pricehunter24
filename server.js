@@ -1,6 +1,9 @@
 const express = require('express');
 const path = require('path');
 const admin = require('firebase-admin');
+const rateLimit = require('express-rate-limit');
+const session = require('express-session');
+const csrf = require('csrf');
 const app = express();
 const port = process.env.PORT || 8000;
 
@@ -8,41 +11,109 @@ const port = process.env.PORT || 8000;
 require('dotenv').config();
 
 // Firebase Admin SDK 초기화 (환경변수 사용)
+// ⚠️ 보안: Firebase Admin SDK 키는 환경변수로만 관리해야 합니다.
+// 배포 플랫폼(Netlify/Vercel)의 환경변수 설정에서 설정하세요.
 const serviceAccount = {
   type: "service_account",
   project_id: process.env.FIREBASE_PROJECT_ID || "pricehunter-99a1b",
-  private_key_id: process.env.FIREBASE_ADMIN_PRIVATE_KEY_ID || "61241fe6ae6b528cba19a4d0877b49a9b12f92e7",
-  private_key: process.env.FIREBASE_ADMIN_PRIVATE_KEY || "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC7OEnyTaUBswfI\nsSQk98jy5uFmnKJMou6HeZlaA69U12MtBadBbJ9lIkBbOteDBuXuja1owKTwRCz3\nsAaSsJ16jur0x1JT9Qv5xevz/bKg9bXysVjbyYud3zg2WPLurRI1sNOwam8smVka\nFJwTA5L8h5xNnAP3H9ALBp2Hw88Ci5HoF+bMFxwa3mfwEVZVM1+dHU3YxsebTyN/\nIwKvyeo8wZibAd4RmQJNmkAAOtLUkqtz4gtDhwtXyMfq52nFAV+I3El6wyFcpIgT\n/2d4fRSHDxy9MGHaSb0T+4vduNJFcTQs4E4qgLMZ8O7/4A5rk11pVGvG/cg96vwU\nhaxcEofpAgMBAAECggEAJ7DpTGtVniScc9nKNeQqQATeqGhwqBqqwyHudvztAOmg\n5vyZ1u72Y/R8/FpfMjIWMRrsNpcQ4LczaVdyLUswN7lw6nAPbik3Xr6tJU8VvbYZ\n2tfqZL430UJvomX9KsiaYbOZTX9jDmt8TmEsLYPGd68wXevDk3K1IoFGiG/kxT8A\ni5yr57qNvyNdSooRyQZO5i9DYVN0TS/2Z/n5HY1oe7maCWPgN45l2NVCOztNFTEi\nun8kVjTPCU0MywWgXyjuv/+8cNXK186RW4OfE6lpWXFECAWIpr3GVcypW80Tww2I\nB1psxPkuwpZGQDplBfEjGkRgsuL9O5t4BjgbMTrC+QKBgQDt9A8w78ZG1fFXuzLC\nks2Gf6FevT60uiGSO1Epja1tShlU7X3Vda0TIMyDtE5I9TRh7/pgwtgXDzvCtATB\n2Y3rF+ikhGz1BusxmwNx32zoZVqT61EXgpm02WuWKa4vEheleN1zk9FYuGIrR6Gj\nfYecte4DjTGz2xhDCT77vMtmbwKBgQDJazkHvCMJo69UtphCtIDl0cpSqqStMon1\nf84knJetrh0oiaACplbGUnHGKdiPUTttmT5lh9kgBdmYBnTHcv/uLYsXci/H7L94\naQv6ebHHn/GIGI8zthcxi8MpGeNc7KWYyK0G5Nh7qUlSpz5udhhDPGtmp54Dromx\nKe7sS5djJwKBgB9ihW5q8bf+F+r+Yd+QBVOsGdipFVA5DJyA/l+AtFMp5tVwzZwN\n/Vn8hX0JlxnAXbxdLqT8jgvckoFHxSjcTP+pE6I/ZS+cTgEo9PdcBL1SQPQpoXR8\nYVGdK7eOn87NkBjfLDZGVOJiz2/t7r/lmrFsvYvyX4/dYgHVgl0ptZo5AoGBALOm\ndSmW/tFcM8glTM1CXi2d3w24skTg7PgRVHaHTSpWQB+mERgL8R3W7y/Gpye9Vno8\n0tCQSHMthJT6PTKgOfHgoUz6Re/WFDl7yHlSDeV1nWK8NQ30fd9tP1brhkWdtV3+\nr4WUnBpANewIy8COiLl/rHPVUTULejiQpFASZCbFAoGASxGStF3ifcV2fbaOdymS\nqeeD5XgrEl2wFaQpVtztilAVNUgNxnsrqH3q67XzVo33sfS2f7nFiccjK4Fuz+mF\n7g9/8ZM3bJ5PKlLGwV3qBxgpE0SNFr6u4fTXK5+p0lZZMADW929tWTg6pDrsjlsi\ndCjF8QxDOZrZfItMqyCqiVg=\n-----END PRIVATE KEY-----\n",
-  client_email: process.env.FIREBASE_ADMIN_CLIENT_EMAIL || "firebase-adminsdk-fbsvc@pricehunter-99a1b.iam.gserviceaccount.com",
-  client_id: process.env.FIREBASE_ADMIN_CLIENT_ID || "106064542976099664086",
+  private_key_id: process.env.FIREBASE_ADMIN_PRIVATE_KEY_ID,
+  private_key: process.env.FIREBASE_ADMIN_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+  client_email: process.env.FIREBASE_ADMIN_CLIENT_EMAIL,
+  client_id: process.env.FIREBASE_ADMIN_CLIENT_ID,
   auth_uri: process.env.FIREBASE_ADMIN_AUTH_URI || "https://accounts.google.com/o/oauth2/auth",
   token_uri: process.env.FIREBASE_ADMIN_TOKEN_URI || "https://oauth2.googleapis.com/token",
   auth_provider_x509_cert_url: process.env.FIREBASE_ADMIN_AUTH_PROVIDER_X509_CERT_URL || "https://www.googleapis.com/oauth2/v1/certs",
-  client_x509_cert_url: process.env.FIREBASE_ADMIN_CLIENT_X509_CERT_URL || "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-fbsvc%40pricehunter-99a1b.iam.gserviceaccount.com"
+  client_x509_cert_url: process.env.FIREBASE_ADMIN_CLIENT_X509_CERT_URL
 };
 
-// Firebase Admin 초기화 (실제 서비스에서는 환경변수나 파일에서 키를 가져와야 함)
-try {
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-    projectId: "pricehunter-99a1b"
-  });
-  console.log('✅ Firebase Admin SDK 초기화 완료');
-} catch (error) {
-  console.error('❌ Firebase Admin SDK 초기화 실패:', error.message);
-  console.log('⚠️ 카카오 → Firebase 토큰 교환 기능이 비활성화됩니다.');
+// 환경변수 검증
+if (!serviceAccount.private_key || !serviceAccount.client_email) {
+  console.warn('⚠️ Firebase Admin SDK 환경변수가 설정되지 않았습니다.');
+  console.warn('⚠️ 카카오 → Firebase 토큰 교환 기능이 비활성화됩니다.');
+  console.warn('⚠️ 배포 플랫폼의 환경변수 설정에서 Firebase Admin SDK 키를 설정하세요.');
 }
+
+// Firebase Admin 초기화
+let adminInitialized = false;
+if (serviceAccount.private_key && serviceAccount.client_email) {
+  try {
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+      projectId: "pricehunter-99a1b"
+    });
+    adminInitialized = true;
+    console.log('✅ Firebase Admin SDK 초기화 완료');
+  } catch (error) {
+    console.error('❌ Firebase Admin SDK 초기화 실패:', error.message);
+    console.log('⚠️ 카카오 → Firebase 토큰 교환 기능이 비활성화됩니다.');
+  }
+} else {
+  console.log('⚠️ Firebase Admin SDK 환경변수가 없어 초기화를 건너뜁니다.');
+}
+
+// 세션 설정 (CSRF 보호용)
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'change-this-secret-key-in-production',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production', // HTTPS에서만 전송
+    httpOnly: true, // XSS 방지
+    maxAge: 24 * 60 * 60 * 1000 // 24시간
+  }
+}));
 
 // JSON 파싱 미들웨어 (크기 제한)
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
+// CSRF 토큰 생성 미들웨어
+const tokens = new csrf();
+function generateCSRFToken(req, res, next) {
+  const secret = req.session.csrfSecret || tokens.secretSync();
+  req.session.csrfSecret = secret;
+  req.csrfToken = tokens.create(secret);
+  res.locals.csrfToken = req.csrfToken;
+  next();
+}
+
+// CSRF 검증 미들웨어 (API 엔드포인트용)
+function verifyCSRF(req, res, next) {
+  const secret = req.session.csrfSecret;
+  const token = req.headers['x-csrf-token'] || req.body._csrf;
+  
+  if (!secret || !token) {
+    return res.status(403).json({ error: 'CSRF 토큰이 없습니다.' });
+  }
+  
+  if (!tokens.verify(secret, token)) {
+    return res.status(403).json({ error: '유효하지 않은 CSRF 토큰입니다.' });
+  }
+  
+  next();
+}
+
+// Rate Limiting 설정 (DDoS 방지 및 비용 절감)
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15분
+  max: 100, // 최대 100개 요청
+  message: {
+    error: '너무 많은 요청입니다. 잠시 후 다시 시도해주세요.',
+    retryAfter: '15분 후에 다시 시도해주세요.'
+  },
+  standardHeaders: true, // `RateLimit-*` 헤더 반환
+  legacyHeaders: false, // `X-RateLimit-*` 헤더 비활성화
+});
+
+// API 엔드포인트에만 Rate Limiting 적용 (정적 파일은 제외)
+app.use('/api/', limiter);
+
 // 정적 파일 제공
 app.use(express.static(__dirname));
 
-// CSP 헤더 설정 - Firebase 완전 지원 정책
+// 보안 헤더 설정 미들웨어
 app.use((req, res, next) => {
-  // 강화된 CSP 정책 (unsafe-eval 제거)
+  // CSP 헤더 설정 - Firebase 완전 지원 정책 (unsafe-eval 제거)
   const cspPolicy = [
     "default-src 'self'",
     // Firebase + Kakao 스크립트 허용 (unsafe-eval 제거로 보안 강화)
@@ -54,7 +125,7 @@ app.use((req, res, next) => {
     "img-src 'self' data: blob: https:",
     // 폰트 허용
     "font-src 'self' https://fonts.gstatic.com",
-    // Firebase + Kakao API 연결 허용 (Chart.js 소스맵 포함)
+    // Firebase + Kakao API 연결 허용
     "connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://firebase.googleapis.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com https://*.gstatic.com https://accounts.google.com https://oauth2.googleapis.com https://apis.google.com https://*.google.com https://*.googleapis.com https://cdn.jsdelivr.net https://*.jsdelivr.net",
     // iframe 허용 (reCAPTCHA, Google 로그인, Kakao, Firebase)
     "frame-src 'self' https://www.google.com https://accounts.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com https://apis.google.com https://*.gstatic.com https://*.google.com",
@@ -65,8 +136,17 @@ app.use((req, res, next) => {
     "upgrade-insecure-requests"
   ].join('; ');
   
-  // CSP 헤더 설정 (단일 헤더로 중복 방지)
+  // 보안 헤더 설정
   res.setHeader('Content-Security-Policy', cspPolicy);
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  
+  // HSTS 헤더 (HTTPS 환경에서만)
+  if (process.env.NODE_ENV === 'production') {
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+  }
   
   // 브라우저 캐시 무효화 (CSP 변경사항 즉시 적용)
   res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
@@ -75,7 +155,7 @@ app.use((req, res, next) => {
   
   // 디버깅용 로그 (개발 환경에서만)
   if (process.env.NODE_ENV !== 'production') {
-    console.log('🔒 CSP 헤더 설정됨:', cspPolicy.substring(0, 100) + '...');
+    console.log('🔒 보안 헤더 설정됨');
   }
   
   next();
@@ -90,21 +170,25 @@ app.get('/admin-dashboard', (req, res) => {
   res.sendFile(path.join(__dirname, 'admin-dashboard.html'));
 });
 
-// 입력 데이터 검증 미들웨어
+// 입력 데이터 검증 및 sanitization 미들웨어
 function validateInput(req, res, next) {
   // 기본 입력 검증
   if (req.body && typeof req.body === 'object') {
-    // HTML 태그 제거
     Object.keys(req.body).forEach(key => {
       if (typeof req.body[key] === 'string') {
-        req.body[key] = req.body[key].replace(/<[^>]*>/g, '');
-      }
-    });
-    
-    // 길이 제한 검증
-    Object.keys(req.body).forEach(key => {
-      if (typeof req.body[key] === 'string' && req.body[key].length > 1000) {
-        return res.status(400).json({ error: '입력 데이터가 너무 깁니다.' });
+        const value = req.body[key];
+        
+        // 길이 제한 검증
+        if (value.length > 10000) {
+          return res.status(400).json({ error: `입력 데이터(${key})가 너무 깁니다.` });
+        }
+        
+        // 기본 HTML 태그 제거 (XSS 방지)
+        req.body[key] = value
+          .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+          .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
+          .replace(/javascript:/gi, '')
+          .replace(/on\w+\s*=/gi, '');
       }
     });
   }
@@ -112,8 +196,13 @@ function validateInput(req, res, next) {
   next();
 }
 
+// CSRF 토큰 발급 API (클라이언트에서 사용)
+app.get('/api/csrf-token', generateCSRFToken, (req, res) => {
+  res.json({ csrfToken: req.csrfToken });
+});
+
 // 결제 금액 검증 API
-app.post('/api/validate-payment', validateInput, async (req, res) => {
+app.post('/api/validate-payment', generateCSRFToken, verifyCSRF, validateInput, async (req, res) => {
   try {
     const { productName, amount, orderId } = req.body;
     
@@ -152,7 +241,11 @@ app.post('/api/validate-payment', validateInput, async (req, res) => {
 });
 
 // 카카오 액세스 토큰을 Firebase 커스텀 토큰으로 교환
-app.post('/api/kakao-to-firebase-token', validateInput, async (req, res) => {
+app.post('/api/kakao-to-firebase-token', generateCSRFToken, verifyCSRF, validateInput, async (req, res) => {
+  if (!adminInitialized) {
+    return res.status(503).json({ error: 'Firebase Admin SDK가 초기화되지 않았습니다. 환경변수를 확인하세요.' });
+  }
+  
   try {
     const { kakaoAccessToken, userData } = req.body;
     
