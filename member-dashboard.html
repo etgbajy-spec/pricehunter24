@@ -2498,13 +2498,7 @@
           throw new Error('재인증에 실패했습니다: ' + reauthError.message);
         }
         
-        // 재인증 성공 후 Firebase Auth에서 사용자 삭제
-        console.log('🗑️ Firebase Auth에서 사용자 삭제 시작...');
-        const { deleteUser } = window.firebaseAuthFunctions;
-        await deleteUser(currentUser);
-        console.log('✅ Firebase Auth에서 사용자 삭제 완료');
-        
-        // Firestore에서 사용자 데이터 삭제
+        // 재인증 성공 후 Firestore에서 사용자 데이터 먼저 삭제 (Auth 삭제 전)
         const { doc, deleteDoc, collection, query, where, getDocs } = window.firebaseFirestoreFunctions;
         const db = window.firebaseDb;
         
@@ -2514,12 +2508,27 @@
         const q = query(usersRef, where('email', '==', currentUser.email));
         const querySnapshot = await getDocs(q);
         
+        // uid로도 시도
+        let userDocRef = doc(db, 'users', currentUser.uid);
         if (!querySnapshot.empty) {
           userDocId = querySnapshot.docs[0].id;
-          const userDocRef = doc(db, 'users', userDocId);
-          await deleteDoc(userDocRef);
-          console.log('✅ Firestore에서 사용자 데이터 삭제 완료');
+          userDocRef = doc(db, 'users', userDocId);
         }
+        
+        // Firestore에서 사용자 데이터 삭제 (재인증 후이므로 권한 있음)
+        try {
+          await deleteDoc(userDocRef);
+          console.log('✅ Firestore에서 사용자 데이터 삭제 완료:', userDocId);
+        } catch (firestoreError) {
+          console.warn('⚠️ Firestore 삭제 실패 (계속 진행):', firestoreError);
+          // Firestore 삭제가 실패해도 Auth 삭제는 계속 진행
+        }
+        
+        // Firebase Auth에서 사용자 삭제
+        console.log('🗑️ Firebase Auth에서 사용자 삭제 시작...');
+        const { deleteUser } = window.firebaseAuthFunctions;
+        await deleteUser(currentUser);
+        console.log('✅ Firebase Auth에서 사용자 삭제 완료');
         
         // localStorage에서 사용자 정보 삭제
         localStorage.removeItem('user');
