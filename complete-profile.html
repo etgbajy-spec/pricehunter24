@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>프로필 정보 입력 - PriceHunter</title>
+  
+  <!-- Favicon -->
+  <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ec4899'><path d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z'/></svg>">
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Firebase v9 SDK (모듈식) -->
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
+    import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
+    import { getFirestore, doc, getDoc, setDoc } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
+    
+    // Firebase 설정
+    const firebaseConfig = {
+      apiKey: "AIzaSyDBZxKyMS7eeBTbPnbZkj0WWOZQHNldoL4",
+      authDomain: "pricehunter-99a1b.firebaseapp.com",
+      projectId: "pricehunter-99a1b",
+      storageBucket: "pricehunter-99a1b.firebasestorage.app",
+      messagingSenderId: "242265693919",
+      appId: "1:242265693919:web:74234d942b82a51541136a",
+      measurementId: "G-4BKLV4EVB9"
+    };
+
+    // Firebase 초기화
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    // 전역 변수로 노출
+    window.firebaseApp = app;
+    window.firebaseAuth = auth;
+    window.firebaseDb = db;
+    window.firebaseFirestoreFunctions = { 
+      doc, 
+      getDoc, 
+      setDoc 
+    };
+
+    console.log('✅ Firebase v9 초기화 완료 (complete-profile.html)');
+  </script>
+  
+  <style>
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .fade-in-up {
+      animation: fadeInUp 0.6s ease-out;
+    }
+  </style>
+</head>
+
+<body class="bg-gradient-to-br from-pink-50 to-blue-50 min-h-screen">
+  <!-- 헤더 -->
+  <header class="bg-white shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between items-center py-4">
+        <div class="flex items-center">
+          <a href="index.html" class="text-2xl font-bold text-pink-600">PriceHunter</a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- 메인 콘텐츠 -->
+  <main class="max-w-4xl mx-auto px-4 py-12 mx-4">
+    <div class="text-center mb-12 fade-in-up">
+      <h1 class="text-4xl font-bold text-gray-900 mb-4">프로필 정보 입력</h1>
+      <p class="text-lg text-gray-600">서비스 이용을 위해<br class="sm:hidden">추가 정보를 입력해주세요</p>
+    </div>
+
+    <!-- 프로필 입력 폼 -->
+    <div class="max-w-md mx-auto bg-white rounded-2xl shadow-lg p-6 sm:p-8 fade-in-up">
+      <form id="profile-form" class="space-y-6">
+        <!-- 이름 -->
+        <div>
+          <label for="name" class="block text-sm font-medium text-gray-700 mb-2">이름 *</label>
+          <input type="text" id="name" name="name" required placeholder="이름을 입력하세요"
+                 class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">
+        </div>
+
+        <!-- 휴대폰 번호 -->
+        <div>
+          <label for="phone" class="block text-sm font-medium text-gray-700 mb-2">휴대폰 번호 *</label>
+          <input type="tel" id="phone" name="phone" required placeholder="010-1234-5678"
+                 pattern="[0-9]{3}-[0-9]{4}-[0-9]{4}"
+                 class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">
+          <p class="mt-1 text-sm text-gray-500">예: 010-1234-5678</p>
+        </div>
+
+        <!-- 이메일 (읽기 전용) -->
+        <div>
+          <label for="email" class="block text-sm font-medium text-gray-700 mb-2">이메일</label>
+          <input type="email" id="email" name="email" readonly
+                 class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed">
+        </div>
+
+        <!-- 제출 버튼 -->
+        <button type="submit" id="submit-button"
+                class="w-full bg-pink-600 hover:bg-pink-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200">
+          정보 저장하고 시작하기
+        </button>
+      </form>
+    </div>
+  </main>
+
+  <script>
+    // Firebase 초기화 대기
+    function waitForFirebase() {
+      return new Promise((resolve, reject) => {
+        if (window.firebaseApp && window.firebaseDb && window.firebaseAuth && window.firebaseFirestoreFunctions) {
+          resolve();
+        } else {
+          const checkInterval = setInterval(() => {
+            if (window.firebaseApp && window.firebaseDb && window.firebaseAuth && window.firebaseFirestoreFunctions) {
+              clearInterval(checkInterval);
+              resolve();
+            }
+          }, 100);
+          
+          setTimeout(() => {
+            clearInterval(checkInterval);
+            reject(new Error('Firebase 초기화 실패'));
+          }, 10000);
+        }
+      });
+    }
+
+    // 휴대폰 번호 포맷팅
+    function formatPhoneNumber(value) {
+      const numbers = value.replace(/[^0-9]/g, '');
+      if (numbers.length <= 3) return numbers;
+      if (numbers.length <= 7) return `${numbers.slice(0, 3)}-${numbers.slice(3)}`;
+      return `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7, 11)}`;
+    }
+
+    // 페이지 로드 시 실행
+    document.addEventListener('DOMContentLoaded', async function() {
+      console.log('🚀 complete-profile.html 로드됨');
+      
+      try {
+        await waitForFirebase();
+        const { onAuthStateChanged } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js');
+        
+        // 현재 로그인된 사용자 확인
+        onAuthStateChanged(window.firebaseAuth, async (user) => {
+          if (!user) {
+            alert('로그인이 필요합니다.');
+            window.location.href = 'login.html';
+            return;
+          }
+          
+          // 이메일 입력 필드에 현재 이메일 설정
+          document.getElementById('email').value = user.email || '';
+          
+          // 이미 프로필 정보가 있는지 확인
+          try {
+            const { doc, getDoc } = window.firebaseFirestoreFunctions;
+            const userRef = doc(window.firebaseDb, 'users', user.uid);
+            const userDoc = await getDoc(userRef);
+            
+            if (userDoc.exists()) {
+              const userData = userDoc.data();
+              // 이름과 핸드폰번호가 이미 있으면 대시보드로 이동
+              if (userData.name && userData.phone) {
+                console.log('✅ 이미 프로필 정보가 있습니다. 대시보드로 이동합니다.');
+                window.location.href = 'member-dashboard.html';
+                return;
+              }
+              
+              // 부분적으로 정보가 있으면 입력 필드에 채우기
+              if (userData.name) {
+                document.getElementById('name').value = userData.name;
+              }
+              if (userData.phone) {
+                document.getElementById('phone').value = userData.phone;
+              }
+            }
+          } catch (error) {
+            console.error('사용자 정보 확인 실패:', error);
+          }
+        });
+      } catch (error) {
+        console.error('Firebase 초기화 실패:', error);
+        alert('페이지 로드에 실패했습니다. 새로고침해주세요.');
+      }
+
+      // 휴대폰 번호 입력 시 자동 포맷팅
+      const phoneInput = document.getElementById('phone');
+      phoneInput.addEventListener('input', function(e) {
+        const formatted = formatPhoneNumber(e.target.value);
+        e.target.value = formatted;
+      });
+
+      // 폼 제출
+      document.getElementById('profile-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const name = document.getElementById('name').value.trim();
+        const phone = document.getElementById('phone').value.trim();
+        const email = document.getElementById('email').value.trim();
+        
+        // 유효성 검사
+        if (!name) {
+          alert('이름을 입력해주세요.');
+          return;
+        }
+        
+        if (!phone) {
+          alert('휴대폰 번호를 입력해주세요.');
+          return;
+        }
+        
+        // 휴대폰 번호 형식 검사
+        const phonePattern = /^[0-9]{3}-[0-9]{4}-[0-9]{4}$/;
+        if (!phonePattern.test(phone)) {
+          alert('휴대폰 번호를 올바른 형식으로 입력해주세요.\n예: 010-1234-5678');
+          return;
+        }
+        
+        const submitButton = document.getElementById('submit-button');
+        submitButton.disabled = true;
+        submitButton.textContent = '저장 중...';
+        
+        try {
+          await waitForFirebase();
+          
+          const currentUser = window.firebaseAuth.currentUser;
+          if (!currentUser) {
+            alert('로그인이 필요합니다.');
+            window.location.href = 'login.html';
+            return;
+          }
+          
+          const { doc, setDoc } = window.firebaseFirestoreFunctions;
+          const userRef = doc(window.firebaseDb, 'users', currentUser.uid);
+          
+          // 사용자 정보 업데이트
+          await setDoc(userRef, {
+            name: name,
+            displayName: name,
+            phone: phone,
+            phoneNumber: phone,
+            email: email,
+            updatedAt: new Date()
+          }, { merge: true });
+          
+          console.log('✅ 프로필 정보 저장 완료');
+          
+          // 로컬 스토리지 업데이트
+          const userData = {
+            uid: currentUser.uid,
+            email: email,
+            name: name,
+            displayName: name,
+            phone: phone,
+            phoneNumber: phone
+          };
+          localStorage.setItem('currentUser', JSON.stringify(userData));
+          localStorage.setItem('user', JSON.stringify(userData));
+          
+          alert('프로필 정보가 저장되었습니다!');
+          window.location.href = 'member-dashboard.html';
+          
+        } catch (error) {
+          console.error('프로필 정보 저장 실패:', error);
+          alert('프로필 정보 저장에 실패했습니다. 다시 시도해주세요.');
+        } finally {
+          submitButton.disabled = false;
+          submitButton.textContent = '정보 저장하고 시작하기';
+        }
+      });
+    });
+  </script>
+</body>
+</html>
+

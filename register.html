@@ -775,6 +775,39 @@
           localStorage.setItem('loggedInEmail', userData.email);
         }
         
+        // 구글 로그인 사용자의 경우 이름과 핸드폰번호 확인
+        if (options.loginMethod === 'google' || providerData.providerId === 'google.com') {
+          try {
+            await waitForFirebase();
+            const { doc, getDoc } = window.firebaseFirestoreFunctions;
+            const userRef = doc(window.firebaseDb, 'users', firebaseUser.uid);
+            const userDoc = await getDoc(userRef);
+            
+            let needsProfile = false;
+            if (userDoc.exists()) {
+              const existingData = userDoc.data();
+              // 이름이나 핸드폰번호가 없으면 프로필 완성 페이지로 이동
+              if (!existingData.name || !existingData.phone) {
+                needsProfile = true;
+              }
+            } else {
+              needsProfile = true;
+            }
+            
+            if (needsProfile) {
+              // 프로필 완성 페이지로 이동
+              if (isNewUser) {
+                alert('구글 로그인 회원가입이 완료되었습니다!\n\n추가 정보를 입력해주세요.');
+              }
+              window.location.href = 'complete-profile.html';
+              return;
+            }
+          } catch (error) {
+            console.error('사용자 정보 확인 실패:', error);
+            // 오류 발생 시 기존 로직대로 진행
+          }
+        }
+        
         // 성공 메시지 및 리디렉션
         if (isNewUser) {
           alert('구글 로그인 회원가입이 완료되었습니다!\n\n실제 고객 후기를 확인해보세요!');

@@ -1572,7 +1572,7 @@
             }
             
             const deletePromises = Array.from(checkboxes).map(checkbox => {
-                const requestId = checkbox.dataset.id;
+                const requestId = checkbox.value || checkbox.dataset.id;
                 return deleteRequestFromFirebase(requestId);
             });
             
