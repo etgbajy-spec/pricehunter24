@@ -3634,8 +3634,9 @@
             <a href="about.html" class="text-white hover:text-blue-200 transition-colors duration-200 text-sm lg:text-base font-medium" style="font-family: 'Noto Sans KR', sans-serif;">브랜드</a>
             <a href="support.html" class="text-white hover:text-blue-200 transition-colors duration-200 text-sm lg:text-base font-medium" style="font-family: 'Noto Sans KR', sans-serif;">서비스</a>
             <a href="reviews.html" class="text-white hover:text-blue-200 transition-colors duration-200 text-sm lg:text-base font-medium" style="font-family: 'Noto Sans KR', sans-serif;">리뷰</a>
-            <!-- 로그인/내 정보 버튼 -->
+            <!-- 로그인/회원가입/내 정보 버튼 -->
             <button id="header-login-btn" class="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-full text-sm lg:text-base font-medium transition-all duration-200 border border-white/30" style="font-family: 'Noto Sans KR', sans-serif;">로그인</button>
+            <a href="register.html" id="header-signup-btn" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-full text-sm lg:text-base font-medium transition-all duration-200 border border-blue-400" style="font-family: 'Noto Sans KR', sans-serif;">회원가입</a>
             <a href="member-dashboard.html" id="header-mypage-btn" class="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-full text-sm lg:text-base font-medium transition-all duration-200 border border-white/30 hidden" style="font-family: 'Noto Sans KR', sans-serif;">내 정보</a>
           </nav>
         </div>
@@ -3687,7 +3688,7 @@
         <div id="hero-title" class="hero-element text-center mb-8 sm:mb-12 md:mb-16 hero-title-animate">
           <h1 class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold text-white mb-6 sm:mb-8 leading-[1.2] tracking-tight px-2" style="font-family: 'Noto Sans KR', sans-serif; font-weight: 800; text-shadow: 0 4px 20px rgba(0,0,0,0.3);">
             <span class="block bg-gradient-to-r from-emerald-200 via-cyan-200 to-blue-200 bg-clip-text text-transparent">데이터로 증명하는 최저가 검증 서비스</span>
-            <span class="block mt-2 bg-gradient-to-r from-emerald-200 via-cyan-200 to-blue-200 bg-clip-text text-transparent">프라이스헌터</span>
+            <span class="block mt-2 bg-gradient-to-r from-emerald-200 via-cyan-200 to-blue-200 bg-clip-text text-transparent">프라이스헌<span id="admin-hero-teo-trigger" style="cursor: default; user-select: none; display: inline-block; background: linear-gradient(to right, rgb(167, 243, 208), rgb(165, 243, 252), rgb(191, 219, 254)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">터</span></span>
           </h1>
         </div>
 
@@ -6024,10 +6025,12 @@
           safeSetDisplay('signup-btn', 'none');
           safeSetDisplay('mypage-btn', 'inline-block');
           safeSetDisplay('logout-btn', 'inline-block');
-          // 헤더 로그인/내 정보 버튼 제어
+          // 헤더 로그인/회원가입/내 정보 버튼 제어
           const headerLoginBtn = document.getElementById('header-login-btn');
+          const headerSignupBtn = document.getElementById('header-signup-btn');
           const headerMypageBtn = document.getElementById('header-mypage-btn');
           if (headerLoginBtn) headerLoginBtn.style.display = 'none';
+          if (headerSignupBtn) headerSignupBtn.style.display = 'none';
           if (headerMypageBtn) {
             headerMypageBtn.classList.remove('hidden');
             headerMypageBtn.style.display = 'block';
@@ -6049,11 +6052,15 @@
           safeSetDisplay('signup-btn', 'inline-block');
           safeSetDisplay('mypage-btn', 'none');
           safeSetDisplay('logout-btn', 'none');
-          // 헤더 로그인/내 정보 버튼 제어
+          // 헤더 로그인/회원가입/내 정보 버튼 제어
           const headerLoginBtn = document.getElementById('header-login-btn');
+          const headerSignupBtn = document.getElementById('header-signup-btn');
           const headerMypageBtn = document.getElementById('header-mypage-btn');
           if (headerLoginBtn) {
             headerLoginBtn.style.display = 'block';
+          }
+          if (headerSignupBtn) {
+            headerSignupBtn.style.display = 'block';
           }
           if (headerMypageBtn) {
             headerMypageBtn.classList.add('hidden');
@@ -6639,6 +6646,12 @@
       const ADMIN_KEYPRESS_THRESHOLD = 7; // 7번 연타
       const ADMIN_KEYPRESS_TIMEOUT = 2000; // 2초 내에 연타
 
+      // 히어로 섹션 '터' 클릭 트리거
+      let adminTeoClickCount = 0;
+      let adminTeoClickTimer = null;
+      const ADMIN_TEO_CLICK_THRESHOLD = 7; // 7번 연속 클릭
+      const ADMIN_TEO_CLICK_TIMEOUT = 2000; // 2초 내에 클릭
+
       function setupAdminSecretTrigger() {
         // 키보드 이벤트 리스너 등록
         document.addEventListener('keydown', function(e) {
@@ -6679,6 +6692,40 @@
       window.addEventListener('DOMContentLoaded', function() {
         // 관리자 모드 숨겨진 트리거 설정
         setupAdminSecretTrigger();
+        
+        // 히어로 섹션 '터' 클릭 이벤트 재설정 (DOM 로드 후 확실히 설정)
+        const adminTeoTrigger = document.getElementById('admin-hero-teo-trigger');
+        if (adminTeoTrigger && !adminTeoTrigger.hasAttribute('data-listener-attached')) {
+          adminTeoTrigger.setAttribute('data-listener-attached', 'true');
+          adminTeoTrigger.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            adminTeoClickCount++;
+            
+            // 타이머 리셋
+            if (adminTeoClickTimer) {
+              clearTimeout(adminTeoClickTimer);
+            }
+            
+            // 연속 클릭 카운트 확인
+            if (adminTeoClickCount >= ADMIN_TEO_CLICK_THRESHOLD) {
+              console.log('🔓 관리자 모드 숨겨진 트리거 활성화! (히어로 섹션 "터" 연속 클릭)');
+              if (typeof tryAdminLogin === 'function') {
+                tryAdminLogin();
+              }
+              adminTeoClickCount = 0;
+              return;
+            }
+            
+            // 2초 후 카운트 리셋
+            adminTeoClickTimer = setTimeout(() => {
+              adminTeoClickCount = 0;
+              console.log('관리자 "터" 클릭 카운트 리셋');
+            }, ADMIN_TEO_CLICK_TIMEOUT);
+            
+            console.log(`관리자 "터" 클릭: ${adminTeoClickCount}/${ADMIN_TEO_CLICK_THRESHOLD}`);
+          });
+        }
         
         // Firebase Auth 상태 감지 설정
         setTimeout(() => {
