@@ -1426,6 +1426,12 @@
         try {
           await saveRequestToFirebase(reqData, reqNum);
           
+          // sessionStorage에 의뢰 데이터 저장 (완료 페이지에서 사용)
+          sessionStorage.setItem('request', JSON.stringify({
+            ...reqData,
+            reqNum: reqNum
+          }));
+          
           // 성공 메시지 표시
           document.getElementById('submit-success').classList.remove('hidden');
           document.getElementById('request-number').textContent = reqNum;

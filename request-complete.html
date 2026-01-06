@@ -62,28 +62,24 @@
       <div class="w-full bg-gray-50 rounded-2xl p-5 mb-6 shadow-inner text-left">
         <div class="mb-3">
           <span class="font-semibold text-gray-700">제품명:</span>
-          <span id="summary-name" class="ml-2 text-gray-900">샘플 제품명</span>
+          <span id="summary-name" class="ml-2 text-gray-900">(없음)</span>
         </div>
         <div class="mb-3">
           <span class="font-semibold text-gray-700">제품설명:</span>
-          <span id="summary-desc" class="ml-2 text-gray-900">샘플 제품 상세설명</span>
+          <span id="summary-desc" class="ml-2 text-gray-900">(없음)</span>
         </div>
         <div class="mb-3">
           <span class="font-semibold text-gray-700">참고사이트:</span>
           <span id="summary-urls" class="ml-2"></span>
-        </div>
-        <div class="mb-3">
-          <span class="font-semibold text-gray-700">업로드 이미지:</span>
-          <span id="summary-images"></span>
         </div>
       </div>
       <!-- Contact Info -->
       <div class="w-full mb-6 text-left">
         <div class="mb-1 text-gray-700 font-semibold">결과 안내 연락처</div>
         <div class="flex flex-col gap-1 text-gray-600 text-sm pl-1">
-          <span id="summary-email">이메일: sample@email.com</span>
-          <span id="summary-phone">전화번호: 010-1234-5678</span>
-          <span id="summary-kakao">카카오: pricehunter_kakao</span>
+          <span id="summary-email">이메일: (없음)</span>
+          <span id="summary-phone">전화번호: (없음)</span>
+          <span id="summary-kakao" style="display: none;">카카오: (없음)</span>
         </div>
       </div>
       <!-- Friendly Message -->
@@ -104,41 +100,159 @@
         const rand = String(Math.floor(Math.random()*900)+100);
         return `#PH-${y}${m}${d}${rand}`;
       }
-      document.getElementById('req-num').textContent = generateReqNum();
-      // (Optional) Fill summary from localStorage/sessionStorage or query params
-      // Example: sessionStorage.setItem('request', JSON.stringify({name,desc,url,img,email,phone,kakao}))
+      
+      // sessionStorage에서 의뢰 번호 가져오기
       try {
         const req = JSON.parse(sessionStorage.getItem('request'));
+        if (req && req.reqNum) {
+          document.getElementById('req-num').textContent = req.reqNum;
+        } else {
+          document.getElementById('req-num').textContent = generateReqNum();
+        }
+      } catch(e) {
+        document.getElementById('req-num').textContent = generateReqNum();
+      }
+      // sessionStorage에서 의뢰 데이터 가져오기
+      try {
+        const req = JSON.parse(sessionStorage.getItem('request'));
+        console.log('의뢰 데이터:', req);
+        
         if (req) {
-          document.getElementById('summary-name').textContent = req.name || '';
-          document.getElementById('summary-desc').textContent = req.desc || '';
+          // 제품명 표시
+          if (req.name) {
+            document.getElementById('summary-name').textContent = req.name;
+          } else {
+            document.getElementById('summary-name').textContent = '(없음)';
+          }
+          
+          // 제품설명 표시
+          if (req.desc) {
+            document.getElementById('summary-desc').textContent = req.desc;
+          } else {
+            document.getElementById('summary-desc').textContent = '(없음)';
+          }
+          
           // 참고사이트 여러 개
           const urlsEl = document.getElementById('summary-urls');
-          if (req.urls && Array.isArray(req.urls)) {
+          if (req.urls && Array.isArray(req.urls) && req.urls.length > 0) {
             urlsEl.innerHTML = req.urls.map(u => {
-              if (/^https?:\/\//.test(u)) {
+              if (u && /^https?:\/\//.test(u)) {
                 return `<a href="${u}" target="_blank" class="text-blue-600 underline break-all mr-2">${u}</a>`;
-              } else {
+              } else if (u) {
                 return `<span class="text-gray-700 bg-gray-100 rounded px-2 py-1 mr-2">${u}</span>`;
               }
-            }).join('');
+              return '';
+            }).filter(Boolean).join('') || '<span class="text-gray-400">(없음)</span>';
           } else if (req.url) {
             urlsEl.innerHTML = `<a href="${req.url}" target="_blank" class="text-blue-600 underline break-all">${req.url}</a>`;
-          }
-          // 이미지 여러 장
-          const imgsEl = document.getElementById('summary-images');
-          if (req.images && Array.isArray(req.images)) {
-            imgsEl.innerHTML = req.images.map(img => `<img src="${img}" alt="업로드 이미지" class="inline-block h-20 w-auto rounded-xl border border-gray-200 shadow-sm align-middle mr-2 mb-2" />`).join('');
-          } else if (req.img) {
-            imgsEl.innerHTML = `<img src="${req.img}" alt="업로드 이미지" class="inline-block h-20 w-auto rounded-xl border border-gray-200 shadow-sm align-middle" />`;
           } else {
-            imgsEl.innerHTML = '<span class="text-gray-400">(없음)</span>';
+            urlsEl.innerHTML = '<span class="text-gray-400">(없음)</span>';
           }
-          if (req.email) document.getElementById('summary-email').textContent = '이메일: ' + req.email;
-          if (req.phone) document.getElementById('summary-phone').textContent = '전화번호: ' + req.phone;
-          if (req.kakao) document.getElementById('summary-kakao').textContent = '카카오: ' + req.kakao;
+          
+          // localStorage에서 사용자 정보 가져오기 (한 번만)
+          let currentUser = {};
+          try {
+            const userStr = localStorage.getItem('currentUser') || localStorage.getItem('user') || '{}';
+            currentUser = JSON.parse(userStr);
+          } catch(e) {
+            console.warn('사용자 정보 파싱 실패:', e);
+          }
+          
+          // 고객 연락처 정보 표시 (의뢰 데이터 우선, 없으면 사용자 정보)
+          const displayEmail = req.email || currentUser.email;
+          if (displayEmail) {
+            document.getElementById('summary-email').textContent = '이메일: ' + displayEmail;
+          } else {
+            document.getElementById('summary-email').textContent = '이메일: (없음)';
+          }
+          
+          const displayPhone = req.phone || currentUser.phone;
+          if (displayPhone) {
+            document.getElementById('summary-phone').textContent = '전화번호: ' + displayPhone;
+          } else {
+            document.getElementById('summary-phone').textContent = '전화번호: (없음)';
+          }
+          
+          // 카카오톡 ID는 고객 정보에서 가져오기 (의뢰 데이터에 없으면 표시 안 함)
+          const displayKakao = currentUser.kakao || req.kakao;
+          if (displayKakao) {
+            document.getElementById('summary-kakao').textContent = '카카오: ' + displayKakao;
+            document.getElementById('summary-kakao').style.display = 'block';
+          } else {
+            // 카카오톡 ID가 없으면 해당 라인 숨김
+            document.getElementById('summary-kakao').style.display = 'none';
+          }
+        } else {
+          // sessionStorage에 데이터가 없는 경우 기본값 표시
+          document.getElementById('summary-name').textContent = '(없음)';
+          document.getElementById('summary-desc').textContent = '(없음)';
+          document.getElementById('summary-urls').innerHTML = '<span class="text-gray-400">(없음)</span>';
+          
+          // localStorage에서 사용자 정보 가져오기
+          let currentUser = {};
+          try {
+            const userStr = localStorage.getItem('currentUser') || localStorage.getItem('user') || '{}';
+            currentUser = JSON.parse(userStr);
+          } catch(e) {
+            console.warn('사용자 정보 파싱 실패:', e);
+          }
+          
+          if (currentUser.email) {
+            document.getElementById('summary-email').textContent = '이메일: ' + currentUser.email;
+          } else {
+            document.getElementById('summary-email').textContent = '이메일: (없음)';
+          }
+          
+          if (currentUser.phone) {
+            document.getElementById('summary-phone').textContent = '전화번호: ' + currentUser.phone;
+          } else {
+            document.getElementById('summary-phone').textContent = '전화번호: (없음)';
+          }
+          
+          if (currentUser.kakao) {
+            document.getElementById('summary-kakao').textContent = '카카오: ' + currentUser.kakao;
+            document.getElementById('summary-kakao').style.display = 'block';
+          } else {
+            document.getElementById('summary-kakao').style.display = 'none';
+          }
         }
-      } catch(e) {}
+      } catch(e) {
+        console.error('의뢰 데이터 로드 실패:', e);
+        // 에러 발생 시 기본값 표시
+        document.getElementById('summary-name').textContent = '(없음)';
+        document.getElementById('summary-desc').textContent = '(없음)';
+        document.getElementById('summary-urls').innerHTML = '<span class="text-gray-400">(없음)</span>';
+        
+        // localStorage에서 사용자 정보 가져오기
+        try {
+          const userStr = localStorage.getItem('currentUser') || localStorage.getItem('user') || '{}';
+          const currentUser = JSON.parse(userStr);
+          
+          if (currentUser.email) {
+            document.getElementById('summary-email').textContent = '이메일: ' + currentUser.email;
+          } else {
+            document.getElementById('summary-email').textContent = '이메일: (없음)';
+          }
+          
+          if (currentUser.phone) {
+            document.getElementById('summary-phone').textContent = '전화번호: ' + currentUser.phone;
+          } else {
+            document.getElementById('summary-phone').textContent = '전화번호: (없음)';
+          }
+          
+          if (currentUser.kakao) {
+            document.getElementById('summary-kakao').textContent = '카카오: ' + currentUser.kakao;
+            document.getElementById('summary-kakao').style.display = 'block';
+          } else {
+            document.getElementById('summary-kakao').style.display = 'none';
+          }
+        } catch(err) {
+          console.error('사용자 정보 로드 실패:', err);
+          document.getElementById('summary-email').textContent = '이메일: (없음)';
+          document.getElementById('summary-phone').textContent = '전화번호: (없음)';
+          document.getElementById('summary-kakao').style.display = 'none';
+        }
+      }
     </script>
   </body>
 </html> 
