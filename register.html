@@ -584,6 +584,28 @@
 
       // 전역 변수
       let isEmailVerified = false;
+      
+      // 구글 회원가입 함수를 먼저 선언 (onclick에서 접근 가능하도록)
+      // 나중에 완전한 구현으로 대체됨
+      let registerWithGoogleImpl = null;
+      window.registerWithGoogle = async function() {
+        console.log('🚀 registerWithGoogle 함수 호출됨');
+        // 실제 구현이 로드될 때까지 대기
+        if (registerWithGoogleImpl) {
+          return await registerWithGoogleImpl();
+        }
+        // 구현이 아직 로드되지 않았으면 약간 대기 후 재시도
+        console.log('⏳ registerWithGoogle 구현 대기 중...');
+        for (let i = 0; i < 10; i++) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+          if (registerWithGoogleImpl) {
+            return await registerWithGoogleImpl();
+          }
+        }
+        console.error('❌ registerWithGoogle 함수가 아직 완전히 로드되지 않았습니다.');
+        alert('구글 회원가입 기능을 초기화하는 중입니다. 잠시 후 다시 시도해주세요.');
+      };
+      console.log('✅ registerWithGoogle 함수를 window 객체에 임시 등록 완료');
 
       // Firebase 초기화 대기
       function waitForFirebase() {
@@ -671,7 +693,7 @@
           const uid = `email_${userData.email.replace('@', '_').replace('.', '_')}`;
           
           // 문서 ID를 uid로 설정하여 일관성 유지 (setDoc 사용)
-          const { doc, setDoc } = window.firebaseFirestoreFunctions;
+          // doc와 setDoc는 이미 위에서 선언됨 (630번 줄)
           const userDocRef = doc(db, 'users', uid);
           
           await setDoc(userDocRef, {
@@ -830,88 +852,53 @@
         window.location.href = 'reviews.html';
       }
 
-      // 구글 회원가입/로그인 함수
+      // 구글 회원가입/로그인 함수 (index.html 방식 참고)
       async function registerWithGoogle() {
-        console.log('🚀 registerWithGoogle 함수 호출됨');
-        console.log('🚀 registerWithGoogle 함수 시작');
         try {
-          console.log('⏳ Firebase 초기화 대기 중...');
           await waitForFirebase();
-          console.log('✅ Firebase 초기화 완료');
-          
-          console.log('🔍 Firebase Auth 함수 확인:', {
-            firebaseAuthFunctions: !!window.firebaseAuthFunctions,
-            firebaseGoogleProvider: !!window.firebaseGoogleProvider,
-            firebaseAuth: !!window.firebaseAuth
-          });
           
           if (!window.firebaseAuthFunctions || !window.firebaseGoogleProvider) {
-            const errorMsg = '구글 로그인 구성이 완료되지 않았습니다.';
-            console.error('❌', errorMsg);
-            alert(errorMsg);
-            return;
-          }
-          
-          if (!window.firebaseAuth) {
-            const errorMsg = 'Firebase Auth가 초기화되지 않았습니다.';
-            console.error('❌', errorMsg);
-            alert(errorMsg);
-            return;
+            throw new Error('구글 로그인 구성이 완료되지 않았습니다.');
           }
           
           const { signInWithPopup, signInWithRedirect, getAdditionalUserInfo } = window.firebaseAuthFunctions;
           let result = null;
           
-          console.log('🔵 구글 로그인 팝업 시도 중...');
           try {
             result = await signInWithPopup(window.firebaseAuth, window.firebaseGoogleProvider);
-            console.log('✅ 구글 로그인 팝업 성공:', result?.user?.email);
           } catch (popupError) {
-            console.warn('⚠️ 팝업 로그인 실패, 리디렉션 시도:', popupError.code, popupError.message);
+            console.warn('팝업 로그인 실패, 리디렉션 시도:', popupError.code);
             const shouldFallback = popupError.code === 'auth/popup-blocked' ||
               popupError.code === 'auth/cancelled-popup-request' ||
               popupError.code === 'auth/popup-closed-by-user' ||
               popupError.code === 'auth/operation-not-supported-in-this-environment';
             
             if (shouldFallback && signInWithRedirect) {
-              console.log('🔄 리디렉션 방식으로 전환');
               // 리디렉션 시작 플래그 설정
               sessionStorage.setItem('googleRedirectStarted', 'true');
               sessionStorage.setItem('googleRedirectStartTime', Date.now().toString());
               await signInWithRedirect(window.firebaseAuth, window.firebaseGoogleProvider);
-              console.log('✅ 리디렉션 시작됨');
               return;
             }
             throw popupError;
           }
           
           if (result?.user) {
-            console.log('✅ 구글 로그인 사용자 확인됨, finalizeSocialLogin 호출');
             const additionalInfo = getAdditionalUserInfo ? getAdditionalUserInfo(result) : null;
             await finalizeSocialLogin(result.user, {
               loginMethod: 'google',
               additionalInfo,
               toastMessage: 'Google 계정으로 로그인되었습니다.'
             });
-          } else {
-            console.warn('⚠️ 구글 로그인 결과에 사용자 정보가 없습니다');
           }
         } catch (error) {
           console.error('❌ Google 로그인 실패:', error);
-          console.error('에러 상세:', {
-            code: error.code,
-            message: error.message,
-            stack: error.stack
-          });
-          
           let errorMessage = '구글 로그인 중 오류가 발생했습니다. 다시 시도해주세요.';
           
           if (error.code === 'auth/popup-closed-by-user') {
             errorMessage = '로그인 창이 닫혔습니다. 다시 시도해주세요.';
           } else if (error.code === 'auth/account-exists-with-different-credential') {
             errorMessage = '이미 다른 방법으로 가입된 이메일입니다.';
-          } else if (error.code === 'auth/popup-blocked') {
-            errorMessage = '팝업이 차단되었습니다. 브라우저 설정에서 팝업을 허용해주세요.';
           } else if (error.message) {
             errorMessage = error.message;
           }
@@ -920,8 +907,11 @@
         }
       }
       
-      // 전역으로 노출 (다른 스크립트에서도 접근 가능하도록)
+      // 실제 구현을 저장 (임시 함수에서 호출할 수 있도록)
+      registerWithGoogleImpl = registerWithGoogle;
+      // 전역으로도 직접 노출
       window.registerWithGoogle = registerWithGoogle;
+      console.log('✅ registerWithGoogle 함수를 window 객체에 실제 구현으로 교체 완료');
 
       // EmailJS 초기화
       function initEmailJS() {
@@ -965,6 +955,7 @@
 
       // 실제 이메일 인증번호 발송
       async function sendEmailVerification() {
+        console.log('📧 이메일 인증번호 발송 함수 호출됨');
         const email = document.getElementById('email-verification').value;
         
         if (!email) {
@@ -1028,6 +1019,11 @@
           alert(`인증번호가 발송되었습니다.\n인증번호: ${verificationCode}\n(개발 모드: 실제 이메일 발송 실패)`);
         }
       }
+      
+      // 전역으로 노출 (이벤트 리스너에서 접근 가능하도록)
+      window.sendEmailVerification = sendEmailVerification;
+      window.verifyEmailCode = verifyEmailCode;
+      console.log('✅ 이메일 인증 함수들을 window 객체에 등록 완료');
 
       // 이메일 타이머 시작
       function startEmailTimer() {
@@ -1323,29 +1319,66 @@
         
         // 구글 리디렉션 결과 처리
         if (typeof handleGoogleRedirectResult === 'function') {
-          handleGoogleRedirectResult();
+        handleGoogleRedirectResult();
         }
         
         // 기존 사용자 데이터 정리
         if (typeof cleanupUserData === 'function') {
-          cleanupUserData();
+        cleanupUserData();
         }
         
         // EmailJS 초기화
         if (typeof initEmailJS === 'function') {
-          initEmailJS();
+        initEmailJS();
         }
         
         // 이메일 인증 발송 버튼
         const sendEmailBtn = document.getElementById('send-email');
-        if (sendEmailBtn && typeof sendEmailVerification === 'function') {
-          sendEmailBtn.addEventListener('click', sendEmailVerification);
+        if (sendEmailBtn) {
+          console.log('✅ 이메일 발송 버튼 찾음, 이벤트 리스너 등록 중...');
+          // 기존 리스너 제거 (중복 방지)
+          sendEmailBtn.replaceWith(sendEmailBtn.cloneNode(true));
+          const newSendEmailBtn = document.getElementById('send-email');
+          newSendEmailBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('🔵 이메일 인증번호 발송 버튼 클릭됨');
+            if (typeof window.sendEmailVerification === 'function') {
+              window.sendEmailVerification();
+            } else if (typeof sendEmailVerification === 'function') {
+              sendEmailVerification();
+            } else {
+              console.error('❌ sendEmailVerification 함수를 찾을 수 없습니다');
+              alert('이메일 인증 기능을 초기화하는 중 오류가 발생했습니다.');
+            }
+          });
+          console.log('✅ 이메일 발송 버튼 이벤트 리스너 등록 완료');
+        } else {
+          console.error('❌ 이메일 발송 버튼을 찾을 수 없습니다!');
         }
         
         // 이메일 인증 확인 버튼
         const verifyEmailBtn = document.getElementById('verify-email');
-        if (verifyEmailBtn && typeof verifyEmailCode === 'function') {
-          verifyEmailBtn.addEventListener('click', verifyEmailCode);
+        if (verifyEmailBtn) {
+          console.log('✅ 이메일 인증 확인 버튼 찾음, 이벤트 리스너 등록 중...');
+          verifyEmailBtn.replaceWith(verifyEmailBtn.cloneNode(true));
+          const newVerifyEmailBtn = document.getElementById('verify-email');
+          newVerifyEmailBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('🔵 이메일 인증 확인 버튼 클릭됨');
+            if (typeof window.verifyEmailCode === 'function') {
+              window.verifyEmailCode();
+            } else if (typeof verifyEmailCode === 'function') {
+              verifyEmailCode();
+            } else {
+              console.error('❌ verifyEmailCode 함수를 찾을 수 없습니다');
+              alert('이메일 인증 확인 기능을 초기화하는 중 오류가 발생했습니다.');
+            }
+          });
+          console.log('✅ 이메일 인증 확인 버튼 이벤트 리스너 등록 완료');
+        } else {
+          console.error('❌ 이메일 인증 확인 버튼을 찾을 수 없습니다!');
         }
         
         // 폼 입력 이벤트 (폼이 존재하는 경우에만)
@@ -1379,15 +1412,15 @@
         const agreeAllInput = document.getElementById('agree-all');
         if (agreeAllInput) {
           agreeAllInput.addEventListener('change', function() {
-            const isChecked = this.checked;
+          const isChecked = this.checked;
             if (agreeTermsInput) agreeTermsInput.checked = isChecked;
             if (agreePrivacyInput) agreePrivacyInput.checked = isChecked;
             const agreeMarketingInput = document.getElementById('agree-marketing');
             if (agreeMarketingInput) agreeMarketingInput.checked = isChecked;
             if (typeof checkSignupButton === 'function') {
-              checkSignupButton();
+          checkSignupButton();
             }
-          });
+        });
         }
         
         // 개별 체크박스 변경 시 전체 동의 상태 업데이트
@@ -1403,9 +1436,9 @@
                 if (agreeAllInput) agreeAllInput.checked = allChecked;
               }
               if (typeof checkSignupButton === 'function') {
-                checkSignupButton();
+            checkSignupButton();
               }
-            });
+          });
           }
         });
         
@@ -1467,12 +1500,12 @@
             console.error('회원가입 실패:', error);
             alert('회원가입 중 오류가 발생했습니다: ' + error.message);
         }
-          });
+      });
         } else {
           console.warn('⚠️ signup-form을 찾을 수 없습니다');
         }
 
-        // 구글 회원가입 버튼
+      // 구글 회원가입 버튼
         const googleRegisterButton = document.getElementById('google-register');
         if (googleRegisterButton) {
           console.log('✅ 구글 회원가입 버튼 찾음, 이벤트 리스너 등록 중...');
@@ -1487,7 +1520,7 @@
               if (typeof window.registerWithGoogle === 'function') {
                 window.registerWithGoogle();
               } else if (typeof registerWithGoogle === 'function') {
-                registerWithGoogle();
+        registerWithGoogle();
               } else {
                 console.error('❌ registerWithGoogle 함수를 찾을 수 없습니다');
                 alert('구글 회원가입 기능을 초기화하는 중 오류가 발생했습니다. 페이지를 새로고침해주세요.');
@@ -1502,7 +1535,7 @@
           console.error('❌ 구글 회원가입 버튼을 찾을 수 없습니다!');
         }
 
-        // 일반 회원가입 폼 표시
+      // 일반 회원가입 폼 표시
         const normalRegisterButton = document.getElementById('normal-register');
         if (normalRegisterButton) {
           console.log('✅ 일반 회원가입 버튼 찾음, 이벤트 리스너 등록 중...');
@@ -1531,12 +1564,12 @@
           console.error('❌ 일반 회원가입 버튼을 찾을 수 없습니다!');
         }
 
-        // 폼 닫기
+      // 폼 닫기
         const closeFormButton = document.getElementById('close-form');
         if (closeFormButton) {
           closeFormButton.addEventListener('click', function() {
-            document.getElementById('register-form').classList.add('hidden');
-          });
+        document.getElementById('register-form').classList.add('hidden');
+      });
         }
         
         console.log('✅ 모든 이벤트 리스너 등록 완료');
