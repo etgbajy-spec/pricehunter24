@@ -832,51 +832,85 @@
 
       // 구글 회원가입/로그인 함수
       async function registerWithGoogle() {
+        console.log('🚀 registerWithGoogle 함수 시작');
         try {
+          console.log('⏳ Firebase 초기화 대기 중...');
           await waitForFirebase();
+          console.log('✅ Firebase 초기화 완료');
+          
+          console.log('🔍 Firebase Auth 함수 확인:', {
+            firebaseAuthFunctions: !!window.firebaseAuthFunctions,
+            firebaseGoogleProvider: !!window.firebaseGoogleProvider,
+            firebaseAuth: !!window.firebaseAuth
+          });
           
           if (!window.firebaseAuthFunctions || !window.firebaseGoogleProvider) {
-            throw new Error('구글 로그인 구성이 완료되지 않았습니다.');
+            const errorMsg = '구글 로그인 구성이 완료되지 않았습니다.';
+            console.error('❌', errorMsg);
+            alert(errorMsg);
+            return;
+          }
+          
+          if (!window.firebaseAuth) {
+            const errorMsg = 'Firebase Auth가 초기화되지 않았습니다.';
+            console.error('❌', errorMsg);
+            alert(errorMsg);
+            return;
           }
           
           const { signInWithPopup, signInWithRedirect, getAdditionalUserInfo } = window.firebaseAuthFunctions;
           let result = null;
           
+          console.log('🔵 구글 로그인 팝업 시도 중...');
           try {
             result = await signInWithPopup(window.firebaseAuth, window.firebaseGoogleProvider);
+            console.log('✅ 구글 로그인 팝업 성공:', result?.user?.email);
           } catch (popupError) {
-            console.warn('팝업 로그인 실패, 리디렉션 시도:', popupError.code);
+            console.warn('⚠️ 팝업 로그인 실패, 리디렉션 시도:', popupError.code, popupError.message);
             const shouldFallback = popupError.code === 'auth/popup-blocked' ||
               popupError.code === 'auth/cancelled-popup-request' ||
               popupError.code === 'auth/popup-closed-by-user' ||
               popupError.code === 'auth/operation-not-supported-in-this-environment';
             
             if (shouldFallback && signInWithRedirect) {
+              console.log('🔄 리디렉션 방식으로 전환');
               // 리디렉션 시작 플래그 설정
               sessionStorage.setItem('googleRedirectStarted', 'true');
               sessionStorage.setItem('googleRedirectStartTime', Date.now().toString());
               await signInWithRedirect(window.firebaseAuth, window.firebaseGoogleProvider);
+              console.log('✅ 리디렉션 시작됨');
               return;
             }
             throw popupError;
           }
           
           if (result?.user) {
+            console.log('✅ 구글 로그인 사용자 확인됨, finalizeSocialLogin 호출');
             const additionalInfo = getAdditionalUserInfo ? getAdditionalUserInfo(result) : null;
             await finalizeSocialLogin(result.user, {
               loginMethod: 'google',
               additionalInfo,
               toastMessage: 'Google 계정으로 로그인되었습니다.'
             });
+          } else {
+            console.warn('⚠️ 구글 로그인 결과에 사용자 정보가 없습니다');
           }
         } catch (error) {
           console.error('❌ Google 로그인 실패:', error);
+          console.error('에러 상세:', {
+            code: error.code,
+            message: error.message,
+            stack: error.stack
+          });
+          
           let errorMessage = '구글 로그인 중 오류가 발생했습니다. 다시 시도해주세요.';
           
           if (error.code === 'auth/popup-closed-by-user') {
             errorMessage = '로그인 창이 닫혔습니다. 다시 시도해주세요.';
           } else if (error.code === 'auth/account-exists-with-different-credential') {
             errorMessage = '이미 다른 방법으로 가입된 이메일입니다.';
+          } else if (error.code === 'auth/popup-blocked') {
+            errorMessage = '팝업이 차단되었습니다. 브라우저 설정에서 팝업을 허용해주세요.';
           } else if (error.message) {
             errorMessage = error.message;
           }
@@ -1269,6 +1303,19 @@
       // 이벤트 리스너 등록
       document.addEventListener('DOMContentLoaded', function() {
         console.log('🚀 register.html v3.2 로드됨 (실제 이메일 인증 시스템)');
+        console.log('✅ DOMContentLoaded 이벤트 발생');
+        
+        // 구글 회원가입 버튼 존재 확인
+        const googleBtn = document.getElementById('google-register');
+        console.log('🔍 구글 회원가입 버튼 확인:', googleBtn ? '찾음' : '없음');
+        if (googleBtn) {
+          console.log('🔍 버튼 상세:', {
+            id: googleBtn.id,
+            className: googleBtn.className,
+            disabled: googleBtn.disabled,
+            style: googleBtn.style.cssText
+          });
+        }
         
         // 구글 리디렉션 결과 처리
         handleGoogleRedirectResult();
@@ -1372,9 +1419,24 @@
       });
 
       // 구글 회원가입 버튼
-      document.getElementById('google-register').addEventListener('click', function() {
-        registerWithGoogle();
-      });
+      const googleRegisterButton = document.getElementById('google-register');
+      if (googleRegisterButton) {
+        console.log('✅ 구글 회원가입 버튼 찾음, 이벤트 리스너 등록 중...');
+        googleRegisterButton.addEventListener('click', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          console.log('🔵 구글 회원가입 버튼 클릭됨');
+          try {
+            registerWithGoogle();
+          } catch (error) {
+            console.error('❌ 구글 회원가입 버튼 클릭 처리 중 오류:', error);
+            alert('구글 회원가입을 시작하는 중 오류가 발생했습니다. 콘솔을 확인해주세요.');
+          }
+        });
+        console.log('✅ 구글 회원가입 버튼 이벤트 리스너 등록 완료');
+      } else {
+        console.error('❌ 구글 회원가입 버튼을 찾을 수 없습니다!');
+      }
 
       // 일반 회원가입 폼 표시
       document.getElementById('normal-register').addEventListener('click', function() {
