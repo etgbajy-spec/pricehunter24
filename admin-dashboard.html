@@ -22,6 +22,7 @@
       import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
       import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
       import { getFirestore, collection, query, orderBy, onSnapshot, getDocs, getDoc, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, where, limit } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
+      import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-storage.js';
       
       // Firebase 설정
       const firebaseConfig = {
@@ -39,13 +40,16 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
+        const storage = getStorage(app);
 
         // 전역으로 노출
         window.firebaseApp = app;
         window.firebaseAuth = auth;
         window.firebaseDb = db;
+        window.firebaseStorage = storage;
         window.firebaseAuthFunctions = { onAuthStateChanged };
         window.firebaseFirestoreFunctions = { collection, query, orderBy, onSnapshot, getDocs, getDoc, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, where, limit };
+        window.firebaseStorageFunctions = { ref, uploadBytes, getDownloadURL, deleteObject };
         
         console.log('✅ 관리자 대시보드 Firebase v9 초기화 완료');
       } catch (error) {
@@ -4916,6 +4920,14 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
         function clearInquiryResponseForm() {
             document.getElementById('inquiry-response-answer').value = '';
             document.getElementById('inquiry-response-additional-info').value = '';
+            const imageInput = document.getElementById('inquiry-response-images-input');
+            if (imageInput) {
+                imageInput.value = '';
+            }
+            const preview = document.getElementById('inquiry-response-images-preview');
+            if (preview) {
+                preview.innerHTML = '';
+            }
             
             // 포커스를 답변 내용 필드로 이동
             document.getElementById('inquiry-response-answer').focus();
@@ -4923,9 +4935,10 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
 
         // 문의 답변 저장
         async function saveInquiryResponse() {
-            const formData = getInquiryResponseFormData();
+            // 이미지 처리 포함하여 폼 데이터 가져오기
+            const formData = await getInquiryResponseFormData();
             
-            if (!formData.answer && !formData.additionalInfo) {
+            if (!formData.answer && !formData.additionalInfo && (!formData.answerImages || formData.answerImages.length === 0)) {
                 alert('최소한 하나의 정보는 입력해주세요.');
                 return;
             }
@@ -4964,6 +4977,34 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 // 답변 섹션 업데이트
                 document.getElementById('inquiry-modal-admin-response').classList.remove('hidden');
                 document.getElementById('inquiry-modal-response-content').innerHTML = formatInquiryResponseForDisplay(formData);
+                
+                // 답변 이미지 표시
+                const imagesContainer = document.getElementById('inquiry-modal-response-images');
+                if (formData.answerImages && formData.answerImages.length > 0) {
+                    imagesContainer.innerHTML = `
+                        <div class="mt-4">
+                            <h5 class="text-sm font-semibold text-gray-700 mb-2">첨부된 사진</h5>
+                            <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
+                                ${formData.answerImages.map((img, idx) => `
+                                    <div class="relative group cursor-pointer">
+                                        <img 
+                                            src="${img}" 
+                                            alt="답변 이미지 ${idx + 1}" 
+                                            class="w-full h-32 object-cover rounded-lg shadow-md hover:shadow-lg transition-shadow"
+                                            onclick="openInquiryImageModal('${img}')"
+                                        >
+                                        <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all rounded-lg flex items-center justify-center">
+                                            <span class="text-white opacity-0 group-hover:opacity-100 transition-opacity text-xs font-semibold">클릭하여 확대</span>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    imagesContainer.innerHTML = '';
+                }
+                
                 document.getElementById('inquiry-modal-response-date').textContent = new Date().toLocaleString('ko-KR');
                 
                 // 모달의 상태 표시도 업데이트
@@ -5002,11 +5043,145 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             }
         }
 
+        // 문의 답변 이미지 선택 핸들러
+        function handleInquiryAnswerImageSelect() {
+            const input = document.getElementById('inquiry-response-images-input');
+            const preview = document.getElementById('inquiry-response-images-preview');
+            if (!input || !preview) return;
+
+            const files = Array.from(input.files);
+            if (files.length > 5) {
+                alert('최대 5개까지만 첨부할 수 있습니다.');
+                input.value = '';
+                return;
+            }
+
+            // 미리보기 표시
+            preview.innerHTML = '';
+            files.forEach((file, index) => {
+                if (!file.type.startsWith('image/')) {
+                    alert(`${file.name}은(는) 이미지 파일이 아닙니다.`);
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const div = document.createElement('div');
+                    div.className = 'relative group';
+                    div.innerHTML = `
+                        <img 
+                            src="${e.target.result}" 
+                            alt="미리보기 ${index + 1}" 
+                            class="w-full h-24 object-cover rounded-lg border border-gray-300"
+                        >
+                        <button 
+                            type="button"
+                            onclick="removeInquiryAnswerImage(${index})"
+                            class="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600"
+                        >
+                            ×
+                        </button>
+                    `;
+                    preview.appendChild(div);
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // 문의 답변 이미지 제거
+        function removeInquiryAnswerImage(index) {
+            const input = document.getElementById('inquiry-response-images-input');
+            const preview = document.getElementById('inquiry-response-images-preview');
+            if (!input || !preview) return;
+
+            const files = Array.from(input.files);
+            files.splice(index, 1);
+
+            // DataTransfer를 사용하여 파일 목록 업데이트
+            const dataTransfer = new DataTransfer();
+            files.forEach(file => dataTransfer.items.add(file));
+            input.files = dataTransfer.files;
+
+            // 미리보기 다시 표시
+            handleInquiryAnswerImageSelect();
+        }
+
+        // 이미지를 base64로 압축 (200KB 이하로)
+        async function compressImageForInquiryAnswer(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        let width = img.width;
+                        let height = img.height;
+
+                        // 이미지 크기 조정 (최대 1200px)
+                        const maxDimension = 1200;
+                        if (width > maxDimension || height > maxDimension) {
+                            if (width > height) {
+                                height = (height / width) * maxDimension;
+                                width = maxDimension;
+                            } else {
+                                width = (width / height) * maxDimension;
+                                height = maxDimension;
+                            }
+                        }
+
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+
+                        // 품질 조정하여 200KB 이하로 압축
+                        let quality = 0.8;
+                        const compress = () => {
+                            const dataUrl = canvas.toDataURL('image/jpeg', quality);
+                            const sizeKB = (dataUrl.length * 0.75) / 1024;
+
+                            if (sizeKB > 200 && quality > 0.1) {
+                                quality -= 0.1;
+                                compress();
+                            } else {
+                                resolve(dataUrl);
+                            }
+                        };
+                        compress();
+                    };
+                    img.onerror = () => reject(new Error('이미지 로드 실패'));
+                    img.src = e.target.result;
+                };
+                reader.onerror = () => reject(new Error('파일 읽기 실패'));
+                reader.readAsDataURL(file);
+            });
+        }
+
         // 문의 답변 폼 데이터 가져오기
-        function getInquiryResponseFormData() {
+        async function getInquiryResponseFormData() {
+            const imageInput = document.getElementById('inquiry-response-images-input');
+            const files = imageInput ? Array.from(imageInput.files) : [];
+            const answerImages = [];
+
+            // 이미지 압축 및 base64 변환
+            if (files.length > 0) {
+                for (const file of files) {
+                    if (file.type.startsWith('image/')) {
+                        try {
+                            const compressedImage = await compressImageForInquiryAnswer(file);
+                            answerImages.push(compressedImage);
+                        } catch (error) {
+                            console.error('이미지 압축 실패:', error);
+                            alert(`${file.name} 처리 중 오류가 발생했습니다.`);
+                        }
+                    }
+                }
+            }
+
             return {
                 answer: document.getElementById('inquiry-response-answer').value.trim(),
-                additionalInfo: document.getElementById('inquiry-response-additional-info').value.trim()
+                additionalInfo: document.getElementById('inquiry-response-additional-info').value.trim(),
+                answerImages: answerImages.length > 0 ? answerImages : undefined
             };
         }
 
@@ -5205,6 +5380,34 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                                               placeholder="추가로 알려드릴 정보가 있다면 입력해주세요..."></textarea>
                                 </div>
 
+                                <!-- 사진 첨부 섹션 -->
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2 flex items-center">
+                                        📷 사진 첨부 (최대 5개)
+                                    </label>
+                                    <input 
+                                        type="file" 
+                                        id="inquiry-response-images-input"
+                                        accept="image/*"
+                                        multiple
+                                        class="hidden"
+                                        onchange="handleInquiryAnswerImageSelect()"
+                                    >
+                                    <div class="flex items-center space-x-2 mb-2">
+                                        <button 
+                                            type="button"
+                                            onclick="document.getElementById('inquiry-response-images-input').click()"
+                                            class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition text-sm font-medium"
+                                        >
+                                            사진 선택
+                                        </button>
+                                        <span class="text-sm text-gray-600">이미지 파일만 선택 가능</span>
+                                    </div>
+                                    <div id="inquiry-response-images-preview" class="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2">
+                                        <!-- 이미지 미리보기가 여기에 표시됩니다 -->
+                                    </div>
+                                </div>
+
                                 <div class="flex gap-3 pt-4">
                                     <button type="submit" class="px-6 py-3 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition font-medium shadow-sm hover:shadow-md">
                                         💾 답변 저장
@@ -5234,6 +5437,11 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                             </div>
                             <div class="bg-white rounded-lg p-4 shadow-sm">
                                 <div id="inquiry-modal-response-content"></div>
+                                
+                                <!-- 답변 이미지 표시 -->
+                                <div id="inquiry-modal-response-images" class="mt-4">
+                                    <!-- 이미지들이 여기에 동적으로 추가됩니다 -->
+                                </div>
                             </div>
                             <div class="mt-4 flex items-center text-sm text-gray-500">
                                 <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
