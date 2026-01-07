@@ -4668,16 +4668,22 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 }
             }
 
-            return {
+            const formData = {
                 lowestPrice: document.getElementById('response-lowest-price')?.value.trim() || '',
                 seller: document.getElementById('response-seller')?.value.trim() || '',
                 sellerLink: document.getElementById('response-seller-link')?.value.trim() || '',
                 shippingCost: document.getElementById('response-shipping-cost')?.value.trim() || '',
                 shippingTime: document.getElementById('response-shipping-time')?.value.trim() || '',
                 totalCost: document.getElementById('response-total-cost')?.value.trim() || '',
-                additionalInfo: document.getElementById('response-additional-info')?.value.trim() || '',
-                answerImages: answerImages.length > 0 ? answerImages : undefined
+                additionalInfo: document.getElementById('response-additional-info')?.value.trim() || ''
             };
+            
+            // answerImages가 있을 때만 추가 (undefined 방지)
+            if (answerImages.length > 0) {
+                formData.answerImages = answerImages;
+            }
+            
+            return formData;
         }
 
         // 답변 저장
@@ -4710,10 +4716,15 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 
                 const { collection, doc, updateDoc, serverTimestamp } = window.firebaseFirestoreFunctions;
                 
+                // undefined 값 제거 (Firestore는 undefined를 허용하지 않음)
+                const cleanFormData = Object.fromEntries(
+                    Object.entries(formData).filter(([_, value]) => value !== undefined)
+                );
+                
                 // Firebase에서 의뢰 문서 업데이트
                 const requestRef = doc(collection(window.firebaseDb, 'requests'), currentRequestId);
                 await updateDoc(requestRef, {
-                    adminResponse: formData,
+                    adminResponse: cleanFormData,
                     responseDate: serverTimestamp(),
                     status: '답변완료',
                     lastUpdated: serverTimestamp()
@@ -5285,10 +5296,15 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 
                 const { collection, doc, updateDoc, serverTimestamp } = window.firebaseFirestoreFunctions;
                 
+                // undefined 값 제거 (Firestore는 undefined를 허용하지 않음)
+                const cleanFormData = Object.fromEntries(
+                    Object.entries(formData).filter(([_, value]) => value !== undefined)
+                );
+                
                 // Firebase에서 문의 문서 업데이트 (의뢰 관리와 동일한 방식)
                 const inquiryRef = doc(collection(window.firebaseDb, 'inquiries'), currentInquiryId);
                 await updateDoc(inquiryRef, {
-                    adminResponse: formData,
+                    adminResponse: cleanFormData,
                     responseDate: serverTimestamp(),
                     status: '답변완료',
                     lastUpdated: serverTimestamp()
@@ -5502,11 +5518,17 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 }
             }
 
-            return {
+            const formData = {
                 answer: document.getElementById('inquiry-response-answer')?.value.trim() || '',
-                additionalInfo: document.getElementById('inquiry-response-additional-info')?.value.trim() || '',
-                answerImages: answerImages.length > 0 ? answerImages : undefined
+                additionalInfo: document.getElementById('inquiry-response-additional-info')?.value.trim() || ''
             };
+            
+            // answerImages가 있을 때만 추가 (undefined 방지)
+            if (answerImages.length > 0) {
+                formData.answerImages = answerImages;
+            }
+            
+            return formData;
         }
 
         // 문의 답변을 표시용으로 포맷팅
