@@ -4182,6 +4182,32 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                                     <textarea id="response-additional-info" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="추가로 알려드릴 정보나 추천 사유를 입력해주세요..."></textarea>
                                 </div>
 
+                                <!-- 사진 첨부 섹션 -->
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">📷 사진 첨부 (최대 5개)</label>
+                                    <input 
+                                        type="file" 
+                                        id="response-images-input"
+                                        accept="image/*"
+                                        multiple
+                                        class="hidden"
+                                        onchange="handleResponseImageSelect()"
+                                    >
+                                    <div class="flex items-center space-x-2 mb-2">
+                                        <button 
+                                            type="button"
+                                            onclick="document.getElementById('response-images-input').click()"
+                                            class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition text-sm font-medium"
+                                        >
+                                            사진 선택
+                                        </button>
+                                        <span class="text-sm text-gray-600">이미지 파일만 선택 가능</span>
+                                    </div>
+                                    <div id="response-images-preview" class="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2">
+                                        <!-- 이미지 미리보기가 여기에 표시됩니다 -->
+                                    </div>
+                                </div>
+
                                 <!-- 버튼들 -->
                                 <div class="flex gap-3 pt-4">
                                     <button type="submit" class="px-6 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition font-medium">
@@ -4207,6 +4233,11 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                             <div class="text-sm">
                                 <div class="mb-2"><span class="font-semibold text-gray-700">답변일시:</span> <span id="admin-modal-response-date" class="text-gray-600"></span></div>
                                 <div><span class="font-semibold text-gray-700">답변내용:</span> <span id="admin-modal-response-content" class="text-gray-600"></span></div>
+                                
+                                <!-- 답변 이미지 표시 -->
+                                <div id="admin-modal-response-images" class="mt-4">
+                                    <!-- 이미지들이 여기에 동적으로 추가됩니다 -->
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -4311,6 +4342,33 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 // 답변이 구조화된 데이터인지 확인
                 if (typeof request.adminResponse === 'object' && request.adminResponse !== null) {
                     document.getElementById('admin-modal-response-content').innerHTML = formatResponseForDisplay(request.adminResponse);
+                    
+                    // 기존 답변 이미지 표시
+                    const imagesContainer = document.getElementById('admin-modal-response-images');
+                    if (request.adminResponse.answerImages && request.adminResponse.answerImages.length > 0) {
+                        imagesContainer.innerHTML = `
+                            <div class="mt-4">
+                                <h5 class="text-sm font-semibold text-gray-700 mb-2">첨부된 사진</h5>
+                                <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
+                                    ${request.adminResponse.answerImages.map((img, idx) => `
+                                        <div class="relative group cursor-pointer">
+                                            <img 
+                                                src="${img}" 
+                                                alt="답변 이미지 ${idx + 1}" 
+                                                class="w-full h-32 object-cover rounded-lg shadow-md hover:shadow-lg transition-shadow"
+                                                onclick="openAdminImageModal('${img}')"
+                                            >
+                                            <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all rounded-lg flex items-center justify-center">
+                                                <span class="text-white opacity-0 group-hover:opacity-100 transition-opacity text-xs font-semibold">클릭하여 확대</span>
+                                            </div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        imagesContainer.innerHTML = '';
+                    }
                 } else {
                     document.getElementById('admin-modal-response-content').textContent = request.adminResponse || request.response || 'N/A';
                 }
@@ -4414,6 +4472,120 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
         }
 
         // 답변 폼 초기화
+        // 의뢰 답변 이미지 선택 핸들러
+        function handleResponseImageSelect() {
+            const input = document.getElementById('response-images-input');
+            const preview = document.getElementById('response-images-preview');
+            if (!input || !preview) return;
+
+            const files = Array.from(input.files);
+            if (files.length > 5) {
+                alert('최대 5개까지만 첨부할 수 있습니다.');
+                input.value = '';
+                return;
+            }
+
+            // 미리보기 표시
+            preview.innerHTML = '';
+            files.forEach((file, index) => {
+                if (!file.type.startsWith('image/')) {
+                    alert(`${file.name}은(는) 이미지 파일이 아닙니다.`);
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const div = document.createElement('div');
+                    div.className = 'relative group';
+                    div.innerHTML = `
+                        <img 
+                            src="${e.target.result}" 
+                            alt="미리보기 ${index + 1}" 
+                            class="w-full h-24 object-cover rounded-lg border border-gray-300"
+                        >
+                        <button 
+                            type="button"
+                            onclick="removeResponseImage(${index})"
+                            class="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600"
+                        >
+                            ×
+                        </button>
+                    `;
+                    preview.appendChild(div);
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // 의뢰 답변 이미지 제거
+        function removeResponseImage(index) {
+            const input = document.getElementById('response-images-input');
+            const preview = document.getElementById('response-images-preview');
+            if (!input || !preview) return;
+
+            const files = Array.from(input.files);
+            files.splice(index, 1);
+
+            // DataTransfer를 사용하여 파일 목록 업데이트
+            const dataTransfer = new DataTransfer();
+            files.forEach(file => dataTransfer.items.add(file));
+            input.files = dataTransfer.files;
+
+            // 미리보기 다시 표시
+            handleResponseImageSelect();
+        }
+
+        // 이미지를 base64로 압축 (200KB 이하로)
+        async function compressImageForResponse(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        let width = img.width;
+                        let height = img.height;
+
+                        // 이미지 크기 조정 (최대 1200px)
+                        const maxDimension = 1200;
+                        if (width > maxDimension || height > maxDimension) {
+                            if (width > height) {
+                                height = (height / width) * maxDimension;
+                                width = maxDimension;
+                            } else {
+                                width = (width / height) * maxDimension;
+                                height = maxDimension;
+                            }
+                        }
+
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+
+                        // 품질 조정하여 200KB 이하로 압축
+                        let quality = 0.8;
+                        const compress = () => {
+                            const dataUrl = canvas.toDataURL('image/jpeg', quality);
+                            const sizeKB = (dataUrl.length * 0.75) / 1024;
+
+                            if (sizeKB > 200 && quality > 0.1) {
+                                quality -= 0.1;
+                                compress();
+                            } else {
+                                resolve(dataUrl);
+                            }
+                        };
+                        compress();
+                    };
+                    img.onerror = () => reject(new Error('이미지 로드 실패'));
+                    img.src = e.target.result;
+                };
+                reader.onerror = () => reject(new Error('파일 읽기 실패'));
+                reader.readAsDataURL(file);
+            });
+        }
+
         function clearResponseForm() {
             document.getElementById('response-lowest-price').value = '';
             document.getElementById('response-seller').value = '';
@@ -4422,12 +4594,20 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             document.getElementById('response-shipping-time').value = '';
             document.getElementById('response-total-cost').value = '';
             document.getElementById('response-additional-info').value = '';
+            const imageInput = document.getElementById('response-images-input');
+            if (imageInput) {
+                imageInput.value = '';
+            }
+            const preview = document.getElementById('response-images-preview');
+            if (preview) {
+                preview.innerHTML = '';
+            }
         }
 
         // 답변 미리보기
-        function previewResponse() {
-            const formData = getResponseFormData();
-            if (!formData.lowestPrice && !formData.seller && !formData.additionalInfo) {
+        async function previewResponse() {
+            const formData = await getResponseFormData();
+            if (!formData.lowestPrice && !formData.seller && !formData.additionalInfo && (!formData.answerImages || formData.answerImages.length === 0)) {
                 alert('미리보기할 내용이 없습니다.');
                 return;
             }
@@ -4457,10 +4637,36 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 </div>
             `;
             document.body.appendChild(previewModal);
+            
+            // 배경 클릭 시 닫기
+            previewModal.addEventListener('click', (e) => {
+                if (e.target === previewModal) {
+                    previewModal.remove();
+                }
+            });
         }
 
         // 폼 데이터 가져오기
-        function getResponseFormData() {
+        async function getResponseFormData() {
+            const imageInput = document.getElementById('response-images-input');
+            const files = imageInput ? Array.from(imageInput.files) : [];
+            const answerImages = [];
+
+            // 이미지 압축 및 base64 변환
+            if (files.length > 0) {
+                for (const file of files) {
+                    if (file.type.startsWith('image/')) {
+                        try {
+                            const compressedImage = await compressImageForResponse(file);
+                            answerImages.push(compressedImage);
+                        } catch (error) {
+                            console.error('이미지 압축 실패:', error);
+                            alert(`${file.name} 처리 중 오류가 발생했습니다.`);
+                        }
+                    }
+                }
+            }
+
             return {
                 lowestPrice: document.getElementById('response-lowest-price').value.trim(),
                 seller: document.getElementById('response-seller').value.trim(),
@@ -4468,15 +4674,17 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 shippingCost: document.getElementById('response-shipping-cost').value.trim(),
                 shippingTime: document.getElementById('response-shipping-time').value.trim(),
                 totalCost: document.getElementById('response-total-cost').value.trim(),
-                additionalInfo: document.getElementById('response-additional-info').value.trim()
+                additionalInfo: document.getElementById('response-additional-info').value.trim(),
+                answerImages: answerImages.length > 0 ? answerImages : undefined
             };
         }
 
         // 답변 저장
         async function saveResponse() {
-            const formData = getResponseFormData();
+            // 이미지 처리 포함하여 폼 데이터 가져오기
+            const formData = await getResponseFormData();
             
-            if (!formData.lowestPrice && !formData.seller && !formData.additionalInfo) {
+            if (!formData.lowestPrice && !formData.seller && !formData.additionalInfo && (!formData.answerImages || formData.answerImages.length === 0)) {
                 alert('최소한 하나의 정보는 입력해주세요.');
                 return;
             }
@@ -4499,6 +4707,34 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 // 답변 섹션 업데이트
                 document.getElementById('admin-modal-admin-response').classList.remove('hidden');
                 document.getElementById('admin-modal-response-content').innerHTML = formatResponseForDisplay(formData);
+                
+                // 답변 이미지 표시
+                const imagesContainer = document.getElementById('admin-modal-response-images');
+                if (formData.answerImages && formData.answerImages.length > 0) {
+                    imagesContainer.innerHTML = `
+                        <div class="mt-4">
+                            <h5 class="text-sm font-semibold text-gray-700 mb-2">첨부된 사진</h5>
+                            <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
+                                ${formData.answerImages.map((img, idx) => `
+                                    <div class="relative group cursor-pointer">
+                                        <img 
+                                            src="${img}" 
+                                            alt="답변 이미지 ${idx + 1}" 
+                                            class="w-full h-32 object-cover rounded-lg shadow-md hover:shadow-lg transition-shadow"
+                                            onclick="openAdminImageModal('${img}')"
+                                        >
+                                        <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all rounded-lg flex items-center justify-center">
+                                            <span class="text-white opacity-0 group-hover:opacity-100 transition-opacity text-xs font-semibold">클릭하여 확대</span>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    imagesContainer.innerHTML = '';
+                }
+                
                 document.getElementById('admin-modal-response-date').textContent = new Date().toLocaleString('ko-KR');
                 
                 // 모달의 상태 표시도 업데이트
@@ -4591,6 +4827,30 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                     <div class="p-3 bg-gray-50 rounded-lg border-l-4 border-gray-500">
                         <div class="font-semibold text-gray-800 mb-2">📝 추가 정보 및 추천사유</div>
                         <div class="text-gray-600 whitespace-pre-wrap">${formData.additionalInfo}</div>
+                    </div>
+                `;
+            }
+            
+            // 답변 이미지 표시
+            if (formData.answerImages && formData.answerImages.length > 0) {
+                html += `
+                    <div class="p-3 bg-pink-50 rounded-lg border-l-4 border-pink-500">
+                        <div class="font-semibold text-gray-800 mb-2">📷 첨부된 사진</div>
+                        <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
+                            ${formData.answerImages.map((img, idx) => `
+                                <div class="relative group cursor-pointer">
+                                    <img 
+                                        src="${img}" 
+                                        alt="답변 이미지 ${idx + 1}" 
+                                        class="w-full h-32 object-cover rounded-lg shadow-md hover:shadow-lg transition-shadow"
+                                        onclick="openAdminImageModal('${img}')"
+                                    >
+                                    <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all rounded-lg flex items-center justify-center">
+                                        <span class="text-white opacity-0 group-hover:opacity-100 transition-opacity text-xs font-semibold">클릭하여 확대</span>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
                     </div>
                 `;
             }
