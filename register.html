@@ -102,6 +102,81 @@
 
     console.log('✅ Firebase v9 초기화 완료 (register.html)');
     
+    // Firebase 준비 완료 플래그 설정
+    window.isFirebaseReady = false;
+    
+    // Firebase 준비 완료 시 버튼 활성화 함수
+    function enableGoogleRegisterButton() {
+      const button = document.getElementById('google-register');
+      const text = document.getElementById('google-register-text');
+      const loading = document.getElementById('google-register-loading');
+      
+      if (button && text) {
+        button.disabled = false;
+        button.classList.remove('bg-gray-100', 'text-gray-400', 'cursor-not-allowed');
+        button.classList.add('bg-white', 'text-gray-700', 'hover:border-gray-300');
+        text.textContent = 'Google 계정으로 가입하기';
+        window.isFirebaseReady = true;
+        
+        // 로딩 인디케이터 숨기기
+        if (loading) {
+          loading.style.display = 'none';
+        }
+        
+        console.log('✅ 구글 회원가입 버튼 활성화 완료');
+      }
+    }
+    
+    // Firebase 준비 상태 확인 및 버튼 활성화
+    function checkFirebaseReady() {
+      if (window.firebaseApp && window.firebaseDb && window.firebaseAuth && 
+          window.firebaseFirestoreFunctions && window.firebaseGoogleProvider) {
+        enableGoogleRegisterButton();
+        return true;
+      }
+      return false;
+    }
+    
+    // 즉시 확인 (이미 준비된 경우)
+    if (checkFirebaseReady()) {
+      console.log('✅ Firebase 즉시 준비 완료');
+    } else {
+      // 준비될 때까지 대기
+      const readyCheck = setInterval(() => {
+        if (checkFirebaseReady()) {
+          clearInterval(readyCheck);
+        }
+      }, 100);
+      
+      // 10초 후 타임아웃
+      setTimeout(() => {
+        clearInterval(readyCheck);
+        const button = document.getElementById('google-register');
+        const text = document.getElementById('google-register-text');
+        const loading = document.getElementById('google-register-loading');
+        
+        if (button && text && button.disabled) {
+          button.disabled = false;
+          button.classList.remove('bg-gray-100', 'text-gray-400', 'cursor-not-allowed');
+          button.classList.add('bg-white', 'text-gray-700', 'hover:border-gray-300');
+          text.textContent = 'Google 계정으로 가입하기';
+          
+          // 로딩 인디케이터 숨기기
+          if (loading) {
+            loading.style.display = 'none';
+          }
+          
+          const hint = document.getElementById('google-register-hint');
+          if (hint) {
+            hint.textContent = '⚠️ 로그인 준비가 완료되지 않았을 수 있습니다. 다시 시도해주세요.';
+            hint.classList.remove('text-blue-600');
+            hint.classList.add('text-orange-600');
+          }
+          console.warn('⚠️ Firebase 준비 타임아웃, 버튼 강제 활성화');
+        }
+      }, 10000);
+    }
+    
     // 구글 리디렉션 결과 처리 (팝업만 사용하므로 리디렉션 처리 불필요)
     // 하지만 index.html과의 호환성을 위해 유지 (리디렉션 사용 안 함)
     async function handleGoogleRedirectResult() {
@@ -211,11 +286,15 @@
             <h3 class="text-xl font-semibold text-gray-900 mb-2">구글 계정으로<br class="sm:hidden">간편 가입</h3>
             <p class="text-gray-600">빠르고 안전하게<br class="sm:hidden">가입하세요</p>
           </div>
-          <button type="button" id="google-register" onclick="if(typeof window.registerWithGoogle==='function'){window.registerWithGoogle();}else{console.error('registerWithGoogle 함수를 찾을 수 없습니다');alert('구글 회원가입 기능을 초기화하는 중 오류가 발생했습니다.');}" class="w-full flex items-center justify-center gap-3 py-2 sm:py-3 px-4 sm:px-6 border-2 border-gray-200 rounded-lg hover:border-gray-300 transition duration-200 bg-white text-gray-700 font-semibold text-sm sm:text-base">
+          <button type="button" id="google-register" disabled class="w-full flex items-center justify-center gap-3 py-2 sm:py-3 px-4 sm:px-6 border-2 border-gray-200 rounded-lg transition duration-200 bg-gray-100 text-gray-400 font-semibold text-sm sm:text-base cursor-not-allowed">
             <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="" class="w-5 h-5" loading="lazy">
-            <span>Google 계정으로 가입하기</span>
+            <span id="google-register-text">구글 로그인 준비 중...</span>
           </button>
-          <p class="text-sm text-blue-600 mt-3">⚡ 별도 정보 입력 없이<br class="sm:hidden">즉시 가입 완료!</p>
+          <!-- 로딩 인디케이터 (준비 중일 때만 표시) -->
+          <div id="google-register-loading" class="text-xs text-gray-500 mt-2 text-center">
+            <span class="inline-block animate-pulse">⏳ 로그인 시스템을 준비하고 있습니다...</span>
+          </div>
+          <p class="text-sm text-blue-600 mt-3" id="google-register-hint">⚡ 별도 정보 입력 없이<br class="sm:hidden">즉시 가입 완료!</p>
         </div>
 
         <div class="flex items-center gap-3 text-gray-400 text-xs uppercase tracking-wide">
@@ -605,24 +684,60 @@
         window.location.href = 'reviews.html';
       }
 
-      // 구글 회원가입/로그인 함수 (index.html loginWithGoogle과 완전히 동일 - 팝업만 사용)
+      // 구글 회원가입/로그인 함수 - 즉시 팝업 구조 (모든 검증은 미리 완료)
       async function registerWithGoogle() {
+        // 버튼 비활성화 (중복 클릭 방지)
+        const button = document.getElementById('google-register');
+        const originalText = document.getElementById('google-register-text')?.textContent;
+        if (button) {
+          button.disabled = true;
+          const text = document.getElementById('google-register-text');
+          if (text) text.textContent = '로그인 중...';
+        }
+        
         try {
-          await waitForFirebase();
+          // Firebase 준비 상태 확인 (이미 준비되어 있어야 함)
+          if (!window.isFirebaseReady) {
+            await waitForFirebase();
+          }
           
-          if (!window.firebaseAuthFunctions || !window.firebaseGoogleProvider) {
+          // 최종 검증 (즉시 실행을 위한 최소한의 체크만)
+          if (!window.firebaseAuth || !window.firebaseGoogleProvider || !window.firebaseAuthFunctions) {
             throw new Error('구글 로그인 구성이 완료되지 않았습니다.');
           }
           
           const { signInWithPopup, getAdditionalUserInfo } = window.firebaseAuthFunctions;
-          let result = null;
           
-          // index.html과 동일한 구조 (리디렉션 폴백만 제거)
+          // 즉시 팝업 실행 (모든 검증은 이미 완료됨)
+          let result = null;
           try {
             result = await signInWithPopup(window.firebaseAuth, window.firebaseGoogleProvider);
           } catch (popupError) {
-            // index.html에서는 여기서 리디렉션으로 폴백하지만, 팝업만 사용하므로 에러 throw
-            throw popupError;
+            // 사용자 친화적인 에러 메시지로 변환
+            let userMessage = '구글 로그인 중 오류가 발생했습니다.';
+            
+            if (popupError.code === 'auth/popup-blocked') {
+              userMessage = '브라우저에서 팝업이 차단되었습니다.\n\n브라우저 설정에서 팝업을 허용하거나, 아래 버튼을 다시 눌러주세요.';
+            } else if (popupError.code === 'auth/cancelled-popup-request') {
+              userMessage = '이전 로그인 요청이 완료되지 않았습니다.\n\n잠시 후 다시 시도해주세요.';
+            } else if (popupError.code === 'auth/popup-closed-by-user') {
+              userMessage = '로그인 창이 닫혔습니다.\n\n다시 시도해주세요.';
+            } else if (popupError.code === 'auth/operation-not-supported-in-this-environment') {
+              userMessage = '현재 환경에서는 팝업 로그인을 지원하지 않습니다.\n\n다른 브라우저를 사용해주세요.';
+            } else if (popupError.message) {
+              userMessage = `로그인 중 오류가 발생했습니다: ${popupError.message}`;
+            }
+            
+            // 버튼 재활성화
+            if (button) {
+              button.disabled = false;
+              const text = document.getElementById('google-register-text');
+              if (text) text.textContent = originalText || 'Google 계정으로 가입하기';
+            }
+            
+            alert(userMessage);
+            console.error('❌ Google 로그인 실패:', popupError);
+            return;
           }
           
           if (result?.user) {
@@ -635,7 +750,20 @@
           }
         } catch (error) {
           console.error('❌ Google 로그인 실패:', error);
-          alert('구글 로그인 중 오류가 발생했습니다. 다시 시도해주세요.');
+          
+          // 버튼 재활성화
+          if (button) {
+            button.disabled = false;
+            const text = document.getElementById('google-register-text');
+            if (text) text.textContent = originalText || 'Google 계정으로 가입하기';
+          }
+          
+          // 사용자 친화적인 메시지
+          let userMessage = '구글 로그인 중 오류가 발생했습니다.';
+          if (error.message) {
+            userMessage = `로그인 중 오류가 발생했습니다.\n\n${error.message}\n\n페이지를 새로고침한 후 다시 시도해주세요.`;
+          }
+          alert(userMessage);
         }
       }
       
@@ -1074,29 +1202,42 @@
           console.warn('⚠️ signup-form을 찾을 수 없습니다');
         }
 
-      // 구글 회원가입 버튼
+      // 구글 회원가입 버튼 (onclick 제거하고 이벤트 리스너만 사용)
         const googleRegisterButton = document.getElementById('google-register');
         if (googleRegisterButton) {
           console.log('✅ 구글 회원가입 버튼 찾음, 이벤트 리스너 등록 중...');
+          
+          // onclick 속성 제거 (이벤트 리스너만 사용)
+          googleRegisterButton.removeAttribute('onclick');
+          
           // 기존 리스너 제거 (중복 방지)
-          googleRegisterButton.replaceWith(googleRegisterButton.cloneNode(true));
-          const newGoogleBtn = document.getElementById('google-register');
-          newGoogleBtn.addEventListener('click', function(e) {
+          const newGoogleBtn = googleRegisterButton.cloneNode(true);
+          googleRegisterButton.parentNode.replaceChild(newGoogleBtn, googleRegisterButton);
+          const finalGoogleBtn = document.getElementById('google-register');
+          
+          finalGoogleBtn.addEventListener('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
+            
+            // 버튼이 비활성화되어 있으면 무시
+            if (finalGoogleBtn.disabled) {
+              console.log('⚠️ 버튼이 비활성화되어 있음, 클릭 무시');
+              return;
+            }
+            
             console.log('🔵 구글 회원가입 버튼 클릭됨');
             try {
               if (typeof window.registerWithGoogle === 'function') {
                 window.registerWithGoogle();
               } else if (typeof registerWithGoogle === 'function') {
-        registerWithGoogle();
+                registerWithGoogle();
               } else {
                 console.error('❌ registerWithGoogle 함수를 찾을 수 없습니다');
-                alert('구글 회원가입 기능을 초기화하는 중 오류가 발생했습니다. 페이지를 새로고침해주세요.');
+                alert('구글 회원가입 기능을 초기화하는 중 오류가 발생했습니다.\n\n페이지를 새로고침한 후 다시 시도해주세요.');
               }
             } catch (error) {
               console.error('❌ 구글 회원가입 버튼 클릭 처리 중 오류:', error);
-              alert('구글 회원가입을 시작하는 중 오류가 발생했습니다. 콘솔을 확인해주세요.');
+              alert('구글 회원가입을 시작하는 중 오류가 발생했습니다.\n\n페이지를 새로고침한 후 다시 시도해주세요.');
             }
           });
           console.log('✅ 구글 회원가입 버튼 이벤트 리스너 등록 완료');
@@ -1166,18 +1307,27 @@
         const googleBtn = document.getElementById('google-register');
         const normalBtn = document.getElementById('normal-register');
         
-        if (googleBtn && !googleBtn.onclick && !googleBtn.getAttribute('data-listener-attached')) {
+        if (googleBtn && !googleBtn.getAttribute('data-listener-attached')) {
           console.log('⚠️ 구글 버튼에 리스너가 없음, 재등록 시도');
           googleBtn.setAttribute('data-listener-attached', 'true');
           googleBtn.addEventListener('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
+            
+            // 버튼이 비활성화되어 있으면 무시
+            if (googleBtn.disabled) {
+              console.log('⚠️ 버튼이 비활성화되어 있음, 클릭 무시');
+              return;
+            }
+            
             console.log('🔵 구글 회원가입 버튼 클릭됨 (window.onload에서 등록)');
-            if (typeof registerWithGoogle === 'function') {
+            if (typeof window.registerWithGoogle === 'function') {
+              window.registerWithGoogle();
+            } else if (typeof registerWithGoogle === 'function') {
               registerWithGoogle();
             } else {
               console.error('❌ registerWithGoogle 함수를 찾을 수 없습니다');
-              alert('구글 회원가입 기능을 초기화하는 중 오류가 발생했습니다. 페이지를 새로고침해주세요.');
+              alert('구글 회원가입 기능을 초기화하는 중 오류가 발생했습니다.\n\n페이지를 새로고침한 후 다시 시도해주세요.');
             }
           });
         }
