@@ -585,27 +585,7 @@
       // 전역 변수
       let isEmailVerified = false;
       
-      // 구글 회원가입 함수를 먼저 선언 (onclick에서 접근 가능하도록)
-      // 나중에 완전한 구현으로 대체됨
-      let registerWithGoogleImpl = null;
-      window.registerWithGoogle = async function() {
-        console.log('🚀 registerWithGoogle 함수 호출됨');
-        // 실제 구현이 로드될 때까지 대기
-        if (registerWithGoogleImpl) {
-          return await registerWithGoogleImpl();
-        }
-        // 구현이 아직 로드되지 않았으면 약간 대기 후 재시도
-        console.log('⏳ registerWithGoogle 구현 대기 중...');
-        for (let i = 0; i < 10; i++) {
-          await new Promise(resolve => setTimeout(resolve, 100));
-          if (registerWithGoogleImpl) {
-            return await registerWithGoogleImpl();
-          }
-        }
-        console.error('❌ registerWithGoogle 함수가 아직 완전히 로드되지 않았습니다.');
-        alert('구글 회원가입 기능을 초기화하는 중입니다. 잠시 후 다시 시도해주세요.');
-      };
-      console.log('✅ registerWithGoogle 함수를 window 객체에 임시 등록 완료');
+      // 구글 회원가입 함수는 아래에서 정의되고 바로 전역으로 노출됨
 
       // Firebase 초기화 대기
       function waitForFirebase() {
@@ -907,11 +887,9 @@
         }
       }
       
-      // 실제 구현을 저장 (임시 함수에서 호출할 수 있도록)
-      registerWithGoogleImpl = registerWithGoogle;
-      // 전역으로도 직접 노출
+      // 전역으로 즉시 노출 (index.html 방식)
       window.registerWithGoogle = registerWithGoogle;
-      console.log('✅ registerWithGoogle 함수를 window 객체에 실제 구현으로 교체 완료');
+      console.log('✅ registerWithGoogle 함수를 window 객체에 등록 완료');
 
       // EmailJS 초기화
       function initEmailJS() {
