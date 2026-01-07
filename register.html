@@ -438,7 +438,7 @@
             <h3 class="text-xl font-semibold text-gray-900 mb-2">구글 계정으로<br class="sm:hidden">간편 가입</h3>
             <p class="text-gray-600">빠르고 안전하게<br class="sm:hidden">가입하세요</p>
           </div>
-          <button id="google-register" class="w-full flex items-center justify-center gap-3 py-2 sm:py-3 px-4 sm:px-6 border-2 border-gray-200 rounded-lg hover:border-gray-300 transition duration-200 bg-white text-gray-700 font-semibold text-sm sm:text-base">
+          <button type="button" id="google-register" onclick="if(typeof window.registerWithGoogle==='function'){window.registerWithGoogle();}else{console.error('registerWithGoogle 함수를 찾을 수 없습니다');alert('구글 회원가입 기능을 초기화하는 중 오류가 발생했습니다.');}" class="w-full flex items-center justify-center gap-3 py-2 sm:py-3 px-4 sm:px-6 border-2 border-gray-200 rounded-lg hover:border-gray-300 transition duration-200 bg-white text-gray-700 font-semibold text-sm sm:text-base">
             <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="" class="w-5 h-5" loading="lazy">
             <span>Google 계정으로 가입하기</span>
           </button>
@@ -460,7 +460,7 @@
             <h3 class="text-xl font-semibold text-gray-900 mb-2">일반<br class="sm:hidden">회원가입</h3>
             <p class="text-gray-600">이메일로<br class="sm:hidden">직접 가입하세요</p>
       </div>
-          <button id="normal-register" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 sm:py-3 px-4 sm:px-6 rounded-lg transition duration-200 flex items-center justify-center text-sm sm:text-base">
+          <button type="button" id="normal-register" onclick="const form=document.getElementById('register-form');if(form){form.classList.remove('hidden');this.scrollIntoView({behavior:'smooth'});}" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 sm:py-3 px-4 sm:px-6 rounded-lg transition duration-200 flex items-center justify-center text-sm sm:text-base">
             <span class="mr-2">📧</span>
             이메일로<br class="sm:hidden">가입하기
         </button>
@@ -832,6 +832,7 @@
 
       // 구글 회원가입/로그인 함수
       async function registerWithGoogle() {
+        console.log('🚀 registerWithGoogle 함수 호출됨');
         console.log('🚀 registerWithGoogle 함수 시작');
         try {
           console.log('⏳ Firebase 초기화 대기 중...');
@@ -918,6 +919,9 @@
           alert(errorMessage);
         }
       }
+      
+      // 전역으로 노출 (다른 스크립트에서도 접근 가능하도록)
+      window.registerWithGoogle = registerWithGoogle;
 
       // EmailJS 초기화
       function initEmailJS() {
@@ -1300,10 +1304,10 @@
       // 전역 함수로 노출 (Firebase 초기화 전에도 접근 가능하도록)
       window.handleGoogleRedirectResult = handleGoogleRedirectResult;
 
-      // 이벤트 리스너 등록
-      document.addEventListener('DOMContentLoaded', function() {
+      // 이벤트 리스너 등록 함수
+      function initEventListeners() {
         console.log('🚀 register.html v3.2 로드됨 (실제 이메일 인증 시스템)');
-        console.log('✅ DOMContentLoaded 이벤트 발생');
+        console.log('✅ 이벤트 리스너 초기화 시작');
         
         // 구글 회원가입 버튼 존재 확인
         const googleBtn = document.getElementById('google-register');
@@ -1318,50 +1322,97 @@
         }
         
         // 구글 리디렉션 결과 처리
-        handleGoogleRedirectResult();
+        if (typeof handleGoogleRedirectResult === 'function') {
+          handleGoogleRedirectResult();
+        }
         
         // 기존 사용자 데이터 정리
-        cleanupUserData();
+        if (typeof cleanupUserData === 'function') {
+          cleanupUserData();
+        }
         
         // EmailJS 초기화
-        initEmailJS();
+        if (typeof initEmailJS === 'function') {
+          initEmailJS();
+        }
         
         // 이메일 인증 발송 버튼
-        document.getElementById('send-email').addEventListener('click', sendEmailVerification);
+        const sendEmailBtn = document.getElementById('send-email');
+        if (sendEmailBtn && typeof sendEmailVerification === 'function') {
+          sendEmailBtn.addEventListener('click', sendEmailVerification);
+        }
         
         // 이메일 인증 확인 버튼
-        document.getElementById('verify-email').addEventListener('click', verifyEmailCode);
+        const verifyEmailBtn = document.getElementById('verify-email');
+        if (verifyEmailBtn && typeof verifyEmailCode === 'function') {
+          verifyEmailBtn.addEventListener('click', verifyEmailCode);
+        }
         
-        // 폼 입력 이벤트
-        document.getElementById('name').addEventListener('input', checkSignupButton);
-        document.getElementById('phone').addEventListener('input', checkSignupButton);
-        document.getElementById('password').addEventListener('input', checkSignupButton);
-        document.getElementById('confirm-password').addEventListener('input', checkSignupButton);
-        document.getElementById('agree-terms').addEventListener('change', checkSignupButton);
-        document.getElementById('agree-privacy').addEventListener('change', checkSignupButton);
+        // 폼 입력 이벤트 (폼이 존재하는 경우에만)
+        const nameInput = document.getElementById('name');
+        const phoneInput = document.getElementById('phone');
+        const passwordInput = document.getElementById('password');
+        const confirmPasswordInput = document.getElementById('confirm-password');
+        const agreeTermsInput = document.getElementById('agree-terms');
+        const agreePrivacyInput = document.getElementById('agree-privacy');
+        
+        if (nameInput && typeof checkSignupButton === 'function') {
+          nameInput.addEventListener('input', checkSignupButton);
+        }
+        if (phoneInput && typeof checkSignupButton === 'function') {
+          phoneInput.addEventListener('input', checkSignupButton);
+        }
+        if (passwordInput && typeof checkSignupButton === 'function') {
+          passwordInput.addEventListener('input', checkSignupButton);
+        }
+        if (confirmPasswordInput && typeof checkSignupButton === 'function') {
+          confirmPasswordInput.addEventListener('input', checkSignupButton);
+        }
+        if (agreeTermsInput && typeof checkSignupButton === 'function') {
+          agreeTermsInput.addEventListener('change', checkSignupButton);
+        }
+        if (agreePrivacyInput && typeof checkSignupButton === 'function') {
+          agreePrivacyInput.addEventListener('change', checkSignupButton);
+        }
         
         // 전체 동의 체크박스
-        document.getElementById('agree-all').addEventListener('change', function() {
-          const isChecked = this.checked;
-          document.getElementById('agree-terms').checked = isChecked;
-          document.getElementById('agree-privacy').checked = isChecked;
-          document.getElementById('agree-marketing').checked = isChecked;
-          checkSignupButton();
-        });
+        const agreeAllInput = document.getElementById('agree-all');
+        if (agreeAllInput) {
+          agreeAllInput.addEventListener('change', function() {
+            const isChecked = this.checked;
+            if (agreeTermsInput) agreeTermsInput.checked = isChecked;
+            if (agreePrivacyInput) agreePrivacyInput.checked = isChecked;
+            const agreeMarketingInput = document.getElementById('agree-marketing');
+            if (agreeMarketingInput) agreeMarketingInput.checked = isChecked;
+            if (typeof checkSignupButton === 'function') {
+              checkSignupButton();
+            }
+          });
+        }
         
         // 개별 체크박스 변경 시 전체 동의 상태 업데이트
         ['agree-terms', 'agree-privacy', 'agree-marketing'].forEach(id => {
-          document.getElementById(id).addEventListener('change', function() {
-            const allChecked = document.getElementById('agree-terms').checked &&
-                              document.getElementById('agree-privacy').checked &&
-                              document.getElementById('agree-marketing').checked;
-            document.getElementById('agree-all').checked = allChecked;
-            checkSignupButton();
-          });
+          const checkbox = document.getElementById(id);
+          if (checkbox) {
+            checkbox.addEventListener('change', function() {
+              const agreeTerms = document.getElementById('agree-terms');
+              const agreePrivacy = document.getElementById('agree-privacy');
+              const agreeMarketing = document.getElementById('agree-marketing');
+              if (agreeTerms && agreePrivacy && agreeMarketing) {
+                const allChecked = agreeTerms.checked && agreePrivacy.checked && agreeMarketing.checked;
+                if (agreeAllInput) agreeAllInput.checked = allChecked;
+              }
+              if (typeof checkSignupButton === 'function') {
+                checkSignupButton();
+              }
+            });
+          }
         });
         
         // 회원가입 폼 제출
-        document.getElementById('signup-form').addEventListener('submit', async function(e) {
+        const signupForm = document.getElementById('signup-form');
+        if (signupForm) {
+          signupForm.addEventListener('submit', async function(e) {
           console.log('🚀 회원가입 폼 제출 시작');
           e.preventDefault();
           
@@ -1416,38 +1467,135 @@
             console.error('회원가입 실패:', error);
             alert('회원가입 중 오류가 발생했습니다: ' + error.message);
         }
-      });
+          });
+        } else {
+          console.warn('⚠️ signup-form을 찾을 수 없습니다');
+        }
 
-      // 구글 회원가입 버튼
-      const googleRegisterButton = document.getElementById('google-register');
-      if (googleRegisterButton) {
-        console.log('✅ 구글 회원가입 버튼 찾음, 이벤트 리스너 등록 중...');
-        googleRegisterButton.addEventListener('click', function(e) {
-          e.preventDefault();
-          e.stopPropagation();
-          console.log('🔵 구글 회원가입 버튼 클릭됨');
-          try {
-            registerWithGoogle();
-          } catch (error) {
-            console.error('❌ 구글 회원가입 버튼 클릭 처리 중 오류:', error);
-            alert('구글 회원가입을 시작하는 중 오류가 발생했습니다. 콘솔을 확인해주세요.');
-          }
-        });
-        console.log('✅ 구글 회원가입 버튼 이벤트 리스너 등록 완료');
-      } else {
-        console.error('❌ 구글 회원가입 버튼을 찾을 수 없습니다!');
+        // 구글 회원가입 버튼
+        const googleRegisterButton = document.getElementById('google-register');
+        if (googleRegisterButton) {
+          console.log('✅ 구글 회원가입 버튼 찾음, 이벤트 리스너 등록 중...');
+          // 기존 리스너 제거 (중복 방지)
+          googleRegisterButton.replaceWith(googleRegisterButton.cloneNode(true));
+          const newGoogleBtn = document.getElementById('google-register');
+          newGoogleBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('🔵 구글 회원가입 버튼 클릭됨');
+            try {
+              if (typeof window.registerWithGoogle === 'function') {
+                window.registerWithGoogle();
+              } else if (typeof registerWithGoogle === 'function') {
+                registerWithGoogle();
+              } else {
+                console.error('❌ registerWithGoogle 함수를 찾을 수 없습니다');
+                alert('구글 회원가입 기능을 초기화하는 중 오류가 발생했습니다. 페이지를 새로고침해주세요.');
+              }
+            } catch (error) {
+              console.error('❌ 구글 회원가입 버튼 클릭 처리 중 오류:', error);
+              alert('구글 회원가입을 시작하는 중 오류가 발생했습니다. 콘솔을 확인해주세요.');
+            }
+          });
+          console.log('✅ 구글 회원가입 버튼 이벤트 리스너 등록 완료');
+        } else {
+          console.error('❌ 구글 회원가입 버튼을 찾을 수 없습니다!');
+        }
+
+        // 일반 회원가입 폼 표시
+        const normalRegisterButton = document.getElementById('normal-register');
+        if (normalRegisterButton) {
+          console.log('✅ 일반 회원가입 버튼 찾음, 이벤트 리스너 등록 중...');
+          // 기존 리스너 제거 (중복 방지)
+          normalRegisterButton.replaceWith(normalRegisterButton.cloneNode(true));
+          const newNormalBtn = document.getElementById('normal-register');
+          newNormalBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('🔵 일반 회원가입 버튼 클릭됨');
+            try {
+              const registerForm = document.getElementById('register-form');
+              if (registerForm) {
+                registerForm.classList.remove('hidden');
+                newNormalBtn.scrollIntoView({ behavior: 'smooth' });
+              } else {
+                console.error('❌ register-form을 찾을 수 없습니다');
+              }
+            } catch (error) {
+              console.error('❌ 일반 회원가입 버튼 클릭 처리 중 오류:', error);
+              alert('일반 회원가입 폼을 여는 중 오류가 발생했습니다.');
+            }
+          });
+          console.log('✅ 일반 회원가입 버튼 이벤트 리스너 등록 완료');
+        } else {
+          console.error('❌ 일반 회원가입 버튼을 찾을 수 없습니다!');
+        }
+
+        // 폼 닫기
+        const closeFormButton = document.getElementById('close-form');
+        if (closeFormButton) {
+          closeFormButton.addEventListener('click', function() {
+            document.getElementById('register-form').classList.add('hidden');
+          });
+        }
+        
+        console.log('✅ 모든 이벤트 리스너 등록 완료');
       }
-
-      // 일반 회원가입 폼 표시
-      document.getElementById('normal-register').addEventListener('click', function() {
-        document.getElementById('register-form').classList.remove('hidden');
-        this.scrollIntoView({ behavior: 'smooth' });
-      });
-
-      // 폼 닫기
-      document.getElementById('close-form').addEventListener('click', function() {
-        document.getElementById('register-form').classList.add('hidden');
-      });
+      
+      // DOM이 준비되면 이벤트 리스너 등록
+      console.log('🔍 현재 문서 상태:', document.readyState);
+      if (document.readyState === 'loading') {
+        console.log('⏳ DOM 로딩 중, DOMContentLoaded 대기...');
+        document.addEventListener('DOMContentLoaded', function() {
+          console.log('✅ DOMContentLoaded 발생, 이벤트 리스너 초기화');
+          initEventListeners();
+        });
+      } else {
+        // DOM이 이미 로드된 경우 즉시 실행
+        console.log('✅ DOM 이미 로드됨, 즉시 이벤트 리스너 초기화');
+        // 약간의 지연을 두어 모든 스크립트가 로드되도록 함
+        setTimeout(initEventListeners, 100);
+      }
+      
+      // 추가 안전장치: window.onload에서도 확인
+      window.addEventListener('load', function() {
+        console.log('✅ window.onload 발생');
+        // 버튼이 여전히 이벤트 리스너가 없다면 다시 등록 시도
+        const googleBtn = document.getElementById('google-register');
+        const normalBtn = document.getElementById('normal-register');
+        
+        if (googleBtn && !googleBtn.onclick && !googleBtn.getAttribute('data-listener-attached')) {
+          console.log('⚠️ 구글 버튼에 리스너가 없음, 재등록 시도');
+          googleBtn.setAttribute('data-listener-attached', 'true');
+          googleBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('🔵 구글 회원가입 버튼 클릭됨 (window.onload에서 등록)');
+            if (typeof registerWithGoogle === 'function') {
+              registerWithGoogle();
+            } else {
+              console.error('❌ registerWithGoogle 함수를 찾을 수 없습니다');
+              alert('구글 회원가입 기능을 초기화하는 중 오류가 발생했습니다. 페이지를 새로고침해주세요.');
+            }
+          });
+        }
+        
+        if (normalBtn && !normalBtn.onclick && !normalBtn.getAttribute('data-listener-attached')) {
+          console.log('⚠️ 일반 회원가입 버튼에 리스너가 없음, 재등록 시도');
+          normalBtn.setAttribute('data-listener-attached', 'true');
+          normalBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('🔵 일반 회원가입 버튼 클릭됨 (window.onload에서 등록)');
+            const registerForm = document.getElementById('register-form');
+            if (registerForm) {
+              registerForm.classList.remove('hidden');
+              normalBtn.scrollIntoView({ behavior: 'smooth' });
+            } else {
+              console.error('❌ register-form을 찾을 수 없습니다');
+            }
+          });
+        }
       });
 
 
