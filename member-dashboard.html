@@ -1763,7 +1763,7 @@
     
     try {
       await waitForFirebase();
-      const { collection, getDocs } = window.firebaseFirestoreFunctions;
+      const { collection, getDocs, query } = window.firebaseFirestoreFunctions;
       const db = window.firebaseDb;
       
       // 모든 의뢰 데이터 가져오기
@@ -2582,7 +2582,38 @@
         window.location.href = 'index.html';
       } catch (error) {
         console.error('❌ Firestore 데이터 삭제 실패:', error);
-        alert('데이터 삭제 중 오류가 발생했습니다: ' + (error.message || error.code || '알 수 없는 오류'));
+        
+        // 권한 오류인 경우 localStorage만 정리하는 옵션 제공
+        if (error.code === 'permission-denied' || error.message?.includes('permission')) {
+          const proceedWithLocalOnly = confirm(
+            'Firestore 데이터 삭제에 권한이 없습니다.\n\n' +
+            '이 경우 localStorage의 로그인 정보만 삭제됩니다.\n' +
+            '(Firestore 데이터는 관리자가 수동으로 삭제해야 할 수 있습니다)\n\n' +
+            'localStorage 정보만 삭제하고 진행하시겠습니까?'
+          );
+          
+          if (proceedWithLocalOnly) {
+            // localStorage만 정리
+            localStorage.removeItem('user');
+            localStorage.removeItem('currentUser');
+            localStorage.removeItem('loggedIn');
+            localStorage.removeItem('loggedInEmail');
+            
+            alert('회원탈퇴 처리가 완료되었습니다.\n\n' +
+                  'localStorage 정보가 삭제되었습니다.\n' +
+                  '(Firestore 데이터는 관리자에게 문의하시거나, 나중에 다시 로그인하여 삭제할 수 있습니다)\n\n' +
+                  '그동안 이용해주셔서 감사했습니다.');
+            
+            // 메인 페이지로 이동
+            window.location.href = 'index.html';
+            return;
+          } else {
+            alert('회원탈퇴가 취소되었습니다.');
+            return;
+          }
+        }
+        
+        alert('데이터 삭제 중 오류가 발생했습니다: ' + (error.message || error.code || '알 수 없는 오류') + '\n\n다시 시도해주세요.');
       }
     }
 
@@ -2699,13 +2730,17 @@
             );
             
             if (proceedWithoutAuth) {
-              // Firestore에서만 삭제
-              deleteUserDataFromFirestoreOnly(email).then(() => {
+              // Firestore에서만 삭제 (에러는 함수 내부에서 처리)
+              try {
+                await deleteUserDataFromFirestoreOnly(email);
                 // 성공적으로 삭제되면 resolve는 호출하지 않음 (이미 페이지 이동)
-              }).catch((error) => {
-                reject(error);
-              });
-              return;
+                return;
+              } catch (deleteError) {
+                // deleteUserDataFromFirestoreOnly 내부에서 이미 사용자에게 선택지를 제공했으므로
+                // 여기서는 reject만 호출
+                reject(deleteError);
+                return;
+              }
             } else {
               // 사용자에게 비밀번호 입력 요청
               requestPasswordAndLogin(email, resolve, reject);
@@ -2783,50 +2818,168 @@
         await waitForFirebase();
         
         // localStorage에서 사용자 정보 가져오기
-        const { email } = getUserFromLocalStorage();
+        const { email, password } = getUserFromLocalStorage();
         if (!email) {
           alert('사용자 정보를 찾을 수 없습니다.\n\n다시 로그인한 후 시도해주세요.');
           return;
         }
         
-        // 현재 로그인된 사용자 정보 가져오기 (Auth 상태 대기)
-        let currentUser;
-        let authLoginFailed = false;
-        try {
-          currentUser = await getCurrentUser();
-        } catch (error) {
-          console.error('❌ 사용자 정보 가져오기 실패:', error);
-          authLoginFailed = true;
-          // Firebase Auth 로그인 실패 시 Firestore에서 직접 삭제하는 방법 제안
-          const proceedWithoutAuth = confirm(
-            'Firebase Auth에 로그인할 수 없습니다.\n\n' +
-            '이 경우 Firestore 데이터만 삭제됩니다.\n' +
-            '(Firebase Auth 계정이 없는 경우 이 방법을 사용하세요)\n\n' +
-            '계속하시겠습니까?'
-          );
+        // Firebase Auth에 로그인되어 있는지 확인
+        let currentUser = window.firebaseAuth.currentUser;
+        
+        // 로그인되어 있지 않으면 먼저 로그인 시도
+        if (!currentUser) {
+          console.log('🔄 Firebase Auth에 로그인되어 있지 않음. 로그인 시도...');
           
-          if (!proceedWithoutAuth) {
-            return;
+          // 비밀번호가 localStorage에 있으면 자동 로그인 시도
+          if (password) {
+            try {
+              const { signInWithEmailAndPassword } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js');
+              const userCredential = await signInWithEmailAndPassword(window.firebaseAuth, email, password);
+              currentUser = userCredential.user;
+              console.log('✅ localStorage 비밀번호로 로그인 성공:', currentUser.email);
+            } catch (loginError) {
+              console.error('❌ 자동 로그인 실패:', loginError);
+              
+              // Firebase Auth에 계정이 없는 경우 계정 생성 시도
+              if (loginError.code === 'auth/user-not-found' || loginError.code === 'auth/invalid-login-credentials') {
+                const createAccount = confirm(
+                  'Firebase Auth에 계정이 없거나 비밀번호가 올바르지 않습니다.\n\n' +
+                  'Firebase Auth 계정을 생성한 후 회원탈퇴를 진행하시겠습니까?\n\n' +
+                  '(계정 생성 후 Firestore 데이터 삭제가 가능합니다)'
+                );
+                
+                if (createAccount) {
+                  try {
+                    // Firebase Auth 계정 생성
+                    const { createUserWithEmailAndPassword } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js');
+                    const newUserCredential = await createUserWithEmailAndPassword(window.firebaseAuth, email, password);
+                    console.log('✅ Firebase Auth 계정 생성 성공:', newUserCredential.user.email);
+                    
+                    // 생성된 계정으로 로그인 (이미 로그인되어 있음)
+                    currentUser = newUserCredential.user;
+                    console.log('✅ 생성된 계정으로 로그인 완료');
+                  } catch (createError) {
+                    console.error('❌ Firebase Auth 계정 생성 실패:', createError);
+                    if (createError.code === 'auth/email-already-in-use') {
+                      alert('계정이 이미 존재합니다.\n\n다시 로그인을 시도하거나, 비밀번호를 확인해주세요.');
+                      return;
+                    } else {
+                      alert('계정 생성에 실패했습니다: ' + (createError.message || createError.code));
+                      return;
+                    }
+                  }
+                } else {
+                  alert('Firebase Auth 계정 생성이 취소되었습니다.\n\n회원탈퇴를 진행할 수 없습니다.');
+                  return;
+                }
+              } else {
+                // 다른 오류인 경우 사용자에게 비밀번호 입력 요청
+                const inputPassword = prompt(
+                  'Firebase Auth에 로그인되어 있지 않습니다.\n\n' +
+                  '회원탈퇴를 진행하려면 Firebase Auth에 로그인해야 합니다.\n\n' +
+                  '비밀번호를 입력해주세요:'
+                );
+                
+                if (!inputPassword) {
+                  alert('비밀번호를 입력하지 않아 회원탈퇴가 취소되었습니다.');
+                  return;
+                }
+                
+                try {
+                  const { signInWithEmailAndPassword } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js');
+                  const userCredential = await signInWithEmailAndPassword(window.firebaseAuth, email, inputPassword);
+                  currentUser = userCredential.user;
+                  console.log('✅ 입력한 비밀번호로 로그인 성공:', currentUser.email);
+                } catch (manualLoginError) {
+                console.error('❌ 수동 로그인 실패:', manualLoginError);
+                
+                // Firebase Auth에 계정이 없는 경우 계정 생성 후 로그인 시도
+                if (manualLoginError.code === 'auth/user-not-found' || manualLoginError.code === 'auth/invalid-login-credentials') {
+                  const createAccount = confirm(
+                    'Firebase Auth에 계정이 없거나 비밀번호가 올바르지 않습니다.\n\n' +
+                    'Firebase Auth 계정을 생성한 후 회원탈퇴를 진행하시겠습니까?\n\n' +
+                    '(계정 생성 후 Firestore 데이터 삭제가 가능합니다)'
+                  );
+                  
+                  if (createAccount && password) {
+                    try {
+                      // Firebase Auth 계정 생성
+                      const { createUserWithEmailAndPassword } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js');
+                      const newUserCredential = await createUserWithEmailAndPassword(window.firebaseAuth, email, password);
+                      console.log('✅ Firebase Auth 계정 생성 성공:', newUserCredential.user.email);
+                      
+                      // 생성된 계정으로 로그인 (이미 로그인되어 있음)
+                      currentUser = newUserCredential.user;
+                      console.log('✅ 생성된 계정으로 로그인 완료');
+                    } catch (createError) {
+                      console.error('❌ Firebase Auth 계정 생성 실패:', createError);
+                      let createErrorMessage = '계정 생성에 실패했습니다.';
+                      if (createError.code === 'auth/email-already-in-use') {
+                        // 이미 존재하는 경우 다시 로그인 시도
+                        try {
+                          const { signInWithEmailAndPassword } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js');
+                          const retryCredential = await signInWithEmailAndPassword(window.firebaseAuth, email, password);
+                          currentUser = retryCredential.user;
+                          console.log('✅ 재시도 로그인 성공');
+                        } catch (retryError) {
+                          alert('계정이 이미 존재하지만 로그인에 실패했습니다.\n\n비밀번호를 확인해주세요.');
+                          return;
+                        }
+                      } else if (createError.message) {
+                        createErrorMessage = createError.message;
+                      }
+                      alert(createErrorMessage);
+                      return;
+                    }
+                  } else {
+                    alert('Firebase Auth 계정 생성이 취소되었습니다.\n\n회원탈퇴를 진행할 수 없습니다.');
+                    return;
+                  }
+                } else {
+                  let errorMessage = '로그인에 실패했습니다.';
+                  if (manualLoginError.message) {
+                    errorMessage = manualLoginError.message;
+                  }
+                  alert(errorMessage);
+                  return;
+                }
+              }
+            }
+          } else {
+            // 비밀번호가 없으면 사용자에게 입력 요청
+            const inputPassword = prompt(
+              'Firebase Auth에 로그인되어 있지 않습니다.\n\n' +
+              '회원탈퇴를 진행하려면 Firebase Auth에 로그인해야 합니다.\n\n' +
+              '비밀번호를 입력해주세요:'
+            );
+            
+            if (!inputPassword) {
+              alert('비밀번호를 입력하지 않아 회원탈퇴가 취소되었습니다.');
+              return;
+            }
+            
+            try {
+              const { signInWithEmailAndPassword } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js');
+              const userCredential = await signInWithEmailAndPassword(window.firebaseAuth, email, inputPassword);
+              currentUser = userCredential.user;
+              console.log('✅ 입력한 비밀번호로 로그인 성공:', currentUser.email);
+            } catch (manualLoginError) {
+              console.error('❌ 수동 로그인 실패:', manualLoginError);
+              let errorMessage = '로그인에 실패했습니다.';
+              if (manualLoginError.code === 'auth/invalid-login-credentials' || manualLoginError.code === 'auth/user-not-found') {
+                errorMessage = '이메일 또는 비밀번호가 올바르지 않습니다.\n\nFirebase Auth에 계정이 없거나 비밀번호가 변경되었을 수 있습니다.';
+              } else if (manualLoginError.message) {
+                errorMessage = manualLoginError.message;
+              }
+              alert(errorMessage);
+              return;
+            }
           }
-          
-          // Firestore에서만 삭제 진행
-          await deleteUserDataFromFirestoreOnly(email);
-          return;
         }
         
         if (!currentUser) {
-          // currentUser가 없으면 Firestore에서만 삭제
-          const proceedWithoutAuth = confirm(
-            'Firebase Auth에 로그인되어 있지 않습니다.\n\n' +
-            'Firestore 데이터만 삭제하시겠습니까?\n' +
-            '(Firebase Auth 계정이 없는 경우 이 방법을 사용하세요)'
-          );
-          
-          if (!proceedWithoutAuth) {
-            return;
-          }
-          
-          await deleteUserDataFromFirestoreOnly(email);
+          alert('Firebase Auth에 로그인할 수 없습니다.\n\n회원탈퇴를 진행할 수 없습니다.');
           return;
         }
         
