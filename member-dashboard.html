@@ -2545,6 +2545,47 @@
       return { email, password };
     }
 
+    // Firestore에서만 사용자 데이터 삭제 (Firebase Auth 없이)
+    async function deleteUserDataFromFirestoreOnly(email) {
+      try {
+        console.log('🔄 Firestore에서만 사용자 데이터 삭제 시작:', email);
+        
+        const { doc, deleteDoc, collection, query, where, getDocs } = window.firebaseFirestoreFunctions;
+        const db = window.firebaseDb;
+        
+        // users 컬렉션에서 사용자 찾기
+        const usersRef = collection(db, 'users');
+        const q = query(usersRef, where('email', '==', email));
+        const querySnapshot = await getDocs(q);
+        
+        if (!querySnapshot.empty) {
+          // 모든 매칭되는 문서 삭제
+          const deletePromises = querySnapshot.docs.map(docSnapshot => {
+            console.log('🗑️ 사용자 문서 삭제:', docSnapshot.id);
+            return deleteDoc(doc(db, 'users', docSnapshot.id));
+          });
+          await Promise.all(deletePromises);
+          console.log('✅ Firestore 사용자 데이터 삭제 완료');
+        } else {
+          console.log('⚠️ Firestore에 해당 사용자 데이터가 없습니다.');
+        }
+        
+        // localStorage에서 사용자 정보 삭제
+        localStorage.removeItem('user');
+        localStorage.removeItem('currentUser');
+        localStorage.removeItem('loggedIn');
+        localStorage.removeItem('loggedInEmail');
+        
+        alert('회원탈퇴가 완료되었습니다.\n\nFirestore 데이터가 삭제되었습니다.\n\n그동안 이용해주셔서 감사했습니다.');
+        
+        // 메인 페이지로 이동
+        window.location.href = 'index.html';
+      } catch (error) {
+        console.error('❌ Firestore 데이터 삭제 실패:', error);
+        alert('데이터 삭제 중 오류가 발생했습니다: ' + (error.message || error.code || '알 수 없는 오류'));
+      }
+    }
+
     // Firebase Auth에 자동 로그인 시도
     async function autoLoginToFirebase() {
       const { email, password } = getUserFromLocalStorage();
@@ -2645,8 +2686,34 @@
           resolve(userCredential.user);
         } catch (error) {
           console.error('❌ localStorage 비밀번호로 로그인 실패:', error);
-          // 사용자에게 비밀번호 입력 요청
-          requestPasswordAndLogin(email, resolve, reject);
+          // Firebase Auth에 계정이 없거나 비밀번호가 다른 경우
+          if (error.code === 'auth/invalid-login-credentials' || error.code === 'auth/user-not-found') {
+            // Firestore에서만 삭제하는 옵션 제공
+            const proceedWithoutAuth = confirm(
+              'Firebase Auth에 로그인할 수 없습니다.\n\n' +
+              '가능한 이유:\n' +
+              '1. Firebase Auth에 계정이 없음\n' +
+              '2. 비밀번호가 변경됨\n\n' +
+              'Firestore 데이터만 삭제하시겠습니까?\n' +
+              '(Firebase Auth 계정이 없는 경우 이 방법을 사용하세요)'
+            );
+            
+            if (proceedWithoutAuth) {
+              // Firestore에서만 삭제
+              deleteUserDataFromFirestoreOnly(email).then(() => {
+                // 성공적으로 삭제되면 resolve는 호출하지 않음 (이미 페이지 이동)
+              }).catch((error) => {
+                reject(error);
+              });
+              return;
+            } else {
+              // 사용자에게 비밀번호 입력 요청
+              requestPasswordAndLogin(email, resolve, reject);
+            }
+          } else {
+            // 사용자에게 비밀번호 입력 요청
+            requestPasswordAndLogin(email, resolve, reject);
+          }
         }
       } else {
         // 사용자에게 비밀번호 입력 요청
@@ -2656,12 +2723,34 @@
     
     // 사용자에게 비밀번호 입력 요청 후 로그인
     async function requestPasswordAndLogin(email, resolve, reject) {
-      alert('Firebase Auth에 로그인되어 있지 않습니다.\n\n비밀번호를 입력하여 로그인한 후 회원탈퇴를 진행해주세요.');
-      const inputPassword = prompt('회원탈퇴를 위해 비밀번호를 입력해주세요:');
+      const inputPassword = prompt(
+        'Firebase Auth에 로그인되어 있지 않습니다.\n\n' +
+        '회원탈퇴를 진행하려면:\n' +
+        '1. 비밀번호를 입력하여 로그인 (Firebase Auth 계정이 있는 경우)\n' +
+        '2. 취소를 눌러 Firestore 데이터만 삭제 (Firebase Auth 계정이 없는 경우)\n\n' +
+        '비밀번호를 입력해주세요 (취소 시 Firestore만 삭제):'
+      );
       
       if (!inputPassword) {
-        reject(new Error('비밀번호를 입력하지 않아 취소되었습니다.'));
-        return;
+        // 취소한 경우 Firestore에서만 삭제하는 옵션 제공
+        const proceedWithoutAuth = confirm(
+          '비밀번호 입력이 취소되었습니다.\n\n' +
+          'Firestore 데이터만 삭제하시겠습니까?\n' +
+          '(Firebase Auth 계정이 없는 경우 이 방법을 사용하세요)'
+        );
+        
+        if (proceedWithoutAuth) {
+          // Firestore에서만 삭제하는 함수 호출 (resolve 대신 직접 처리)
+          deleteUserDataFromFirestoreOnly(email).then(() => {
+            // 성공적으로 삭제되면 resolve는 호출하지 않음 (이미 페이지 이동)
+          }).catch((error) => {
+            reject(error);
+          });
+          return;
+        } else {
+          reject(new Error('회원탈퇴가 취소되었습니다.'));
+          return;
+        }
       }
       
       try {
@@ -2693,18 +2782,51 @@
       try {
         await waitForFirebase();
         
+        // localStorage에서 사용자 정보 가져오기
+        const { email } = getUserFromLocalStorage();
+        if (!email) {
+          alert('사용자 정보를 찾을 수 없습니다.\n\n다시 로그인한 후 시도해주세요.');
+          return;
+        }
+        
         // 현재 로그인된 사용자 정보 가져오기 (Auth 상태 대기)
         let currentUser;
+        let authLoginFailed = false;
         try {
           currentUser = await getCurrentUser();
         } catch (error) {
           console.error('❌ 사용자 정보 가져오기 실패:', error);
-          alert('로그인 정보를 찾을 수 없습니다.\n\n다시 로그인한 후 시도해주세요.');
+          authLoginFailed = true;
+          // Firebase Auth 로그인 실패 시 Firestore에서 직접 삭제하는 방법 제안
+          const proceedWithoutAuth = confirm(
+            'Firebase Auth에 로그인할 수 없습니다.\n\n' +
+            '이 경우 Firestore 데이터만 삭제됩니다.\n' +
+            '(Firebase Auth 계정이 없는 경우 이 방법을 사용하세요)\n\n' +
+            '계속하시겠습니까?'
+          );
+          
+          if (!proceedWithoutAuth) {
+            return;
+          }
+          
+          // Firestore에서만 삭제 진행
+          await deleteUserDataFromFirestoreOnly(email);
           return;
         }
         
         if (!currentUser) {
-          alert('로그인 정보를 찾을 수 없습니다.\n\n다시 로그인한 후 시도해주세요.');
+          // currentUser가 없으면 Firestore에서만 삭제
+          const proceedWithoutAuth = confirm(
+            'Firebase Auth에 로그인되어 있지 않습니다.\n\n' +
+            'Firestore 데이터만 삭제하시겠습니까?\n' +
+            '(Firebase Auth 계정이 없는 경우 이 방법을 사용하세요)'
+          );
+          
+          if (!proceedWithoutAuth) {
+            return;
+          }
+          
+          await deleteUserDataFromFirestoreOnly(email);
           return;
         }
         
