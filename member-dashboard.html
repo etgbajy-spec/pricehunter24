@@ -56,7 +56,8 @@
       reauthenticateWithPopup,
       reauthenticateWithRedirect,
       deleteUser,
-      signOut
+      signOut,
+      onAuthStateChanged
     };
     window.firebaseFirestoreFunctions = { 
       collection, 
@@ -2532,6 +2533,71 @@
       document.body.style.overflow = 'auto';
     }
     
+    // 현재 로그인된 사용자 가져오기 (Auth 상태 대기)
+    async function getCurrentUser() {
+      return new Promise((resolve, reject) => {
+        if (!window.firebaseAuth) {
+          reject(new Error('Firebase Auth가 초기화되지 않았습니다.'));
+          return;
+        }
+        
+        // 이미 currentUser가 있으면 바로 반환
+        const currentUser = window.firebaseAuth.currentUser;
+        if (currentUser) {
+          console.log('✅ 현재 사용자 확인됨:', currentUser.email);
+          resolve(currentUser);
+          return;
+        }
+        
+        // Auth 상태 변경을 기다림
+        console.log('🔄 Auth 상태 확인 중...');
+        const onAuthStateChanged = window.firebaseAuthFunctions?.onAuthStateChanged;
+        
+        if (!onAuthStateChanged) {
+          // 동적 import 시도
+          import('https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js').then(({ onAuthStateChanged }) => {
+            const unsubscribe = onAuthStateChanged(window.firebaseAuth, (user) => {
+              unsubscribe(); // 한 번만 실행
+              if (user) {
+                console.log('✅ Auth 상태 확인 완료:', user.email);
+                resolve(user);
+              } else {
+                console.error('❌ 로그인된 사용자가 없습니다.');
+                reject(new Error('로그인된 사용자가 없습니다.'));
+              }
+            });
+            
+            // 5초 타임아웃
+            setTimeout(() => {
+              unsubscribe();
+              reject(new Error('Auth 상태 확인 시간이 초과되었습니다.'));
+            }, 5000);
+          }).catch((error) => {
+            console.error('❌ onAuthStateChanged import 실패:', error);
+            reject(new Error('인증 상태 확인에 실패했습니다.'));
+          });
+          return;
+        }
+        
+        const unsubscribe = onAuthStateChanged(window.firebaseAuth, (user) => {
+          unsubscribe(); // 한 번만 실행
+          if (user) {
+            console.log('✅ Auth 상태 확인 완료:', user.email);
+            resolve(user);
+          } else {
+            console.error('❌ 로그인된 사용자가 없습니다.');
+            reject(new Error('로그인된 사용자가 없습니다.'));
+          }
+        });
+        
+        // 5초 타임아웃
+        setTimeout(() => {
+          unsubscribe();
+          reject(new Error('Auth 상태 확인 시간이 초과되었습니다.'));
+        }, 5000);
+      });
+    }
+
     // 회원탈퇴 확인 함수 (재인증 후 완전 삭제)
     async function confirmWithdraw() {
       if (!document.getElementById('withdraw-confirm').checked) {
@@ -2542,10 +2608,18 @@
       try {
         await waitForFirebase();
         
-        // 현재 로그인된 사용자 정보 가져오기
-        const currentUser = window.firebaseAuth.currentUser;
+        // 현재 로그인된 사용자 정보 가져오기 (Auth 상태 대기)
+        let currentUser;
+        try {
+          currentUser = await getCurrentUser();
+        } catch (error) {
+          console.error('❌ 사용자 정보 가져오기 실패:', error);
+          alert('로그인 정보를 찾을 수 없습니다.\n\n다시 로그인한 후 시도해주세요.');
+          return;
+        }
+        
         if (!currentUser) {
-          alert('로그인 정보를 찾을 수 없습니다.');
+          alert('로그인 정보를 찾을 수 없습니다.\n\n다시 로그인한 후 시도해주세요.');
           return;
         }
         
