@@ -24,7 +24,7 @@
   <!-- Firebase v9 SDK (모듈식) -->
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
-    import { getAuth, onAuthStateChanged, GoogleAuthProvider, reauthenticateWithPopup, reauthenticateWithRedirect, deleteUser, signOut } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
+    import { getAuth, onAuthStateChanged, GoogleAuthProvider, reauthenticateWithPopup, reauthenticateWithRedirect, deleteUser, signOut, signInWithEmailAndPassword } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
     import { getFirestore, collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, getDocs, where, doc, updateDoc, deleteDoc, arrayUnion, limit } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
     
     // Firebase 설정
@@ -57,7 +57,8 @@
       reauthenticateWithRedirect,
       deleteUser,
       signOut,
-      onAuthStateChanged
+      onAuthStateChanged,
+      signInWithEmailAndPassword
     };
     window.firebaseFirestoreFunctions = { 
       collection, 
@@ -747,6 +748,14 @@
     async function getRequestsFromFirebase() {
       try {
         await waitForFirebase();
+        
+        // Firebase Auth 로그인 확인 및 자동 로그인
+        const isAuthenticated = await ensureFirebaseAuth();
+        if (!isAuthenticated) {
+          console.warn('⚠️ Firebase Auth에 로그인할 수 없어서 의뢰 데이터를 가져올 수 없습니다.');
+          return [];
+        }
+        
         const { collection, query, where, orderBy, getDocs } = window.firebaseFirestoreFunctions;
         const db = window.firebaseDb;
         
@@ -827,6 +836,14 @@
     async function getInquiriesFromFirebase() {
       try {
         await waitForFirebase();
+        
+        // Firebase Auth 로그인 확인 및 자동 로그인
+        const isAuthenticated = await ensureFirebaseAuth();
+        if (!isAuthenticated) {
+          console.warn('⚠️ Firebase Auth에 로그인할 수 없어서 문의 데이터를 가져올 수 없습니다.');
+          return [];
+        }
+        
         const { collection, query, where, orderBy, getDocs } = window.firebaseFirestoreFunctions;
         const db = window.firebaseDb;
         
@@ -1752,6 +1769,56 @@
     }
     
     return userEmail;
+  }
+
+  // Firebase Auth 로그인 확인 및 자동 로그인
+  async function ensureFirebaseAuth() {
+    await waitForFirebase();
+    
+    // 이미 로그인되어 있으면 반환
+    if (window.firebaseAuth && window.firebaseAuth.currentUser) {
+      console.log('✅ Firebase Auth에 이미 로그인되어 있음:', window.firebaseAuth.currentUser.email);
+      return true;
+    }
+    
+    // localStorage에서 사용자 정보 가져오기
+    const userEmail = getUserEmail();
+    if (!userEmail) {
+      console.warn('⚠️ 사용자 이메일을 찾을 수 없어서 Firebase Auth 로그인을 할 수 없습니다.');
+      return false;
+    }
+    
+    // localStorage에서 비밀번호 가져오기 시도
+    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const password = currentUser.password || user.password;
+    
+    if (!password) {
+      console.warn('⚠️ 비밀번호를 찾을 수 없어서 Firebase Auth 로그인을 할 수 없습니다.');
+      return false;
+    }
+    
+    // Firebase Auth로 로그인 시도
+    try {
+      if (!window.firebaseAuthFunctions?.signInWithEmailAndPassword) {
+        console.error('❌ signInWithEmailAndPassword 함수를 사용할 수 없습니다.');
+        return false;
+      }
+      
+      console.log('🔄 Firebase Auth 로그인 시도:', userEmail);
+      const userCredential = await window.firebaseAuthFunctions.signInWithEmailAndPassword(
+        window.firebaseAuth,
+        userEmail,
+        password
+      );
+      
+      console.log('✅ Firebase Auth 로그인 성공:', userCredential.user.email);
+      return true;
+    } catch (error) {
+      console.error('❌ Firebase Auth 로그인 실패:', error);
+      // 로그인 실패해도 계속 진행 (일부 기능만 제한될 수 있음)
+      return false;
+    }
   }
 
   // 디버깅용 함수 - 현재 상태 확인
