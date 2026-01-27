@@ -1689,12 +1689,13 @@
           answerHtml = answer ? escapeHtml(answer) : '<span class="text-gray-400">답변 대기중</span>';
         }
         let fileHtml = '';
-        if (inq.file) {
-          if (inq.file.startsWith('data:image/')) {
-            fileHtml = `<div class='mb-2'><img src='${inq.file}' alt='첨부 이미지' class='max-h-32 rounded-xl border shadow w-full object-contain' /></div>`;
-          } else {
-            const fileName = inq.fileName || '첨부파일';
-            fileHtml = `<div class='mb-2 text-gray-600'>첨부파일: <a href='${inq.file}' download='${fileName}' class='text-blue-600 underline'>${fileName}</a></div>`;
+        if (inq.file && inq.file.trim() && inq.file !== 'undefined' && inq.file !== 'null') {
+          const fileValue = String(inq.file).trim();
+          if (fileValue.startsWith('data:image/') || fileValue.startsWith('data:')) {
+            fileHtml = `<div class='mb-2'><img src='${fileValue.replace(/'/g, "&#39;")}' alt='첨부 이미지' class='max-h-32 rounded-xl border shadow w-full object-contain' /></div>`;
+          } else if (fileValue.startsWith('http://') || fileValue.startsWith('https://') || fileValue.startsWith('/')) {
+            const fileName = (inq.fileName || '첨부파일').replace(/'/g, "&#39;");
+            fileHtml = `<div class='mb-2 text-gray-600'>첨부파일: <a href='${fileValue.replace(/'/g, "&#39;")}' download='${fileName}' class='text-blue-600 underline'>${fileName}</a></div>`;
           }
         }
         // 문의 상태 확인
@@ -2208,8 +2209,11 @@
             if (file.type.startsWith('image/')) {
               const reader = new FileReader();
               reader.onload = function(e) {
-                filePreview.innerHTML = `<img src="${e.target.result}" alt="첨부 이미지" class="max-h-32 rounded-xl shadow-md border border-gray-200" />`;
-                fileData = e.target.result;
+                if (e && e.target && e.target.result) {
+                  const result = String(e.target.result);
+                  filePreview.innerHTML = `<img src="${result.replace(/"/g, "&quot;")}" alt="첨부 이미지" class="max-h-32 rounded-xl shadow-md border border-gray-200" />`;
+                  fileData = result;
+                }
               };
               reader.readAsDataURL(file);
             } else {
@@ -2892,57 +2896,58 @@
                   currentUser = userCredential.user;
                   console.log('✅ 입력한 비밀번호로 로그인 성공:', currentUser.email);
                 } catch (manualLoginError) {
-                console.error('❌ 수동 로그인 실패:', manualLoginError);
-                
-                // Firebase Auth에 계정이 없는 경우 계정 생성 후 로그인 시도
-                if (manualLoginError.code === 'auth/user-not-found' || manualLoginError.code === 'auth/invalid-login-credentials') {
-                  const createAccount = confirm(
-                    'Firebase Auth에 계정이 없거나 비밀번호가 올바르지 않습니다.\n\n' +
-                    'Firebase Auth 계정을 생성한 후 회원탈퇴를 진행하시겠습니까?\n\n' +
-                    '(계정 생성 후 Firestore 데이터 삭제가 가능합니다)'
-                  );
+                  console.error('❌ 수동 로그인 실패:', manualLoginError);
                   
-                  if (createAccount && password) {
-                    try {
-                      // Firebase Auth 계정 생성
-                      const { createUserWithEmailAndPassword } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js');
-                      const newUserCredential = await createUserWithEmailAndPassword(window.firebaseAuth, email, password);
-                      console.log('✅ Firebase Auth 계정 생성 성공:', newUserCredential.user.email);
-                      
-                      // 생성된 계정으로 로그인 (이미 로그인되어 있음)
-                      currentUser = newUserCredential.user;
-                      console.log('✅ 생성된 계정으로 로그인 완료');
-                    } catch (createError) {
-                      console.error('❌ Firebase Auth 계정 생성 실패:', createError);
-                      let createErrorMessage = '계정 생성에 실패했습니다.';
-                      if (createError.code === 'auth/email-already-in-use') {
-                        // 이미 존재하는 경우 다시 로그인 시도
-                        try {
-                          const { signInWithEmailAndPassword } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js');
-                          const retryCredential = await signInWithEmailAndPassword(window.firebaseAuth, email, password);
-                          currentUser = retryCredential.user;
-                          console.log('✅ 재시도 로그인 성공');
-                        } catch (retryError) {
-                          alert('계정이 이미 존재하지만 로그인에 실패했습니다.\n\n비밀번호를 확인해주세요.');
-                          return;
+                  // Firebase Auth에 계정이 없는 경우 계정 생성 후 로그인 시도
+                  if (manualLoginError.code === 'auth/user-not-found' || manualLoginError.code === 'auth/invalid-login-credentials') {
+                    const createAccount = confirm(
+                      'Firebase Auth에 계정이 없거나 비밀번호가 올바르지 않습니다.\n\n' +
+                      'Firebase Auth 계정을 생성한 후 회원탈퇴를 진행하시겠습니까?\n\n' +
+                      '(계정 생성 후 Firestore 데이터 삭제가 가능합니다)'
+                    );
+                    
+                    if (createAccount && password) {
+                      try {
+                        // Firebase Auth 계정 생성
+                        const { createUserWithEmailAndPassword } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js');
+                        const newUserCredential = await createUserWithEmailAndPassword(window.firebaseAuth, email, password);
+                        console.log('✅ Firebase Auth 계정 생성 성공:', newUserCredential.user.email);
+                        
+                        // 생성된 계정으로 로그인 (이미 로그인되어 있음)
+                        currentUser = newUserCredential.user;
+                        console.log('✅ 생성된 계정으로 로그인 완료');
+                      } catch (createError) {
+                        console.error('❌ Firebase Auth 계정 생성 실패:', createError);
+                        let createErrorMessage = '계정 생성에 실패했습니다.';
+                        if (createError.code === 'auth/email-already-in-use') {
+                          // 이미 존재하는 경우 다시 로그인 시도
+                          try {
+                            const { signInWithEmailAndPassword } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js');
+                            const retryCredential = await signInWithEmailAndPassword(window.firebaseAuth, email, password);
+                            currentUser = retryCredential.user;
+                            console.log('✅ 재시도 로그인 성공');
+                          } catch (retryError) {
+                            alert('계정이 이미 존재하지만 로그인에 실패했습니다.\n\n비밀번호를 확인해주세요.');
+                            return;
+                          }
+                        } else if (createError.message) {
+                          createErrorMessage = createError.message;
                         }
-                      } else if (createError.message) {
-                        createErrorMessage = createError.message;
+                        alert(createErrorMessage);
+                        return;
                       }
-                      alert(createErrorMessage);
+                    } else {
+                      alert('Firebase Auth 계정 생성이 취소되었습니다.\n\n회원탈퇴를 진행할 수 없습니다.');
                       return;
                     }
                   } else {
-                    alert('Firebase Auth 계정 생성이 취소되었습니다.\n\n회원탈퇴를 진행할 수 없습니다.');
+                    let errorMessage = '로그인에 실패했습니다.';
+                    if (manualLoginError.message) {
+                      errorMessage = manualLoginError.message;
+                    }
+                    alert(errorMessage);
                     return;
                   }
-                } else {
-                  let errorMessage = '로그인에 실패했습니다.';
-                  if (manualLoginError.message) {
-                    errorMessage = manualLoginError.message;
-                  }
-                  alert(errorMessage);
-                  return;
                 }
               }
             }
