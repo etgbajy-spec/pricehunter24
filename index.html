@@ -3147,7 +3147,7 @@
     <!-- Firebase v9 SDK (모듈식) -->
     <script type="module">
       import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
-      import { getAuth, signInWithCustomToken, onAuthStateChanged, signOut, sendPasswordResetEmail, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, getAdditionalUserInfo, signInWithEmailAndPassword } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
+      import { getAuth, signInWithCustomToken, onAuthStateChanged, signOut, sendPasswordResetEmail, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, getAdditionalUserInfo, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
       import { getFirestore, doc, setDoc, getDoc, collection, query, orderBy, onSnapshot, getDocs, where, serverTimestamp, addDoc } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
       import { getAnalytics, logEvent } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-analytics.js';
       
@@ -3188,7 +3188,7 @@
         window.firebaseApp = app;
         window.firebaseAuth = auth;
         window.firebaseDb = db;
-        window.firebaseAuthFunctions = { signInWithCustomToken, onAuthStateChanged, signOut, sendPasswordResetEmail, signInWithPopup, signInWithRedirect, getRedirectResult, getAdditionalUserInfo, signInWithEmailAndPassword };
+        window.firebaseAuthFunctions = { signInWithCustomToken, onAuthStateChanged, signOut, sendPasswordResetEmail, signInWithPopup, signInWithRedirect, getRedirectResult, getAdditionalUserInfo, signInWithEmailAndPassword, createUserWithEmailAndPassword };
         window.firebaseFirestoreFunctions = { doc, setDoc, getDoc, collection, query, orderBy, onSnapshot, getDocs, where, serverTimestamp, addDoc };
         const googleProvider = new GoogleAuthProvider();
         googleProvider.setCustomParameters({ prompt: 'select_account' });
@@ -7609,13 +7609,133 @@
             
           } catch (error) {
             console.error('❌ Firebase Auth 로그인 실패:', error);
-            document.getElementById('login-error').classList.remove('hidden');
             
-            // 에러 메시지 처리
+            // 계정이 없거나 잘못된 자격 증명인 경우 Firebase Auth 계정 생성 시도
+            if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-login-credentials') {
+              console.log('🔄 Firebase Auth에 계정이 없음. Firestore에서 사용자 확인 후 계정 생성 시도...');
+              
+              try {
+                // Firestore에서 사용자 확인
+                const { collection, query, where, getDocs } = window.firebaseFirestoreFunctions;
+                const usersRef = collection(window.firebaseDb, 'users');
+                const userQuery = query(usersRef, where('email', '==', email));
+                const userSnapshot = await getDocs(userQuery);
+                
+                if (!userSnapshot.empty) {
+                  // Firestore에 사용자가 있으면 Firebase Auth 계정 생성
+                  const userDoc = userSnapshot.docs[0].data();
+                  console.log('✅ Firestore에서 사용자 발견. Firebase Auth 계정 생성 시도...');
+                  
+                  if (window.firebaseAuthFunctions?.createUserWithEmailAndPassword) {
+                    const newUserCredential = await window.firebaseAuthFunctions.createUserWithEmailAndPassword(
+                      window.firebaseAuth,
+                      email,
+                      password
+                    );
+                    
+                    console.log('✅ Firebase Auth 계정 생성 성공:', newUserCredential.user.email);
+                    
+                    // 생성된 계정으로 로그인 (이미 로그인되어 있음)
+                    const firebaseUser = newUserCredential.user;
+                    
+                    // Firestore에서 사용자 추가 정보 가져오기
+                    const { doc, getDoc } = window.firebaseFirestoreFunctions;
+                    const userRef = doc(window.firebaseDb, 'users', firebaseUser.uid);
+                    const userDocSnapshot = await getDoc(userRef);
+                    
+                    const userData = {
+                      uid: firebaseUser.uid,
+                      email: firebaseUser.email,
+                      displayName: firebaseUser.displayName || userDoc.displayName || userDoc.name || '',
+                      photoURL: firebaseUser.photoURL || userDoc.photoURL || userDoc.profileImage || '',
+                      loginMethod: 'email'
+                    };
+
+                    // Firestore에 사용자 데이터 upsert (로그인 정보 업데이트)
+                    const upsertResult = await upsertUser(userData, {
+                      lastLogin: new Date(),
+                      loginCount: (userDocSnapshot.exists() ? (userDocSnapshot.data().loginCount || 0) : 0) + 1
+                    });
+
+                    // 로그인 성공 처리
+                    localStorage.setItem('loggedIn', 'true');
+                    localStorage.setItem('currentUser', JSON.stringify(userData));
+                    localStorage.setItem('user', JSON.stringify(userData)); // 마이페이지 호환성
+                    localStorage.setItem('loggedInEmail', userData.email); // 이메일 저장
+                    document.getElementById('login-modal').classList.add('hidden');
+                    document.getElementById('login-error').classList.add('hidden');
+                    updateAuthUI();
+                    showToast('Firebase Auth 계정이 생성되었습니다. 로그인되었습니다!', 'success');
+                    return;
+                  }
+                } else {
+                  // Firestore에도 사용자가 없으면 회원가입 필요
+                  document.getElementById('login-error').classList.remove('hidden');
+                  showToast('등록되지 않은 이메일입니다. 회원가입을 먼저 진행해주세요.', 'error');
+                  return;
+                }
+              } catch (createError) {
+                console.error('❌ Firebase Auth 계정 생성 실패:', createError);
+                
+                if (createError.code === 'auth/email-already-in-use') {
+                  // 이미 존재하는 경우 다시 로그인 시도
+                  try {
+                    const retryCredential = await window.firebaseAuthFunctions.signInWithEmailAndPassword(
+                      window.firebaseAuth,
+                      email,
+                      password
+                    );
+                    
+                    console.log('✅ 재시도 로그인 성공');
+                    const firebaseUser = retryCredential.user;
+                    
+                    // Firestore에서 사용자 추가 정보 가져오기
+                    const { doc, getDoc } = window.firebaseFirestoreFunctions;
+                    const userRef = doc(window.firebaseDb, 'users', firebaseUser.uid);
+                    const userDocSnapshot = await getDoc(userRef);
+                    
+                    const userData = {
+                      uid: firebaseUser.uid,
+                      email: firebaseUser.email,
+                      displayName: firebaseUser.displayName || (userDocSnapshot.exists() ? userDocSnapshot.data().displayName : '') || '',
+                      photoURL: firebaseUser.photoURL || (userDocSnapshot.exists() ? userDocSnapshot.data().photoURL : '') || '',
+                      loginMethod: 'email'
+                    };
+
+                    // Firestore에 사용자 데이터 upsert
+                    await upsertUser(userData, {
+                      lastLogin: new Date(),
+                      loginCount: (userDocSnapshot.exists() ? (userDocSnapshot.data().loginCount || 0) : 0) + 1
+                    });
+
+                    // 로그인 성공 처리
+                    localStorage.setItem('loggedIn', 'true');
+                    localStorage.setItem('currentUser', JSON.stringify(userData));
+                    localStorage.setItem('user', JSON.stringify(userData));
+                    localStorage.setItem('loggedInEmail', userData.email);
+                    document.getElementById('login-modal').classList.add('hidden');
+                    document.getElementById('login-error').classList.add('hidden');
+                    updateAuthUI();
+                    showToast('로그인 성공!', 'success');
+                    return;
+                  } catch (retryError) {
+                    console.error('❌ 재시도 로그인 실패:', retryError);
+                    document.getElementById('login-error').classList.remove('hidden');
+                    showToast('비밀번호가 올바르지 않습니다.', 'error');
+                    return;
+                  }
+                } else {
+                  document.getElementById('login-error').classList.remove('hidden');
+                  showToast('계정 생성에 실패했습니다: ' + (createError.message || createError.code), 'error');
+                  return;
+                }
+              }
+            }
+            
+            // 다른 오류 처리
+            document.getElementById('login-error').classList.remove('hidden');
             let errorMessage = '로그인에 실패했습니다.';
-            if (error.code === 'auth/user-not-found') {
-              errorMessage = '등록되지 않은 이메일입니다. 회원가입을 먼저 진행해주세요.';
-            } else if (error.code === 'auth/wrong-password') {
+            if (error.code === 'auth/wrong-password') {
               errorMessage = '비밀번호가 올바르지 않습니다.';
             } else if (error.code === 'auth/invalid-email') {
               errorMessage = '올바른 이메일 주소를 입력해주세요.';
