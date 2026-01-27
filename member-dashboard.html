@@ -2533,69 +2533,154 @@
       document.body.style.overflow = 'auto';
     }
     
-    // 현재 로그인된 사용자 가져오기 (Auth 상태 대기)
+    // localStorage에서 사용자 정보 가져오기
+    function getUserFromLocalStorage() {
+      const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      const loggedInEmail = localStorage.getItem('loggedInEmail');
+      
+      const email = loggedInEmail || currentUser.email || user.email;
+      const password = currentUser.password || user.password;
+      
+      return { email, password };
+    }
+
+    // Firebase Auth에 자동 로그인 시도
+    async function autoLoginToFirebase() {
+      const { email, password } = getUserFromLocalStorage();
+      
+      if (!email || !password) {
+        console.log('⚠️ localStorage에 이메일/비밀번호 정보가 없습니다.');
+        return null;
+      }
+      
+      try {
+        console.log('🔄 Firebase Auth 자동 로그인 시도:', email);
+        const { signInWithEmailAndPassword } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js');
+        const userCredential = await signInWithEmailAndPassword(window.firebaseAuth, email, password);
+        console.log('✅ Firebase Auth 자동 로그인 성공:', userCredential.user.email);
+        return userCredential.user;
+      } catch (error) {
+        console.error('❌ Firebase Auth 자동 로그인 실패:', error);
+        return null;
+      }
+    }
+
+    // 현재 로그인된 사용자 가져오기 (Auth 상태 대기 + 자동 로그인)
     async function getCurrentUser() {
+      if (!window.firebaseAuth) {
+        throw new Error('Firebase Auth가 초기화되지 않았습니다.');
+      }
+      
+      // 이미 currentUser가 있으면 바로 반환
+      let currentUser = window.firebaseAuth.currentUser;
+      if (currentUser) {
+        console.log('✅ 현재 사용자 확인됨:', currentUser.email);
+        return currentUser;
+      }
+      
+      // localStorage에 정보가 있으면 자동 로그인 시도
+      const autoLoginUser = await autoLoginToFirebase();
+      if (autoLoginUser) {
+        console.log('✅ 자동 로그인으로 사용자 확인됨:', autoLoginUser.email);
+        return autoLoginUser;
+      }
+      
+      // Auth 상태 변경을 기다림 (최대 2초)
+      console.log('🔄 Auth 상태 확인 중...');
       return new Promise((resolve, reject) => {
-        if (!window.firebaseAuth) {
-          reject(new Error('Firebase Auth가 초기화되지 않았습니다.'));
-          return;
-        }
-        
-        // 이미 currentUser가 있으면 바로 반환
-        const currentUser = window.firebaseAuth.currentUser;
-        if (currentUser) {
-          console.log('✅ 현재 사용자 확인됨:', currentUser.email);
-          resolve(currentUser);
-          return;
-        }
-        
-        // Auth 상태 변경을 기다림
-        console.log('🔄 Auth 상태 확인 중...');
         const onAuthStateChanged = window.firebaseAuthFunctions?.onAuthStateChanged;
         
         if (!onAuthStateChanged) {
           // 동적 import 시도
           import('https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js').then(({ onAuthStateChanged }) => {
-            const unsubscribe = onAuthStateChanged(window.firebaseAuth, (user) => {
-              unsubscribe(); // 한 번만 실행
-              if (user) {
-                console.log('✅ Auth 상태 확인 완료:', user.email);
-                resolve(user);
-              } else {
-                console.error('❌ 로그인된 사용자가 없습니다.');
-                reject(new Error('로그인된 사용자가 없습니다.'));
-              }
-            });
-            
-            // 5초 타임아웃
-            setTimeout(() => {
-              unsubscribe();
-              reject(new Error('Auth 상태 확인 시간이 초과되었습니다.'));
-            }, 5000);
+            waitForAuthState(onAuthStateChanged, resolve, reject);
           }).catch((error) => {
             console.error('❌ onAuthStateChanged import 실패:', error);
-            reject(new Error('인증 상태 확인에 실패했습니다.'));
+            // localStorage 정보로 재시도
+            tryLoginFromLocalStorage(resolve, reject);
           });
           return;
         }
         
-        const unsubscribe = onAuthStateChanged(window.firebaseAuth, (user) => {
-          unsubscribe(); // 한 번만 실행
-          if (user) {
-            console.log('✅ Auth 상태 확인 완료:', user.email);
-            resolve(user);
-          } else {
-            console.error('❌ 로그인된 사용자가 없습니다.');
-            reject(new Error('로그인된 사용자가 없습니다.'));
-          }
-        });
-        
-        // 5초 타임아웃
-        setTimeout(() => {
-          unsubscribe();
-          reject(new Error('Auth 상태 확인 시간이 초과되었습니다.'));
-        }, 5000);
+        waitForAuthState(onAuthStateChanged, resolve, reject);
       });
+    }
+    
+    // Auth 상태 대기 함수
+    function waitForAuthState(onAuthStateChanged, resolve, reject) {
+      const unsubscribe = onAuthStateChanged(window.firebaseAuth, (user) => {
+        unsubscribe();
+        if (user) {
+          console.log('✅ Auth 상태 확인 완료:', user.email);
+          resolve(user);
+        } else {
+          console.error('❌ 로그인된 사용자가 없습니다.');
+          tryLoginFromLocalStorage(resolve, reject);
+        }
+      });
+      
+      // 2초 타임아웃
+      setTimeout(() => {
+        unsubscribe();
+        tryLoginFromLocalStorage(resolve, reject);
+      }, 2000);
+    }
+    
+    // localStorage 정보로 로그인 시도
+    async function tryLoginFromLocalStorage(resolve, reject) {
+      const { email, password } = getUserFromLocalStorage();
+      
+      if (!email) {
+        reject(new Error('로그인 정보를 찾을 수 없습니다.\n\n다시 로그인한 후 시도해주세요.'));
+        return;
+      }
+      
+      // 비밀번호가 localStorage에 있으면 자동 로그인 시도
+      if (password) {
+        try {
+          const { signInWithEmailAndPassword } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js');
+          const userCredential = await signInWithEmailAndPassword(window.firebaseAuth, email, password);
+          console.log('✅ localStorage 비밀번호로 로그인 성공:', userCredential.user.email);
+          resolve(userCredential.user);
+        } catch (error) {
+          console.error('❌ localStorage 비밀번호로 로그인 실패:', error);
+          // 사용자에게 비밀번호 입력 요청
+          requestPasswordAndLogin(email, resolve, reject);
+        }
+      } else {
+        // 사용자에게 비밀번호 입력 요청
+        requestPasswordAndLogin(email, resolve, reject);
+      }
+    }
+    
+    // 사용자에게 비밀번호 입력 요청 후 로그인
+    async function requestPasswordAndLogin(email, resolve, reject) {
+      alert('Firebase Auth에 로그인되어 있지 않습니다.\n\n비밀번호를 입력하여 로그인한 후 회원탈퇴를 진행해주세요.');
+      const inputPassword = prompt('회원탈퇴를 위해 비밀번호를 입력해주세요:');
+      
+      if (!inputPassword) {
+        reject(new Error('비밀번호를 입력하지 않아 취소되었습니다.'));
+        return;
+      }
+      
+      try {
+        const { signInWithEmailAndPassword } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js');
+        const userCredential = await signInWithEmailAndPassword(window.firebaseAuth, email, inputPassword);
+        console.log('✅ 입력한 비밀번호로 로그인 성공:', userCredential.user.email);
+        resolve(userCredential.user);
+      } catch (error) {
+        console.error('❌ 로그인 실패:', error);
+        let errorMessage = '로그인에 실패했습니다.';
+        if (error.code === 'auth/wrong-password') {
+          errorMessage = '비밀번호가 올바르지 않습니다.';
+        } else if (error.code === 'auth/user-not-found') {
+          errorMessage = '등록되지 않은 이메일입니다.';
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+        reject(new Error(errorMessage));
+      }
     }
 
     // 회원탈퇴 확인 함수 (재인증 후 완전 삭제)
