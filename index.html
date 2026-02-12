@@ -1484,16 +1484,25 @@
         white-space: nowrap;
       }
       
-      /* 모바일에서 텍스트 크기 조정 - 줄바꿈 허용 */
+      /* 모바일에서 텍스트 크기 조정 - 첫 줄은 줄바꿈 허용, 브랜드명 '프라이스헌터'는 한 단어로 유지 */
       @media (max-width: 768px) {
         #hero-title h1 {
           font-size: 2rem !important;
           line-height: 1.2 !important;
         }
         
-        #hero-title h1 span {
+        #hero-title h1 > span:first-child {
           white-space: normal !important;
           display: block !important;
+        }
+        
+        #hero-title h1 .hero-brand-name {
+          display: block !important;
+        }
+        
+        #hero-title h1 .hero-brand-name span {
+          white-space: nowrap !important;
+          display: inline !important;
         }
       }
       
@@ -1879,7 +1888,7 @@
         }
       }
       
-      /* ELP 섹션 모바일 최적화 */
+      /* ELP 섹션 모바일 최적화 - 모바일에서 JS 애니메이션 미동작 시에도 내용이 보이도록 보장 */
       @media (max-width: 768px) {
         #elp-section {
           padding: 3rem 1rem !important;
@@ -1894,6 +1903,20 @@
           padding-right: 1rem !important;
           width: 100% !important;
           box-sizing: border-box !important;
+        }
+        
+        /* ELP 타이틀/서브타이틀·카드가 모바일에서 항상 보이도록 (opacity 0 초기값 덮어씀) */
+        #elp-section .answer-line-1,
+        #elp-section .answer-line-2,
+        #elp-section #answer-subtitle {
+          opacity: 1 !important;
+          transform: translateY(0) !important;
+        }
+        
+        #elp-section .elp-card.elp-card-stagger {
+          opacity: 1 !important;
+          transform: translateY(0) scale(1) translateZ(0) !important;
+          filter: blur(0) !important;
         }
         
         #answer-title {
@@ -1937,6 +1960,16 @@
         
         #answer-title {
           font-size: 1.5rem !important;
+        }
+      }
+      
+      /* 반응형: 세로 스크롤 시 콘텐츠 잘림 방지 */
+      @media (max-width: 768px) {
+        #elp-section {
+          overflow: visible !important;
+        }
+        #elp-cards-grid {
+          min-height: 0 !important;
         }
       }
       
@@ -3671,15 +3704,19 @@
     </div>
 
     <!-- 히어로 섹션 v4.0 - 프리미엄 스플래시 랜딩 스타일 -->
-    <section id="hero-section" class="relative w-full min-h-screen flex flex-col items-center justify-center text-center px-4 pt-20 pb-20 overflow-hidden" style="opacity: 0; visibility: hidden; transform: translateY(50px); background: linear-gradient(135deg, #0F1E3A 0%, #1A2F4F 30%, #1F3A5F 60%, #2A4A6F 100%);">
-      <!-- 고급 배경 효과 -->
+    <section id="hero-section" class="relative w-full min-h-screen flex flex-col items-center justify-center text-center px-4 pt-20 pb-20 overflow-hidden" style="opacity: 0; visibility: hidden; transform: translateY(50px); background: linear-gradient(145deg, #0a1628 0%, #0F1E3A 18%, #132742 35%, #1A2F4F 55%, #1e3a5c 72%, #234a6f 88%, #2A4A6F 100%);">
+      <!-- 고급 배경 효과 - 프리미엄 다크 블루/틸 톤 -->
       <div class="absolute inset-0 pointer-events-none z-0">
-        <!-- 메인 그라데이션 -->
-        <div class="absolute inset-0" style="background: linear-gradient(135deg, #0F1E3A 0%, #1A2F4F 30%, #1F3A5F 60%, #2A4A6F 100%);"></div>
-        <!-- 미묘한 패턴 -->
-        <div class="absolute inset-0 opacity-[0.03]" style="background-image: radial-gradient(circle at 2px 2px, rgba(255,255,255,0.15) 1px, transparent 0); background-size: 40px 40px;"></div>
-        <!-- 빛 효과 -->
-        <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-gradient-to-b from-white/5 to-transparent rounded-full blur-3xl"></div>
+        <!-- 메인 그라데이션 (깊이감·브랜드 톤 강화) -->
+        <div class="absolute inset-0" style="background: linear-gradient(145deg, #0a1628 0%, #0F1E3A 18%, #132742 35%, #1A2F4F 55%, #1e3a5c 72%, #234a6f 88%, #2A4A6F 100%);"></div>
+        <!-- 보조 그라데이션: 하단 에메랄드 톤 (브랜드 포인트) -->
+        <div class="absolute inset-0 opacity-40" style="background: radial-gradient(ellipse 120% 80% at 70% 95%, rgba(16,185,129,0.12) 0%, transparent 55%);"></div>
+        <!-- 미묘한 도트 패턴 -->
+        <div class="absolute inset-0 opacity-[0.04]" style="background-image: radial-gradient(circle at 2px 2px, rgba(255,255,255,0.2) 1px, transparent 0); background-size: 32px 32px;"></div>
+        <!-- 상단 중앙 빛 (소프트 글로우) -->
+        <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[700px] bg-gradient-to-b from-white/8 via-white/3 to-transparent rounded-full blur-3xl"></div>
+        <!-- 하단 중앙 보조 글로우 -->
+        <div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-gradient-to-t from-emerald-500/10 via-transparent to-transparent rounded-full blur-3xl"></div>
       </div>
       
       <!-- Hero 콘텐츠 -->
@@ -3688,7 +3725,7 @@
         <div id="hero-title" class="hero-element text-center mb-8 sm:mb-12 md:mb-16 hero-title-animate">
           <h1 class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold text-white mb-6 sm:mb-8 leading-[1.2] tracking-tight px-2" style="font-family: 'Noto Sans KR', sans-serif; font-weight: 800; text-shadow: 0 4px 20px rgba(0,0,0,0.3);">
             <span class="block bg-gradient-to-r from-emerald-200 via-cyan-200 to-blue-200 bg-clip-text text-transparent">데이터로 증명하는 최저가 검증 서비스</span>
-            <span class="block mt-2 bg-gradient-to-r from-emerald-200 via-cyan-200 to-blue-200 bg-clip-text text-transparent">프라이스헌<span id="admin-hero-teo-trigger" style="cursor: default; user-select: none; display: inline-block; background: linear-gradient(to right, rgb(167, 243, 208), rgb(165, 243, 252), rgb(191, 219, 254)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">터</span></span>
+            <span class="block mt-2 bg-gradient-to-r from-emerald-200 via-cyan-200 to-blue-200 bg-clip-text text-transparent hero-brand-name"><span style="white-space: nowrap;">프라이스헌<span id="admin-hero-teo-trigger" style="cursor: default; user-select: none; display: inline; background: linear-gradient(to right, rgb(167, 243, 208), rgb(165, 243, 252), rgb(191, 219, 254)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">터</span></span></span>
           </h1>
         </div>
 
