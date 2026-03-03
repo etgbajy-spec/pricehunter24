@@ -17,6 +17,8 @@
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🔍%3C/text%3E%3C/svg%3E">
     
+    <!-- EmailJS (의뢰 완료 시 고객 알림 이메일 발송) -->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
     <!-- Firebase v9 SDK (모듈식) -->
     <script type="module">
       import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
@@ -4263,6 +4265,7 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                         <div class="bg-gray-50 rounded-lg p-4 border-l-4 border-gray-500">
                             <div class="text-sm">
                                 <div class="mb-2"><span class="font-semibold text-gray-700">답변일시:</span> <span id="admin-modal-response-date" class="text-gray-600"></span></div>
+                                <div id="admin-modal-email-status" class="mb-2 hidden"><span class="font-semibold text-gray-700">고객 알림 메일:</span> <span id="admin-modal-email-status-text" class="text-gray-600"></span></div>
                                 <div><span class="font-semibold text-gray-700">답변내용:</span> <span id="admin-modal-response-content" class="text-gray-600"></span></div>
                                 
                                 <!-- 답변 이미지 표시 -->
@@ -4280,11 +4283,11 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
     <!-- 관리자용 의뢰 상세보기 모달 관련 함수들 -->
     <script>
         // 관리자용 의뢰 상세보기 모달 표시
-        function showAdminRequestDetailModal(request) {
+        async function showAdminRequestDetailModal(request) {
             console.log('관리자용 의뢰 상세보기 모달 표시:', request);
             
-            // 모달 데이터 채우기
-            fillAdminRequestDetailModal(request);
+            // 모달 데이터 채우기 (회원 정보 이메일 포함)
+            await fillAdminRequestDetailModal(request);
             
             // 모달 표시
             document.getElementById('admin-request-detail-modal').classList.remove('hidden');
@@ -4321,8 +4324,8 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             }
         }
 
-        // 관리자용 모달 데이터 채우기
-        function fillAdminRequestDetailModal(request) {
+        // 관리자용 모달 데이터 채우기 (이메일은 의뢰 → 회원(users) 순으로 조회)
+        async function fillAdminRequestDetailModal(request) {
             // 의뢰 기본 정보
             document.getElementById('admin-modal-request-number').textContent = request.reqNum || request.requestNumber || 'N/A';
             document.getElementById('admin-modal-request-date').textContent = formatDateForDisplay(request.reqDate || request.createdAt);
@@ -4353,10 +4356,25 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             // 첨부 이미지
             displayAdminModalImages(request.images || request.attachedImages || []);
 
-            // 회원 정보
-            document.getElementById('admin-modal-user-name').textContent = request.userName || request.name || 'N/A';
-            document.getElementById('admin-modal-user-email').textContent = request.email || 'N/A';
-            document.getElementById('admin-modal-user-phone').textContent = request.userPhone || request.phone || 'N/A';
+            // 회원 정보: 의뢰에 있으면 사용, 없으면 회원(users)에서 uid로 조회
+            let displayName = request.userName || request.name || 'N/A';
+            let displayEmail = request.email || request.userEmail || 'N/A';
+            let displayPhone = request.userPhone || request.phone || 'N/A';
+            if ((!request.email && !request.userEmail) && (request.uid || request.userId) && window.firebaseDb && window.firebaseFirestoreFunctions) {
+                try {
+                    const { doc, getDoc } = window.firebaseFirestoreFunctions;
+                    const userSnap = await getDoc(doc(window.firebaseDb, 'users', request.uid || request.userId));
+                    if (userSnap.exists()) {
+                        const u = userSnap.data();
+                        if (u.email || u.userEmail) displayEmail = u.email || u.userEmail;
+                        if (!displayName || displayName === 'N/A') displayName = u.displayName || u.name || 'N/A';
+                        if (!displayPhone || displayPhone === 'N/A') displayPhone = u.phone || u.phoneNumber || 'N/A';
+                    }
+                } catch (e) { console.warn('회원 정보 조회 실패:', e); }
+            }
+            document.getElementById('admin-modal-user-name').textContent = displayName;
+            document.getElementById('admin-modal-user-email').textContent = displayEmail;
+            document.getElementById('admin-modal-user-phone').textContent = displayPhone;
             document.getElementById('admin-modal-user-kakao').textContent = request.userKakao || request.kakao || 'N/A';
 
             // 추가 요청사항
@@ -4369,6 +4387,20 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             if (request.adminResponse || request.response) {
                 document.getElementById('admin-modal-admin-response').classList.remove('hidden');
                 document.getElementById('admin-modal-response-date').textContent = formatDateForDisplay(request.responseDate || request.answeredAt);
+                // 고객 알림 메일 발송 여부 표시
+                const emailStatusEl = document.getElementById('admin-modal-email-status');
+                const emailStatusTextEl = document.getElementById('admin-modal-email-status-text');
+                if (request.emailNotificationSent === true) {
+                    emailStatusEl.classList.remove('hidden');
+                    emailStatusTextEl.textContent = '발송됨' + (request.emailNotificationSentAt ? ' (' + formatDateForDisplay(request.emailNotificationSentAt) + ')' : '');
+                    emailStatusTextEl.className = 'text-green-600';
+                } else if (request.emailNotificationSent === false && request.emailNotificationError) {
+                    emailStatusEl.classList.remove('hidden');
+                    emailStatusTextEl.textContent = '발송 실패 - ' + request.emailNotificationError;
+                    emailStatusTextEl.className = 'text-red-600';
+                } else {
+                    emailStatusEl.classList.add('hidden');
+                }
                 
                 // 답변이 구조화된 데이터인지 확인
                 if (typeof request.adminResponse === 'object' && request.adminResponse !== null) {
@@ -4717,6 +4749,85 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             return formData;
         }
 
+        // ========== 고객 알림 메일 (EmailJS) 설정 ==========
+        // [설정 위치] 바로 아래 EMAILJS_REQUEST_COMPLETE_TEMPLATE_ID 값을 바꾸면 됩니다.
+        //
+        // [설정 방법]
+        // 1. https://dashboard.emailjs.com/admin/templates 접속
+        // 2. "Create New Template" 클릭
+        // 3. To Email: {{to_email}}  /  본문에 {{user_name}}, {{request_number}}, {{product_name}} 사용 가능
+        // 4. 저장 후 템플릿 목록에서 "Template ID" 복사 (예: template_xyz123ab)
+        // 5. 아래 EMAILJS_REQUEST_COMPLETE_TEMPLATE_ID 에 붙여넣기
+        //
+        // [테스트 방법] 관리자 대시보드 → 의뢰 하나 클릭 → 답변 작성 후 "답변 저장" → 알림에 "고객 알림 메일: 발송됨 (이메일)" 뜨면 성공
+        const EMAILJS_SERVICE_ID = 'service_qq3o0or';
+        const EMAILJS_REQUEST_COMPLETE_TEMPLATE_ID = 'template_fk0poj6'; // 👈 여기에 대시보드에서 복사한 Template ID 붙여넣기
+        const EMAILJS_PUBLIC_KEY = 'zrRVWnL0cA9eyxpDp';
+        // 대시보드에 없는 기본값이면 API 호출하지 않음 (400 방지)
+        const EMAILJS_TEMPLATE_IS_CONFIGURED = EMAILJS_REQUEST_COMPLETE_TEMPLATE_ID && EMAILJS_REQUEST_COMPLETE_TEMPLATE_ID !== 'template_request_complete';
+
+        // 의뢰 완료 알림 메일 발송 후 결과 반환 (관리자 확인용)
+        async function sendRequestCompleteNotification(requestId) {
+            if (!requestId || !window.firebaseDb || !window.firebaseFirestoreFunctions) {
+                return { success: false, errorMessage: '요청 정보를 찾을 수 없습니다.' };
+            }
+            if (!EMAILJS_TEMPLATE_IS_CONFIGURED) {
+                console.warn('EmailJS 의뢰 완료 템플릿이 설정되지 않았습니다. 대시보드에서 템플릿을 만든 후 Template ID를 코드에 넣어주세요.');
+                return { success: false, errorMessage: 'EmailJS 템플릿 미설정. 대시보드(https://dashboard.emailjs.com/admin/templates)에서 템플릿을 만들고, admin-dashboard.html에서 EMAILJS_REQUEST_COMPLETE_TEMPLATE_ID를 해당 Template ID로 바꿔주세요.' };
+            }
+            if (typeof emailjs === 'undefined') {
+                console.warn('EmailJS가 로드되지 않았습니다. 의뢰 완료 알림 이메일을 건너뜁니다.');
+                return { success: false, errorMessage: 'EmailJS가 로드되지 않았습니다.' };
+            }
+            try {
+                const { doc, getDoc } = window.firebaseFirestoreFunctions;
+                const db = window.firebaseDb;
+                const requestSnap = await getDoc(doc(db, 'requests', requestId));
+                if (!requestSnap || !requestSnap.exists()) {
+                    return { success: false, errorMessage: '의뢰 문서를 찾을 수 없습니다.' };
+                }
+                const data = requestSnap.data();
+                let toEmail = data.email || data.userEmail;
+                // 의뢰에 이메일이 없으면 회원(users)에서 uid로 조회
+                if ((!toEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(toEmail)) && (data.uid || data.userId)) {
+                    const uid = data.uid || data.userId;
+                    const userSnap = await getDoc(doc(db, 'users', uid));
+                    if (userSnap.exists()) {
+                        const userData = userSnap.data();
+                        toEmail = userData.email || userData.userEmail;
+                    }
+                }
+                if (!toEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(toEmail)) {
+                    console.warn('의뢰·회원 정보에 유효한 이메일이 없어 알림을 보내지 않습니다.');
+                    return { success: false, errorMessage: '의뢰 또는 회원 정보에 이메일이 없거나 형식이 올바르지 않습니다.' };
+                }
+                emailjs.init(EMAILJS_PUBLIC_KEY);
+                const EMAILJS_SITE_URL = 'https://pricehunt24.com';
+                const templateParams = {
+                    to_email: toEmail,
+                    user_name: data.userName || data.name || '고객',
+                    request_number: data.requestNumber || data.reqNum || requestId,
+                    product_name: (data.name || data.productName || '의뢰 상품').replace(/</g, '&lt;').replace(/>/g, '&gt;').slice(0, 200),
+                    check_url: EMAILJS_SITE_URL + '/member-dashboard.html'
+                };
+                await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_REQUEST_COMPLETE_TEMPLATE_ID, templateParams);
+                console.log('의뢰 완료 알림 이메일 발송:', toEmail);
+                return { success: true, toEmail };
+            } catch (err) {
+                const errText = (err && (err.text || err.message)) ? String(err.text || err.message) : '';
+                const errStatus = err && err.status;
+                console.warn('의뢰 완료 알림 이메일 발송 실패:', { status: errStatus, text: errText, err });
+                const msg = errText || (typeof err === 'object' ? JSON.stringify(err) : String(err)) || '알 수 없는 오류';
+                let hint = '';
+                if (msg.includes('template') || msg.includes('not found') || errStatus === 400) {
+                    hint = ' (템플릿이 이 계정·서비스에 있는지, Service ID가 service_qq3o0or 와 같은지 확인하세요.)';
+                } else if (errStatus === 403 || msg.includes('Forbidden')) {
+                    hint = ' (EmailJS Public Key / Service ID가 템플릿이 있는 계정과 같은지 확인하세요.)';
+                }
+                return { success: false, errorMessage: msg + hint };
+            }
+        }
+
         // 답변 저장
         async function saveResponse() {
             try {
@@ -4762,10 +4873,42 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 });
 
                 console.log('✅ 의뢰 답변 저장 완료');
-                alert('답변이 성공적으로 저장되었습니다.');
+                
+                // 의뢰 완료 알림 이메일 발송 (고객에게 결과 안내) 후 결과 확인
+                const emailResult = await sendRequestCompleteNotification(currentRequestId);
+                const emailUpdate = {
+                    emailNotificationSent: emailResult.success,
+                    lastUpdated: serverTimestamp()
+                };
+                if (emailResult.success) {
+                    emailUpdate.emailNotificationSentAt = serverTimestamp();
+                    emailUpdate.emailNotificationError = null;
+                } else {
+                    emailUpdate.emailNotificationError = emailResult.errorMessage || '원인 불명';
+                }
+                await updateDoc(requestRef, emailUpdate);
+                
+                let alertMsg = '답변이 성공적으로 저장되었습니다.';
+                if (emailResult.success) {
+                    alertMsg += '\n\n📧 고객 알림 메일: 발송됨 (' + emailResult.toEmail + ')';
+                } else {
+                    alertMsg += '\n\n📧 고객 알림 메일: 발송 실패 - ' + (emailResult.errorMessage || '원인 불명');
+                }
+                alert(alertMsg);
                 
                 // 답변 섹션 업데이트
                 document.getElementById('admin-modal-admin-response').classList.remove('hidden');
+                // 고객 알림 메일 발송 여부 표시
+                const emailStatusEl = document.getElementById('admin-modal-email-status');
+                const emailStatusTextEl = document.getElementById('admin-modal-email-status-text');
+                emailStatusEl.classList.remove('hidden');
+                if (emailResult.success) {
+                    emailStatusTextEl.textContent = '발송됨 (' + new Date().toLocaleString('ko-KR') + ')';
+                    emailStatusTextEl.className = 'text-green-600';
+                } else {
+                    emailStatusTextEl.textContent = '발송 실패 - ' + (emailResult.errorMessage || '원인 불명');
+                    emailStatusTextEl.className = 'text-red-600';
+                }
                 document.getElementById('admin-modal-response-content').innerHTML = formatResponseForDisplay(formData);
                 
                 // 답변 이미지 표시
