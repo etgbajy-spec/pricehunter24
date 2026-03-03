@@ -121,6 +121,23 @@
       -ms-user-select: none;
       user-select: none;
     }
+    /* 의뢰 상세 모달·의뢰내역·1:1 문의 — 텍스트 드래그(복사) 가능 */
+    #request-detail-modal,
+    #panel-requests,
+    #panel-inquiry {
+      -webkit-user-select: text;
+      -moz-user-select: text;
+      -ms-user-select: text;
+      user-select: text;
+    }
+    #request-detail-modal button,
+    #panel-inquiry button,
+    #panel-requests button {
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+    }
     .fade-in { animation: fadeIn 0.7s; }
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     .spinner {

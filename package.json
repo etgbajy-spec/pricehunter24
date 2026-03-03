@@ -5,6 +5,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
+    "start:1000": "node start-1000.js",
     "dev": "nodemon server.js",
     "build": "echo 'Static site - no build required' && exit 0"
   },
@@ -17,8 +18,10 @@
   "author": "PriceHunter Team",
   "license": "MIT",
   "dependencies": {
+    "@google-cloud/firestore": "^8.3.0",
     "csrf": "^3.1.0",
     "dompurify": "^3.3.1",
+    "dotenv": "^16.3.1",
     "express": "^4.18.2",
     "express-rate-limit": "^7.1.5",
     "express-session": "^1.18.2",
