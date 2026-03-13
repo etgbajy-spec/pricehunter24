@@ -3,6 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>프라이스헌터(PriceHunter) - AI 최저가 정보 무료 제공</title>
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
@@ -18,15 +19,16 @@
     <meta name="author" content="PriceHunter" />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://pricehunt24.com/" />
-    <meta property="og:title" content="PriceHunter(프라이스헌터) - AI 최저가 정보 무료 제공" />
+    <meta property="og:title" content="프라이스헌터(PriceHunter) - AI 최저가 정보 무료 제공" />
     <meta property="og:description" content="AI와 빅데이터로 검증된 최저가 정보를 무료로 제공합니다. 국내외 쇼핑몰 가격 비교, 최대 50% 절약 가능합니다." />
     <meta property="og:image" content="https://pricehunt24.com/og-image.jpg" />
-    <meta property="og:site_name" content="PriceHunter" />
+    <meta property="og:site_name" content="프라이스헌터" />
     <meta property="og:locale" content="ko_KR" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="PriceHunter(프라이스헌터) - AI 최저가 정보 무료 제공" />
+    <meta name="twitter:title" content="프라이스헌터(PriceHunter) - AI 최저가 정보 무료 제공" />
     <meta name="twitter:description" content="AI와 빅데이터로 검증된 최저가 정보를 무료로 제공합니다. 국내외 쇼핑몰 가격 비교, 최대 50% 절약 가능합니다." />
     <meta name="twitter:image" content="https://pricehunt24.com/og-image.jpg" />
+    <meta name="twitter:domain" content="프라이스헌터" />
     <link rel="canonical" href="https://pricehunt24.com/" />
     
     <!-- 구조화된 데이터 (JSON-LD) - 네이버 서치어드바이저 최적화 -->
@@ -92,8 +94,6 @@
     
     <!-- Content Security Policy - Firebase iframe 허용 -->
     <meta http-equiv="Content-Security-Policy" content="frame-src 'self' https://www.google.com https://accounts.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com https://apis.google.com https://*.gstatic.com; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com https://*.gstatic.com https://accounts.google.com https://oauth2.googleapis.com https://apis.google.com https://www.google-analytics.com https://*.google-analytics.com https://analytics.google.com https://*.googletagmanager.com https://firebase.googleapis.com https://firebaseinstallations.googleapis.com https://cdn.jsdelivr.net; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://www.gstatic.com https://*.gstatic.com https://apis.google.com https://www.googletagmanager.com https://*.googleapis.com https://*.google.com; script-src-elem 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://www.gstatic.com https://*.gstatic.com https://apis.google.com https://www.googletagmanager.com https://*.googletagmanager.com https://*.googleapis.com https://*.google.com; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://fonts.googleapis.com; img-src 'self' data: https: http: blob: https://www.google-analytics.com https://*.google-analytics.com;" />
-    
-    <title>PriceHunter(프라이스헌터) - AI 최저가 정보 무료 제공</title>
     
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🔍%3C/text%3E%3C/svg%3E">
@@ -8247,6 +8247,7 @@ function showToast(msg, type = 'success') {
     activity.className = 'mt-8';
     activity.innerHTML = `
       <h3 class="text-xl font-bold text-blue-700 mb-3">내 활동</h3>
+      <p class="text-sm text-gray-600 mb-3">의뢰 결과·문의 답변 상세는 <strong>회원 대시보드</strong>에서 확인할 수 있습니다.</p>
       <div class="flex flex-col gap-4">
         <div>
           <div class="font-semibold text-gray-700 mb-1">의뢰 내역</div>
@@ -8261,12 +8262,21 @@ function showToast(msg, type = 'success') {
           <ul id="mypage-answers" class="bg-gray-50 rounded-xl p-3 text-sm min-h-[44px]"></ul>
         </div>
       </div>
+      <div class="mt-4 pt-4 border-t border-gray-200">
+        <a href="member-dashboard.html" class="inline-block w-full text-center py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition">회원 대시보드에서 상세 보기</a>
+      </div>
     `;
     mypageModal.querySelector('form').after(activity);
   }
 })();
 
 // 2. 내 활동 데이터 렌더링 함수 (실제 사용자 데이터만 표시)
+function escapeHtmlMyPage(str) {
+  if (str == null || str === '') return '';
+  const div = document.createElement('div');
+  div.textContent = String(str);
+  return div.innerHTML;
+}
 function renderMyActivity() {
   const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
   
@@ -8278,7 +8288,13 @@ function renderMyActivity() {
   } catch (e) { orders = []; }
   const ordersUl = document.getElementById('mypage-orders');
   if (ordersUl) {
-    ordersUl.innerHTML = orders.length ? orders.map(o => `<li class="py-1 border-b last:border-b-0 flex flex-col sm:flex-row sm:items-center sm:gap-2"><span class="font-bold">${o.productName || o.name || '상품'}</span><span class="text-gray-500 ml-2">${o.orderDate || o.date || ''}</span><span class="text-pink-600 ml-2">${o.totalAmount || o.price ? (o.totalAmount || o.price) + '원' : ''}</span></li>`).join('') : '<li class="text-gray-400">의뢰 내역이 없습니다.</li>';
+    ordersUl.innerHTML = orders.length ? orders.map(o => {
+      const name = escapeHtmlMyPage(o.productName || o.name || '상품');
+      const date = escapeHtmlMyPage(o.orderDate || o.date || '');
+      const amount = o.totalAmount || o.price;
+      const amountStr = amount != null ? escapeHtmlMyPage(String(amount)) + '원' : '';
+      return `<li class="py-1 border-b last:border-b-0 flex flex-col sm:flex-row sm:items-center sm:gap-2"><span class="font-bold">${name}</span><span class="text-gray-500 ml-2">${date}</span><span class="text-pink-600 ml-2">${amountStr}</span></li>`;
+    }).join('') : '<li class="text-gray-400">의뢰 내역이 없습니다.</li>';
   }
   
   // 문의 내역 (실제 inquiries 데이터에서 현재 사용자 것만 필터링)
@@ -8289,14 +8305,23 @@ function renderMyActivity() {
   } catch (e) { contacts = []; }
   const contactsUl = document.getElementById('mypage-contacts');
   if (contactsUl) {
-    contactsUl.innerHTML = contacts.length ? contacts.map(c => `<li class="py-1 border-b last:border-b-0 flex flex-col sm:flex-row sm:items-center sm:gap-2"><span class="font-bold">${c.title || c.subject || '문의'}</span><span class="text-gray-500 ml-2">${c.date || ''}</span><span class="ml-2">${c.status === 'completed' ? '답변완료' : '답변대기'}</span></li>`).join('') : '<li class="text-gray-400">문의 내역이 없습니다.</li>';
+    contactsUl.innerHTML = contacts.length ? contacts.map(c => {
+      const title = escapeHtmlMyPage(c.title || c.subject || '문의');
+      const date = escapeHtmlMyPage(c.date || '');
+      const status = c.status === 'completed' ? '답변완료' : '답변대기';
+      return `<li class="py-1 border-b last:border-b-0 flex flex-col sm:flex-row sm:items-center sm:gap-2"><span class="font-bold">${title}</span><span class="text-gray-500 ml-2">${date}</span><span class="ml-2">${status}</span></li>`;
+    }).join('') : '<li class="text-gray-400">문의 내역이 없습니다.</li>';
   }
   
   // 답변 내역 (문의 내역과 동일하지만 답변 상태별로 표시)
   const answersUl = document.getElementById('mypage-answers');
   if (answersUl) {
     const answeredInquiries = contacts.filter(c => c.status === 'completed');
-    answersUl.innerHTML = answeredInquiries.length ? answeredInquiries.map(a => `<li class="py-1 border-b last:border-b-0 flex flex-col sm:flex-row sm:items-center sm:gap-2"><span class="font-bold">${a.title || a.subject || '문의'}</span><span class="text-gray-500 ml-2">${a.date || ''}</span><span class="ml-2 text-emerald-700">답변완료</span></li>`).join('') : '<li class="text-gray-400">답변 내역이 없습니다.</li>';
+    answersUl.innerHTML = answeredInquiries.length ? answeredInquiries.map(a => {
+      const title = escapeHtmlMyPage(a.title || a.subject || '문의');
+      const date = escapeHtmlMyPage(a.date || '');
+      return `<li class="py-1 border-b last:border-b-0 flex flex-col sm:flex-row sm:items-center sm:gap-2"><span class="font-bold">${title}</span><span class="text-gray-500 ml-2">${date}</span><span class="ml-2 text-emerald-700">답변완료</span></li>`;
+    }).join('') : '<li class="text-gray-400">답변 내역이 없습니다.</li>';
   }
 }
 // 3. 마이페이지 열릴 때마다 내 활동 렌더링
