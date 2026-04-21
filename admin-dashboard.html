@@ -3166,6 +3166,366 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 loadVisitorReport(period);
             }
         }
+
+        // ===== 문서/리포트(문서화) =====
+        function monthKeyFromDate(date) {
+            const y = date.getFullYear();
+            const m = String(date.getMonth() + 1).padStart(2, '0');
+            return `${y}-${m}`;
+        }
+
+        function getLastNMonthKeys(n = 3) {
+            const keys = [];
+            const d = new Date();
+            d.setDate(1);
+            for (let i = 0; i < n; i++) {
+                keys.unshift(monthKeyFromDate(d));
+                d.setMonth(d.getMonth() - 1);
+            }
+            return keys;
+        }
+
+        function safeRequestDate(request) {
+            const v = request?.reqDate || request?.createdAt;
+            try {
+                if (!v) return null;
+                if (v.toDate) return v.toDate();
+                if (v.seconds) return new Date(v.seconds * 1000);
+                const d = new Date(v);
+                return isNaN(d.getTime()) ? null : d;
+            } catch {
+                return null;
+            }
+        }
+
+        function requestIdentityKey(request) {
+            const email = (request?.email || request?.userEmail || '').trim().toLowerCase();
+            if (email) return `email:${email}`;
+            const uid = (request?.uid || request?.userId || '').trim();
+            if (uid) return `uid:${uid}`;
+            return '';
+        }
+
+        function isPaidRequest(request) {
+            const status = (request?.paymentStatus || request?.payment?.status || request?.payStatus || '').toString().toLowerCase();
+            return status === 'paid' || status === '결제완료';
+        }
+
+        async function loadAdminDocsReport() {
+            const updatedEl = document.getElementById('docs-last-updated');
+            if (updatedEl) updatedEl.textContent = `업데이트: ${new Date().toLocaleString('ko-KR')}`;
+
+            const tbody = document.getElementById('docs-monthly-kpi-body');
+            const categoriesEl = document.getElementById('docs-top-categories');
+            const repeatReqEl = document.getElementById('docs-repeat-requesters');
+            const repeatPaidEl = document.getElementById('docs-repeat-paid');
+            const paidSelect = document.getElementById('docs-paid-request-select');
+
+            if (tbody) {
+                tbody.innerHTML = `<tr><td colspan="4" class="px-4 py-6 text-center text-gray-500">데이터를 불러오는 중...</td></tr>`;
+            }
+            if (categoriesEl) categoriesEl.innerHTML = `<div class="text-gray-500">데이터를 불러오는 중...</div>`;
+            if (repeatReqEl) repeatReqEl.textContent = '-';
+            if (repeatPaidEl) repeatPaidEl.textContent = '-';
+            if (paidSelect) paidSelect.innerHTML = `<option value="">불러오는 중...</option>`;
+
+            try {
+                await waitForFirebase();
+
+                const { collection, query, getDocs, orderBy } = window.firebaseFirestoreFunctions;
+                const db = window.firebaseDb;
+
+                const monthKeys = getLastNMonthKeys(3);
+
+                // 1) visits: 최근 3개월 월별 고유 방문자
+                const visitAgg = new Map(monthKeys.map(k => [k, new Set()]));
+                let vq;
+                try {
+                    vq = query(collection(db, 'visits'), orderBy('timestamp', 'desc'));
+                } catch (e1) {
+                    try {
+                        vq = query(collection(db, 'visits'), orderBy('date', 'desc'));
+                    } catch (e2) {
+                        vq = query(collection(db, 'visits'));
+                    }
+                }
+                const visitSnap = await getDocs(vq);
+                visitSnap.forEach(docSnap => {
+                    const data = docSnap.data() || {};
+                    let dateStr = data.date;
+                    if (!dateStr && data.timestamp) {
+                        const ts = data.timestamp.toDate ? data.timestamp.toDate() : new Date(data.timestamp);
+                        dateStr = formatDate(ts);
+                    }
+                    if (!dateStr) return;
+                    const d = new Date(dateStr + 'T00:00:00');
+                    if (isNaN(d.getTime())) return;
+                    const mk = monthKeyFromDate(d);
+                    if (!visitAgg.has(mk)) return;
+                    const userId = data.userId || data.sessionId || 'anonymous';
+                    visitAgg.get(mk).add(userId);
+                });
+
+                // 2) requests: 최근 3개월 월별 의뢰수 / 결제수 + 카테고리 Top + 재이용
+                const requests = await getRequestsFromFirebase();
+                const reqAgg = new Map(monthKeys.map(k => [k, 0]));
+                const paidAgg = new Map(monthKeys.map(k => [k, 0]));
+                const categoryCount = new Map();
+                const identityReqCount = new Map();
+                const identityPaidCount = new Map();
+
+                for (const r of requests) {
+                    const d = safeRequestDate(r);
+                    if (d) {
+                        const mk = monthKeyFromDate(d);
+                        if (reqAgg.has(mk)) reqAgg.set(mk, (reqAgg.get(mk) || 0) + 1);
+                        if (paidAgg.has(mk) && isPaidRequest(r)) paidAgg.set(mk, (paidAgg.get(mk) || 0) + 1);
+                    }
+
+                    const cat = (r?.category || '').toString().trim();
+                    if (cat) categoryCount.set(cat, (categoryCount.get(cat) || 0) + 1);
+
+                    const ik = requestIdentityKey(r);
+                    if (ik) {
+                        identityReqCount.set(ik, (identityReqCount.get(ik) || 0) + 1);
+                        if (isPaidRequest(r)) identityPaidCount.set(ik, (identityPaidCount.get(ik) || 0) + 1);
+                    }
+                }
+
+                // UI: 월별 KPI 표
+                if (tbody) {
+                    tbody.innerHTML = monthKeys.map(k => {
+                        const uv = visitAgg.get(k)?.size ?? 0;
+                        const rc = reqAgg.get(k) ?? 0;
+                        const pc = paidAgg.get(k) ?? 0;
+                        return `
+                            <tr>
+                                <td class="px-4 py-3 text-sm font-semibold text-gray-800">${k}</td>
+                                <td class="px-4 py-3 text-sm text-gray-700">${uv.toLocaleString('ko-KR')}</td>
+                                <td class="px-4 py-3 text-sm text-gray-700">${rc.toLocaleString('ko-KR')}</td>
+                                <td class="px-4 py-3 text-sm text-gray-700">${pc.toLocaleString('ko-KR')}</td>
+                            </tr>
+                        `;
+                    }).join('');
+                }
+
+                // UI: 카테고리 Top 10
+                if (categoriesEl) {
+                    const top = Array.from(categoryCount.entries())
+                        .sort((a, b) => b[1] - a[1])
+                        .slice(0, 10);
+                    if (top.length === 0) {
+                        categoriesEl.innerHTML = `<div class="text-gray-500">카테고리 데이터가 없습니다.</div>`;
+                    } else {
+                        categoriesEl.innerHTML = top.map(([cat, cnt], idx) => `
+                            <div class="flex justify-between items-center">
+                                <div class="text-gray-700"><span class="text-gray-400 mr-2">#${idx + 1}</span>${cat}</div>
+                                <div class="font-semibold text-gray-800">${cnt.toLocaleString('ko-KR')}</div>
+                            </div>
+                        `).join('');
+                    }
+                }
+
+                // UI: 재이용 여부
+                const repeatReq = Array.from(identityReqCount.values()).filter(v => v >= 2).length;
+                const repeatPaid = Array.from(identityPaidCount.values()).filter(v => v >= 2).length;
+                if (repeatReqEl) repeatReqEl.textContent = repeatReq > 0 ? `있음 (${repeatReq}명)` : '없음';
+                if (repeatPaidEl) repeatPaidEl.textContent = repeatPaid > 0 ? `있음 (${repeatPaid}명)` : '없음';
+
+                // UI: 유료 사례 선택 (최근 200건 중)
+                if (paidSelect) {
+                    const candidates = [];
+                    for (const r of requests.slice(0, 200)) {
+                        if (!isPaidRequest(r)) continue;
+                        const d = safeRequestDate(r);
+                        candidates.push({
+                            id: r.id,
+                            label: `${(r.reqNum || r.requestNumber || r.id || '').toString()} · ${(r.productName || r.name || '상품명없음').toString()} · ${(r.category || '카테고리없음').toString()} · ${d ? d.toLocaleDateString('ko-KR') : '날짜없음'}`
+                        });
+                    }
+                    if (candidates.length === 0) {
+                        paidSelect.innerHTML = `<option value="">유료 의뢰가 없습니다.</option>`;
+                    } else {
+                        paidSelect.innerHTML = `<option value="">선택하세요</option>` + candidates.map(p => `<option value="${p.id}">${p.label}</option>`).join('');
+                    }
+                }
+
+                renderCaseStudies();
+                loadFunctionTable();
+            } catch (e) {
+                console.error(e);
+                if (tbody) tbody.innerHTML = `<tr><td colspan="4" class="px-4 py-6 text-center text-red-600">문서/리포트 로드 실패: ${e?.message || e}</td></tr>`;
+                if (categoriesEl) categoriesEl.innerHTML = `<div class="text-red-600">로드 실패: ${e?.message || e}</div>`;
+            }
+        }
+
+        function downloadDocsCsv() {
+            const tbody = document.getElementById('docs-monthly-kpi-body');
+            if (!tbody) return alert('내보낼 데이터가 없습니다.');
+            const rows = Array.from(tbody.querySelectorAll('tr')).map(tr =>
+                Array.from(tr.querySelectorAll('td')).map(td => (td.textContent || '').trim())
+            ).filter(r => r.length >= 4);
+            if (rows.length === 0) return alert('내보낼 데이터가 없습니다.');
+
+            const header = ['월', '방문자수(고유)', '의뢰수', '결제수(유료)'];
+            const csv = [header, ...rows]
+                .map(cols => cols.map(v => `"${String(v).replaceAll('"', '""')}"`).join(','))
+                .join('\n');
+
+            const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `admin-docs-kpi-${new Date().toISOString().slice(0,10)}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+        }
+
+        function printDocsSection() {
+            const docs = document.getElementById('docs-section');
+            if (!docs) return;
+            document.body.classList.add('print-docs-only');
+            window.print();
+            document.body.classList.remove('print-docs-only');
+        }
+
+        function getCaseStudiesStore() {
+            try {
+                const raw = localStorage.getItem('adminCaseStudies');
+                const data = raw ? JSON.parse(raw) : [];
+                return Array.isArray(data) ? data : [];
+            } catch {
+                return [];
+            }
+        }
+
+        function setCaseStudiesStore(list) {
+            localStorage.setItem('adminCaseStudies', JSON.stringify(list || []));
+        }
+
+        function renderCaseStudies() {
+            const wrap = document.getElementById('docs-case-studies');
+            if (!wrap) return;
+            const list = getCaseStudiesStore();
+            if (list.length === 0) {
+                wrap.innerHTML = `<div class="text-gray-500 text-sm">사례가 아직 없습니다. 위에서 유료 의뢰를 선택해 추가하세요.</div>`;
+                return;
+            }
+            wrap.innerHTML = list.map((c, idx) => `
+                <div class="p-4 rounded-lg border border-gray-200">
+                    <div class="flex justify-between items-start gap-3">
+                        <div class="text-sm">
+                            <div class="font-semibold text-gray-800">사례 #${idx + 1}</div>
+                            <div class="text-gray-700 mt-1">${c.title || '(제목 없음)'}</div>
+                            ${c.note ? `<div class="text-gray-500 mt-1">${c.note}</div>` : ``}
+                        </div>
+                        <button onclick="removeCaseStudy(${idx})" class="px-3 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 transition">삭제</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function addCaseStudyFromSelection() {
+            const sel = document.getElementById('docs-paid-request-select');
+            const noteEl = document.getElementById('docs-case-note');
+            if (!sel || !sel.value) return alert('유료 의뢰를 선택해주세요.');
+            const selectedText = sel.options[sel.selectedIndex]?.textContent || sel.value;
+            const note = (noteEl?.value || '').trim();
+            const list = getCaseStudiesStore();
+            list.unshift({ requestId: sel.value, title: selectedText, note, createdAt: Date.now() });
+            setCaseStudiesStore(list.slice(0, 50));
+            if (noteEl) noteEl.value = '';
+            renderCaseStudies();
+        }
+
+        function removeCaseStudy(index) {
+            const list = getCaseStudiesStore();
+            list.splice(index, 1);
+            setCaseStudiesStore(list);
+            renderCaseStudies();
+        }
+
+        function getFunctionTableStore() {
+            try {
+                const raw = localStorage.getItem('adminFunctionTable');
+                const data = raw ? JSON.parse(raw) : [];
+                return Array.isArray(data) ? data : [];
+            } catch {
+                return [];
+            }
+        }
+
+        function setFunctionTableStore(list) {
+            localStorage.setItem('adminFunctionTable', JSON.stringify(list || []));
+        }
+
+        function loadFunctionTable() {
+            const tbody = document.getElementById('docs-function-table-body');
+            if (!tbody) return;
+            const list = getFunctionTableStore();
+            if (list.length === 0) {
+                setFunctionTableStore([
+                    { name: '의뢰 접수/정리', level: 'semi', desc: '' },
+                    { name: '카테고리 분류', level: 'manual', desc: '' },
+                    { name: '결제/환불 처리', level: 'semi', desc: '' },
+                    { name: '방문자 리포트 집계', level: 'auto', desc: '' }
+                ]);
+            }
+            renderFunctionTable();
+        }
+
+        function renderFunctionTable() {
+            const tbody = document.getElementById('docs-function-table-body');
+            if (!tbody) return;
+            const list = getFunctionTableStore();
+            tbody.innerHTML = list.map((row, idx) => `
+                <tr>
+                    <td class="px-4 py-2">
+                        <input value="${(row.name || '').replaceAll('"','&quot;')}" oninput="updateFunctionRow(${idx}, 'name', this.value)" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="예) 자동 견적 산출">
+                    </td>
+                    <td class="px-4 py-2">
+                        <select onchange="updateFunctionRow(${idx}, 'level', this.value)" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                            <option value="manual" ${row.level === 'manual' ? 'selected' : ''}>수동</option>
+                            <option value="semi" ${row.level === 'semi' ? 'selected' : ''}>반자동</option>
+                            <option value="auto" ${row.level === 'auto' ? 'selected' : ''}>자동</option>
+                        </select>
+                    </td>
+                    <td class="px-4 py-2">
+                        <input value="${(row.desc || '').replaceAll('"','&quot;')}" oninput="updateFunctionRow(${idx}, 'desc', this.value)" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="기준/툴/담당/예외">
+                    </td>
+                    <td class="px-4 py-2">
+                        <button onclick="deleteFunctionRow(${idx})" class="px-3 py-2 bg-red-600 text-white text-xs rounded hover:bg-red-700 transition">삭제</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function updateFunctionRow(index, key, value) {
+            const list = getFunctionTableStore();
+            if (!list[index]) return;
+            list[index] = { ...list[index], [key]: value };
+            setFunctionTableStore(list);
+        }
+
+        function addFunctionRow() {
+            const list = getFunctionTableStore();
+            list.push({ name: '', level: 'manual', desc: '' });
+            setFunctionTableStore(list);
+            renderFunctionTable();
+        }
+
+        function deleteFunctionRow(index) {
+            const list = getFunctionTableStore();
+            list.splice(index, 1);
+            setFunctionTableStore(list);
+            renderFunctionTable();
+        }
+
+        function saveFunctionTable() {
+            alert('저장되었습니다.');
+        }
         
         // 사용자 정의 날짜 범위 로드
         function loadCustomDateRange() {
@@ -3269,6 +3629,9 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                     loadVisitorReport('daily');
                     // 전체 기간 데이터도 미리 로드할 수 있도록 옵션 제공
                     break;
+                case 'docs':
+                    loadAdminDocsReport();
+                    break;
             }
         }
         
@@ -3280,6 +3643,14 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
         .sidebar-item.active { background-color: #ec4899; color: white; }
         .tab-btn.active { background-color: #ec4899; color: white; }
         .filter-btn.active { background-color: #6b7280; color: white; }
+
+        @media print {
+            body.print-docs-only #dashboard-section .w-64 { display: none !important; }
+            body.print-docs-only #dashboard-section .flex-1 { overflow: visible !important; }
+            body.print-docs-only #dashboard-section .section-content { display: none !important; }
+            body.print-docs-only #docs-section { display: block !important; padding: 0 !important; }
+            body.print-docs-only button { display: none !important; }
+        }
     </style>
 </head>
 <body class="bg-gradient-to-br from-gray-50 via-blue-50 to-emerald-50 min-h-screen">
@@ -3354,6 +3725,9 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                         </button>
                         <button class="sidebar-item w-full text-left px-4 py-3 rounded-lg font-semibold hover:bg-pink-50 transition" data-section="visitors" onclick="switchSection('visitors')">
                             📈 방문자 리포트
+                        </button>
+                        <button class="sidebar-item w-full text-left px-4 py-3 rounded-lg font-semibold hover:bg-pink-50 transition" data-section="docs" onclick="switchSection('docs')">
+                            📄 문서/리포트
                         </button>
                     </div>
                 </nav>
@@ -3673,9 +4047,6 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                             <button onclick="loadReviewsData()" class="px-4 py-2 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition">
                                 🔄 새로고침
                             </button>
-                            <a href="reviews.html" target="_blank" class="px-4 py-2 bg-green-500 text-white rounded-lg font-semibold hover:bg-green-600 transition">
-                                👁️ 후기 페이지 보기
-                            </a>
                             <button onclick="updateRequestReviewAgree('PH-20250926982')" class="px-4 py-2 bg-purple-500 text-white rounded-lg font-semibold hover:bg-purple-600 transition" title="의뢰번호 PH-20250926982의 후기 동의 상태를 true로 변경">
                                 🔧 의뢰 후기동의 업데이트
                             </button>
@@ -4019,6 +4390,136 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                         </div>
                     </div>
                 </div>
+
+                <!-- 문서/리포트 섹션 -->
+                <div id="docs-section" class="section-content p-8 hidden">
+                    <div class="flex justify-between items-center mb-6 flex-wrap gap-3">
+                        <div>
+                            <h2 class="text-2xl font-bold text-gray-800">📄 문서/리포트</h2>
+                            <p class="text-sm text-gray-500 mt-1">관리자페이지에서 바로 문서화하고 PDF/CSV로 내보낼 수 있습니다.</p>
+                        </div>
+                        <div class="flex gap-2 flex-wrap">
+                            <button onclick="loadAdminDocsReport()" class="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition">
+                                🔄 새로고침
+                            </button>
+                            <button onclick="downloadDocsCsv()" class="px-4 py-2 bg-emerald-600 text-white rounded-lg font-semibold hover:bg-emerald-700 transition">
+                                ⬇️ CSV 다운로드
+                            </button>
+                            <button onclick="printDocsSection()" class="px-4 py-2 bg-gray-800 text-white rounded-lg font-semibold hover:bg-black transition">
+                                🖨️ PDF로 저장(인쇄)
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 최근 3개월 월별 방문/의뢰/결제 -->
+                    <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg font-semibold text-gray-800">최근 3개월 월별 방문자수/의뢰수/결제수</h3>
+                            <span id="docs-last-updated" class="text-xs text-gray-500"></span>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">월</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">방문자수(고유)</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">의뢰수</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">결제수(유료)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="docs-monthly-kpi-body" class="bg-white divide-y divide-gray-200">
+                                    <tr>
+                                        <td colspan="4" class="px-4 py-6 text-center text-gray-500">데이터를 불러오는 중...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <!-- 가장 많이 들어온 요청 카테고리 -->
+                        <div class="bg-white rounded-xl shadow-lg p-6">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4">가장 많이 들어온 요청 카테고리 (Top 10)</h3>
+                            <div id="docs-top-categories" class="space-y-2 text-sm text-gray-700">
+                                <div class="text-gray-500">데이터를 불러오는 중...</div>
+                            </div>
+                        </div>
+
+                        <!-- 재이용 고객 존재 여부 -->
+                        <div class="bg-white rounded-xl shadow-lg p-6">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4">재이용 고객 존재 여부</h3>
+                            <div class="space-y-3 text-sm">
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">의뢰 재이용 고객(의뢰 2건 이상)</span>
+                                    <span id="docs-repeat-requesters" class="font-semibold text-gray-800">-</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">유료 재이용 고객(유료 결제 2건 이상)</span>
+                                    <span id="docs-repeat-paid" class="font-semibold text-gray-800">-</span>
+                                </div>
+                                <div class="mt-2 text-xs text-gray-500">
+                                    * 기준: `requests`의 `email/userEmail` 또는 `uid/userId` 기준으로 집계
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 실제 유료 고객 사례 -->
+                    <div class="bg-white rounded-xl shadow-lg p-6 mt-6">
+                        <div class="flex justify-between items-center mb-4 flex-wrap gap-3">
+                            <h3 class="text-lg font-semibold text-gray-800">실제 유료 고객 사례 (3건 이상)</h3>
+                            <button onclick="addCaseStudyFromSelection()" class="px-4 py-2 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition">
+                                ➕ 사례 추가
+                            </button>
+                        </div>
+                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+                            <div class="lg:col-span-2">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">유료 의뢰 선택 (최근 200건 중)</label>
+                                <select id="docs-paid-request-select" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                    <option value="">불러오는 중...</option>
+                                </select>
+                            </div>
+                            <div class="lg:col-span-1">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">메모(익명 요약)</label>
+                                <input id="docs-case-note" type="text" class="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="예) 카테고리/구매대행/절감률/리드타임 등">
+                            </div>
+                        </div>
+                        <div id="docs-case-studies" class="space-y-3">
+                            <div class="text-gray-500 text-sm">사례가 아직 없습니다. 위에서 유료 의뢰를 선택해 추가하세요.</div>
+                        </div>
+                        <div class="mt-3 text-xs text-gray-500">
+                            * 사례는 브라우저 로컬에 저장됩니다(필요 시 Firestore로 올리는 방식도 추가 가능).
+                        </div>
+                    </div>
+
+                    <!-- 기능표 (수동/반자동/자동) -->
+                    <div class="bg-white rounded-xl shadow-lg p-6 mt-6">
+                        <div class="flex justify-between items-center mb-4 flex-wrap gap-3">
+                            <h3 class="text-lg font-semibold text-gray-800">현재 기능 분류표 (수동/반자동/자동)</h3>
+                            <div class="flex gap-2">
+                                <button onclick="addFunctionRow()" class="px-4 py-2 bg-gray-700 text-white rounded-lg font-semibold hover:bg-gray-800 transition">
+                                    ➕ 행 추가
+                                </button>
+                                <button onclick="saveFunctionTable()" class="px-4 py-2 bg-pink-600 text-white rounded-lg font-semibold hover:bg-pink-700 transition">
+                                    💾 저장
+                                </button>
+                            </div>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">기능명</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">분류</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">설명</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">삭제</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="docs-function-table-body" class="bg-white divide-y divide-gray-200"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -4166,6 +4667,49 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                         </div>
                     </div>
 
+                    <!-- 결제/적립금 관리 (구매대행 결제건) -->
+                    <div id="admin-modal-payment-section" class="mb-6 hidden">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                            💳 결제/적립금 관리
+                        </h3>
+                        <div class="bg-emerald-50 rounded-lg p-4 border-l-4 border-emerald-500">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm mb-4">
+                                <div><span class="font-semibold text-gray-700">주문ID:</span> <span id="admin-modal-order-id" class="text-emerald-700"></span></div>
+                                <div><span class="font-semibold text-gray-700">결제상태:</span> <span id="admin-modal-payment-status" class="text-emerald-700"></span></div>
+                                <div><span class="font-semibold text-gray-700">적립금상태:</span> <span id="admin-modal-points-status" class="text-emerald-700"></span></div>
+                                <div><span class="font-semibold text-gray-700">적립 예정(1%):</span> <span id="admin-modal-points-planned" class="text-emerald-700"></span></div>
+                            </div>
+                            <div id="admin-fulfillment-row" class="mt-4 pt-4 border-t border-emerald-200 hidden">
+                                <div class="text-sm font-semibold text-gray-800 mb-2">구매대행 진행 단계</div>
+                                <div class="flex flex-col md:flex-row md:items-center gap-3">
+                                    <select id="admin-fulfillment-select" class="px-3 py-2 border border-gray-300 rounded-lg text-sm max-w-md">
+                                        <option value="not_ordered">결제완료 · 외부 주문 전</option>
+                                        <option value="ordered">외부몰 주문 완료</option>
+                                        <option value="shipped">배송 중</option>
+                                        <option value="delivered">배송완료</option>
+                                    </select>
+                                    <button type="button" onclick="adminSaveFulfillmentFromModal()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm">
+                                        진행 단계 저장
+                                    </button>
+                                </div>
+                                <p id="admin-fulfillment-hint" class="mt-2 text-xs text-gray-600"></p>
+                            </div>
+                            <div class="flex flex-wrap gap-3 mt-4">
+                                <button id="admin-btn-purchase-confirm" onclick="adminConfirmPurchaseFromModal()" class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition disabled:opacity-50 disabled:cursor-not-allowed">
+                                    구매확정(적립금 확정)
+                                </button>
+                                <button id="admin-btn-payment-cancel" onclick="adminCancelPaymentFromModal()" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed">
+                                    결제 취소/환불
+                                </button>
+                            </div>
+                            <div class="mt-3 text-xs text-gray-600">
+                                - 구매확정(적립금 확정)은 <span class="font-semibold">배송완료(delivered)</span> 단계 저장 후에만 가능합니다.<br>
+                                - 외부 주문/배송이 시작된 뒤에는 결제 취소가 제한됩니다(강제 취소 시 확인 추가).<br>
+                                - 로컬 테스트 시 서버 환경변수 <code class="bg-gray-100 px-1 rounded">ADMIN_RELAX_FULFILLMENT=1</code> 이면 구매확정 단계 검증을 생략합니다.
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- 관리자 답변 작성 -->
                     <div class="mb-6">
                         <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
@@ -4285,7 +4829,9 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
         // 관리자용 의뢰 상세보기 모달 표시
         async function showAdminRequestDetailModal(request) {
             console.log('관리자용 의뢰 상세보기 모달 표시:', request);
-            
+            if (request && request.id) {
+                currentRequestId = request.id;
+            }
             // 모달 데이터 채우기 (회원 정보 이메일 포함)
             await fillAdminRequestDetailModal(request);
             
@@ -4438,7 +4984,163 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             } else {
                 document.getElementById('admin-modal-admin-response').classList.add('hidden');
             }
+
+            // 결제/적립금 관리 섹션 (payment.html로 결제한 구매대행 건)
+            const paymentSection = document.getElementById('admin-modal-payment-section');
+            const orderIdEl = document.getElementById('admin-modal-order-id');
+            const payStatusEl = document.getElementById('admin-modal-payment-status');
+            const pointsStatusEl = document.getElementById('admin-modal-points-status');
+            const pointsPlannedEl = document.getElementById('admin-modal-points-planned');
+            const fulfillmentRow = document.getElementById('admin-fulfillment-row');
+            const fulfillmentSelect = document.getElementById('admin-fulfillment-select');
+            const fulfillmentHint = document.getElementById('admin-fulfillment-hint');
+            const btnConfirm = document.getElementById('admin-btn-purchase-confirm');
+            const btnCancel = document.getElementById('admin-btn-payment-cancel');
+            window.__adminModalRequestDocId = request.id || null;
+            if (paymentSection && orderIdEl && payStatusEl && pointsStatusEl && pointsPlannedEl) {
+                const orderId = request.paymentOrderId || request.latestOrderId || '';
+                const paymentStatus = request.paymentStatus || '';
+                const pointsStatus = request.pointsStatus || '';
+                if (orderId) {
+                    paymentSection.classList.remove('hidden');
+                    orderIdEl.textContent = orderId;
+                    payStatusEl.textContent = paymentStatus || '(미설정)';
+                    pointsStatusEl.textContent = pointsStatus || '(미설정)';
+                    // planned points는 server payments 문서 기준이 가장 정확하지만, 여기서는 1% 안내용으로 계산/표시만
+                    const amount = Number(request.totalAmount || request.productPrice || request.price || 0);
+                    const planned = amount > 0 ? Math.max(1, Math.round(amount * 0.01)) : 0;
+                    pointsPlannedEl.textContent = planned ? planned.toLocaleString() + 'P' : '-';
+                    window.__adminModalCurrentOrderId = orderId;
+
+                    const fs = request.fulfillmentStatus || (paymentStatus === 'paid' ? 'not_ordered' : '');
+                    if (fulfillmentRow && fulfillmentSelect) {
+                        if (paymentStatus === 'paid') {
+                            fulfillmentRow.classList.remove('hidden');
+                            fulfillmentSelect.value = ['not_ordered', 'ordered', 'shipped', 'delivered'].includes(fs) ? fs : 'not_ordered';
+                        } else {
+                            fulfillmentRow.classList.add('hidden');
+                        }
+                    }
+                    if (fulfillmentHint) {
+                        fulfillmentHint.textContent = paymentStatus === 'paid'
+                            ? '배송완료까지 단계를 올린 뒤 「구매확정」으로 적립금을 확정하세요.'
+                            : '결제가 완료되면 진행 단계를 기록할 수 있습니다.';
+                    }
+                    const paidBlocked = ['cancelled', 'partially_cancelled'].includes(paymentStatus);
+                    const canConfirm = paymentStatus === 'paid' && !paidBlocked && pointsStatus !== 'available' && fs === 'delivered';
+                    const canCancel = paymentStatus === 'paid' && !paidBlocked;
+                    const cancelBlockedByFulfillment = ['ordered', 'shipped', 'delivered'].includes(fs);
+                    if (btnConfirm) {
+                        btnConfirm.disabled = !canConfirm;
+                        btnConfirm.title = canConfirm ? '' : (paymentStatus !== 'paid' || paidBlocked ? '결제 완료 건만 가능' : (pointsStatus === 'available' ? '이미 적립금 확정됨' : (fs !== 'delivered' ? '배송완료 단계 저장 후 가능' : '')));
+                    }
+                    if (btnCancel) {
+                        btnCancel.disabled = !canCancel;
+                        btnCancel.title = !canCancel ? '취소 불가' : (cancelBlockedByFulfillment ? '외부 주문 후에는 강제 취소 확인이 뜹니다' : '');
+                    }
+                    if (fulfillmentSelect && (paidBlocked || pointsStatus === 'available')) {
+                        fulfillmentSelect.disabled = true;
+                    } else if (fulfillmentSelect) {
+                        fulfillmentSelect.disabled = false;
+                    }
+                } else {
+                    paymentSection.classList.add('hidden');
+                    window.__adminModalCurrentOrderId = null;
+                    if (fulfillmentRow) fulfillmentRow.classList.add('hidden');
+                    if (btnConfirm) btnConfirm.disabled = true;
+                    if (btnCancel) btnCancel.disabled = true;
+                }
+            }
         }
+
+        window.adminSaveFulfillmentFromModal = async function() {
+            try {
+                const requestDocId = window.__adminModalRequestDocId;
+                const sel = document.getElementById('admin-fulfillment-select');
+                if (!requestDocId) return alert('의뢰 ID가 없습니다.');
+                if (!sel) return;
+                const fulfillmentStatus = sel.value;
+                const token = await getAdminIdToken();
+                const res = await fetch('/api/admin/fulfillment-status', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                    body: JSON.stringify({ requestDocId, fulfillmentStatus })
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || !data.ok) throw new Error(data.error || '저장 실패');
+                alert('진행 단계가 저장되었습니다: ' + fulfillmentStatus);
+            } catch (e) {
+                console.error(e);
+                alert('진행 단계 저장 오류: ' + (e.message || e));
+            }
+        };
+
+        async function getAdminIdToken() {
+            if (!window.firebaseAuth || !window.firebaseAuth.currentUser) {
+                throw new Error('로그인이 필요합니다.');
+            }
+            return await window.firebaseAuth.currentUser.getIdToken(true);
+        }
+
+        window.adminConfirmPurchaseFromModal = async function() {
+            try {
+                const orderId = window.__adminModalCurrentOrderId;
+                if (!orderId) return alert('주문ID가 없습니다.');
+                if (!confirm('구매확정 처리할까요?\n\n- 적립금이 확정(available)됩니다.')) return;
+                const token = await getAdminIdToken();
+                const res = await fetch('/api/admin/purchase-confirm', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                    body: JSON.stringify({ orderId })
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || !data.ok) throw new Error(data.error || '구매확정 처리 실패');
+                alert('구매확정 완료: ' + (data.points || 0) + 'P 확정');
+            } catch (e) {
+                console.error(e);
+                alert('구매확정 처리 중 오류: ' + (e.message || e));
+            }
+        };
+
+        window.adminCancelPaymentFromModal = async function() {
+            try {
+                const orderId = window.__adminModalCurrentOrderId;
+                if (!orderId) return alert('주문ID가 없습니다.');
+                const reason = prompt('취소 사유를 입력하세요.', '고객 요청');
+                if (reason === null) return;
+                const amountStr = prompt('부분취소 금액(원)을 입력하세요.\n- 전액 취소: 비워두고 확인', '');
+                const cancelAmount = (amountStr && amountStr.trim()) ? Number(amountStr.replace(/[^\d]/g, '')) : null;
+                if (cancelAmount != null && (!Number.isFinite(cancelAmount) || cancelAmount <= 0)) {
+                    return alert('부분취소 금액이 올바르지 않습니다.');
+                }
+                if (!confirm('결제를 취소/환불 처리할까요?\n\n- 적립금은 자동 회수됩니다.')) return;
+                const token = await getAdminIdToken();
+                let force = false;
+                const tryCancel = async () => {
+                    return await fetch('/api/admin/payment-cancel', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                        body: JSON.stringify({ orderId, reason, cancelAmount, force })
+                    });
+                };
+                let res = await tryCancel();
+                let data = await res.json().catch(() => ({}));
+                if (!res.ok && data.needFulfillmentForce) {
+                    if (confirm('외부 주문/배송이 진행된 상태입니다.\n\n정말 토스 결제 취소(환불)를 강제로 진행할까요?')) {
+                        force = true;
+                        res = await tryCancel();
+                        data = await res.json().catch(() => ({}));
+                    } else {
+                        return;
+                    }
+                }
+                if (!res.ok || !data.ok) throw new Error(data.error || '결제 취소 실패');
+                alert('결제 취소 처리 완료' + (data.fullyCancelled ? ' (전액)' : ' (부분)'));
+            } catch (e) {
+                console.error(e);
+                alert('결제 취소 처리 중 오류: ' + (e.message || e));
+            }
+        };
 
         // 관리자용 상태에 따른 CSS 클래스 반환
         function getAdminStatusClass(status) {
