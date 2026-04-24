@@ -2520,7 +2520,10 @@
             return b.savings - a.savings;
           });
           
-          // 최대 3개만 선택
+          // "더보기"를 위해 전체 목록을 전역으로 보관
+          window.heroAllSavingsReviews = sortedReviews;
+
+          // 메인에는 최대 3개만 선택
           recentSavings.push(...sortedReviews.slice(0, 3));
           
           console.log('✅ 최근 절약 사례 데이터:', recentSavings.length, '개');
@@ -2539,6 +2542,26 @@
           // 오류 발생 시 기본값 표시
           updateHeroStats(0, 0);
           updateHeroRecentSavings([]);
+        }
+      }
+
+      function scrollToHeroReviews() {
+        const section = document.getElementById('hero-recent-savings');
+        if (section) {
+          section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }
+
+      function setHeroReviewsExpanded(expanded) {
+        const all = Array.isArray(window.heroAllSavingsReviews) ? window.heroAllSavingsReviews : [];
+        const list = expanded ? all.slice(0, 6) : all.slice(0, 3);
+        updateHeroRecentSavings(list);
+
+        const btn = document.getElementById('hero-reviews-more-btn');
+        if (btn) {
+          btn.dataset.expanded = expanded ? 'true' : 'false';
+          const label = btn.querySelector('[data-label]');
+          if (label) label.textContent = expanded ? '후기 접기' : '실제 후기 더보기';
         }
       }
 
@@ -3089,6 +3112,9 @@
       document.addEventListener('DOMContentLoaded', function() {
         // 스플래시 화면 초기화
         initSplashScreen();
+
+        // 회원 전용 버튼 가드 연결
+        attachMemberOnlyGuards();
         
         // 히어로 섹션 통계 로드 (Firebase 초기화 대기)
         setTimeout(() => {
@@ -3138,6 +3164,7 @@
         popup.setAttribute('aria-hidden', 'true');
         
         // 버튼 이벤트 리스너
+        // popupContinueBtn은 attachMemberOnlyGuards()에서 "의뢰 이동" 가드를 추가로 부착함
         popupContinueBtn.addEventListener('click', closePopup);
         popupCloseBtn.addEventListener('click', closePopup);
         popupHideTodayBtn.addEventListener('click', hideForToday);
@@ -3760,9 +3787,15 @@
 
         <!-- 최근 절약 사례들 -->
         <div id="hero-recent-savings" class="hero-element w-full max-w-6xl mx-auto mb-16 px-4" style="animation: fadeIn 0.8s ease-out 0.8s both; opacity: 0;">
-          <h2 class="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-10 tracking-tight" style="font-family: 'Noto Sans KR', sans-serif; font-weight: 700; letter-spacing: -0.02em; text-shadow: 0 2px 10px rgba(0,0,0,0.3);">
-            최근 절약 사례
-          </h2>
+          <div class="flex flex-col items-center gap-4 mb-10">
+            <h2 class="text-2xl sm:text-3xl md:text-4xl font-bold text-white tracking-tight text-center" style="font-family: 'Noto Sans KR', sans-serif; font-weight: 700; letter-spacing: -0.02em; text-shadow: 0 2px 10px rgba(0,0,0,0.3);">
+              AI로 더 똑똑해진 소비자들의 후기
+            </h2>
+            <p class="text-sm sm:text-base md:text-lg text-white/70 text-center max-w-3xl" style="font-family: 'Noto Sans KR', sans-serif;">
+              감으로 사지 않고, 데이터로 확인한 사람들이 남긴 진짜 경험담
+            </p>
+            <!-- (요청) 섹션 내부 버튼 제거됨: CTA 옆으로 이동 -->
+          </div>
           <div id="hero-savings-cards" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
             <!-- 동적으로 생성됨 -->
           </div>
@@ -3773,7 +3806,9 @@
           <div id="hero-buttons-container" class="hero-element flex flex-col items-center justify-center w-full gap-4" style="animation: fadeIn 0.8s ease-out 1.6s both; opacity: 0;">
             <!-- 메인 CTA 버튼 - 프리미엄 스타일 -->
             <a href="request-v2.html"
-              class="hero-button-pulse group relative inline-block px-6 sm:px-8 md:px-10 lg:px-14 py-4 sm:py-5 md:py-6 text-white text-base sm:text-lg md:text-xl lg:text-2xl font-bold rounded-xl sm:rounded-2xl shadow-[0_8px_32px_0_rgba(242,153,74,0.4)] hover:shadow-[0_12px_48px_0_rgba(242,153,74,0.6)] transition-all duration-500 focus:outline-none focus:ring-4 focus:ring-orange-300/50 text-center w-full sm:w-auto overflow-hidden min-h-[48px] sm:min-h-[56px] flex items-center justify-center"
+              data-requires-member="true"
+              data-member-target="request-v2.html"
+              class="hero-button-pulse requires-member group relative inline-block px-6 sm:px-8 md:px-10 lg:px-14 py-4 sm:py-5 md:py-6 text-white text-base sm:text-lg md:text-xl lg:text-2xl font-bold rounded-xl sm:rounded-2xl shadow-[0_8px_32px_0_rgba(242,153,74,0.4)] hover:shadow-[0_12px_48px_0_rgba(242,153,74,0.6)] transition-all duration-500 focus:outline-none focus:ring-4 focus:ring-orange-300/50 text-center w-full sm:w-auto overflow-hidden min-h-[48px] sm:min-h-[56px] flex items-center justify-center"
               style="font-family: 'Noto Sans KR', sans-serif; font-weight: 700; background: linear-gradient(135deg, #F2994A 0%, #F27C2A 50%, #E85D04 100%);"
               aria-label="무료 최저가 조회하기">
               <!-- 버튼 배경 효과 -->
@@ -3785,9 +3820,327 @@
                 </svg>
               </span>
             </a>
+
+            <!-- 실제 후기 더보기 (동일 크기) -->
+            <button type="button"
+              id="hero-reviews-more-btn"
+              class="group relative inline-flex items-center justify-center px-6 sm:px-8 md:px-10 lg:px-14 py-4 sm:py-5 md:py-6 text-white text-base sm:text-lg md:text-xl lg:text-2xl font-bold rounded-xl sm:rounded-2xl shadow-[0_8px_32px_0_rgba(59,130,246,0.35)] hover:shadow-[0_12px_48px_0_rgba(59,130,246,0.55)] transition-all duration-500 focus:outline-none focus:ring-4 focus:ring-blue-300/50 text-center w-full sm:w-auto overflow-hidden min-h-[48px] sm:min-h-[56px] mt-2"
+              style="font-family: 'Noto Sans KR', sans-serif; font-weight: 700; background: linear-gradient(135deg, #3B82F6 0%, #2563EB 55%, #1D4ED8 100%);">
+              <div class="absolute inset-0 bg-gradient-to-r from-white/0 via-white/18 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
+              <span class="relative flex items-center justify-center gap-3">
+                <span data-label>실제 후기 더보기</span>
+                <svg class="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+                </svg>
+              </span>
+            </button>
           </div>
         </div>
       </div>
+    </section>
+
+    <!-- PPT 스타일 프로세스 데모 섹션 -->
+    <section id="ppt-process-demo" class="relative w-full py-16 sm:py-20 px-4 overflow-hidden" style="background: linear-gradient(180deg, #0F1E3A 0%, #1F3A5F 55%, #2A4A6F 100%); margin-top: -1px;">
+      <div class="absolute inset-0 pointer-events-none">
+        <div class="absolute inset-0 opacity-[0.04]" style="background-image: radial-gradient(circle at 2px 2px, rgba(255,255,255,0.18) 1px, transparent 0); background-size: 34px 34px;"></div>
+        <div class="absolute -top-40 left-1/2 -translate-x-1/2 w-[900px] h-[600px] bg-gradient-to-b from-white/10 via-white/5 to-transparent rounded-full blur-3xl"></div>
+      </div>
+
+      <div class="relative z-10 max-w-6xl mx-auto">
+        <div class="text-center mb-10 sm:mb-12">
+          <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 border border-white/15 backdrop-blur-sm shadow-lg">
+            <span class="text-xs sm:text-sm font-semibold text-white/90" style="font-family: 'Noto Sans KR', sans-serif;">PPT처럼 한 번에 이해되는 프로세스</span>
+          </div>
+          <h2 class="mt-5 text-2xl sm:text-3xl md:text-4xl font-extrabold text-white tracking-tight" style="font-family: 'Noto Sans KR', sans-serif; text-shadow: 0 4px 22px rgba(0,0,0,0.35);">
+            의뢰하면, 1~2일 내에 최저가가 “딱” 나타납니다
+          </h2>
+          <p class="mt-3 text-sm sm:text-base md:text-lg text-white/70" style="font-family: 'Noto Sans KR', sans-serif;">
+            접수 → 검증 진행 → 최저가 확정 → 결과 전달 (자동 슬라이드)
+          </p>
+        </div>
+
+        <div class="ppt-wrap rounded-3xl bg-white/6 border border-white/10 backdrop-blur-xl shadow-[0_18px_70px_rgba(0,0,0,0.35)] overflow-hidden">
+          <!-- 상단 바 (가짜 앱/브라우저) -->
+          <div class="flex items-center justify-between px-4 sm:px-6 py-3 border-b border-white/10 bg-black/25">
+            <div class="flex items-center gap-2">
+              <span class="w-3 h-3 rounded-full bg-red-400/80"></span>
+              <span class="w-3 h-3 rounded-full bg-yellow-300/80"></span>
+              <span class="w-3 h-3 rounded-full bg-emerald-400/80"></span>
+              <span class="ml-3 text-xs text-white/60 hidden sm:inline">PriceHunter · 검증 프로세스</span>
+            </div>
+            <div class="text-xs text-white/60">
+              <span id="ppt-step-label">1/4</span>
+            </div>
+          </div>
+
+          <!-- 진행바 -->
+          <div class="h-1 bg-white/10">
+            <div id="ppt-progress" class="h-1 w-0 bg-gradient-to-r from-emerald-400 via-cyan-400 to-blue-400"></div>
+          </div>
+
+          <!-- 슬라이드 -->
+          <div class="ppt-stage relative">
+            <div id="ppt-track" class="ppt-track flex w-[400%]">
+              <!-- Slide 1 -->
+              <div class="ppt-slide w-1/4 p-5 sm:p-7 lg:p-10">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-10 items-center">
+                  <div>
+                    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-400/20 text-emerald-200 text-xs font-bold">
+                      STEP 1 · 의뢰 접수
+                    </div>
+                    <div class="mt-3 text-2xl sm:text-3xl font-black text-white tracking-tight">
+                      10초 입력 → 검증 시작
+                    </div>
+                    <div class="mt-3 text-sm sm:text-base text-white/75 leading-relaxed">
+                      제품 링크 + 요청가만 넣어도 충분해요.
+                    </div>
+                  </div>
+                  <div class="relative">
+                    <div class="rounded-3xl bg-gradient-to-br from-white/10 to-white/5 border border-white/10 p-5 sm:p-6">
+                      <div class="flex items-center justify-between">
+                        <div class="text-sm font-extrabold text-white">의뢰 접수 완료</div>
+                        <div class="text-xs text-white/60">PH-XXXX</div>
+                      </div>
+                      <div class="mt-4 rounded-2xl bg-black/35 border border-white/10 p-4">
+                        <div class="text-xs text-white/60 font-semibold">요청가(기존)</div>
+                        <div class="mt-1 text-2xl font-black text-white whitespace-nowrap tabular-nums">180,000원</div>
+                      </div>
+                      <div class="mt-3 rounded-2xl bg-emerald-500/15 border border-emerald-400/20 p-4">
+                        <div class="text-xs text-emerald-100 font-semibold">상태</div>
+                        <div class="mt-1 text-lg font-extrabold text-emerald-200">검증 시작</div>
+                      </div>
+                    </div>
+                    <div class="ppt-float-tag absolute -top-3 -right-2 px-3 py-1 rounded-full bg-emerald-500 text-white text-xs font-black shadow-lg">
+                      접수!
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Slide 2 -->
+              <div class="ppt-slide w-1/4 p-5 sm:p-7 lg:p-10">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-10 items-center">
+                  <div>
+                    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/15 border border-cyan-400/20 text-cyan-200 text-xs font-bold">
+                      STEP 2 · 검증 진행
+                    </div>
+                    <div class="mt-3 text-2xl sm:text-3xl font-black text-white tracking-tight">
+                      실제 결제 기준으로 비교
+                    </div>
+                    <div class="mt-3 text-sm sm:text-base text-white/75 leading-relaxed">
+                      배송/수수료까지 반영해 “진짜 최저가”를 찾습니다.
+                    </div>
+                  </div>
+                  <div class="relative">
+                    <div class="rounded-3xl bg-gradient-to-br from-white/10 to-white/5 border border-white/10 p-5 sm:p-6">
+                      <div class="text-sm font-extrabold text-white">검증 진행 중</div>
+                      <div class="mt-4 rounded-2xl bg-black/35 border border-white/10 p-4">
+                        <div class="text-xs text-white/60 font-semibold mb-2">진행률</div>
+                        <div class="h-2 rounded-full bg-white/10 overflow-hidden">
+                          <div class="ppt-mini-progress h-2 w-0 bg-gradient-to-r from-cyan-400 to-blue-500"></div>
+                        </div>
+                      </div>
+                      <div class="mt-3 rounded-2xl bg-black/35 border border-white/10 p-4 flex items-center justify-between">
+                        <span class="text-sm text-white/70 font-semibold">현재 최저 후보</span>
+                        <span class="text-xl font-black text-white whitespace-nowrap tabular-nums">129,000원</span>
+                      </div>
+                    </div>
+                    <div class="ppt-glow absolute -inset-2 rounded-[28px] pointer-events-none"></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Slide 3 -->
+              <div class="ppt-slide w-1/4 p-5 sm:p-7 lg:p-10">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-10 items-center">
+                  <div>
+                    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/15 border border-blue-400/20 text-blue-200 text-xs font-bold">
+                      STEP 3 · 최저가 확정
+                    </div>
+                    <div class="mt-3 text-2xl sm:text-3xl font-black text-white tracking-tight">
+                      1~2일 내 “딱”
+                    </div>
+                    <div class="mt-3 text-sm sm:text-base text-white/75 leading-relaxed">
+                      최저가와 절약액이 한눈에 나옵니다.
+                    </div>
+                  </div>
+                  <div class="relative">
+                    <div class="rounded-3xl bg-gradient-to-br from-white/10 to-white/5 border border-white/10 p-5 sm:p-6 overflow-hidden">
+                      <div class="text-sm font-extrabold text-white">검증 완료</div>
+                      <div class="mt-4 rounded-2xl bg-emerald-500/15 border border-emerald-400/20 p-4 flex items-end justify-between gap-3">
+                        <div>
+                          <div class="text-xs text-emerald-100 font-semibold">검증 최저가</div>
+                          <div class="mt-1 text-3xl font-black text-emerald-200 whitespace-nowrap tabular-nums">100,000원</div>
+                        </div>
+                        <div class="text-right">
+                          <div class="text-xs text-white/70 font-semibold">절약</div>
+                          <div class="mt-1 text-lg font-black text-orange-200 whitespace-nowrap tabular-nums">80,000원</div>
+                        </div>
+                      </div>
+                      <div class="ppt-stamp absolute -right-6 -bottom-6 w-28 h-28 rounded-full border-4 border-emerald-300/40 text-emerald-200/90 flex items-center justify-center font-black rotate-[-18deg]">
+                        VERIFIED
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Slide 4 -->
+              <div class="ppt-slide w-1/4 p-5 sm:p-7 lg:p-10">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-10 items-center">
+                  <div>
+                    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/15 border border-indigo-400/20 text-indigo-200 text-xs font-bold">
+                      STEP 4 · 결과 전달
+                    </div>
+                    <div class="mt-3 text-2xl sm:text-3xl font-black text-white tracking-tight">
+                      근거까지 한 번에
+                    </div>
+                    <div class="mt-3 text-sm sm:text-base text-white/75 leading-relaxed">
+                      링크와 캡처로 “왜 최저가인지”가 남습니다.
+                    </div>
+                  </div>
+                  <div class="relative">
+                    <div class="rounded-3xl bg-gradient-to-br from-white/10 to-white/5 border border-white/10 p-5 sm:p-6">
+                      <div class="text-sm font-extrabold text-white">결과 전달</div>
+                      <div class="mt-4 rounded-2xl bg-black/35 border border-white/10 p-4">
+                        <div class="flex items-center justify-between">
+                          <span class="text-sm text-white/70 font-semibold">근거 링크</span>
+                          <span class="text-sm font-black text-white">2~5개</span>
+                        </div>
+                        <div class="mt-3 flex items-center justify-between">
+                          <span class="text-sm text-white/70 font-semibold">핵심 캡처</span>
+                          <span class="text-sm font-black text-white">1장</span>
+                        </div>
+                      </div>
+                      <div class="mt-3 rounded-2xl bg-indigo-500/15 border border-indigo-400/20 p-4">
+                        <div class="text-xs text-indigo-100 font-semibold">한 줄 요약</div>
+                        <div class="mt-1 text-sm font-extrabold text-white">동일 조건 기준 최저가 확인</div>
+                      </div>
+                    </div>
+                    <div class="ppt-float-tag absolute -top-3 -left-2 px-3 py-1 rounded-full bg-indigo-500 text-white text-xs font-black shadow-lg">
+                      완료!
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 하단 컨트롤 -->
+            <div class="px-4 sm:px-6 pb-5 pt-4 border-t border-white/10 bg-black/15">
+              <div class="flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div class="flex items-center gap-2">
+                  <button id="ppt-prev" class="px-4 py-2 rounded-xl bg-white/10 border border-white/10 hover:bg-white/15 transition text-sm font-bold text-white/90">이전</button>
+                  <button id="ppt-next" class="px-4 py-2 rounded-xl bg-white/10 border border-white/10 hover:bg-white/15 transition text-sm font-bold text-white/90">다음</button>
+                  <button id="ppt-toggle" class="px-4 py-2 rounded-xl bg-white/10 border border-white/10 hover:bg-white/15 transition text-sm font-bold text-white/90">자동재생</button>
+                </div>
+                <a href="request-v2.html" data-requires-member="true" data-member-target="request-v2.html" class="requires-member inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-extrabold text-white shadow-lg hover:shadow-xl transition-all duration-300 w-full sm:w-auto" style="background: linear-gradient(135deg, #F2994A 0%, #F27C2A 50%, #E85D04 100%);">
+                  지금 의뢰하기
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+                  </svg>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <style>
+          #ppt-process-demo .tabular-nums { font-variant-numeric: tabular-nums; }
+          #ppt-process-demo .ppt-track { transition: transform 700ms cubic-bezier(.2,.9,.2,1); will-change: transform; }
+          #ppt-process-demo .ppt-float-tag { animation: pptFloat 2.4s ease-in-out infinite; }
+          #ppt-process-demo .ppt-mini-progress { animation: pptMiniProgress 5s ease-in-out infinite; }
+          #ppt-process-demo .ppt-glow {
+            background: radial-gradient(ellipse at 50% 40%, rgba(34,211,238,0.25), transparent 55%);
+            filter: blur(16px);
+            opacity: 0.9;
+          }
+          #ppt-process-demo .ppt-stamp { box-shadow: 0 20px 60px rgba(16,185,129,0.25); }
+          @keyframes pptFloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+          @keyframes pptMiniProgress { 0% { width: 0%; } 60% { width: 85%; } 100% { width: 95%; } }
+          @media (prefers-reduced-motion: reduce) {
+            #ppt-process-demo .ppt-track { transition: none; }
+            #ppt-process-demo .ppt-float-tag,
+            #ppt-process-demo .ppt-mini-progress { animation: none; }
+          }
+        </style>
+
+        <script>
+          (function initPptProcessDemo() {
+            const root = document.getElementById('ppt-process-demo');
+            if (!root) return;
+            const track = document.getElementById('ppt-track');
+            const progress = document.getElementById('ppt-progress');
+            const label = document.getElementById('ppt-step-label');
+            const prev = document.getElementById('ppt-prev');
+            const next = document.getElementById('ppt-next');
+            const toggle = document.getElementById('ppt-toggle');
+
+            const prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            const slideCount = 4;
+            let idx = 0;
+            let timer = null;
+            let isAuto = !prefersReduced;
+            const slideMs = 5200;
+
+            function render() {
+              if (track) track.style.transform = `translateX(-${idx * 25}%)`;
+              if (label) label.textContent = `${idx + 1}/${slideCount}`;
+              if (progress) {
+                progress.style.transition = 'none';
+                progress.style.width = '0%';
+                requestAnimationFrame(() => {
+                  requestAnimationFrame(() => {
+                    progress.style.transition = `width ${slideMs}ms linear`;
+                    progress.style.width = '100%';
+                  });
+                });
+              }
+              if (toggle) toggle.textContent = isAuto ? '일시정지' : '자동재생';
+            }
+
+            function stop() {
+              if (timer) clearInterval(timer);
+              timer = null;
+            }
+
+            function start() {
+              if (!isAuto) return;
+              stop();
+              timer = setInterval(() => {
+                idx = (idx + 1) % slideCount;
+                render();
+              }, slideMs);
+            }
+
+            function go(n) {
+              idx = (n + slideCount) % slideCount;
+              render();
+              start();
+            }
+
+            if (prev) prev.addEventListener('click', () => go(idx - 1));
+            if (next) next.addEventListener('click', () => go(idx + 1));
+            if (toggle) toggle.addEventListener('click', () => {
+              isAuto = !isAuto;
+              render();
+              if (isAuto) start();
+              else stop();
+            });
+
+            // 섹션이 보일 때만 재생 (PPT 느낌 + 성능)
+            const io = new IntersectionObserver((entries) => {
+              entries.forEach((e) => {
+                if (!e.isIntersecting) { stop(); return; }
+                render();
+                start();
+              });
+            }, { threshold: 0.2 });
+            io.observe(root);
+
+            // 사용자 조작 시 자동 재생 유지(선호)
+            render();
+          })();
+        </script>
     </section>
 
     <!-- 최저가 검증 섹션 -->
@@ -4276,10 +4629,10 @@
           모든 과정이 투명하게 진행되며, 객관적인 증거와 함께 결과를 제공합니다.
         </p>
         <div class="flex flex-col sm:flex-row gap-4 justify-center">
-          <button onclick="window.location.href='request-v2.html'" class="btn-cta-primary px-8 py-4 text-lg font-bold rounded-lg shadow-lg hover:shadow-xl transition-all duration-300" style="font-family: 'Noto Sans KR', sans-serif; font-weight: 700; background: linear-gradient(135deg, #10B981 0%, #059669 100%);">
+          <button onclick="window.location.href='request-v2.html'" data-requires-member="true" data-member-target="request-v2.html" class="btn-cta-primary requires-member px-8 py-4 text-lg font-bold rounded-lg shadow-lg hover:shadow-xl transition-all duration-300" style="font-family: 'Noto Sans KR', sans-serif; font-weight: 700; background: linear-gradient(135deg, #10B981 0%, #059669 100%);">
             무료 최저가 조회하기
           </button>
-          <a href="request-v2.html" class="btn-cta-secondary px-8 py-4 text-lg font-bold rounded-lg shadow-md hover:shadow-lg transition-all duration-300 text-center" style="font-family: 'Noto Sans KR', sans-serif; font-weight: 700; background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);">
+          <a href="request-v2.html" data-requires-member="true" data-member-target="request-v2.html" class="btn-cta-secondary requires-member px-8 py-4 text-lg font-bold rounded-lg shadow-md hover:shadow-lg transition-all duration-300 text-center" style="font-family: 'Noto Sans KR', sans-serif; font-weight: 700; background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);">
             의뢰하기
           </a>
         </div>
@@ -5566,6 +5919,39 @@
     <!-- 햄버거 메뉴 패널 삭제됨 -->
 
 
+    <!-- 회원 전용 안내 모달 -->
+    <div id="members-only-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 p-4" role="dialog" aria-modal="true" aria-labelledby="members-only-title" aria-hidden="true">
+      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+        <div class="p-6 sm:p-7">
+          <div class="flex items-start justify-between gap-4">
+            <div>
+              <h2 id="members-only-title" class="text-xl sm:text-2xl font-extrabold text-gray-900">🔒 회원 전용 기능이에요</h2>
+              <p id="members-only-desc" class="text-sm sm:text-base text-gray-600 mt-2 leading-relaxed">
+                “나도 절약해보기 / 의뢰하기”는 내 의뢰내역과 결과를 안전하게 관리하기 위해<br class="hidden sm:block">
+                회원만 이용할 수 있어요.
+              </p>
+            </div>
+            <button id="members-only-close" class="text-gray-400 hover:text-gray-700 text-2xl leading-none" aria-label="회원 안내 닫기" title="닫기">&times;</button>
+          </div>
+
+          <div class="mt-5 rounded-xl border border-gray-200 bg-gray-50 p-4">
+            <div class="text-sm font-semibold text-gray-800 mb-2">가입하면 바로 가능한 것</div>
+            <ul class="text-sm text-gray-700 space-y-1 list-disc list-inside">
+              <li>내 의뢰 내역/진행상황 확인</li>
+              <li>검증 결과 알림 &amp; 링크 보관</li>
+              <li>후기 작성 및 혜택 안내</li>
+            </ul>
+          </div>
+
+          <div class="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <button id="members-only-login" class="w-full py-3 rounded-xl bg-gray-900 text-white font-bold hover:bg-black transition">로그인</button>
+            <a href="register.html" class="w-full py-3 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 transition text-center">회원가입</a>
+          </div>
+          <p class="mt-3 text-xs text-gray-500 text-center">이미 계정이 있다면 로그인 후 바로 이용할 수 있어요.</p>
+        </div>
+      </div>
+    </div>
+
     <!-- 로그인 모달 -->
     <div id="login-modal" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 hidden p-4" role="dialog" aria-modal="true" aria-labelledby="login-modal-title">
       <div class="bg-white rounded-2xl shadow-2xl p-4 sm:p-6 md:p-8 w-full max-w-xs sm:max-w-sm md:max-w-md relative mx-auto">
@@ -5754,6 +6140,114 @@
       
       // Firebase v9 기반 공통 함수들
       let isFirebaseReady = false;
+
+      // ====================
+      // 회원 전용 가드 (나도 절약해보기 / 의뢰하기)
+      // ====================
+      function isMemberLoggedIn() {
+        try {
+          if (window.firebaseAuth && window.firebaseAuth.currentUser) return true;
+        } catch (e) {
+          // ignore
+        }
+        return localStorage.getItem('loggedIn') === 'true' || !!localStorage.getItem('currentUser');
+      }
+
+      function openMembersOnlyModal(customDesc) {
+        const modal = document.getElementById('members-only-modal');
+        if (!modal) return;
+
+        const desc = document.getElementById('members-only-desc');
+        if (desc && customDesc) {
+          desc.textContent = customDesc;
+        }
+
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        modal.setAttribute('aria-hidden', 'false');
+        document.body.style.overflow = 'hidden';
+      }
+
+      function closeMembersOnlyModal() {
+        const modal = document.getElementById('members-only-modal');
+        if (!modal) return;
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        modal.setAttribute('aria-hidden', 'true');
+        document.body.style.overflow = '';
+      }
+
+      function attachMemberOnlyGuards() {
+        const guarded = Array.from(document.querySelectorAll('[data-requires-member="true"], .requires-member'));
+        guarded.forEach((el) => {
+          el.addEventListener('click', (e) => {
+            if (isMemberLoggedIn()) return;
+
+            // 링크 이동/기본 동작 방지
+            e.preventDefault();
+            e.stopPropagation();
+
+            const target = el.getAttribute('data-member-target') || 'request-v2.html';
+            const targetLabel = target === 'request-v2.html'
+              ? '의뢰하기(최저가 검증 서비스)'
+              : '서비스';
+            openMembersOnlyModal(`해당 기능은 회원 전용이에요.\n\n회원가입(또는 로그인) 후 ${targetLabel}를 이용할 수 있어요.`);
+          }, { passive: false });
+        });
+
+        // 팝업 CTA는 "닫기"가 아니라 "의뢰로 이동" 성격이므로 별도 처리
+        const popupContinueBtn = document.getElementById('popup-continue-btn');
+        if (popupContinueBtn) {
+          popupContinueBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            // 팝업 닫는 로직은 기존 리스너가 있으므로 유지하고, 이동만 추가
+            if (isMemberLoggedIn()) {
+              window.location.href = 'request-v2.html';
+            } else {
+              openMembersOnlyModal('“나도 절약해보기”는 회원 전용 기능이에요. 간단히 가입하고 바로 최저가 검증을 의뢰해보세요.');
+            }
+          }, { passive: false });
+        }
+
+        // "실제 후기 더보기" 버튼: reviews 페이지로 이동
+        const reviewsMoreBtn = document.getElementById('hero-reviews-more-btn');
+        if (reviewsMoreBtn) {
+          reviewsMoreBtn.addEventListener('click', () => {
+            window.location.href = 'reviews.html';
+          });
+        }
+
+        // 모달 닫기/로그인 연결
+        const closeBtn = document.getElementById('members-only-close');
+        if (closeBtn) closeBtn.addEventListener('click', closeMembersOnlyModal);
+
+        const modal = document.getElementById('members-only-modal');
+        if (modal) {
+          modal.addEventListener('click', (e) => {
+            if (e.target === modal) closeMembersOnlyModal();
+          });
+        }
+
+        const loginBtn = document.getElementById('members-only-login');
+        if (loginBtn) {
+          loginBtn.addEventListener('click', () => {
+            closeMembersOnlyModal();
+            const loginModal = document.getElementById('login-modal');
+            if (loginModal) {
+              loginModal.classList.remove('hidden');
+              document.body.style.overflow = 'hidden';
+            }
+          });
+        }
+
+        document.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape') {
+            const modal = document.getElementById('members-only-modal');
+            if (modal && !modal.classList.contains('hidden')) closeMembersOnlyModal();
+          }
+        });
+      }
 
       // Firebase 준비 상태 확인
       function waitForFirebase() {
@@ -8421,15 +8915,11 @@ if (mypageBtn) {
       }
       
       function goToRequest() {
-        // 로그인 상태 확인
-        var loggedIn = localStorage.getItem('loggedIn') === 'true' || localStorage.getItem('currentUser');
-        if (loggedIn) {
+        if (isMemberLoggedIn()) {
           window.location.href = 'request-v2.html';
-        } else {
-          // 비회원 경고창
-          alert('🔒 회원가입 후 이용하세요!\n\n최저가 검증 서비스를 이용하려면 회원가입이 필요합니다.');
-          window.location.href = 'register.html';
+          return;
         }
+        openMembersOnlyModal('최저가 검증 의뢰를 이용하려면 회원가입(또는 로그인)이 필요해요.');
       }
     </script>
     
