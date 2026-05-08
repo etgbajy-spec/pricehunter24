@@ -268,6 +268,27 @@
             </div>
           </div>
 
+          <!-- 적립금 요약 -->
+          <div class="mb-6 p-5 bg-gradient-to-r from-emerald-50 to-blue-50 rounded-2xl border border-emerald-100">
+            <div class="flex items-center justify-between mb-4">
+              <div class="font-bold text-gray-800 text-lg">💎 적립금</div>
+              <a href="orders.html" class="text-sm font-semibold text-blue-700 hover:underline">내 주문/진행상태 보기</a>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div class="bg-white rounded-xl p-4 shadow-sm border border-emerald-100">
+                <div class="text-sm text-gray-500 mb-1">사용 가능(확정)</div>
+                <div class="text-2xl font-extrabold text-emerald-600"><span id="points-available">0</span>P</div>
+              </div>
+              <div class="bg-white rounded-xl p-4 shadow-sm border border-blue-100">
+                <div class="text-sm text-gray-500 mb-1">적립 예정</div>
+                <div class="text-2xl font-extrabold text-blue-600"><span id="points-pending">0</span>P</div>
+              </div>
+            </div>
+            <div class="mt-3 text-xs text-gray-600">
+              구매요청 결제 건은 <span class="font-semibold">배송완료 후 구매확정</span> 시 적립금이 확정됩니다.
+            </div>
+          </div>
+
           <!-- 정보수정 폼 -->
           <div id="info-form-container" class="hidden">
             <form id="info-form" class="flex flex-col gap-4">
@@ -606,6 +627,27 @@
               </div>
               <div class="bg-white rounded-lg p-4 shadow-sm">
                 <div id="modal-response-content"></div>
+              </div>
+              
+              <!-- 최종 선택 (답변완료 시 노출) -->
+              <div id="modal-purchase-actions" class="mt-5 hidden">
+                <div class="bg-white rounded-lg p-4 shadow-sm border border-blue-100">
+                  <div class="font-semibold text-gray-800 mb-2">마지막 선택</div>
+                  <div class="text-sm text-gray-600 mb-4">원하시는 구매 방식을 선택해주세요.</div>
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <a id="btn-direct-buy" href="#" target="_blank" rel="noopener noreferrer"
+                       class="px-4 py-3 rounded-xl bg-gray-900 text-white font-bold text-center hover:bg-black transition">
+                      쇼핑몰에서 직접구매
+                    </a>
+                    <a id="btn-support-buy" href="#" role="button"
+                       class="px-4 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-bold text-center hover:from-emerald-600 hover:to-emerald-700 transition">
+                      프라이스헌터에게 구매요청
+                    </a>
+                  </div>
+                  <div class="mt-3 text-xs text-gray-500">
+                    프라이스헌터 구매요청 결제 시 <span class="font-semibold">결제금액의 1% 적립</span> (구매확정 후 사용 가능)
+                  </div>
+                </div>
               </div>
               <div class="mt-4 flex items-center text-sm text-gray-500">
                 <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
@@ -957,6 +999,13 @@
         const dateB = new Date(b.reqDate || b.createdAt || 0);
         return dateB - dateA;
       });
+
+      // 적립금 요약 업데이트 (의뢰 기반 단순 집계)
+      try {
+        updatePointsSummaryFromRequests(requests);
+      } catch (e) {
+        console.warn('points summary update failed:', e);
+      }
       
       if (requests.length === 0) {
         requestList.innerHTML = '<li class="p-4 text-gray-500 text-center">의뢰 내역이 없습니다.</li>';
@@ -991,6 +1040,8 @@
         // Firebase 상태 확인
         const requestStatus = request.status || '처리중';
         const hasAdminResponse = request.adminResponse && Object.keys(request.adminResponse).length > 0;
+        const paymentStatus = request.paymentStatus || '';
+        const fulfillmentStatus = request.fulfillmentStatus || '';
         
         const listItem = document.createElement('li');
         listItem.className = 'p-4 hover:bg-blue-100 cursor-pointer transition-colors';
@@ -1000,6 +1051,11 @@
               <div class="font-semibold text-gray-800">${reqNum}</div>
               <div class="text-sm text-gray-600">${userName} | ${formattedDate}</div>
               <div class="text-sm text-gray-500 mt-1">${productName}</div>
+              <div class="mt-2 flex flex-wrap gap-2">
+                ${paymentStatus ? `<span class="inline-block px-2 py-0.5 text-xs rounded-full ${paymentStatus === 'paid' ? 'bg-purple-100 text-purple-700' : paymentStatus === 'pending' ? 'bg-blue-100 text-blue-700' : paymentStatus.includes('cancel') ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'}">결제: ${escapeHtml(paymentStatus)}</span>` : ''}
+                ${fulfillmentStatus ? `<span class="inline-block px-2 py-0.5 text-xs rounded-full ${fulfillmentStatus === 'delivered' ? 'bg-emerald-100 text-emerald-700' : fulfillmentStatus === 'shipped' ? 'bg-indigo-100 text-indigo-700' : fulfillmentStatus === 'ordered' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'}">진행: ${escapeHtml(fulfillmentStatus)}</span>` : ''}
+                ${request.pointsStatus ? `<span class="inline-block px-2 py-0.5 text-xs rounded-full ${request.pointsStatus === 'available' ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-700'}">적립금: ${escapeHtml(request.pointsStatus)}</span>` : ''}
+              </div>
             </div>
             <div class="ml-4 text-right">
               ${requestStatus === '답변완료' ? 
@@ -1021,6 +1077,42 @@
         
         requestList.appendChild(listItem);
       });
+    }
+
+    function safeNumberFromMoneyLike(v) {
+      if (v == null) return 0;
+      if (typeof v === 'number') return Number.isFinite(v) ? v : 0;
+      if (typeof v === 'string') {
+        const n = Number(v.replace(/[^\d]/g, ''));
+        return Number.isFinite(n) ? n : 0;
+      }
+      return 0;
+    }
+
+    function plannedPointsForRequest(request) {
+      const amount = safeNumberFromMoneyLike(request.totalAmount || request.productPrice || request.price || 0);
+      if (!amount) return 0;
+      return Math.max(1, Math.round(amount * 0.01));
+    }
+
+    function updatePointsSummaryFromRequests(requests) {
+      const availableEl = document.getElementById('points-available');
+      const pendingEl = document.getElementById('points-pending');
+      if (!availableEl || !pendingEl) return;
+
+      let available = 0;
+      let pending = 0;
+
+      (requests || []).forEach((r) => {
+        if ((r.purchaseDecision || r.purchaseMethod) !== 'support') return;
+        const pts = plannedPointsForRequest(r);
+        if (!pts) return;
+        if (r.pointsStatus === 'available') available += pts;
+        else if (r.paymentStatus === 'paid') pending += pts;
+      });
+
+      availableEl.textContent = Number(available).toLocaleString();
+      pendingEl.textContent = Number(pending).toLocaleString();
     }
 
     // 의뢰 정보만 표시 (결과 데이터가 없을 때)
@@ -3345,6 +3437,56 @@
         } else {
           // 기존 텍스트 답변 표시
           document.getElementById('modal-response-content').innerHTML = `<div class="whitespace-pre-wrap text-gray-700">${request.adminResponse || request.response || 'N/A'}</div>`;
+        }
+
+        // 최종 선택 버튼 설정 (답변완료에서만)
+        const status = request.status || '';
+        const actionsEl = document.getElementById('modal-purchase-actions');
+        const btnDirect = document.getElementById('btn-direct-buy');
+        const btnSupport = document.getElementById('btn-support-buy');
+        if (actionsEl && btnDirect && btnSupport && (status === '답변완료' || status === '완료')) {
+          actionsEl.classList.remove('hidden');
+
+          const reqNumRaw = (request.reqNum || request.requestNumber || '').toString();
+          const reqId = reqNumRaw.replace(/^#+/, '');
+          const sellerLink = (request.adminResponse && typeof request.adminResponse === 'object') ? request.adminResponse.sellerLink : null;
+          const fallbackLink = request.sellerLink || request.link || request.url || null;
+          const directLink = (sellerLink && /^https?:\/\//i.test(String(sellerLink))) ? String(sellerLink) : (fallbackLink && /^https?:\/\//i.test(String(fallbackLink)) ? String(fallbackLink) : '');
+
+          btnDirect.href = directLink || '#';
+          btnDirect.onclick = null;
+          if (!directLink) {
+            btnDirect.setAttribute('aria-disabled', 'true');
+            btnDirect.classList.add('opacity-50', 'pointer-events-none');
+            btnDirect.textContent = '직접구매 링크 없음';
+          } else {
+            btnDirect.removeAttribute('aria-disabled');
+            btnDirect.classList.remove('opacity-50', 'pointer-events-none');
+            btnDirect.textContent = '쇼핑몰에서 직접구매';
+            btnDirect.onclick = function (e) {
+              e.preventDefault();
+              fetch('/api/purchase-decision', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ reqId, decision: 'direct' })
+              }).catch(function () {});
+              window.open(directLink, '_blank', 'noopener,noreferrer');
+            };
+          }
+
+          const payUrl = 'payment.html?req=' + encodeURIComponent(reqId) + '&method=support';
+          btnSupport.href = payUrl;
+          btnSupport.onclick = function (e) {
+            e.preventDefault();
+            fetch('/api/purchase-decision', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ reqId, decision: 'support' })
+            }).catch(function () {});
+            window.location.href = payUrl;
+          };
+        } else if (actionsEl) {
+          actionsEl.classList.add('hidden');
         }
       } else {
         document.getElementById('modal-admin-response').classList.add('hidden');

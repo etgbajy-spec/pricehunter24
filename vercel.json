@@ -8,6 +8,11 @@
   ],
   "routes": [
     {
+      "src": "^/(advanced-search|result-search|savings-king|write-review|price-info|gallery|request|notice)(\\.html)?$",
+      "dest": "/deleted.html",
+      "status": 410
+    },
+    {
       "src": "/(.*)",
       "dest": "/index.html"
     }

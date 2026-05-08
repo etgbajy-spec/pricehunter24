@@ -170,37 +170,62 @@
     </div>
 
     <script>
-      // URL 파라미터에서 주문 번호 가져오기
-      function getOrderInfo() {
-        const urlParams = new URLSearchParams(window.location.search);
-        const orderNumber = urlParams.get('order');
+      function formatKrw(amount) {
+        const n = Number(amount);
+        if (!Number.isFinite(n)) return '';
+        return '₩' + n.toLocaleString();
+      }
 
-        if (!orderNumber) {
+      async function confirmAndLoad() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const orderId = urlParams.get('orderId') || urlParams.get('orderId'.toLowerCase()) || urlParams.get('orderId'.toUpperCase()) || urlParams.get('orderId');
+        const paymentKey = urlParams.get('paymentKey');
+        const amount = urlParams.get('amount');
+
+        if (!orderId) {
           alert('주문 정보를 찾을 수 없습니다.');
           window.location.href = 'index.html';
           return;
         }
+        if (!paymentKey || !amount) {
+          alert('결제 승인 정보가 누락되었습니다.');
+          window.location.href = 'index.html';
+          return;
+        }
 
-        // 주문 정보 가져오기
-        const orderData = localStorage.getItem('order-' + orderNumber);
-        if (!orderData) {
+        // 1) 서버에 결제 승인(Confirm) 요청
+        const confirmRes = await fetch('/api/toss/confirm', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ paymentKey, orderId, amount: Number(amount) })
+        });
+        const confirmData = await confirmRes.json().catch(() => ({}));
+        if (!confirmRes.ok || !confirmData.ok) {
+          console.error(confirmData);
+          alert((confirmData && confirmData.error) ? confirmData.error : '결제 승인 처리에 실패했습니다.');
+          window.location.href = 'payment-fail.html?orderId=' + encodeURIComponent(orderId);
+          return;
+        }
+
+        // 2) 서버에서 주문 정보 조회해서 표시
+        const orderRes = await fetch('/api/order?orderId=' + encodeURIComponent(orderId));
+        const order = await orderRes.json().catch(() => ({}));
+        if (!orderRes.ok) {
           alert('주문 정보를 불러올 수 없습니다.');
           window.location.href = 'index.html';
           return;
         }
 
-        const order = JSON.parse(orderData);
+        document.getElementById('order-number').textContent = order.orderId || orderId;
+        document.getElementById('product-name').textContent = order.orderName || '';
+        document.getElementById('payment-amount').textContent = formatKrw(order.amount);
+        document.getElementById('payment-method').textContent = order.method ? order.method : '결제 완료';
+        document.getElementById('order-date').textContent = new Date().toLocaleString('ko-KR');
 
-        // 주문 정보 표시
-        document.getElementById('order-number').textContent = order.orderNumber;
-        document.getElementById('product-name').textContent = order.productName;
-        document.getElementById('payment-amount').textContent = order.price;
-        document.getElementById('payment-method').textContent = getPaymentMethodText(order.paymentMethod);
-        document.getElementById('order-date').textContent = new Date(order.orderDate).toLocaleString();
-        
-        document.getElementById('recipient-name').textContent = order.recipient.name;
-        document.getElementById('recipient-phone').textContent = order.recipient.phone;
-        document.getElementById('shipping-address').textContent = order.recipient.address;
+        const customer = order.customer || {};
+        document.getElementById('recipient-name').textContent = customer.recipientName || '';
+        document.getElementById('recipient-phone').textContent = customer.recipientPhone || '';
+        document.getElementById('shipping-address').textContent = customer.shippingAddress || '';
       }
 
       // 결제 방법 텍스트 변환
@@ -273,7 +298,11 @@ PriceHunter 영수증
 
       // 페이지 로드 시 주문 정보 설정
       window.addEventListener('DOMContentLoaded', function() {
-        getOrderInfo();
+        confirmAndLoad().catch((e) => {
+          console.error(e);
+          alert('결제 완료 정보를 불러오는 중 오류가 발생했습니다.');
+          window.location.href = 'index.html';
+        });
       });
     </script>
   </body>

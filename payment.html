@@ -315,6 +315,7 @@
         }
         const productPrice = paymentInfoFromServer.price;
         const productName = paymentInfoFromServer.name;
+        const reqId = paymentInfoFromServer.reqKey;
 
         // 결제 버튼 비활성화
         const paymentBtn = document.getElementById('payment-btn');
@@ -325,125 +326,63 @@
         const clientKey = typeof process !== 'undefined' && process.env && process.env.TOSS_CLIENT_KEY ? process.env.TOSS_CLIENT_KEY : 'test_ck_D5GePWvyJnrK0W0k6q8gLzN97Eoq';
         const tossPayments = TossPayments(clientKey);
 
-        // 주문 번호 생성
-        const orderNumber = 'PH-' + Date.now();
-        
-        // 서버에서 확정한 금액·상품명으로 결제 검증
-        
+        // 서버에서 주문 생성 (금액/상품명 서버 확정 + 주문ID 발급)
         try {
-          const validationResponse = await fetch('/api/validate-payment', {
+          const createRes = await fetch('/api/toss/create-order', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-              productName: productName,
-              amount: productPrice,
-              orderId: orderNumber
+              reqId,
+              payerName: document.getElementById('payer-name').value,
+              payerEmail: document.getElementById('payer-email').value,
+              payerPhone: document.getElementById('payer-phone').value,
+              recipientName: document.getElementById('recipient-name').value,
+              recipientPhone: document.getElementById('recipient-phone').value,
+              shippingAddress: document.getElementById('shipping-address').value,
+              shippingNote: document.getElementById('shipping-note').value
             })
           });
-          
-          const validationResult = await validationResponse.json();
-          
-          if (!validationResponse.ok || !validationResult.valid) {
-            throw new Error(validationResult.error || '결제 검증에 실패했습니다.');
+
+          const createData = await createRes.json().catch(() => ({}));
+          if (!createRes.ok) {
+            throw new Error(createData.error || '주문 생성에 실패했습니다.');
           }
-          
-          console.log('✅ 결제 정보 서버 검증 완료');
+
+          const orderId = createData.orderId;
+          const amount = createData.amount;
+          const orderName = createData.orderName;
+
+          // 결제 정보 설정 (successUrl에는 paymentKey/orderId/amount가 자동으로 붙는다)
+          const paymentData = {
+            amount,
+            orderId,
+            orderName,
+            customerName: document.getElementById('payer-name').value,
+            customerEmail: document.getElementById('payer-email').value,
+            customerMobilePhone: document.getElementById('payer-phone').value,
+            successUrl: window.location.origin + '/payment-success.html?orderId=' + encodeURIComponent(orderId),
+            failUrl: window.location.origin + '/payment-fail.html?orderId=' + encodeURIComponent(orderId),
+          };
+
+          // 결제 요청
+          tossPayments.requestPayment(paymentMethod.value, paymentData)
+            .catch(function (error) {
+              console.error('결제 실패:', error);
+              alert('결제에 실패했습니다: ' + (error.message || '알 수 없는 오류'));
+              paymentBtn.disabled = false;
+              paymentBtn.textContent = '결제하기';
+            });
+
+          return;
         } catch (error) {
-          console.error('❌ 결제 검증 실패:', error);
-          alert('결제 정보 검증에 실패했습니다. 다시 시도해주세요.');
+          console.error('❌ 주문 생성 실패:', error);
+          alert('결제 준비에 실패했습니다. 잠시 후 다시 시도해주세요.');
           paymentBtn.disabled = false;
           paymentBtn.textContent = '결제하기';
           return;
         }
-
-        // 결제 정보 설정
-        const paymentData = {
-          amount: productPrice,
-          orderId: orderNumber,
-          orderName: productName,
-          customerName: document.getElementById('payer-name').value,
-          customerEmail: document.getElementById('payer-email').value,
-          customerMobilePhone: document.getElementById('payer-phone').value,
-          successUrl: window.location.origin + '/payment-success.html?order=' + orderNumber,
-          failUrl: window.location.origin + '/payment-fail.html?order=' + orderNumber,
-          windowTarget: 'iframe'
-        };
-
-        // 결제 요청
-        tossPayments.requestPayment(paymentMethod.value, paymentData)
-          .then(function (data) {
-            // 결제 성공 시 처리
-            console.log('결제 성공:', data);
-            
-            // 주문 정보 저장
-            const orderInfo = {
-              orderNumber: orderNumber,
-              productName: document.getElementById('product-name').textContent,
-              price: document.getElementById('product-price').textContent,
-              recipient: {
-                name: document.getElementById('recipient-name').value,
-                phone: document.getElementById('recipient-phone').value,
-                address: document.getElementById('shipping-address').value,
-                note: document.getElementById('shipping-note').value
-              },
-              payer: {
-                name: document.getElementById('payer-name').value,
-                phone: document.getElementById('payer-phone').value,
-                email: document.getElementById('payer-email').value
-              },
-              paymentMethod: paymentMethod.value,
-              orderDate: new Date().toISOString(),
-              paymentData: data
-            };
-
-            // localStorage 주문 정보 저장 제거 - Firebase 전용
-            console.log('✅ Firebase에서 주문 정보 저장 필요');
-            
-            // 구매 정보를 의뢰와 연결하여 저장
-            const urlParams = new URLSearchParams(window.location.search);
-            const reqKey = urlParams.get('req');
-            const method = urlParams.get('method') || 'direct';
-            
-            if (reqKey) {
-              const purchaseInfo = {
-                method: method,
-                status: 'paid',
-                orderNumber: orderNumber,
-                orderDate: new Date().toISOString(),
-                productName: document.getElementById('product-name').textContent,
-                price: document.getElementById('product-price').textContent,
-                paymentMethod: paymentMethod.value,
-                recipient: {
-                  name: document.getElementById('recipient-name').value,
-                  phone: document.getElementById('recipient-phone').value,
-                  address: document.getElementById('shipping-address').value
-                },
-                payer: {
-                  name: document.getElementById('payer-name').value,
-                  phone: document.getElementById('payer-phone').value,
-                  email: document.getElementById('payer-email').value
-                },
-                paymentData: data
-              };
-              
-              // localStorage 구매 정보 저장 제거 - Firebase 전용
-              console.log('✅ Firebase에서 구매 정보 저장 필요');
-            }
-
-            // 결제 완료 페이지로 이동
-            window.location.href = paymentData.successUrl;
-          })
-          .catch(function (error) {
-            // 결제 실패 시 처리
-            console.error('결제 실패:', error);
-            alert('결제에 실패했습니다: ' + error.message);
-            
-            // 버튼 상태 복원
-            paymentBtn.disabled = false;
-            paymentBtn.textContent = '결제하기';
-          });
       }
 
       // 페이지 로드 시 상품 정보 한 번만 요청 (중복 호출 시 rate limit에 걸리지 않도록)

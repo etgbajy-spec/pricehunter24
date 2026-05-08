@@ -88,7 +88,7 @@
         // URL 파라미터에서 주문 정보 가져오기
         function getOrderInfo() {
             const urlParams = new URLSearchParams(window.location.search);
-            const orderNumber = urlParams.get('order');
+            const orderNumber = urlParams.get('orderId') || urlParams.get('order');
             
             if (orderNumber) {
                 // localStorage에서 주문 정보 가져오기
@@ -123,20 +123,13 @@
         function retryPayment() {
             const urlParams = new URLSearchParams(window.location.search);
             const req = urlParams.get('req');
-            const order = urlParams.get('order');
+            const order = urlParams.get('orderId') || urlParams.get('order');
             
             if (req) {
                 window.location.href = `payment.html?req=${req}`;
             } else if (order) {
-                // 주문 정보에서 의뢰 키 추출
-                const orderInfo = localStorage.getItem('order-' + order);
-                if (orderInfo) {
-                    const orderData = JSON.parse(orderInfo);
-                    // 의뢰 키를 찾아서 다시 결제 페이지로 이동
-                    window.location.href = `payment.html?req=${order}`;
-                } else {
-                    window.location.href = 'index.html';
-                }
+                // 주문 정보는 서버에 있으므로, 사용자는 의뢰 결과/대시보드에서 다시 진입하도록 유도
+                window.location.href = 'member-dashboard.html';
             } else {
                 window.location.href = 'index.html';
             }

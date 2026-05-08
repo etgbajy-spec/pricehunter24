@@ -1189,6 +1189,30 @@
                         <span class="px-2 py-1 text-xs rounded-full ${request.status === '답변완료' ? 'bg-green-100 text-green-800' : request.status === '처리중' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'}">
                             ${request.status || '대기'}
                         </span>
+                        <div class="mt-2 flex flex-wrap gap-1">
+                            ${request.paymentStatus ? `
+                              <span class="px-2 py-0.5 text-[11px] rounded-full ${
+                                request.paymentStatus === 'paid' ? 'bg-purple-100 text-purple-800'
+                                : request.paymentStatus === 'pending' ? 'bg-blue-100 text-blue-800'
+                                : String(request.paymentStatus).includes('cancel') ? 'bg-red-100 text-red-800'
+                                : 'bg-gray-100 text-gray-700'
+                              }">결제: ${request.paymentStatus}</span>
+                            ` : ''}
+                            ${request.fulfillmentStatus ? `
+                              <span class="px-2 py-0.5 text-[11px] rounded-full ${
+                                request.fulfillmentStatus === 'delivered' ? 'bg-emerald-100 text-emerald-800'
+                                : request.fulfillmentStatus === 'shipped' ? 'bg-indigo-100 text-indigo-800'
+                                : request.fulfillmentStatus === 'ordered' ? 'bg-blue-100 text-blue-800'
+                                : 'bg-gray-100 text-gray-700'
+                              }">진행: ${request.fulfillmentStatus}</span>
+                            ` : ''}
+                            ${request.pointsStatus ? `
+                              <span class="px-2 py-0.5 text-[11px] rounded-full ${
+                                request.pointsStatus === 'available' ? 'bg-emerald-100 text-emerald-800'
+                                : 'bg-gray-100 text-gray-700'
+                              }">적립: ${request.pointsStatus}</span>
+                            ` : ''}
+                        </div>
                     </td>
                     <td class="px-4 py-3 text-sm">
                         <span class="px-2 py-1 text-xs rounded-full ${request.reviewBoardAgree ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-500'}">
@@ -5069,6 +5093,13 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 const data = await res.json().catch(() => ({}));
                 if (!res.ok || !data.ok) throw new Error(data.error || '저장 실패');
                 alert('진행 단계가 저장되었습니다: ' + fulfillmentStatus);
+                try {
+                    const { doc, getDoc } = window.firebaseFirestoreFunctions;
+                    const snap = await getDoc(doc(window.firebaseDb, 'requests', requestDocId));
+                    if (snap.exists()) {
+                        await fillAdminRequestDetailModal({ id: snap.id, ...snap.data() });
+                    }
+                } catch (e) { console.warn('modal refresh failed:', e); }
             } catch (e) {
                 console.error(e);
                 alert('진행 단계 저장 오류: ' + (e.message || e));
@@ -5096,6 +5127,14 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 const data = await res.json().catch(() => ({}));
                 if (!res.ok || !data.ok) throw new Error(data.error || '구매확정 처리 실패');
                 alert('구매확정 완료: ' + (data.points || 0) + 'P 확정');
+                try {
+                    const requestDocId = window.__adminModalRequestDocId;
+                    const { doc, getDoc } = window.firebaseFirestoreFunctions;
+                    const snap = await getDoc(doc(window.firebaseDb, 'requests', requestDocId));
+                    if (snap.exists()) {
+                        await fillAdminRequestDetailModal({ id: snap.id, ...snap.data() });
+                    }
+                } catch (e) { console.warn('modal refresh failed:', e); }
             } catch (e) {
                 console.error(e);
                 alert('구매확정 처리 중 오류: ' + (e.message || e));
@@ -5136,6 +5175,14 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 }
                 if (!res.ok || !data.ok) throw new Error(data.error || '결제 취소 실패');
                 alert('결제 취소 처리 완료' + (data.fullyCancelled ? ' (전액)' : ' (부분)'));
+                try {
+                    const requestDocId = window.__adminModalRequestDocId;
+                    const { doc, getDoc } = window.firebaseFirestoreFunctions;
+                    const snap = await getDoc(doc(window.firebaseDb, 'requests', requestDocId));
+                    if (snap.exists()) {
+                        await fillAdminRequestDetailModal({ id: snap.id, ...snap.data() });
+                    }
+                } catch (e) { console.warn('modal refresh failed:', e); }
             } catch (e) {
                 console.error(e);
                 alert('결제 취소 처리 중 오류: ' + (e.message || e));

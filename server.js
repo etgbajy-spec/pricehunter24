@@ -126,7 +126,10 @@ app.use('/api/', limiter);
 // CORS 제한: 운영 도메인만 허용 (API 응답에 적용)
 const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'https://pricehunt24.com,https://www.pricehunt24.com').split(',').map(s => s.trim()).filter(Boolean);
 if (process.env.NODE_ENV !== 'production') {
-  allowedOrigins.push('http://localhost:8080', 'http://localhost:3000', 'http://127.0.0.1:8080', 'http://127.0.0.1:3000');
+  allowedOrigins.push(
+    'http://localhost:8080', 'http://localhost:3000', 'http://localhost:1000',
+    'http://127.0.0.1:8080', 'http://127.0.0.1:3000', 'http://127.0.0.1:1000'
+  );
 }
 app.use('/api/', (req, res, next) => {
   const origin = req.headers.origin;
@@ -134,7 +137,7 @@ app.use('/api/', (req, res, next) => {
     res.setHeader('Access-Control-Allow-Origin', origin);
   }
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-csrf-token');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-csrf-token, Authorization');
   if (req.method === 'OPTIONS') return res.sendStatus(200);
   next();
 });
@@ -148,8 +151,8 @@ app.use((req, res, next) => {
   const cspPolicy = [
     "default-src 'self'",
     // Firebase + Kakao 스크립트 허용 (unsafe-eval 제거로 보안 강화)
-    "script-src 'self' 'unsafe-inline' https://www.gstatic.com https://www.gstatic.com/firebasejs https://cdn.tailwindcss.com https://developers.kakao.com https://t1.kakaocdn.net https://apis.google.com https://apis.google.com/js https://*.googleapis.com https://*.google.com https://cdn.jsdelivr.net https://*.jsdelivr.net",
-    "script-src-elem 'self' 'unsafe-inline' https://www.gstatic.com https://www.gstatic.com/firebasejs https://cdn.tailwindcss.com https://developers.kakao.com https://t1.kakaocdn.net https://apis.google.com https://apis.google.com/js https://*.googleapis.com https://*.google.com https://cdn.jsdelivr.net https://*.jsdelivr.net",
+    "script-src 'self' 'unsafe-inline' https://www.gstatic.com https://www.gstatic.com/firebasejs https://cdn.tailwindcss.com https://developers.kakao.com https://t1.kakaocdn.net https://apis.google.com https://apis.google.com/js https://*.googleapis.com https://*.google.com https://cdn.jsdelivr.net https://*.jsdelivr.net https://js.tosspayments.com",
+    "script-src-elem 'self' 'unsafe-inline' https://www.gstatic.com https://www.gstatic.com/firebasejs https://cdn.tailwindcss.com https://developers.kakao.com https://t1.kakaocdn.net https://apis.google.com https://apis.google.com/js https://*.googleapis.com https://*.google.com https://cdn.jsdelivr.net https://*.jsdelivr.net https://js.tosspayments.com",
     // 스타일 허용
     "style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://fonts.googleapis.com",
     // 이미지 허용
@@ -157,7 +160,7 @@ app.use((req, res, next) => {
     // 폰트 허용
     "font-src 'self' https://fonts.gstatic.com",
     // Firebase + Kakao API 연결 허용
-    "connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://firebase.googleapis.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com https://*.gstatic.com https://accounts.google.com https://oauth2.googleapis.com https://apis.google.com https://*.google.com https://*.googleapis.com https://cdn.jsdelivr.net https://*.jsdelivr.net",
+    "connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://firebase.googleapis.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com https://*.gstatic.com https://accounts.google.com https://oauth2.googleapis.com https://apis.google.com https://*.google.com https://*.googleapis.com https://cdn.jsdelivr.net https://*.jsdelivr.net https://api.tosspayments.com",
     // iframe 허용 (reCAPTCHA, Google 로그인, Kakao, Firebase)
     "frame-src 'self' https://www.google.com https://accounts.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com https://apis.google.com https://*.gstatic.com https://*.google.com",
     // 보안 정책 강화
@@ -304,65 +307,529 @@ app.get('/api/payment-info', paymentLimiter, async (req, res) => {
     const name = String(data.productName ?? data.name ?? '상품').slice(0, 200);
     const origin = String(data.productOrigin ?? data.origin ?? '정보 없음').slice(0, 100);
     const method = (data.method === 'support' || data.purchaseMethod === 'support') ? 'support' : 'direct';
-    res.json({ name, price, origin, method, reqId: reqId });
+    // 답변 완료 이후에만 결제/최종선택을 허용하는 흐름을 권장하지만, 기존 데이터 호환을 위해 상태는 함께 내려준다.
+    const status = String(data.status || '').slice(0, 40);
+    res.json({ name, price, origin, method, status, reqId: reqId });
   } catch (err) {
     console.error('❌ 결제 정보 조회 실패:', err);
     res.status(500).json({ error: '결제 정보를 불러오는 중 오류가 발생했습니다.' });
   }
 });
 
-// 구매 대행 수수료·총액 계산 서버화 (ELP/가격 계산)
-const FEE_RATE = 0.03;
-app.get('/api/calculate-purchase-support', async (req, res) => {
-  let reqId = (req.query.req || '').toString().trim();
-  if (reqId) reqId = reqId.replace(/^#+/, ''); // #PH-xxx 형식 지원
-  const amountParam = req.query.amount;
-  let basePrice = NaN;
-  if (amountParam != null && amountParam !== '') {
-    basePrice = Number(amountParam);
+// ====== 구매대행(대행 결제) 정책 ======
+// - 결제금액 기준: 관리자 답변 견적금액(모든 포함) = requests 문서의 totalAmount/productPrice/price 등에서 확정
+// - 회계/세무 정리용: 결제금액의 1%를 "대행수수료 매출"로 잡고, 동일 금액을 "적립금"으로 지급(구매확정 후 확정)
+const SUPPORT_FEE_RATE = 0.01;
+
+/** 구매대행 배송·처리 단계 (관리자 업데이트) */
+const FULFILLMENT_STATUSES = ['not_ordered', 'ordered', 'shipped', 'delivered'];
+const ADMIN_RELAX_FULFILLMENT = process.env.ADMIN_RELAX_FULFILLMENT === '1';
+
+function sanitizeReqId(input) {
+  let reqId = (input || '').toString().trim();
+  if (reqId) reqId = reqId.replace(/^#+/, '');
+  if (!reqId || reqId.length > 80) return '';
+  return reqId;
+}
+
+function randomId(len = 10) {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let out = '';
+  for (let i = 0; i < len; i++) out += chars[Math.floor(Math.random() * chars.length)];
+  return out;
+}
+
+function computeSupportFee(amount) {
+  const n = Number(amount);
+  if (!Number.isFinite(n) || n <= 0) return 0;
+  return Math.max(1, Math.round(n * SUPPORT_FEE_RATE));
+}
+
+async function requireAdmin(req, res, next) {
+  if (!adminInitialized) return res.status(503).json({ error: 'Firebase Admin SDK가 초기화되지 않았습니다.' });
+  try {
+    const authHeader = String(req.headers.authorization || '');
+    const m = authHeader.match(/^Bearer\s+(.+)$/i);
+    if (!m) return res.status(401).json({ error: '인증이 필요합니다.' });
+    const idToken = m[1].trim();
+    const decoded = await admin.auth().verifyIdToken(idToken);
+    const uid = decoded.uid;
+    const db = admin.firestore();
+    const adminSnap = await db.collection('admins').doc(uid).get();
+    if (!adminSnap.exists) return res.status(403).json({ error: '관리자 권한이 없습니다.' });
+    const adminData = adminSnap.data() || {};
+    const ok = adminData.role === 'admin' || (Array.isArray(adminData.permissions) && adminData.permissions.includes('admin'));
+    if (!ok) return res.status(403).json({ error: '관리자 권한이 없습니다.' });
+    req.adminUser = { uid, email: decoded.email || '' };
+    return next();
+  } catch (e) {
+    console.error('requireAdmin error:', e);
+    return res.status(401).json({ error: '인증에 실패했습니다.' });
   }
-  if ((!reqId && isNaN(basePrice)) || basePrice < 0) {
-    return res.status(400).json({ error: 'req(의뢰번호) 또는 amount(금액)가 필요합니다. 예: ?amount=100000' });
+}
+
+function normalizeFulfillmentStatus(v) {
+  const s = String(v || '').trim();
+  return FULFILLMENT_STATUSES.includes(s) ? s : 'not_ordered';
+}
+
+async function updatePointsLedgerForOrder(db, orderId, updater) {
+  const q = await db.collection('pointsLedger').where('orderId', '==', orderId).limit(50).get();
+  if (q.empty) return 0;
+  const batch = db.batch();
+  q.docs.forEach(d => batch.update(d.ref, updater(d.data() || {})));
+  await batch.commit();
+  return q.size;
+}
+
+async function loadRequestByReqId(db, reqId) {
+  // 1) doc(id) 우선
+  const docSnap = await db.collection('requests').doc(reqId).get();
+  if (docSnap.exists) return { id: docSnap.id, data: docSnap.data() };
+  // 2) requestNumber / reqNum 호환
+  const withHash = reqId.startsWith('PH-') ? '#' + reqId : reqId;
+  let q = await db.collection('requests').where('requestNumber', '==', reqId).limit(1).get();
+  if (!q.empty) return { id: q.docs[0].id, data: q.docs[0].data() };
+  q = await db.collection('requests').where('requestNumber', '==', withHash).limit(1).get();
+  if (!q.empty) return { id: q.docs[0].id, data: q.docs[0].data() };
+  q = await db.collection('requests').where('reqNum', '==', reqId).limit(1).get();
+  if (!q.empty) return { id: q.docs[0].id, data: q.docs[0].data() };
+  q = await db.collection('requests').where('reqNum', '==', withHash).limit(1).get();
+  if (!q.empty) return { id: q.docs[0].id, data: q.docs[0].data() };
+  return null;
+}
+
+// 사용자 최종 선택 기록 (직접구매 / 프헌 구매요청)
+app.post('/api/purchase-decision', paymentLimiter, validateInput, async (req, res) => {
+  const reqId = sanitizeReqId(req.body?.reqId);
+  const decision = String(req.body?.decision || '').toLowerCase();
+  if (!reqId || (decision !== 'direct' && decision !== 'support')) {
+    return res.status(400).json({ error: 'reqId와 decision(direct|support)이 필요합니다.' });
   }
-  if (reqId && isNaN(basePrice)) {
-    if (!adminInitialized) {
-      return res.status(400).json({
-        error: 'Firebase가 연결되지 않아 의뢰 번호로 금액을 조회할 수 없습니다.',
-        hint: 'amount 파라미터로 금액을 직접 넣어 테스트하세요. 예: ?amount=100000'
+  if (!adminInitialized) {
+    return res.status(503).json({ error: 'Firebase Admin SDK가 초기화되지 않았습니다.' });
+  }
+  try {
+    const db = admin.firestore();
+    const loaded = await loadRequestByReqId(db, reqId);
+    if (!loaded) return res.status(404).json({ error: '해당 의뢰를 찾을 수 없습니다.' });
+    const status = String(loaded.data.status || '');
+    if (status && status !== '답변완료' && status !== '완료') {
+      return res.status(400).json({ error: '관리자 답변 완료 이후에만 최종 선택이 가능합니다.' });
+    }
+    const updateData = {
+      purchaseDecision: decision,
+      purchaseDecisionAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    };
+    await db.collection('requests').doc(loaded.id).update(updateData);
+    writeAuditLog('purchase_decision', 'user', loaded.id, { reqId, decision });
+    return res.json({ ok: true });
+  } catch (e) {
+    console.error('purchase-decision error:', e);
+    return res.status(500).json({ error: '최종 선택 기록 중 오류가 발생했습니다.' });
+  }
+});
+
+// 토스 결제용 주문 생성 (금액은 서버에서 의뢰 데이터로 확정)
+app.post('/api/toss/create-order', paymentLimiter, validateInput, async (req, res) => {
+  const reqId = sanitizeReqId(req.body?.reqId);
+  if (!reqId) return res.status(400).json({ error: 'reqId가 필요합니다.' });
+  if (!adminInitialized) return res.status(503).json({ error: 'Firebase Admin SDK가 초기화되지 않았습니다.' });
+
+  try {
+    const db = admin.firestore();
+    const loaded = await loadRequestByReqId(db, reqId);
+    if (!loaded) return res.status(404).json({ error: '해당 의뢰를 찾을 수 없습니다.' });
+
+    const requestData = loaded.data || {};
+    const status = String(requestData.status || '');
+    if (status && status !== '답변완료' && status !== '완료') {
+      return res.status(400).json({ error: '관리자 답변 완료 이후에만 결제가 가능합니다.' });
+    }
+
+    const amount = Number(requestData.totalAmount ?? requestData.productPrice ?? requestData.price ?? 0);
+    if (!Number.isFinite(amount) || amount <= 0 || amount > 100000000) {
+      return res.status(400).json({ error: '유효한 결제 금액을 확인할 수 없습니다.' });
+    }
+
+    const ps = String(requestData.paymentStatus || '');
+    if (ps === 'paid') {
+      return res.status(400).json({ error: '이미 결제가 완료된 의뢰입니다. 새 결제를 만들 수 없습니다.' });
+    }
+
+    const latest = requestData.latestOrderId ? String(requestData.latestOrderId) : '';
+    if (latest) {
+      const prevSnap = await db.collection('payments').doc(latest).get();
+      if (prevSnap.exists) {
+        const prev = prevSnap.data() || {};
+        const st = String(prev.status || '');
+        if (st === 'paid') {
+          return res.status(400).json({ error: '진행 중인 유효한 결제가 있습니다. 새 결제를 만들 수 없습니다.' });
+        }
+        if (st === 'created' || st === 'pending') {
+          await prevSnap.ref.update({
+            status: 'abandoned',
+            abandonedReason: 'replaced_by_new_checkout',
+            abandonedAt: admin.firestore.FieldValue.serverTimestamp(),
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          });
+        }
+      }
+    }
+
+    const orderName = String(requestData.productName ?? requestData.name ?? '상품').slice(0, 100);
+    const orderId = `PH${Date.now()}${randomId(8)}`.slice(0, 64);
+    const supportFee = computeSupportFee(amount);
+
+    const customer = {
+      payerName: String(req.body?.payerName || '').slice(0, 50),
+      payerEmail: String(req.body?.payerEmail || '').slice(0, 100),
+      payerPhone: String(req.body?.payerPhone || '').slice(0, 30),
+      recipientName: String(req.body?.recipientName || '').slice(0, 50),
+      recipientPhone: String(req.body?.recipientPhone || '').slice(0, 30),
+      shippingAddress: String(req.body?.shippingAddress || '').slice(0, 300),
+      shippingNote: String(req.body?.shippingNote || '').slice(0, 500),
+    };
+
+    await db.collection('payments').doc(orderId).set({
+      orderId,
+      reqId,
+      requestDocId: loaded.id,
+      orderName,
+      amount,
+      currency: 'KRW',
+      provider: 'tosspayments',
+      status: 'created',
+      supportFeeRate: SUPPORT_FEE_RATE,
+      supportFeeAmount: supportFee,
+      pointsPlanned: supportFee, // 결제금액 1%를 적립금으로 지급 (구매확정 후 확정)
+      pointsStatus: 'planned',
+      customer,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    // 의뢰 문서에 결제 진행 정보 연결
+    await db.collection('requests').doc(loaded.id).update({
+      purchaseDecision: 'support',
+      purchaseDecisionAt: admin.firestore.FieldValue.serverTimestamp(),
+      paymentStatus: 'pending',
+      latestOrderId: orderId,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    writeAuditLog('payment_create_order', 'user', orderId, { reqId, amount });
+    return res.json({ orderId, orderName, amount });
+  } catch (e) {
+    console.error('create-order error:', e);
+    return res.status(500).json({ error: '주문 생성 중 오류가 발생했습니다.' });
+  }
+});
+
+// 토스 결제 승인 (successUrl에서 호출)
+app.post('/api/toss/confirm', paymentLimiter, validateInput, async (req, res) => {
+  const paymentKey = String(req.body?.paymentKey || '').trim();
+  const orderId = String(req.body?.orderId || '').trim();
+  const amount = Number(req.body?.amount);
+  if (!paymentKey || !orderId || !Number.isFinite(amount) || amount <= 0) {
+    return res.status(400).json({ error: 'paymentKey, orderId, amount가 필요합니다.' });
+  }
+
+  const secretKey = (process.env.TOSS_SECRET_KEY || '').trim();
+  if (!secretKey) {
+    return res.status(500).json({ error: '서버 결제 설정이 완료되지 않았습니다. (TOSS_SECRET_KEY)' });
+  }
+  if (!adminInitialized) return res.status(503).json({ error: 'Firebase Admin SDK가 초기화되지 않았습니다.' });
+
+  try {
+    const authHeader = 'Basic ' + Buffer.from(secretKey + ':').toString('base64');
+    const tossRes = await fetch('https://api.tosspayments.com/v1/payments/confirm', {
+      method: 'POST',
+      headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ paymentKey, orderId, amount }),
+    });
+    const tossData = await tossRes.json().catch(() => ({}));
+    if (!tossRes.ok) {
+      console.error('Toss confirm failed:', tossData);
+      return res.status(400).json({ error: '결제 승인에 실패했습니다.', detail: tossData });
+    }
+
+    const db = admin.firestore();
+    const payRef = db.collection('payments').doc(orderId);
+    const paySnap = await payRef.get();
+    if (!paySnap.exists) {
+      return res.status(404).json({ error: '주문 정보를 찾을 수 없습니다.' });
+    }
+    const pay = paySnap.data() || {};
+
+    // 금액 재검증
+    if (Number(pay.amount) !== amount) {
+      return res.status(400).json({ error: '결제 금액이 일치하지 않습니다.' });
+    }
+
+    await payRef.update({
+      paymentKey,
+      status: 'paid',
+      approvedAt: admin.firestore.FieldValue.serverTimestamp(),
+      providerStatus: tossData.status || 'DONE',
+      receipt: tossData.receipt || null,
+      method: tossData.method || null,
+      card: tossData.card || null,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    // 의뢰 업데이트: 결제 완료 → 적립금은 "구매확정 후 확정"이므로 지금은 예정만 기록
+    await db.collection('requests').doc(pay.requestDocId).update({
+      paymentStatus: 'paid',
+      paymentOrderId: orderId,
+      paymentKey,
+      fulfillmentStatus: 'not_ordered',
+      fulfillmentUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    // 적립금 원장: 예정 적립(구매확정 시 available로 전환)
+    const points = Number(pay.pointsPlanned || 0);
+    if (points > 0) {
+      await db.collection('pointsLedger').add({
+        orderId,
+        reqId: pay.reqId,
+        requestDocId: pay.requestDocId,
+        type: 'EARN_PENDING',
+        points,
+        status: 'pending',
+        reason: '구매대행 결제 적립(구매확정 후 확정)',
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
       });
     }
-    try {
-      const db = admin.firestore();
-      const docSnap = await db.collection('requests').doc(reqId).get();
-      let data = docSnap.exists ? docSnap.data() : null;
-      if (!data) {
-        const q = await db.collection('requests').where('requestNumber', '==', reqId).limit(1).get();
-        if (!q.empty) data = q.docs[0].data();
-      }
-      if (!data) {
-        const q2 = await db.collection('requests').where('reqNum', '==', reqId).limit(1).get();
-        if (!q2.empty) data = q2.docs[0].data();
-      }
-      if (data) basePrice = Number(data.finalPrice ?? data.productPrice ?? data.price ?? data.totalAmount ?? 0);
-    } catch (e) {
-      console.error('calculate-purchase-support 조회 실패:', e);
-    }
-  }
-  if (isNaN(basePrice) || basePrice < 0 || basePrice > 100000000) {
-    return res.status(400).json({
-      error: '유효한 기준 금액을 확인할 수 없습니다.',
-      hint: reqId
-        ? '해당 의뢰가 없거나 금액이 등록되지 않았을 수 있습니다. 금액만 테스트하려면 ?amount=100000 처럼 넣어 보세요.'
-        : 'req(의뢰번호) 또는 amount(금액)를 넣어 주세요. 예: ?amount=100000'
+
+    writeAuditLog('payment_confirm', 'payment_provider', orderId, { amount });
+    return res.json({
+      ok: true,
+      orderId,
+      amount,
+      orderName: pay.orderName || '',
+      method: tossData.method || '',
+      approvedAt: tossData.approvedAt || null,
     });
+  } catch (e) {
+    console.error('confirm error:', e);
+    return res.status(500).json({ error: '결제 승인 처리 중 오류가 발생했습니다.' });
   }
-  const fee = Math.round(basePrice * FEE_RATE);
-  const total = basePrice + fee;
-  res.json({ basePrice, feeRate: FEE_RATE, fee, total });
+});
+
+// ====== 관리자: 구매확정(적립금 확정) / 결제 취소 ======
+app.post('/api/admin/purchase-confirm', paymentLimiter, validateInput, requireAdmin, async (req, res) => {
+  const orderId = String(req.body?.orderId || '').trim();
+  if (!orderId) return res.status(400).json({ error: 'orderId가 필요합니다.' });
+  try {
+    const db = admin.firestore();
+    const payRef = db.collection('payments').doc(orderId);
+    const paySnap = await payRef.get();
+    if (!paySnap.exists) return res.status(404).json({ error: '주문 정보를 찾을 수 없습니다.' });
+    const pay = paySnap.data() || {};
+    if (pay.status !== 'paid') return res.status(400).json({ error: '결제 완료(paid) 상태에서만 구매확정이 가능합니다.' });
+    if (pay.pointsStatus === 'available') return res.status(400).json({ error: '이미 구매확정(적립금 확정) 처리된 주문입니다.' });
+
+    if (pay.requestDocId) {
+      const reqSnap = await db.collection('requests').doc(pay.requestDocId).get();
+      const rd = reqSnap.exists ? (reqSnap.data() || {}) : {};
+      const fs = normalizeFulfillmentStatus(rd.fulfillmentStatus);
+      if (fs !== 'delivered' && !ADMIN_RELAX_FULFILLMENT) {
+        return res.status(400).json({
+          error: '배송완료(delivered) 단계로 올린 뒤에만 구매확정(적립금 확정)이 가능합니다. (관리자 모달에서 진행 단계를 저장하세요.)',
+        });
+      }
+    }
+
+    const points = Number(pay.pointsPlanned || 0);
+    await payRef.update({
+      pointsStatus: 'available',
+      pointsAvailableAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+    if (pay.requestDocId) {
+      await admin.firestore().collection('requests').doc(pay.requestDocId).update({
+        purchaseConfirmedAt: admin.firestore.FieldValue.serverTimestamp(),
+        pointsStatus: 'available',
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+    }
+
+    await updatePointsLedgerForOrder(db, orderId, (d) => {
+      if (d.type === 'EARN_PENDING' && d.status === 'pending') {
+        return {
+          type: 'EARN_AVAILABLE',
+          status: 'available',
+          availableAt: admin.firestore.FieldValue.serverTimestamp(),
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        };
+      }
+      return { updatedAt: admin.firestore.FieldValue.serverTimestamp() };
+    });
+
+    writeAuditLog('admin_purchase_confirm', req.adminUser?.email || req.adminUser?.uid || 'admin', orderId, { points });
+    return res.json({ ok: true, orderId, points });
+  } catch (e) {
+    console.error('admin purchase-confirm error:', e);
+    return res.status(500).json({ error: '구매확정 처리 중 오류가 발생했습니다.' });
+  }
+});
+
+app.post('/api/admin/payment-cancel', paymentLimiter, validateInput, requireAdmin, async (req, res) => {
+  const orderId = String(req.body?.orderId || '').trim();
+  const reason = String(req.body?.reason || '고객 요청').slice(0, 200);
+  const cancelAmount = req.body?.cancelAmount != null && req.body?.cancelAmount !== '' ? Number(req.body.cancelAmount) : null;
+  const force = req.body?.force === true || req.body?.force === 'true';
+  if (!orderId) return res.status(400).json({ error: 'orderId가 필요합니다.' });
+  if (cancelAmount != null && (!Number.isFinite(cancelAmount) || cancelAmount <= 0)) {
+    return res.status(400).json({ error: 'cancelAmount가 유효하지 않습니다.' });
+  }
+  const secretKey = (process.env.TOSS_SECRET_KEY || '').trim();
+  if (!secretKey) return res.status(500).json({ error: '서버 결제 설정이 완료되지 않았습니다. (TOSS_SECRET_KEY)' });
+
+  try {
+    const db = admin.firestore();
+    const payRef = db.collection('payments').doc(orderId);
+    const paySnap = await payRef.get();
+    if (!paySnap.exists) return res.status(404).json({ error: '주문 정보를 찾을 수 없습니다.' });
+    const pay = paySnap.data() || {};
+    if (!pay.paymentKey) return res.status(400).json({ error: 'paymentKey가 없어 취소할 수 없습니다.' });
+    if (pay.status !== 'paid') return res.status(400).json({ error: '결제 완료(paid) 상태에서만 취소가 가능합니다.' });
+
+    if (pay.requestDocId) {
+      const reqSnap = await db.collection('requests').doc(pay.requestDocId).get();
+      const rd = reqSnap.exists ? (reqSnap.data() || {}) : {};
+      const fs = normalizeFulfillmentStatus(rd.fulfillmentStatus);
+      if (['ordered', 'shipped', 'delivered'].includes(fs) && !force) {
+        return res.status(400).json({
+          error: '외부몰 주문/배송이 진행된 건은 일반 취소가 제한됩니다. 정말 필요하면 프롬프트에서 강제 취소(force)를 허용하거나, 고객센터 정책에 따라 처리하세요.',
+          needFulfillmentForce: true,
+        });
+      }
+    }
+
+    const authHeader = 'Basic ' + Buffer.from(secretKey + ':').toString('base64');
+    const tossRes = await fetch(`https://api.tosspayments.com/v1/payments/${encodeURIComponent(pay.paymentKey)}/cancel`, {
+      method: 'POST',
+      headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
+      body: JSON.stringify(cancelAmount != null ? { cancelReason: reason, cancelAmount } : { cancelReason: reason }),
+    });
+    const tossData = await tossRes.json().catch(() => ({}));
+    if (!tossRes.ok) {
+      console.error('Toss cancel failed:', tossData);
+      return res.status(400).json({ error: '결제 취소에 실패했습니다.', detail: tossData });
+    }
+
+    const cancelledTotal = (Array.isArray(tossData.cancels) ? tossData.cancels.reduce((s, c) => s + Number(c.cancelAmount || 0), 0) : 0);
+    const totalAmount = Number(pay.amount || 0);
+    const fullyCancelled = cancelledTotal >= totalAmount && totalAmount > 0;
+
+    await payRef.update({
+      status: fullyCancelled ? 'cancelled' : 'partially_cancelled',
+      cancelledAt: admin.firestore.FieldValue.serverTimestamp(),
+      cancelReason: reason,
+      cancelAmount: cancelAmount != null ? cancelAmount : cancelledTotal,
+      providerCancels: tossData.cancels || null,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+    if (pay.requestDocId) {
+      await db.collection('requests').doc(pay.requestDocId).update({
+        paymentStatus: fullyCancelled ? 'cancelled' : 'partially_cancelled',
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+    }
+
+    const points = Number(pay.pointsPlanned || 0);
+    await updatePointsLedgerForOrder(db, orderId, (d) => {
+      if ((d.type === 'EARN_PENDING' && d.status === 'pending') || (d.type === 'EARN_AVAILABLE' && d.status === 'available')) {
+        return {
+          type: 'EARN_REVERSED',
+          status: 'reversed',
+          reversedAt: admin.firestore.FieldValue.serverTimestamp(),
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        };
+      }
+      return { updatedAt: admin.firestore.FieldValue.serverTimestamp() };
+    });
+    if (points > 0) {
+      await db.collection('pointsLedger').add({
+        orderId,
+        reqId: pay.reqId,
+        requestDocId: pay.requestDocId,
+        type: 'EARN_REVERSE_ADJUST',
+        points: -points,
+        status: 'done',
+        reason: '결제 취소/환불로 적립금 회수',
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+    }
+
+    writeAuditLog('admin_payment_cancel', req.adminUser?.email || req.adminUser?.uid || 'admin', orderId, { fullyCancelled, cancelledTotal });
+    return res.json({ ok: true, orderId, fullyCancelled, cancelledTotal });
+  } catch (e) {
+    console.error('admin payment-cancel error:', e);
+    return res.status(500).json({ error: '결제 취소 처리 중 오류가 발생했습니다.' });
+  }
+});
+
+// 관리자: 구매대행 진행 단계 (외부몰 주문 → 배송완료)
+app.post('/api/admin/fulfillment-status', paymentLimiter, validateInput, requireAdmin, async (req, res) => {
+  const requestDocId = String(req.body?.requestDocId || '').trim();
+  const fulfillmentStatus = String(req.body?.fulfillmentStatus || '').trim();
+  if (!requestDocId) return res.status(400).json({ error: 'requestDocId가 필요합니다.' });
+  if (!FULFILLMENT_STATUSES.includes(fulfillmentStatus)) {
+    return res.status(400).json({ error: 'fulfillmentStatus는 not_ordered|ordered|shipped|delivered 중 하나여야 합니다.' });
+  }
+  try {
+    const db = admin.firestore();
+    const ref = db.collection('requests').doc(requestDocId);
+    const snap = await ref.get();
+    if (!snap.exists) return res.status(404).json({ error: '의뢰를 찾을 수 없습니다.' });
+    await ref.update({
+      fulfillmentStatus,
+      fulfillmentUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+    writeAuditLog('admin_fulfillment_status', req.adminUser?.email || req.adminUser?.uid || 'admin', requestDocId, { fulfillmentStatus });
+    return res.json({ ok: true, requestDocId, fulfillmentStatus });
+  } catch (e) {
+    console.error('admin fulfillment-status error:', e);
+    return res.status(500).json({ error: '진행 단계 저장 중 오류가 발생했습니다.' });
+  }
+});
+
+// 주문 정보 조회 (성공/실패 페이지에서 표시용)
+app.get('/api/order', paymentLimiter, async (req, res) => {
+  const orderId = String(req.query.orderId || '').trim();
+  if (!orderId) return res.status(400).json({ error: 'orderId가 필요합니다.' });
+  if (!adminInitialized) return res.status(503).json({ error: 'Firebase Admin SDK가 초기화되지 않았습니다.' });
+  try {
+    const db = admin.firestore();
+    const snap = await db.collection('payments').doc(orderId).get();
+    if (!snap.exists) return res.status(404).json({ error: '주문 정보를 찾을 수 없습니다.' });
+    const data = snap.data() || {};
+    return res.json({
+      orderId: data.orderId,
+      orderName: data.orderName,
+      amount: data.amount,
+      status: data.status,
+      method: data.method || null,
+      createdAt: data.createdAt || null,
+      customer: data.customer || null,
+      reqId: data.reqId || null,
+      pointsPlanned: data.pointsPlanned || 0,
+      pointsStatus: data.pointsStatus || 'planned',
+    });
+  } catch (e) {
+    console.error('order fetch error:', e);
+    return res.status(500).json({ error: '주문 정보를 불러오는 중 오류가 발생했습니다.' });
+  }
 });
 
 // 결제 금액 검증 API
-app.post('/api/validate-payment', paymentLimiter, generateCSRFToken, verifyCSRF, validateInput, async (req, res) => {
+app.post('/api/validate-payment', paymentLimiter, validateInput, async (req, res) => {
   try {
     const { productName, amount, orderId } = req.body;
     

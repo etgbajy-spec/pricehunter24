@@ -31,6 +31,19 @@
   to = "/.netlify/functions/kakao-to-firebase-token"
   status = 200
 
+# 후기 페이지: 과거 410 규칙/대시보드 리다이렉트가 남아 있어도 실제 콘텐츠로 연결
+[[redirects]]
+  from = "/reviews.html"
+  to = "/reviews/index.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/reviews"
+  to = "/reviews/"
+  status = 301
+  force = true
+
 # ===== 삭제된 과거 페이지 (SEO 정리: 410 Gone) =====
 [[redirects]]
   from = "/advanced-search"
@@ -88,18 +101,6 @@
 
 [[redirects]]
   from = "/price-info.html"
-  to = "/deleted.html"
-  status = 410
-  force = true
-
-[[redirects]]
-  from = "/reviews"
-  to = "/deleted.html"
-  status = 410
-  force = true
-
-[[redirects]]
-  from = "/reviews.html"
   to = "/deleted.html"
   status = 410
   force = true
