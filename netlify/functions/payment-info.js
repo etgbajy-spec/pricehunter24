@@ -101,8 +101,27 @@ exports.handler = async (event) => {
       return { statusCode: 404, headers, body: JSON.stringify({ error: '해당 의뢰 정보를 찾을 수 없습니다.' }) };
     }
  
-    const price = Number(data.productPrice ?? data.price ?? data.totalAmount ?? 0);
-    if (!Number.isFinite(price) || price <= 0 || price > 100000000) {
+    // 의뢰가격(의뢰자가 찾은/입력한 가격) vs 최종가격(우리가 확정한 총 결제금액) 분리
+    const requestPrice = Number(
+      data.requestPrice ??
+      data.requestedPrice ??
+      data.userPrice ??
+      data.price ?? // request.html 에서는 price 로 저장됨
+      data.productPrice ?? // 일부 문서는 productPrice 로 저장되어 있을 수 있음
+      0
+    );
+
+    const finalPrice = Number(
+      data.totalAmount ??
+      data.finalPrice ??
+      data.finalAmount ??
+      data.productPrice ?? // 견적 확정 금액이 productPrice 로 저장된 문서 호환
+      data.price ??
+      0
+    );
+
+    // 최종 결제금액은 반드시 유효해야 함
+    if (!Number.isFinite(finalPrice) || finalPrice <= 0 || finalPrice > 100000000) {
       return { statusCode: 400, headers, body: JSON.stringify({ error: '유효한 결제 금액을 확인할 수 없습니다.' }) };
     }
  
@@ -114,7 +133,15 @@ exports.handler = async (event) => {
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify({ name, price, origin, method, status, reqId }),
+      body: JSON.stringify({
+        name,
+        origin,
+        method,
+        status,
+        reqId,
+        requestPrice: Number.isFinite(requestPrice) && requestPrice > 0 ? requestPrice : null,
+        finalPrice,
+      }),
     };
   } catch (e) {
     console.error('❌ payment-info error:', e);
