@@ -468,11 +468,12 @@
             console.error('결제 실패:', rsp);
             const code = (rsp && (rsp.error_code || rsp.code)) ? String(rsp.error_code || rsp.code) : '';
             const msg = (rsp && (rsp.error_msg || rsp.message)) ? String(rsp.error_msg || rsp.message) : '결제에 실패했습니다.';
+            const impUid = (rsp && rsp.imp_uid) ? String(rsp.imp_uid) : '';
             alert(msg);
             try {
               localStorage.setItem('last-payment-error', JSON.stringify({ code, msg, rsp, at: Date.now() }));
             } catch (e) {}
-            window.location.href = `payment-fail.html?orderId=${encodeURIComponent(merchantUid)}&req=${encodeURIComponent(reqId)}&error_code=${encodeURIComponent(code)}&error_msg=${encodeURIComponent(msg)}`;
+            window.location.href = `payment-fail.html?orderId=${encodeURIComponent(merchantUid)}&req=${encodeURIComponent(reqId)}&imp_uid=${encodeURIComponent(impUid)}&error_code=${encodeURIComponent(code)}&error_msg=${encodeURIComponent(msg)}`;
           });
 
           return;

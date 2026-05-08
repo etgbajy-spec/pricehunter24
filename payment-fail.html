@@ -97,6 +97,7 @@
         function getOrderInfo() {
             const urlParams = new URLSearchParams(window.location.search);
             const orderNumber = urlParams.get('orderId') || urlParams.get('order');
+            const impUidParam = urlParams.get('imp_uid') || '';
             const errorCode = urlParams.get('error_code') || '';
             const errorMsg = urlParams.get('error_msg') || '';
 
@@ -124,6 +125,31 @@
                     const order = JSON.parse(orderInfo);
                     displayOrderInfo(order);
                 }
+            }
+
+            // 포트원 결제 상태(실패 사유) 조회
+            const errorDetails = document.getElementById('error-details');
+            let impUid = impUidParam;
+            if (!impUid) {
+                try {
+                    const last = JSON.parse(localStorage.getItem('last-payment-error') || 'null');
+                    impUid = last?.rsp?.imp_uid || '';
+                } catch (e) {}
+            }
+            if (impUid && errorDetails) {
+                fetch('/api/portone/status?imp_uid=' + encodeURIComponent(impUid))
+                    .then((r) => r.json().catch(() => ({})))
+                    .then((data) => {
+                        if (!data || !data.ok) return;
+                        const lines = [];
+                        lines.push(`<div class="mb-1"><span class="font-medium">PortOne 상태:</span> ${data.status || ''}</div>`);
+                        if (data.fail_reason) lines.push(`<div class="mb-1"><span class="font-medium">실패사유:</span> ${data.fail_reason}</div>`);
+                        if (data.cancel_reason) lines.push(`<div class="mb-1"><span class="font-medium">취소사유:</span> ${data.cancel_reason}</div>`);
+                        if (data.pg_provider) lines.push(`<div class="mb-1"><span class="font-medium">PG:</span> ${data.pg_provider}</div>`);
+                        if (data.pay_method) lines.push(`<div class="mb-1"><span class="font-medium">결제수단:</span> ${data.pay_method}</div>`);
+                        errorDetails.innerHTML = errorDetails.innerHTML + `<div class="mt-3 pt-3 border-t border-red-200">${lines.join('')}</div>`;
+                    })
+                    .catch(() => {});
             }
         }
 
