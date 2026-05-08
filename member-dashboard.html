@@ -555,6 +555,28 @@
             </div>
           </div>
 
+          <!-- 결제/진행 현황 (결제 후 실시간 확인) -->
+          <div class="mb-6">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+              🚚 결제/진행 현황
+            </h3>
+            <div class="bg-gray-50 rounded-lg p-4 border-l-4 border-gray-400">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <div><span class="font-semibold text-gray-700">결제상태:</span> <span id="modal-payment-status" class="text-gray-800"></span></div>
+                <div><span class="font-semibold text-gray-700">진행단계:</span> <span id="modal-fulfillment-status" class="text-gray-800"></span></div>
+              </div>
+              <div class="mt-4 grid grid-cols-4 gap-2 text-xs">
+                <div id="ful-step-paid" class="px-3 py-2 rounded-lg bg-white border text-center">결제완료</div>
+                <div id="ful-step-ordered" class="px-3 py-2 rounded-lg bg-white border text-center">주문완료</div>
+                <div id="ful-step-shipped" class="px-3 py-2 rounded-lg bg-white border text-center">배송중</div>
+                <div id="ful-step-delivered" class="px-3 py-2 rounded-lg bg-white border text-center">배송완료</div>
+              </div>
+              <div class="mt-3 text-xs text-gray-500">
+                결제 후 단계는 관리자 처리에 따라 자동 업데이트됩니다.
+              </div>
+            </div>
+          </div>
+
           <!-- 제품 상세 정보 -->
           <div class="mb-6">
             <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
@@ -970,21 +992,67 @@
       }
     }
 
-    // 의뢰 내역 목록 렌더링 (Firebase + 로컬스토리지 통합)
+    // 의뢰 내역 목록 렌더링 (Firebase 전용)
+    // - 결제 이후 진행상태를 실시간으로 보여주기 위해 onSnapshot 구독을 사용
+    let unsubscribeMyRequests = null;
+    let liveMyRequestsCache = null;
+
+    function startMyRequestsLiveListener() {
+      if (unsubscribeMyRequests) return;
+      if (!window.firebaseFirestoreFunctions || !window.firebaseDb) return;
+
+      const { collection, query, where, onSnapshot, limit } = window.firebaseFirestoreFunctions;
+      const db = window.firebaseDb;
+      const userEmail = getUserEmail();
+      if (!userEmail) return;
+
+      let q;
+      try {
+        q = query(collection(db, 'requests'), where('email', '==', userEmail), limit(500));
+      } catch (e) {
+        q = query(collection(db, 'requests'), limit(500));
+      }
+
+      unsubscribeMyRequests = onSnapshot(q, (snap) => {
+        const requests = [];
+        snap.forEach((doc) => {
+          const data = doc.data();
+          if (data && data.email === userEmail) {
+            requests.push({ id: doc.id, ...data });
+          }
+        });
+        requests.sort((a, b) => {
+          const aTime = a.createdAt ? (a.createdAt.toDate ? a.createdAt.toDate() : new Date(a.createdAt)) : new Date(0);
+          const bTime = b.createdAt ? (b.createdAt.toDate ? b.createdAt.toDate() : new Date(b.createdAt)) : new Date(0);
+          return bTime - aTime;
+        });
+        liveMyRequestsCache = requests;
+
+        // 의뢰 탭이 열려있으면 즉시 반영
+        const panel = document.getElementById('panel-requests');
+        if (panel && panel.classList.contains('active')) {
+          renderMyRequestList().catch(() => {});
+        }
+      }, (err) => {
+        console.warn('requests onSnapshot failed:', err);
+      });
+    }
+
+    // 의뢰 내역 목록 렌더링
     async function renderMyRequestList() {
       const requestList = document.getElementById('my-request-list');
       let requests = [];
       
       try {
-        // 1. Firebase에서 데이터 가져오기 시도
-        const firebaseRequests = await getRequestsFromFirebase();
-        if (firebaseRequests.length > 0) {
-          requests = firebaseRequests;
-          console.log('Firebase에서 의뢰 데이터 사용');
+        // 실시간 리스너 시작
+        try { startMyRequestsLiveListener(); } catch (e) {}
+
+        if (Array.isArray(liveMyRequestsCache)) {
+          requests = liveMyRequestsCache;
         } else {
-          // Firebase에 데이터가 없음
-          console.log('Firebase에 데이터 없음');
-          requests = [];
+          // 최초 1회 로딩 (리스너가 붙기 전 화면용)
+          const firebaseRequests = await getRequestsFromFirebase();
+          requests = firebaseRequests.length > 0 ? firebaseRequests : [];
         }
       } catch (error) {
         console.error('Firebase 데이터 가져오기 실패:', error);
@@ -3405,6 +3473,33 @@
       statusElement.className = 'px-2 py-1 rounded-full text-xs font-bold text-white ' + getStatusClass(status);
       
       document.getElementById('modal-progress').textContent = request.progress || '0%';
+
+      // 결제/진행 현황
+      const paymentStatusRaw = (request.paymentStatus || '').toString();
+      const fulfillmentRaw = (request.fulfillmentStatus || '').toString();
+      const paymentText = paymentStatusRaw ? (paymentStatusRaw === 'paid' ? '결제완료' : paymentStatusRaw) : '미결제';
+      const fulfillmentTextMap = {
+        not_ordered: '주문 전',
+        ordered: '주문완료',
+        shipped: '배송중',
+        delivered: '배송완료',
+      };
+      const fulfillmentText = fulfillmentRaw ? (fulfillmentTextMap[fulfillmentRaw] || fulfillmentRaw) : (paymentStatusRaw === 'paid' ? '주문 전' : '대기');
+      const payEl = document.getElementById('modal-payment-status');
+      const fulEl = document.getElementById('modal-fulfillment-status');
+      if (payEl) payEl.textContent = paymentText;
+      if (fulEl) fulEl.textContent = fulfillmentText;
+
+      function setStepActive(id, active) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.className = 'px-3 py-2 rounded-lg border text-center ' + (active ? 'bg-emerald-50 border-emerald-300 text-emerald-700 font-semibold' : 'bg-white border-gray-200 text-gray-500');
+      }
+      const paid = paymentStatusRaw === 'paid';
+      setStepActive('ful-step-paid', paid);
+      setStepActive('ful-step-ordered', paid && (fulfillmentRaw === 'ordered' || fulfillmentRaw === 'shipped' || fulfillmentRaw === 'delivered'));
+      setStepActive('ful-step-shipped', paid && (fulfillmentRaw === 'shipped' || fulfillmentRaw === 'delivered'));
+      setStepActive('ful-step-delivered', paid && fulfillmentRaw === 'delivered');
 
       // 제품 상세 정보
       document.getElementById('modal-brand').textContent = request.brand || 'N/A';
