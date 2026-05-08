@@ -67,6 +67,14 @@
             </div>
         </div>
 
+        <!-- 실패 사유 -->
+        <div id="error-info" class="bg-red-50 rounded-lg p-4 mb-6 text-left border border-red-100">
+            <h3 class="font-semibold text-red-800 mb-2">실패 사유</h3>
+            <div id="error-details" class="text-sm text-red-700">
+                <!-- 실패 사유가 여기에 표시됩니다 -->
+            </div>
+        </div>
+
         <!-- 버튼들 -->
         <div class="space-y-3">
             <button onclick="retryPayment()" class="w-full bg-blue-600 text-white py-2 sm:py-3 px-4 sm:px-6 rounded-lg font-semibold hover:bg-blue-700 transition duration-200 text-sm sm:text-base">
@@ -89,6 +97,25 @@
         function getOrderInfo() {
             const urlParams = new URLSearchParams(window.location.search);
             const orderNumber = urlParams.get('orderId') || urlParams.get('order');
+            const errorCode = urlParams.get('error_code') || '';
+            const errorMsg = urlParams.get('error_msg') || '';
+
+            const errorDetails = document.getElementById('error-details');
+            if (errorDetails) {
+                let extra = '';
+                try {
+                    const last = JSON.parse(localStorage.getItem('last-payment-error') || 'null');
+                    if (last && last.msg && !errorMsg) {
+                        extra = last.msg;
+                    }
+                    if (last && last.code && !errorCode) {
+                        // no-op
+                    }
+                } catch (e) {}
+                const msg = errorMsg || extra || '결제 도중 오류가 발생했습니다.';
+                const codeLine = (errorCode ? `<div class="mb-1"><span class="font-medium">오류코드:</span> ${errorCode}</div>` : '');
+                errorDetails.innerHTML = `${codeLine}<div><span class="font-medium">메시지:</span> ${msg}</div>`;
+            }
             
             if (orderNumber) {
                 // localStorage에서 주문 정보 가져오기
@@ -105,16 +132,16 @@
             const orderDetails = document.getElementById('order-details');
             orderDetails.innerHTML = `
                 <div class="mb-2">
-                    <span class="font-medium">주문번호:</span> ${order.orderNumber}
+                    <span class="font-medium">주문번호:</span> ${order.orderNumber || order.merchantUid || ''}
                 </div>
                 <div class="mb-2">
-                    <span class="font-medium">상품명:</span> ${order.productName}
+                    <span class="font-medium">상품명:</span> ${order.productName || ''}
                 </div>
                 <div class="mb-2">
-                    <span class="font-medium">결제금액:</span> ${order.price}
+                    <span class="font-medium">결제금액:</span> ${order.price || order.amount || ''}
                 </div>
                 <div class="mb-2">
-                    <span class="font-medium">결제자:</span> ${order.payer.name}
+                    <span class="font-medium">결제자:</span> ${(order.payer && order.payer.name) ? order.payer.name : ''}
                 </div>
             `;
         }
