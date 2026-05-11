@@ -241,6 +241,12 @@
         if (!Number.isFinite(n) || n <= 0) return 0;
         return Math.max(1, Math.round(n * 0.01));
       }
+      function makeMerchantUid(reqId) {
+        const id = String(reqId || '').replace(/[^a-zA-Z0-9-]/g, '').slice(0, 20);
+        const ts = Date.now().toString(36);
+        // 일부 PG에서 merchant_uid 길이 제한(예: 40자)이 있어 짧게 생성
+        return `PH${ts}_${id}`.slice(0, 40);
+      }
       function normalizeCustomsId(v) {
         return String(v || '').trim().toUpperCase().replace(/\s+/g, '');
       }
@@ -392,7 +398,7 @@
           }
           window.IMP.init(impCode);
 
-          const merchantUid = `PH__${reqId}__${Date.now()}`;
+          const merchantUid = makeMerchantUid(reqId);
           const payerNameInput = document.getElementById('payer-name').value.trim();
           const payerEmailInput = document.getElementById('payer-email').value.trim();
           const payerTelInput = document.getElementById('payer-phone').value.trim();

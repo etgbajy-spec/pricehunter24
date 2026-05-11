@@ -165,6 +165,13 @@
         }
       }
 
+      function makeMerchantUid(uid) {
+        const ts = Date.now().toString(36); // shorter than epoch ms
+        const tail = String(uid || 'u').replace(/[^a-zA-Z0-9]/g, '').slice(-6) || 'u';
+        // Galaxia 등 일부 PG는 주문번호(merchant_uid) 길이를 40자로 제한
+        return `T${ts}${tail}`.slice(0, 40);
+      }
+
       function requestPayment(user) {
         const impCode = window.PORTONE_IMP_CODE || '';
         const channelKey = window.PORTONE_CHANNEL_KEY || '';
@@ -175,7 +182,7 @@
         window.IMP.init(impCode);
 
         const uid = user?.uid || 'unknown';
-        const merchantUid = `TEST__${uid}__${Date.now()}`;
+        const merchantUid = makeMerchantUid(uid);
 
         const buyerName = (document.getElementById('buyer-name').value || '').trim();
         const buyerTel = (document.getElementById('buyer-tel').value || '').trim();
