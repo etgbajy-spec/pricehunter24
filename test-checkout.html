@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>테스트 결제 (10원) - PriceHunter</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.iamport.kr/v1/iamport.js"></script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+      body { font-family: 'Noto Sans KR', sans-serif; }
+    </style>
+
+    <!-- Firebase v9 SDK (모듈식) -->
+    <script type="module">
+      import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
+      import { getAuth, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
+
+      const firebaseConfig = {
+        apiKey: "AIzaSyDBZxKyMS7eeBTbPnbZkj0WWOZQHNldoL4",
+        authDomain: "pricehunter-99a1b.firebaseapp.com",
+        projectId: "pricehunter-99a1b",
+        storageBucket: "pricehunter-99a1b.firebasestorage.app",
+        messagingSenderId: "242265693919",
+        appId: "1:242265693919:web:74234d942b82a51541136a",
+        measurementId: "G-4BKLV4EVB9"
+      };
+
+      const app = initializeApp(firebaseConfig);
+      const auth = getAuth(app);
+      window.firebaseAuth = auth;
+      window.firebaseAuthFns = { onAuthStateChanged, signOut };
+    </script>
+
+    <!-- PortOne 결제 설정 (V1) -->
+    <script>
+      window.PORTONE_IMP_CODE = "imp67077873";
+      window.PORTONE_CHANNEL_KEY = "channel-key-fe1fbfe7-78ba-454a-a806-82202a8c171f";
+    </script>
+  </head>
+  <body class="bg-gradient-to-br from-indigo-600 via-purple-600 to-slate-900 min-h-screen py-6 px-4">
+    <div class="max-w-4xl mx-auto">
+      <div class="text-center mb-6">
+        <h1 class="text-2xl sm:text-3xl font-extrabold text-white">테스트 결제 (PG 심사용)</h1>
+        <p class="text-white/80 mt-2 text-sm sm:text-base">테스트 계정 로그인 후 10원 결제를 빠르게 검증합니다.</p>
+      </div>
+
+      <div id="login-required" class="hidden bg-white rounded-2xl shadow-2xl p-6 max-w-xl mx-auto">
+        <div class="text-lg font-bold text-gray-900 mb-2">로그인이 필요합니다</div>
+        <div class="text-gray-600 mb-4">PG 심사자는 테스트 계정으로 로그인 후 결제를 진행해주세요.</div>
+        <div class="flex gap-2">
+          <a href="login.html" class="flex-1 text-center px-4 py-3 rounded-xl bg-indigo-600 text-white font-bold hover:bg-indigo-700 transition">로그인 페이지로</a>
+          <a href="register.html" class="flex-1 text-center px-4 py-3 rounded-xl bg-gray-900 text-white font-bold hover:bg-black transition">회원가입 페이지로</a>
+        </div>
+      </div>
+
+      <div id="checkout" class="hidden grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2 space-y-6">
+          <div class="bg-white rounded-2xl shadow-2xl p-6">
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="text-sm text-gray-500">로그인 계정</div>
+                <div id="user-email" class="font-bold text-gray-900"></div>
+              </div>
+              <button id="logout-btn" class="px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold transition">로그아웃</button>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-2xl shadow-2xl p-6">
+            <h2 class="text-lg font-extrabold text-gray-900 mb-4">📦 상품 정보</h2>
+            <div class="rounded-xl bg-gradient-to-r from-indigo-50 to-purple-50 p-4">
+              <div class="flex justify-between">
+                <span class="text-gray-600">상품명</span>
+                <span id="product-name" class="font-bold text-gray-900"></span>
+              </div>
+              <div class="flex justify-between mt-2">
+                <span class="text-gray-600">결제금액</span>
+                <span id="product-amount" class="font-extrabold text-emerald-600"></span>
+              </div>
+              <div class="text-xs text-gray-500 mt-3">
+                * PG 심사용 테스트 결제입니다. 실제 의뢰/답변 흐름과 무관하게 결제창/인증을 검증합니다.
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-2xl shadow-2xl p-6">
+            <h3 class="text-lg font-extrabold text-gray-900 mb-4">🧾 결제자 정보 (선택)</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">이름</label>
+                <input id="buyer-name" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-200" placeholder="홍길동" />
+              </div>
+              <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">연락처</label>
+                <input id="buyer-tel" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-200" placeholder="010-1234-5678" />
+              </div>
+              <div class="md:col-span-2">
+                <label class="block text-sm font-semibold text-gray-700 mb-2">이메일</label>
+                <input id="buyer-email" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-200" placeholder="test@example.com" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="lg:col-span-1">
+          <div class="bg-white rounded-2xl shadow-2xl p-6 sticky top-6">
+            <h3 class="text-lg font-extrabold text-gray-900 mb-4">📋 주문 요약</h3>
+            <div class="space-y-3 mb-6 text-sm">
+              <div class="flex justify-between">
+                <span class="text-gray-600">상품 금액</span>
+                <span id="summary-subtotal" class="font-semibold text-gray-900"></span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-600">배송비</span>
+                <span class="font-semibold text-emerald-600">무료</span>
+              </div>
+              <hr class="my-2">
+              <div class="flex justify-between text-base font-extrabold">
+                <span>총 결제금액</span>
+                <span id="summary-total" class="text-emerald-600"></span>
+              </div>
+            </div>
+
+            <button id="pay-btn" class="w-full py-4 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-extrabold hover:scale-[1.01] transition">
+              결제하기 (카드)
+            </button>
+
+            <div class="mt-4 text-xs text-gray-500 text-center">
+              결제창 → 카드사 선택 → 인증창 이동까지 확인하세요.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const TEST_PRODUCT_NAME = 'PG 심사 테스트 결제';
+      const TEST_AMOUNT = 10;
+
+      function formatKrw(n) {
+        return '₩' + Number(n).toLocaleString();
+      }
+
+      function show(elId) { document.getElementById(elId)?.classList.remove('hidden'); }
+      function hide(elId) { document.getElementById(elId)?.classList.add('hidden'); }
+
+      function initUI() {
+        document.getElementById('product-name').textContent = TEST_PRODUCT_NAME;
+        document.getElementById('product-amount').textContent = formatKrw(TEST_AMOUNT);
+        document.getElementById('summary-subtotal').textContent = formatKrw(TEST_AMOUNT);
+        document.getElementById('summary-total').textContent = formatKrw(TEST_AMOUNT);
+      }
+
+      async function doLogout() {
+        try {
+          await window.firebaseAuthFns.signOut(window.firebaseAuth);
+          location.reload();
+        } catch (e) {
+          alert('로그아웃 실패');
+        }
+      }
+
+      function requestPayment(user) {
+        const impCode = window.PORTONE_IMP_CODE || '';
+        const channelKey = window.PORTONE_CHANNEL_KEY || '';
+        if (!impCode || !channelKey || !window.IMP) {
+          alert('결제 설정이 완료되지 않았습니다.');
+          return;
+        }
+        window.IMP.init(impCode);
+
+        const uid = user?.uid || 'unknown';
+        const merchantUid = `TEST__${uid}__${Date.now()}`;
+
+        const buyerName = (document.getElementById('buyer-name').value || '').trim();
+        const buyerTel = (document.getElementById('buyer-tel').value || '').trim();
+        const buyerEmail = (document.getElementById('buyer-email').value || '').trim() || (user?.email || '');
+
+        const params = {
+          channelKey,
+          pay_method: 'card',
+          merchant_uid: merchantUid,
+          name: TEST_PRODUCT_NAME,
+          amount: TEST_AMOUNT,
+          customer_id: (user?.email || uid).slice(0, 20),
+          m_redirect_url: window.location.origin + '/payment-success.html',
+          buyer_name: buyerName || (user?.email ? user.email.split('@')[0] : 'tester'),
+          buyer_tel: buyerTel || '',
+          buyer_email: buyerEmail || '',
+          custom_data: { testPayment: true, uid, email: user?.email || '' },
+        };
+
+        document.getElementById('pay-btn').disabled = true;
+        document.getElementById('pay-btn').textContent = '결제창 여는 중...';
+
+        window.IMP.request_pay(params, function (rsp) {
+          document.getElementById('pay-btn').disabled = false;
+          document.getElementById('pay-btn').textContent = '결제하기 (카드)';
+
+          if (rsp && rsp.success) {
+            const qs = new URLSearchParams({
+              imp_uid: rsp.imp_uid || '',
+              merchant_uid: merchantUid,
+            });
+            window.location.href = `payment-success.html?${qs.toString()}`;
+            return;
+          }
+          const msg = (rsp && (rsp.error_msg || rsp.message)) ? String(rsp.error_msg || rsp.message) : '결제에 실패했습니다.';
+          alert(msg);
+        });
+      }
+
+      window.addEventListener('DOMContentLoaded', function () {
+        initUI();
+
+        const logoutBtn = document.getElementById('logout-btn');
+        if (logoutBtn) logoutBtn.addEventListener('click', doLogout);
+
+        const payBtn = document.getElementById('pay-btn');
+
+        // Firebase auth ready wait loop
+        const wait = setInterval(() => {
+          if (!window.firebaseAuthFns || !window.firebaseAuth) return;
+          clearInterval(wait);
+
+          window.firebaseAuthFns.onAuthStateChanged(window.firebaseAuth, (user) => {
+            if (!user) {
+              hide('checkout');
+              show('login-required');
+              return;
+            }
+            hide('login-required');
+            show('checkout');
+            document.getElementById('user-email').textContent = user.email || '(email 없음)';
+            if (payBtn) payBtn.onclick = () => requestPayment(user);
+          });
+        }, 200);
+      });
+    </script>
+  </body>
+</html>
+
