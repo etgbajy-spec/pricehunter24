@@ -192,9 +192,14 @@
   }
 
   async function fetchPendingFromFirebase() {
+    return fetchFirebaseRequests('pending');
+  }
+
+  async function fetchFirebaseRequests(scope) {
     var apiKey = ensureAdminApiKey();
     if (!apiKey) throw new Error('관리자 API 키가 필요합니다.');
-    var res = await fetch(getApiBase() + '/api/admin/pending-requests', {
+    var qs = scope === 'all' ? '?scope=all' : '';
+    var res = await fetch(getApiBase() + '/api/admin/pending-requests' + qs, {
       headers: { 'x-admin-api-key': apiKey }
     });
     var data = await res.json().catch(function () { return {}; });
@@ -217,6 +222,7 @@
     modeLabel: modeLabel,
     requestToPayload: requestToPayload,
     syncReportToFirebase: syncReportToFirebase,
-    fetchPendingFromFirebase: fetchPendingFromFirebase
+    fetchPendingFromFirebase: fetchPendingFromFirebase,
+    fetchFirebaseRequests: fetchFirebaseRequests
   };
 })(typeof window !== 'undefined' ? window : this);

@@ -1049,34 +1049,41 @@ if (analysisPipeline) {
 if (adminInitialized) {
   app.get('/api/admin/pending-requests', analysisLimiter, requireAdminOrApiKey, async (req, res) => {
     try {
+      const scope = String(req.query.scope || 'pending');
+      const limit = scope === 'all' ? 200 : 80;
       const db = admin.firestore();
       let snap;
       try {
-        snap = await db.collection('requests').orderBy('createdAt', 'desc').limit(80).get();
+        snap = await db.collection('requests').orderBy('createdAt', 'desc').limit(limit).get();
       } catch (e) {
-        snap = await db.collection('requests').limit(80).get();
+        snap = await db.collection('requests').limit(limit).get();
       }
       const items = [];
       snap.forEach(doc => {
         const d = doc.data() || {};
-        if (d.purchaseReport || d.adminResponse) return;
         const st = String(d.status || '');
-        if (st === '답변완료' || st === 'complete' || st === 'completed') return;
+        const hasReport = !!(d.purchaseReport || d.adminResponse);
+        const isAnswered = hasReport || st === '답변완료' || st === 'complete' || st === 'completed';
+        if (scope !== 'all' && isAnswered) return;
         items.push({
           id: doc.id,
           requestNumber: d.requestNumber || d.reqNum || doc.id,
-          name: d.name || '',
-          email: d.email || '',
+          name: d.name || d.productName || '',
+          email: d.email || d.userEmail || '',
           price: d.price || '',
           url: (d.urls && d.urls[0]) || d.url || '',
           urls: d.urls || [],
           description: d.desc || d.description || '',
           createdAt: d.createdAt?.toDate?.()?.toISOString?.() || d.date || null,
-          analysisStatus: d.analysisStatus || 'pending'
+          analysisStatus: d.analysisStatus || 'pending',
+          status: st,
+          hasReport: isAnswered,
+          purchaseReport: d.purchaseReport || null,
+          adminResponse: d.adminResponse || null
         });
       });
       items.sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
-      return res.json({ ok: true, items });
+      return res.json({ ok: true, scope, items, total: items.length });
     } catch (e) {
       console.error('pending-requests error:', e);
       return res.status(500).json({ error: '의뢰 목록 조회 실패' });

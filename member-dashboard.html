@@ -668,19 +668,19 @@
                 <div id="modal-response-content"></div>
               </div>
               
-              <!-- 최종 선택 (답변완료 시 노출) -->
+              <!-- 검증 완료 — 구매 안내 -->
               <div id="modal-purchase-actions" class="mt-5 hidden">
-                <div class="bg-white rounded-lg p-4 shadow-sm border border-blue-100">
-                  <div class="font-semibold text-gray-800 mb-2">마지막 선택</div>
-                  <div class="text-sm text-gray-600 mb-4">원하시는 구매 방식을 선택해주세요.</div>
+                <div class="bg-white rounded-lg p-4 shadow-sm border border-emerald-100">
+                  <div class="font-semibold text-emerald-800 mb-2">✅ 검증 완료 — 이렇게 구매하세요</div>
+                  <div class="text-sm text-gray-600 mb-4">PriceHunter가 찾은 최저가·판매처입니다. 아래 버튼으로 바로 구매하실 수 있습니다.</div>
                   <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <a id="btn-direct-buy" href="#" target="_blank" rel="noopener noreferrer"
-                       class="px-4 py-3 rounded-xl bg-gray-900 text-white font-bold text-center hover:bg-black transition">
-                      외부 판매처 직접구매
+                       class="px-4 py-3 rounded-xl bg-emerald-600 text-white font-bold text-center hover:bg-emerald-700 transition">
+                      🛒 검증된 최저가로 구매하기
                     </a>
                     <a id="btn-support-buy" href="#" role="button"
-                       class="px-4 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-bold text-center hover:from-emerald-600 hover:to-emerald-700 transition">
-                      프라이스헌터에게 구매요청
+                       class="px-4 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold text-center hover:from-blue-600 hover:to-blue-700 transition">
+                      🤝 PriceHunter 구매 지원
                     </a>
                   </div>
                   <div class="mt-3 text-xs text-gray-500">
@@ -3649,7 +3649,7 @@
           } else {
             btnDirect.removeAttribute('aria-disabled');
             btnDirect.classList.remove('opacity-50', 'pointer-events-none');
-            btnDirect.textContent = '외부 판매처 직접구매';
+            btnDirect.textContent = '🛒 검증된 최저가로 구매하기';
             btnDirect.onclick = function (e) {
               e.preventDefault();
               fetch('/api/purchase-decision', {
@@ -3709,22 +3709,28 @@
     // 회원용 답변 표시 포맷팅 (의뢰건과 비교)
     function formatMemberResponseDisplay(responseData, originalRequest) {
       let html = '<div class="space-y-4">';
+      const hasV2Report = originalRequest && originalRequest.purchaseReport && window.PurchaseReport &&
+        PurchaseReport.hasV2Content(originalRequest.purchaseReport);
 
-      const verdict = responseData.purchaseVerdict;
-      const verdictLabels = { buy: '✅ 구매 추천', hold: '⏸️ 보류 (관망)', skip: '❌ 구매 비추천' };
-      if (verdict && verdictLabels[verdict]) {
-        html += `
-          <div class="p-4 rounded-lg border-2 border-indigo-200 bg-indigo-50">
-            <div class="font-bold text-indigo-800 mb-1">${verdictLabels[verdict]}</div>
-            ${responseData.purchaseSummary ? `<div class="text-indigo-900">${responseData.purchaseSummary}</div>` : ''}
-            ${responseData.confidence ? `<div class="text-xs text-indigo-600 mt-1">신뢰도 ${responseData.confidence}%</div>` : ''}
-          </div>
-        `;
-      }
-
-      if (originalRequest && originalRequest.purchaseReport && window.PurchaseReport) {
-        html += PurchaseReport.renderPurchaseReportHTML(originalRequest.purchaseReport);
-      }
+      if (hasV2Report && PurchaseReport.renderCustomerResultHTML) {
+        html += PurchaseReport.renderCustomerResultHTML(originalRequest.purchaseReport, {
+          requestedPrice: originalRequest.originalPrice || originalRequest.price
+        });
+      } else {
+        const verdict = responseData.purchaseVerdict;
+        const verdictLabels = { buy: '✅ 구매 추천', hold: '⏸️ 보류 (관망)', skip: '❌ 구매 비추천' };
+        if (verdict && verdictLabels[verdict]) {
+          html += `
+            <div class="p-4 rounded-lg border-2 border-indigo-200 bg-indigo-50">
+              <div class="font-bold text-indigo-800 mb-1">${verdictLabels[verdict]}</div>
+              ${responseData.purchaseSummary ? `<div class="text-indigo-900">${responseData.purchaseSummary}</div>` : ''}
+              ${responseData.confidence ? `<div class="text-xs text-indigo-600 mt-1">신뢰도 ${responseData.confidence}%</div>` : ''}
+            </div>
+          `;
+        }
+        if (originalRequest && originalRequest.purchaseReport && window.PurchaseReport) {
+          html += PurchaseReport.renderPurchaseReportHTML(originalRequest.purchaseReport);
+        }
       if (responseData.lowestPrice || originalRequest.originalPrice) {
         html += `
           <div class="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-4 border-l-4 border-green-500">
@@ -3811,6 +3817,7 @@
             <div class="text-gray-600 whitespace-pre-wrap">${responseData.additionalInfo}</div>
           </div>
         `;
+      }
       }
       
       html += '</div>';

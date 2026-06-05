@@ -147,13 +147,83 @@
     );
   }
 
-  function renderPurchaseReportHTML(result) {
+  function parsePriceNum(val) {
+    if (typeof val === 'number') return val;
+    return parseInt(String(val || '').replace(/[^\d]/g, ''), 10) || 0;
+  }
+
+  function reportFromFirebaseItem(item) {
+    if (!item) return null;
+    if (item.purchaseReport) return normalizeResultData(item.purchaseReport);
+    var ar = item.adminResponse;
+    if (!ar || typeof ar !== 'object') return null;
+    return normalizeResultData({
+      price: ar.lowestPrice || '',
+      origin: ar.seller || '',
+      summary: ar.additionalInfo || '',
+      link: ar.link || ar.sellerLink || '',
+      decision: {
+        verdict: ar.purchaseVerdict || '',
+        summary: ar.purchaseSummary || '',
+        confidence: ar.confidence || ''
+      }
+    });
+  }
+
+  function renderCustomerHeroHTML(result, options) {
+    options = options || {};
+    var data = normalizeResultData(result);
+    var lowest = parsePriceNum(data.price || (data.priceAnalysis && data.priceAnalysis.lowestPrice));
+    var requested = parsePriceNum(options.requestedPrice || (data.priceAnalysis && data.priceAnalysis.requestedPrice));
+    var savings = requested && lowest && requested > lowest ? requested - lowest : 0;
+    var pct = requested && savings ? Math.round(savings / requested * 100) : 0;
+    var verdict = data.decision && data.decision.verdict;
+    var cfg = VERDICT_CONFIG[verdict];
+    var link = data.link;
+    var html = '';
+
+    html += '<div class="mb-6 p-5 rounded-2xl border-2 border-emerald-300 bg-gradient-to-br from-emerald-50 to-teal-50 text-left">';
+    html += '<div class="text-xs font-bold text-emerald-700 uppercase tracking-wide mb-2">✅ PriceHunter 검증 완료</div>';
+    html += '<h2 class="text-xl md:text-2xl font-extrabold text-gray-900 mb-2">';
+    if (lowest) {
+      html += '검증팀이 찾은 최저가 <span class="text-emerald-600">' + escapeHtml(formatPrice(lowest)) + '</span>';
+    } else {
+      html += '최저가 검증 · 구매판단 리포트';
+    }
+    html += '</h2>';
+    if (savings > 0) {
+      html += '<p class="text-emerald-800 font-semibold mb-2">의뢰가 대비 <span class="text-lg">' + savings.toLocaleString() + '원</span> (' + pct + '%) 절약 가능</p>';
+    }
+    html += '<p class="text-sm text-gray-600 mb-3">직접 가격 비교·판매처 검증을 하실 필요 없습니다. PriceHunter가 대신 찾아드렸습니다.</p>';
+    if (cfg) {
+      html += '<div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-white text-sm font-bold ' + cfg.bg + ' mb-2">' +
+        cfg.emoji + ' PriceHunter 구매 판단: ' + cfg.label + '</div>';
+      if (data.decision.summary) {
+        html += '<p class="text-gray-800 font-medium">' + nl2br(data.decision.summary) + '</p>';
+      }
+    }
+    if (link && link !== '링크 정보 없음' && /^https?:\/\//i.test(String(link))) {
+      html += '<a href="' + escapeHtml(link) + '" target="_blank" rel="noopener noreferrer" ' +
+        'class="mt-4 inline-flex w-full md:w-auto justify-center items-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-lg transition">' +
+        '🛒 검증된 최저가로 구매하기</a>';
+      html += '<p class="text-xs text-gray-500 mt-2">↑ PriceHunter가 검증한 판매처 링크입니다</p>';
+    }
+    html += '</div>';
+    return html;
+  }
+
+  function renderCustomerResultHTML(result, options) {
+    return renderCustomerHeroHTML(result, options) + renderPurchaseReportHTML(result, { skipVerdict: true });
+  }
+
+  function renderPurchaseReportHTML(result, options) {
+    options = options || {};
     var data = normalizeResultData(result);
     var html = '';
     var verdict = data.decision && data.decision.verdict;
     var cfg = VERDICT_CONFIG[verdict];
 
-    if (cfg) {
+    if (cfg && !options.skipVerdict) {
       html +=
         '<div class="mb-6 p-5 rounded-2xl border-2 ' + cfg.border + ' ' + cfg.light + ' text-left">' +
         '<div class="flex flex-wrap items-center gap-3 mb-3">' +
@@ -370,6 +440,10 @@
     isReportComplete: isReportComplete,
     hasDisplayableContent: hasDisplayableContent,
     formatPrice: formatPrice,
+    parsePriceNum: parsePriceNum,
+    reportFromFirebaseItem: reportFromFirebaseItem,
+    renderCustomerHeroHTML: renderCustomerHeroHTML,
+    renderCustomerResultHTML: renderCustomerResultHTML,
     renderPurchaseReportHTML: renderPurchaseReportHTML,
     collectFromAdminForm: collectFromAdminForm,
     populateAdminForm: populateAdminForm,

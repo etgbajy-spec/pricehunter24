@@ -5,8 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>의뢰 결과 입력/관리 | PriceHunter</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
     <script src="purchase-report.js"></script>
     <script src="request-data-sync.js"></script>
+    <script src="customer-notification.js"></script>
     <script src="analysis-pipeline-client.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -39,7 +41,7 @@
           </select>
         </div>
         <div class="text-xs text-gray-500 mt-2 text-center">
-          결과 저장 후 "고객에게 알림 발송" 버튼을 눌러 고객에게 알림을 발송합니다.
+          결과 저장 후 「고객에게 알림 발송」으로 <strong>이메일 알림</strong>을 보냅니다 (admin-dashboard와 동일).
         </div>
       </div>
       
@@ -68,10 +70,12 @@
             <button id="filter-complete" class="filter-btn px-3 py-1 bg-green-500 text-white rounded font-bold hover:bg-green-600 transition text-sm" onclick="switchFilter('complete')">완료</button>
             <button id="filter-ai-pending" class="filter-btn px-3 py-1 bg-indigo-500 text-white rounded font-bold hover:bg-indigo-600 transition text-sm" onclick="switchFilter('ai-pending')">🤖 AI분석대기</button>
           </div>
-          <div class="mt-2 flex gap-2 justify-center">
-            <button type="button" id="btn-sync-firebase" class="px-3 py-1 bg-sky-500 text-white rounded text-xs font-bold hover:bg-sky-600 transition">☁️ Firebase 의뢰 불러오기</button>
-            <span id="firebase-sync-msg" class="text-xs text-gray-500 self-center"></span>
+          <div class="mt-2 flex flex-wrap gap-2 justify-center items-center">
+            <button type="button" id="btn-sync-firebase" class="px-3 py-1 bg-sky-500 text-white rounded text-xs font-bold hover:bg-sky-600 transition">☁️ 미답변만 불러오기</button>
+            <button type="button" id="btn-sync-firebase-all" class="px-3 py-1 bg-sky-700 text-white rounded text-xs font-bold hover:bg-sky-800 transition">☁️ Firebase 전체 동기화</button>
+            <span id="firebase-sync-msg" class="text-xs text-gray-500 self-center max-w-md text-left"></span>
           </div>
+          <p class="text-xs text-gray-400 text-center mt-1">미답변만 = AI 처리 대기 건 · 전체 = 최근 200건 (답변완료 포함, 결과도 함께 가져옴)</p>
         </div>
       </div>
       
@@ -597,6 +601,7 @@
         }
         
         console.log('필터링된 의뢰 수:', filteredRequests.length);
+        updateFilterCounts(allRequests);
         
         // 우선순위 정렬 (신규의뢰 → 진행중 → 완료)
         filteredRequests.sort((a, b) => {
@@ -901,36 +906,68 @@
         list.innerHTML = warnings.map(w => `<li>${w}</li>`).join('');
       }
 
-      async function mergeFirebaseRequests() {
+      function updateFilterCounts(requests) {
+        var aiCount = requests.filter(function (req) {
+          return window.RequestDataSync && RequestDataSync.requestNeedsPipeline(req);
+        }).length;
+        var aiBtn = document.getElementById('filter-ai-pending');
+        if (aiBtn) aiBtn.textContent = '🤖 AI분석대기 (' + aiCount + ')';
+      }
+
+      function importFirebaseItem(item, options) {
+        options = options || {};
+        var reqNum = RequestDataSync.normalizeReqNum(item.requestNumber || item.id);
+        var key = RequestDataSync.localRequestKey(reqNum);
+        var wasNew = !localStorage.getItem(key);
+        RequestDataSync.saveRequestLocally(reqNum, {
+          name: item.name,
+          desc: item.description,
+          description: item.description,
+          urls: item.urls || (item.url ? [item.url] : []),
+          url: item.url || '',
+          email: item.email,
+          price: item.price,
+          date: item.createdAt ? new Date(item.createdAt).getTime() : Date.now(),
+          firebaseDocId: item.id,
+          source: 'firebase',
+          status: item.status || ''
+        });
+        var report = window.PurchaseReport ? PurchaseReport.reportFromFirebaseItem(item) : null;
+        if (report && PurchaseReport.isReportComplete(report)) {
+          PurchaseReport.saveResult(reqNum, report);
+          RequestDataSync.markJobPublished(reqNum);
+          return wasNew ? 'added_complete' : 'updated_complete';
+        }
+        if (!localStorage.getItem(RequestDataSync.resultKey(reqNum))) {
+          RequestDataSync.createPendingAnalysisJob(reqNum, { firebaseDocId: item.id, source: 'firebase' });
+        }
+        return wasNew ? 'added_pending' : 'skipped';
+      }
+
+      async function mergeFirebaseRequests(scope) {
+        scope = scope || 'pending';
         const msgEl = document.getElementById('firebase-sync-msg');
         if (!window.AnalysisPipelineClient) {
           if (msgEl) msgEl.textContent = 'API 클라이언트 없음';
           return;
         }
         try {
-          if (msgEl) msgEl.textContent = '불러오는 중…';
-          const items = await AnalysisPipelineClient.fetchPendingFromFirebase();
-          let merged = 0;
-          items.forEach(item => {
-            const reqNum = RequestDataSync.normalizeReqNum(item.requestNumber || item.id);
-            const key = RequestDataSync.localRequestKey(reqNum);
-            if (localStorage.getItem(key)) return;
-            RequestDataSync.saveRequestLocally(reqNum, {
-              name: item.name,
-              desc: item.description,
-              description: item.description,
-              urls: item.urls || (item.url ? [item.url] : []),
-              url: item.url || '',
-              email: item.email,
-              price: item.price,
-              date: item.createdAt ? new Date(item.createdAt).getTime() : Date.now(),
-              firebaseDocId: item.id,
-              source: 'firebase'
-            });
-            RequestDataSync.createPendingAnalysisJob(reqNum, { firebaseDocId: item.id, source: 'firebase' });
-            merged++;
+          if (msgEl) msgEl.textContent = scope === 'all' ? '전체 동기화 중…' : '미답변 불러오는 중…';
+          const items = await AnalysisPipelineClient.fetchFirebaseRequests(scope);
+          let added = 0, updated = 0, skipped = 0;
+          items.forEach(function (item) {
+            var result = importFirebaseItem(item, { scope: scope });
+            if (result === 'added_pending' || result === 'added_complete') added++;
+            else if (result === 'updated_complete') updated++;
+            else skipped++;
           });
-          if (msgEl) msgEl.textContent = merged ? `Firebase ${merged}건 추가` : '새 의뢰 없음';
+          if (msgEl) {
+            if (scope === 'all') {
+              msgEl.textContent = 'Firebase ' + items.length + '건 조회 · 신규 ' + added + ' · 결과 갱신 ' + updated + ' · 기존 ' + skipped;
+            } else {
+              msgEl.textContent = items.length ? ('미답변 ' + items.length + '건 · 신규 추가 ' + added + '건') : '미답변 의뢰 없음';
+            }
+          }
           renderRequestList();
           createUserTabs();
         } catch (e) {
@@ -1045,15 +1082,32 @@
       }
       
       // 일괄 알림 발송
-      function bulkSendNotification() {
+      async function bulkSendNotification() {
         if (selectedRequests.size === 0) return;
-        
-        const notifyMethod = document.getElementById('notify-method').value;
-        const confirmMessage = `선택된 ${selectedRequests.size}개의 의뢰에 대해 고객에게 알림을 발송하시겠습니까?\n\n알림 방법: ${notifyMethod}`;
-        
+        if (!window.CustomerNotification) {
+          alert('알림 모듈을 불러올 수 없습니다.');
+          return;
+        }
+        const confirmMessage = '선택된 ' + selectedRequests.size + '개 의뢰에 이메일 알림을 발송할까요?';
         if (!confirm(confirmMessage)) return;
-        
-        alert('일괄 알림 발송 기능은 개발 중입니다.');
+        let ok = 0, fail = 0;
+        for (const reqKey of selectedRequests) {
+          const reqNum = reqKey.replace('request-', '');
+          const req = JSON.parse(localStorage.getItem(reqKey) || '{}');
+          if (!localStorage.getItem('result-' + reqNum)) { fail++; continue; }
+          const emailResult = await CustomerNotification.sendRequestCompleteEmail({
+            toEmail: req.email,
+            userName: req.name || req.userName,
+            requestNumber: '#PH-' + reqNum.replace(/^PH-/, ''),
+            productName: req.name || req.productName || '의뢰 상품'
+          });
+          if (emailResult.success) {
+            CustomerNotification.markNotifySent(reqNum, 'email');
+            ok++;
+          } else fail++;
+        }
+        renderRequestList();
+        alert('이메일 발송 완료: ' + ok + '건 / 실패: ' + fail + '건');
       }
       
       // 의뢰 단일 삭제
@@ -1205,7 +1259,8 @@
         document.getElementById('btn-collect-prices')?.addEventListener('click', handleCollectPrices);
         document.getElementById('btn-generate-draft')?.addEventListener('click', handleGenerateDraft);
         document.getElementById('btn-apply-draft')?.addEventListener('click', handleApplyDraft);
-        document.getElementById('btn-sync-firebase')?.addEventListener('click', mergeFirebaseRequests);
+        document.getElementById('btn-sync-firebase')?.addEventListener('click', function () { mergeFirebaseRequests('pending'); });
+        document.getElementById('btn-sync-firebase-all')?.addEventListener('click', function () { mergeFirebaseRequests('all'); });
 
         // 폼 입력 시 QA 경고 실시간 갱신
         document.getElementById('result-form')?.addEventListener('input', function () {
@@ -1213,9 +1268,38 @@
         });
       });
       
-      // 수동 알림 발송 (임시)
-      function sendManualNotification() {
-        alert('알림 발송 기능은 개발 중입니다.');
+      // 고객 이메일 알림 (admin-dashboard와 동일 EmailJS)
+      async function sendManualNotification() {
+        if (!currentReqKey) {
+          alert('의뢰를 선택한 뒤 저장해 주세요.');
+          return;
+        }
+        if (!window.CustomerNotification) {
+          alert('알림 모듈을 불러올 수 없습니다.');
+          return;
+        }
+        const reqNum = currentReqKey.replace('request-', '');
+        const req = currentRequest || JSON.parse(localStorage.getItem(currentReqKey) || '{}');
+        if (!localStorage.getItem('result-' + reqNum)) {
+          alert('먼저 결과를 저장해 주세요.');
+          return;
+        }
+        const emailResult = await CustomerNotification.sendRequestCompleteEmail({
+          toEmail: req.email,
+          userName: req.name || req.userName,
+          requestNumber: '#PH-' + reqNum.replace(/^PH-/, ''),
+          productName: req.name || req.productName || '의뢰 상품'
+        });
+        const adminMsg = document.getElementById('admin-msg');
+        if (emailResult.success) {
+          CustomerNotification.markNotifySent(reqNum, 'email');
+          if (adminMsg) {
+            adminMsg.innerHTML = '<div class="text-green-600 font-bold mb-2">📧 고객 알림 메일 발송 완료 (' + emailResult.toEmail + ')</div>';
+          }
+          renderRequestList();
+        } else {
+          alert('알림 발송 실패: ' + (emailResult.errorMessage || '원인 불명'));
+        }
       }
       
       // 데이터 내보내기
