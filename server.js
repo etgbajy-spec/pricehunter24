@@ -292,6 +292,14 @@ app.get('/api/payment-info', paymentLimiter, async (req, res) => {
       if (!qHash.empty) data = qHash.docs[0].data();
     }
     if (!data) {
+      const q2 = await db.collection('requests').where('reqNum', '==', reqId).limit(1).get();
+      if (!q2.empty) data = q2.docs[0].data();
+    }
+    if (!data) {
+      const q2Hash = await db.collection('requests').where('reqNum', '==', withHash).limit(1).get();
+      if (!q2Hash.empty) data = q2Hash.docs[0].data();
+    }
+    if (!data) {
       return res.status(404).json({ error: '해당 의뢰 정보를 찾을 수 없습니다.' });
     }
 
