@@ -3792,6 +3792,9 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                         <button class="sidebar-item w-full text-left px-4 py-3 rounded-lg font-semibold hover:bg-pink-50 transition" data-section="requests" onclick="switchSection('requests')">
                             📋 의뢰 관리
                         </button>
+                        <button type="button" class="w-full text-left px-4 py-3 rounded-lg font-semibold hover:bg-indigo-50 transition text-indigo-700 border border-indigo-100" onclick="goToPage('result-admin.html')">
+                            🧠 구매판단 리포트 · AI분석
+                        </button>
                         <button class="sidebar-item w-full text-left px-4 py-3 rounded-lg font-semibold hover:bg-pink-50 transition" data-section="inquiries" onclick="switchSection('inquiries')">
                             💬 1:1 문의
                         </button>
@@ -3832,6 +3835,9 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                             </button>
                             <button onclick="goToPage('member-dashboard.html')" class="px-4 py-2 bg-green-500 text-white rounded-lg font-semibold hover:bg-green-600 transition">
                                 👤 회원대시보드로
+                            </button>
+                            <button onclick="goToPage('result-admin.html')" class="px-4 py-2 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition">
+                                🧠 구매판단 리포트 (AI분석)
                             </button>
                             <button onclick="testFirebaseConnection()" class="px-4 py-2 bg-purple-500 text-white rounded-lg font-semibold hover:bg-purple-600 transition">
                                 🔥 Firebase 연결 테스트
@@ -3943,8 +3949,11 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                             <button onclick="goToPage('index.html')" class="px-4 py-2 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition">
                                 🏠 메인페이지로
                             </button>
-                            <button onclick="goToPage('request.html')" class="px-4 py-2 bg-green-500 text-white rounded-lg font-semibold hover:bg-green-600 transition">
+                            <button onclick="goToPage('request-v2.html')" class="px-4 py-2 bg-green-500 text-white rounded-lg font-semibold hover:bg-green-600 transition">
                                 📝 의뢰페이지로
+                            </button>
+                            <button onclick="goToPage('result-admin.html')" class="px-4 py-2 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition">
+                                🧠 구매판단 리포트 · AI분석
                             </button>
                         </div>
                     </div>
