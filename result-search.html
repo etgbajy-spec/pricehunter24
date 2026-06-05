@@ -116,8 +116,8 @@
               <a id="result-link" href="#" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline text-sm break-all hidden">구매 링크</a>
             </div>
             
-            <!-- 추가 구매 지원 (선택) -->
-            <div class="mb-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-100">
+            <!-- legacy: v1 결과용 구매 옵션 (v2 리포트는 purchase-report-view 내 카드 사용) -->
+            <div id="legacy-purchase-options" class="mb-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-100">
               <div class="font-bold text-gray-800 mb-2 text-center">🤝 구매가 어려우신가요?</div>
               <div class="text-sm text-gray-600 mb-3 text-center">
                 위 「검증된 최저가로 구매하기」가 가장 빠릅니다.<br>
@@ -266,6 +266,7 @@
               try {
                 var reqData = JSON.parse(localStorage.getItem(currentReqKey) || '{}');
                 heroOpts.requestedPrice = reqData.price || reqData.originalPrice;
+                heroOpts.reqId = currentReqKey.replace('request-', '');
               } catch (e) {}
             }
             purchaseReportView.innerHTML =
@@ -274,9 +275,13 @@
                 : ('<div class="text-sm font-bold text-blue-700 mb-3">📊 구매판단 리포트</div>' +
                    PurchaseReport.renderPurchaseReportHTML(normalized)));
             purchaseReportView.classList.remove('hidden');
+            var legacyPurchaseBlock = document.getElementById('legacy-purchase-options');
+            if (legacyPurchaseBlock) legacyPurchaseBlock.classList.add('hidden');
           } else {
             purchaseReportView.innerHTML = '';
             purchaseReportView.classList.add('hidden');
+            var legacyShow = document.getElementById('legacy-purchase-options');
+            if (legacyShow) legacyShow.classList.remove('hidden');
           }
         }
 

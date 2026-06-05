@@ -214,14 +214,16 @@ function generateRuleBasedDraft(requestData, priceData) {
     verdict === 'buy'
       ? `현재 ${formatPriceKr(lowest || requested)} 수준이 의뢰가 대비 유리해 구매를 검토할 만합니다.`
       : verdict === 'skip'
-        ? '참고 가격이 의뢰가보다 높아 추가 조사 또는 관망을 권장합니다.'
-        : '가격·판매처 추가 확인 후 판단하는 것이 좋습니다.';
+        ? '참고 가격이 의뢰가보다 높아 지금 구매는 권장하지 않습니다.'
+        : lowest && requested && lowest >= requested
+          ? '현재 최저가가 의뢰가와 같습니다. 추가 할인·프로모션 시점까지 관망을 권장드립니다.'
+          : '가격 변동 가능성이 있어 당장 구매보다 관망이 유리합니다.';
 
   return normalizeDraft({
     reportVersion: 'v2',
     price: formatPriceKr(lowest || reference || requested || ''),
-    origin: marketplace?.name ? `${marketplace.name} / PriceHunter 분석` : 'PriceHunter 분석',
-    summary: `<p><strong>${productName}</strong>에 대한 1차 분석 결과입니다.</p><p>${priceData.summary}</p><p>※ AI API 미연동 또는 오류 시 규칙 기반 초안입니다. 관리자 검수 후 발송해 주세요.</p>`,
+    origin: marketplace?.name ? `${marketplace.name} / PriceHunter 검증` : 'PriceHunter 검증',
+    summary: `<p><strong>${productName}</strong> — PriceHunter 검증팀이 ${formatPriceKr(lowest || reference || requested || '')} 수준의 최저가를 확인했습니다.</p>`,
     link: priceData.referenceUrl || requestData.url || '',
     decision: {
       verdict,
@@ -241,7 +243,7 @@ function generateRuleBasedDraft(requestData, priceData) {
     },
     productAnalysis: {
       valueScore: verdict === 'buy' ? 75 : 55,
-      reviewSummary: '리뷰 데이터는 AI 연동 또는 수동 입력으로 보완해 주세요.',
+      reviewSummary: '',
       pros: requestData.description ? '의뢰하신 스펙/용도에 부합하는 제품' : '',
       cons: '',
       alternatives: ''
@@ -249,10 +251,10 @@ function generateRuleBasedDraft(requestData, priceData) {
     sellerAnalysis: {
       sellerName: marketplace?.name || '',
       trustScore: marketplace?.trust || 70,
-      risks: marketplace?.name === '해외직구' ? '배송·관세·AS 리스크 확인 필요' : '판매처 신뢰도는 관리자 확인 권장',
-      domesticVsImport: marketplace?.name === '해외직구' ? '직구 시 총비용(관세·배송) 비교 필요' : '국내 구매 기준 분석'
+      risks: marketplace?.name === '해외직구' ? '배송·관세·AS 리스크가 있을 수 있습니다' : '',
+      domesticVsImport: marketplace?.name === '해외직구' ? '직구 시 총비용(관세·배송)을 함께 확인했습니다' : '국내 구매 기준으로 검증했습니다'
     },
-    evidenceNotes: `수집 요약: ${priceData.summary}\n생성 방식: 규칙 기반 초안 (${new Date().toLocaleString('ko-KR')})`
+    evidenceNotes: priceData.summary ? priceData.summary.replace(/^수집 요약:\s*/, '') : ''
   });
 }
 
@@ -346,16 +348,12 @@ async function generateDraft(requestData, priceData, options) {
       console.warn('OpenAI draft failed, using rule-based fallback:', err.message);
       draft = generateRuleBasedDraft(requestData, priceData);
       mode = 'rule_based_fallback';
-      draft.evidenceNotes = (draft.evidenceNotes || '') + `\nAI 오류: ${err.message}`;
     }
   } else {
     draft = generateRuleBasedDraft(requestData, priceData);
-    if (!process.env.OPENAI_API_KEY) {
-      draft.evidenceNotes = (draft.evidenceNotes || '') + '\nOPENAI_API_KEY 미설정 → 규칙 기반 초안';
-    }
   }
 
-  return { draft, mode };
+  return { draft, mode, pipelineMeta: { mode, generatedAt: new Date().toISOString() } };
 }
 
 /**

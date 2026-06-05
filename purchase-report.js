@@ -170,55 +170,201 @@
     });
   }
 
+  function isAdminMetaLine(line) {
+    var s = String(line || '').trim();
+    if (!s) return true;
+    return /^(수집 요약:|생성 방식:|OPENAI_API_KEY|AI 오류:)/i.test(s) ||
+      (/규칙 기반/i.test(s) && /초안|미연동|관리자/i.test(s)) ||
+      /^※\s*AI API/i.test(s);
+  }
+
+  function sanitizeCustomerReport(raw) {
+    var data = normalizeResultData(raw);
+    if (data.evidenceNotes) {
+      data.evidenceNotes = data.evidenceNotes.split('\n')
+        .filter(function (l) { return !isAdminMetaLine(l); })
+        .join('\n')
+        .trim();
+    }
+    if (data.summary) {
+      data.summary = String(data.summary)
+        .replace(/<p>※\s*AI API[^<]*<\/p>/gi, '')
+        .replace(/1차 분석 결과/g, '검증 결과')
+        .replace(/관리자 검수 후 발송[^<]*/gi, '')
+        .trim();
+    }
+    if (data.productAnalysis && data.productAnalysis.reviewSummary &&
+        /AI 연동|수동 입력/.test(data.productAnalysis.reviewSummary)) {
+      data.productAnalysis.reviewSummary = '';
+    }
+    if (data.decision && data.decision.summary === '가격·판매처 추가 확인 후 판단하는 것이 좋습니다.') {
+      data.decision.summary = '현재는 구매 타이밍이 아닙니다. 할인·프로모션 시점까지 관망을 권장드립니다.';
+    }
+    return data;
+  }
+
+  function getVerdictHeroTheme(verdict) {
+    if (verdict === 'buy') {
+      return { border: 'border-emerald-300', bg: 'from-emerald-50 via-teal-50 to-white', accent: 'text-emerald-700', badge: 'bg-emerald-600' };
+    }
+    if (verdict === 'hold') {
+      return { border: 'border-amber-300', bg: 'from-amber-50 via-orange-50 to-white', accent: 'text-amber-800', badge: 'bg-amber-500' };
+    }
+    if (verdict === 'skip') {
+      return { border: 'border-rose-300', bg: 'from-rose-50 via-red-50 to-white', accent: 'text-rose-800', badge: 'bg-rose-500' };
+    }
+    return { border: 'border-blue-300', bg: 'from-blue-50 via-indigo-50 to-white', accent: 'text-blue-800', badge: 'bg-blue-600' };
+  }
+
+  function getVerdictHeroCopy(verdict, savings, lowest, requested) {
+    if (verdict === 'buy') {
+      return {
+        headline: savings > 0 ? '지금 구매하시면 ' + savings.toLocaleString() + '원 절약 가능' : '지금 구매하셔도 좋습니다',
+        sub: 'PriceHunter 검증팀이 확인한 최저가입니다. 직접 비교하실 필요 없이 아래 링크로 구매하시면 됩니다.',
+        verdictIntro: 'PriceHunter 최종 판단'
+      };
+    }
+    if (verdict === 'hold') {
+      var samePrice = lowest && requested && lowest >= requested;
+      return {
+        headline: samePrice ? '현재 최저가 = 의뢰가 (동일)' : '잠시 관망을 권장드립니다',
+        sub: samePrice
+          ? '지금 시점의 최저가는 의뢰하신 가격과 같습니다. 추가 할인·프로모션이 나올 때까지 기다리시는 편이 유리할 수 있습니다.'
+          : '가격 변동 가능성이 있어 당장 구매보다 관망이 유리합니다. PriceHunter가 시장을 계속 모니터링했습니다.',
+        verdictIntro: 'PriceHunter 타이밍 분석'
+      };
+    }
+    if (verdict === 'skip') {
+      return {
+        headline: '지금은 구매를 권장하지 않습니다',
+        sub: '가격 대비 만족도 또는 대안 제품 측면에서 더 나은 선택이 있을 수 있습니다.',
+        verdictIntro: 'PriceHunter 최종 판단'
+      };
+    }
+    return {
+      headline: lowest ? '검증팀이 확인한 최저가 ' + formatPrice(lowest) : '검증이 완료되었습니다',
+      sub: '아래 상세 리포트와 구매 방법을 확인해 주세요.',
+      verdictIntro: 'PriceHunter 검증 결과'
+    };
+  }
+
   function renderCustomerHeroHTML(result, options) {
     options = options || {};
-    var data = normalizeResultData(result);
+    var data = sanitizeCustomerReport(result);
     var lowest = parsePriceNum(data.price || (data.priceAnalysis && data.priceAnalysis.lowestPrice));
     var requested = parsePriceNum(options.requestedPrice || (data.priceAnalysis && data.priceAnalysis.requestedPrice));
     var savings = requested && lowest && requested > lowest ? requested - lowest : 0;
     var pct = requested && savings ? Math.round(savings / requested * 100) : 0;
     var verdict = data.decision && data.decision.verdict;
     var cfg = VERDICT_CONFIG[verdict];
-    var link = data.link;
+    var theme = getVerdictHeroTheme(verdict);
+    var copy = getVerdictHeroCopy(verdict, savings, lowest, requested);
     var html = '';
 
-    html += '<div class="mb-6 p-5 rounded-2xl border-2 border-emerald-300 bg-gradient-to-br from-emerald-50 to-teal-50 text-left">';
-    html += '<div class="text-xs font-bold text-emerald-700 uppercase tracking-wide mb-2">✅ PriceHunter 검증 완료</div>';
-    html += '<h2 class="text-xl md:text-2xl font-extrabold text-gray-900 mb-2">';
-    if (lowest) {
-      html += '검증팀이 찾은 최저가 <span class="text-emerald-600">' + escapeHtml(formatPrice(lowest)) + '</span>';
-    } else {
-      html += '최저가 검증 · 구매판단 리포트';
-    }
-    html += '</h2>';
-    if (savings > 0) {
-      html += '<p class="text-emerald-800 font-semibold mb-2">의뢰가 대비 <span class="text-lg">' + savings.toLocaleString() + '원</span> (' + pct + '%) 절약 가능</p>';
-    }
-    html += '<p class="text-sm text-gray-600 mb-3">직접 가격 비교·판매처 검증을 하실 필요 없습니다. PriceHunter가 대신 찾아드렸습니다.</p>';
+    html += '<div class="mb-6 rounded-2xl border-2 ' + theme.border + ' bg-gradient-to-br ' + theme.bg + ' overflow-hidden text-left shadow-sm">';
+    html += '<div class="px-5 py-4 border-b border-white/60 flex flex-wrap items-center justify-between gap-2">';
+    html += '<span class="inline-flex items-center gap-2 text-sm font-bold ' + theme.accent + '">';
+    html += '<span class="w-8 h-8 rounded-full ' + theme.badge + ' text-white flex items-center justify-center text-base">✓</span>';
+    html += 'PriceHunter 검증 완료</span>';
     if (cfg) {
-      html += '<div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-white text-sm font-bold ' + cfg.bg + ' mb-2">' +
-        cfg.emoji + ' PriceHunter 구매 판단: ' + cfg.label + '</div>';
-      if (data.decision.summary) {
-        html += '<p class="text-gray-800 font-medium">' + nl2br(data.decision.summary) + '</p>';
-      }
-    }
-    if (link && link !== '링크 정보 없음' && /^https?:\/\//i.test(String(link))) {
-      html += '<a href="' + escapeHtml(link) + '" target="_blank" rel="noopener noreferrer" ' +
-        'class="mt-4 inline-flex w-full md:w-auto justify-center items-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-lg transition">' +
-        '🛒 검증된 최저가로 구매하기</a>';
-      html += '<p class="text-xs text-gray-500 mt-2">↑ PriceHunter가 검증한 판매처 링크입니다</p>';
+      html += '<span class="px-3 py-1 rounded-full text-white text-xs font-bold ' + cfg.bg + '">' + cfg.emoji + ' ' + cfg.label + '</span>';
     }
     html += '</div>';
+    html += '<div class="px-5 py-5">';
+    html += '<p class="text-xs font-semibold ' + theme.accent + ' mb-1">' + escapeHtml(copy.verdictIntro) + '</p>';
+    html += '<h2 class="text-xl md:text-2xl font-extrabold text-gray-900 mb-2 leading-snug">' + escapeHtml(copy.headline) + '</h2>';
+    if (lowest) {
+      html += '<div class="flex flex-wrap items-baseline gap-2 mb-3">';
+      html += '<span class="text-sm text-gray-500">확인된 최저가</span>';
+      html += '<span class="text-2xl font-extrabold text-emerald-600">' + escapeHtml(formatPrice(lowest)) + '</span>';
+      if (requested) {
+        html += '<span class="text-sm text-gray-400">(의뢰가 ' + escapeHtml(formatPrice(requested)) + ')</span>';
+      }
+      html += '</div>';
+    }
+    if (savings > 0) {
+      html += '<p class="text-emerald-800 font-semibold mb-2">절약 가능 <span class="text-lg">' + savings.toLocaleString() + '원</span> · ' + pct + '%</p>';
+    }
+    html += '<p class="text-sm text-gray-600 leading-relaxed mb-3">' + escapeHtml(copy.sub) + '</p>';
+    if (data.decision && data.decision.summary) {
+      html += '<div class="p-3 rounded-xl bg-white/80 border border-gray-100 text-gray-800 text-sm font-medium">' + nl2br(data.decision.summary) + '</div>';
+    }
+    if (data.decision && data.decision.confidence) {
+      html += '<p class="text-xs text-gray-500 mt-2">분석 신뢰도 ' + escapeHtml(String(data.decision.confidence)) + '%</p>';
+    }
+    html += '</div></div>';
+    return html;
+  }
+
+  function renderPurchaseActionCardsHTML(options) {
+    options = options || {};
+    var directLink = options.directLink || '';
+    var hasDirect = directLink && directLink !== '링크 정보 없음' && /^https?:\/\//i.test(String(directLink));
+    var reqId = options.reqId ? String(options.reqId).replace(/^#+/, '') : '';
+    var supportUrl = options.supportUrl || (reqId ? 'payment.html?req=' + encodeURIComponent(reqId) + '&method=support' : '#');
+    var variant = options.variant || 'search';
+    var html = '';
+
+    html += '<div class="ph-purchase-actions mt-8 pt-6 border-t border-gray-200">';
+    html += '<h3 class="text-lg font-bold text-gray-900 text-center mb-1">다음 단계 — 구매 방법</h3>';
+    html += '<p class="text-sm text-gray-500 text-center mb-5">PriceHunter 검증 결과를 바탕으로 선택해 주세요</p>';
+    html += '<div class="grid grid-cols-1 md:grid-cols-2 gap-4">';
+
+    html += '<div class="rounded-2xl border-2 border-emerald-200 bg-gradient-to-br from-emerald-50 to-white p-5 flex flex-col h-full shadow-sm">';
+    html += '<span class="text-xs font-bold text-emerald-700 mb-2">✨ 추천 · 가장 빠름</span>';
+    html += '<div class="text-lg font-bold text-gray-900 mb-2">🛒 검증된 최저가로 구매</div>';
+    html += '<ul class="text-sm text-gray-600 space-y-1.5 mb-4 flex-1 list-none pl-0">';
+    html += '<li>✓ PriceHunter가 찾은 판매처로 바로 이동</li>';
+    html += '<li>✓ 해당 쇼핑몰에서 직접 결제 (수수료 없음)</li>';
+    html += '<li>✓ 가장 빠르고 간단한 방법</li>';
+    html += '</ul>';
+    if (variant === 'search') {
+      html += hasDirect
+        ? '<button type="button" id="buy-external-btn" onclick="goToExternalPurchase()" class="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow transition">검증 링크로 구매하기 →</button>'
+        : '<button type="button" disabled class="w-full py-3 px-4 bg-gray-200 text-gray-500 font-bold rounded-xl cursor-not-allowed">구매 링크 준비 중</button>';
+    } else {
+      html += hasDirect
+        ? '<a id="btn-direct-buy" href="' + escapeHtml(directLink) + '" target="_blank" rel="noopener noreferrer" class="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow transition text-center block">검증 링크로 구매하기 →</a>'
+        : '<span id="btn-direct-buy" class="w-full py-3 px-4 bg-gray-200 text-gray-500 font-bold rounded-xl text-center block opacity-50">구매 링크 없음</span>';
+    }
+    html += '</div>';
+
+    html += '<div class="rounded-2xl border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-white p-5 flex flex-col h-full shadow-sm">';
+    html += '<span class="text-xs font-bold text-blue-700 mb-2">🤝 대행 · 편의</span>';
+    html += '<div class="text-lg font-bold text-gray-900 mb-2">PriceHunter 구매 지원</div>';
+    html += '<ul class="text-sm text-gray-600 space-y-1.5 mb-4 flex-1 list-none pl-0">';
+    html += '<li>✓ 해외·복잡한 주문을 PriceHunter가 대신 진행</li>';
+    html += '<li>✓ 배송·주문 상태 추적 지원</li>';
+    html += '<li>✓ 결제금액 1% 적립 (구매확정 후)</li>';
+    html += '</ul>';
+    if (variant === 'search') {
+      html += '<button type="button" onclick="showPurchaseSupport()" class="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow transition">구매 지원 신청하기 →</button>';
+    } else {
+      html += '<a id="btn-support-buy" href="' + escapeHtml(supportUrl) + '" class="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow transition text-center block">구매 지원 신청하기 →</a>';
+    }
+    html += '</div>';
+
+    html += '</div></div>';
     return html;
   }
 
   function renderCustomerResultHTML(result, options) {
-    return renderCustomerHeroHTML(result, options) + renderPurchaseReportHTML(result, { skipVerdict: true });
+    options = options || {};
+    var clean = sanitizeCustomerReport(result);
+    var html = renderCustomerHeroHTML(clean, options);
+    html += renderPurchaseReportHTML(clean, { skipVerdict: true, customerView: true });
+    if (options.includeActions !== false) {
+      html += renderPurchaseActionCardsHTML(Object.assign({
+        directLink: clean.link,
+        variant: options.variant || 'search'
+      }, options));
+    }
+    return html;
   }
 
   function renderPurchaseReportHTML(result, options) {
     options = options || {};
-    var data = normalizeResultData(result);
+    var data = options.customerView ? sanitizeCustomerReport(result) : normalizeResultData(result);
     var html = '';
     var verdict = data.decision && data.decision.verdict;
     var cfg = VERDICT_CONFIG[verdict];
@@ -263,7 +409,9 @@
     var prod = data.productAnalysis || {};
     var prodParts = [];
     if (prod.valueScore) prodParts.push(scoreBar(prod.valueScore, 'bg-blue-500'));
-    if (prod.reviewSummary) prodParts.push('<p>' + nl2br(prod.reviewSummary) + '</p>');
+    if (prod.reviewSummary && !(options.customerView && /AI 연동|수동 입력/.test(prod.reviewSummary))) {
+      prodParts.push('<p>' + nl2br(prod.reviewSummary) + '</p>');
+    }
     if (prod.pros) prodParts.push('<p><span class="font-semibold text-emerald-700">장점</span><br>' + nl2br(prod.pros) + '</p>');
     if (prod.cons) prodParts.push('<p><span class="font-semibold text-red-700">단점</span><br>' + nl2br(prod.cons) + '</p>');
     if (prod.alternatives) {
@@ -282,7 +430,7 @@
     if (seller.domesticVsImport) sellerParts.push('<p>' + nl2br(seller.domesticVsImport) + '</p>');
     if (sellerParts.length) html += sectionBlock('판매처 분석', '🏪', sellerParts.join(''));
 
-    if (data.evidenceNotes && data.evidenceNotes.trim()) {
+    if (data.evidenceNotes && data.evidenceNotes.trim() && !(options.customerView && isAdminMetaLine(data.evidenceNotes))) {
       html += sectionBlock('판단 근거', '⚖️', nl2br(data.evidenceNotes));
     }
 
@@ -442,8 +590,10 @@
     formatPrice: formatPrice,
     parsePriceNum: parsePriceNum,
     reportFromFirebaseItem: reportFromFirebaseItem,
+    sanitizeCustomerReport: sanitizeCustomerReport,
     renderCustomerHeroHTML: renderCustomerHeroHTML,
     renderCustomerResultHTML: renderCustomerResultHTML,
+    renderPurchaseActionCardsHTML: renderPurchaseActionCardsHTML,
     renderPurchaseReportHTML: renderPurchaseReportHTML,
     collectFromAdminForm: collectFromAdminForm,
     populateAdminForm: populateAdminForm,

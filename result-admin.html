@@ -330,8 +330,8 @@
             <div class="font-bold text-amber-800 mb-2">⚠️ 저장 전 검수 체크</div>
             <ul id="qa-warnings-list" class="text-sm text-amber-900 list-disc list-inside space-y-1"></ul>
           </div>
-          <div id="admin-msg" class="mt-3"></div>
         </form>
+        <div id="admin-msg" class="mt-3 w-full text-left"></div>
       </div>
     </main>
 
@@ -1220,7 +1220,7 @@
               adminMsg.innerHTML = `
                 <div class="text-green-600 font-bold mb-2">✅ 구매판단 리포트가 저장되었습니다!</div>
                 ${firebaseMsg}
-                <button onclick="sendManualNotification()" class="px-4 py-2 bg-blue-500 text-white rounded-lg font-bold hover:bg-blue-600 transition mt-2">
+                <button type="button" onclick="sendManualNotification()" class="px-4 py-2 bg-blue-500 text-white rounded-lg font-bold hover:bg-blue-600 transition mt-2">
                   고객에게 알림 발송
                 </button>
               `;
