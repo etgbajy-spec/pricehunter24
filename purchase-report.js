@@ -334,8 +334,8 @@
     html += '<div class="text-lg font-bold text-gray-900 mb-2">PriceHunter 구매 지원</div>';
     html += '<ul class="text-sm text-gray-600 space-y-1.5 mb-4 flex-1 list-none pl-0">';
     html += '<li>✓ 해외·복잡한 주문을 PriceHunter가 대신 진행</li>';
-    html += '<li>✓ 배송·주문 상태 추적 지원</li>';
-    html += '<li>✓ 결제금액 1% 적립 (구매확정 후)</li>';
+    html += '<li>✓ 검증 최저가 + <strong>1% 수수료</strong>로 결제</li>';
+    html += '<li>✓ 결제금액 <strong>1% 포인트 적립</strong> (구매확정 후)</li>';
     html += '</ul>';
     if (variant === 'search') {
       html += '<button type="button" onclick="showPurchaseSupport()" class="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow transition">구매 지원 신청하기 →</button>';

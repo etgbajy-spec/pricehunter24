@@ -88,19 +88,23 @@
                 <span id="product-name" class="text-gray-800 font-bold"></span>
               </div>
               <div class="flex items-center justify-between mb-2">
-                <span class="font-semibold text-gray-700">원산지</span>
+                <span class="font-semibold text-gray-700">판매처</span>
                 <span id="product-origin" class="text-gray-600"></span>
               </div>
+              <div id="row-request-price" class="flex items-center justify-between mb-2 hidden">
+                <span class="font-semibold text-gray-700">의뢰하신 가격</span>
+                <span id="request-price" class="text-gray-600"></span>
+              </div>
               <div class="flex items-center justify-between mb-2">
-                <span class="font-semibold text-gray-700">구매 방식</span>
-                <span id="purchase-method" class="text-blue-600 font-semibold"></span>
+                <span class="font-semibold text-gray-700">검증 최저가</span>
+                <span id="base-price" class="text-lg font-bold text-gray-800"></span>
               </div>
-              <div class="flex items-center justify-between">
-                <span class="font-semibold text-gray-700">의뢰가격</span>
-                <span id="request-price" class="text-lg font-bold text-gray-800"></span>
+              <div id="row-support-fee" class="flex items-center justify-between mb-2 hidden">
+                <span class="font-semibold text-gray-700">구매 지원 수수료 (1%)</span>
+                <span id="support-fee" class="text-gray-800 font-semibold"></span>
               </div>
-              <div class="flex items-center justify-between">
-                <span class="font-semibold text-gray-700">최종가격(총 결제금액)</span>
+              <div class="flex items-center justify-between pt-2 border-t border-gray-200">
+                <span class="font-semibold text-gray-700">최종 결제금액</span>
                 <span id="final-price" class="text-2xl font-bold text-emerald-600"></span>
               </div>
             </div>
@@ -180,25 +184,28 @@
             
             <div class="space-y-3 mb-6">
               <div class="flex justify-between">
-                <span class="text-gray-600">상품 금액</span>
+                <span class="text-gray-600">검증 최저가</span>
                 <span id="subtotal" class="font-semibold"></span>
+              </div>
+              <div id="summary-support-fee-row" class="flex justify-between hidden">
+                <span class="text-gray-600">구매 지원 수수료 (1%)</span>
+                <span id="summary-support-fee" class="font-semibold text-gray-800"></span>
               </div>
               <div class="flex justify-between">
                 <span class="text-gray-600">배송비</span>
                 <span class="font-semibold text-emerald-600">무료</span>
               </div>
-              <div class="flex justify-between">
-                <span class="text-gray-600">할인</span>
-                <span class="font-semibold text-red-600">-₩0</span>
-              </div>
-              <div class="flex justify-between">
-                <span class="text-gray-600">적립 포인트(1%)</span>
-                <span id="earned-points" class="font-semibold text-indigo-600"></span>
-              </div>
               <hr class="my-3">
               <div class="flex justify-between text-lg font-bold">
                 <span>총 결제금액</span>
                 <span id="total-amount" class="text-emerald-600"></span>
+              </div>
+              <div id="summary-points-row" class="rounded-xl bg-indigo-50 border border-indigo-100 p-3 hidden">
+                <div class="flex justify-between items-center">
+                  <span class="text-indigo-800 text-sm font-semibold">🎁 적립 예정 (결제금액 1%)</span>
+                  <span id="earned-points" class="font-bold text-indigo-700"></span>
+                </div>
+                <p class="text-xs text-indigo-600 mt-1">배송완료 후 구매확정 시 포인트로 적립됩니다.</p>
               </div>
             </div>
 
@@ -282,7 +289,10 @@
         }
         try {
           const base = window.location.origin;
-          const res = await fetch(base + '/api/payment-info?req=' + encodeURIComponent(reqKey.trim()));
+          const urlMethod = urlParams.get('method') || '';
+          const apiUrl = base + '/api/payment-info?req=' + encodeURIComponent(reqKey.trim()) +
+            (urlMethod ? '&method=' + encodeURIComponent(urlMethod) : '');
+          const res = await fetch(apiUrl);
           const data = await res.json().catch(() => ({}));
           if (!res.ok) {
             alert(data.error || '상품 정보를 불러올 수 없습니다.');
@@ -292,29 +302,60 @@
           const origin = data.origin || '정보 없음';
           const method = data.method === 'support' ? 'support' : 'direct';
           const requestPrice = data.requestPrice != null ? Number(data.requestPrice) : null;
+          const basePrice = Number(data.basePrice != null ? data.basePrice : data.finalPrice);
+          const supportFee = Number(data.supportFee || 0);
           const finalPrice = Number(data.finalPrice);
+          const earnedPoints = Number(data.earnedPoints || computeEarnedPoints(finalPrice));
           if (isNaN(finalPrice) || finalPrice <= 0) {
             alert('유효한 결제 금액을 확인할 수 없습니다.');
             return;
           }
-          paymentInfoFromServer = { reqKey: reqKey.trim(), name, requestPrice, finalPrice, origin, method };
+          paymentInfoFromServer = { reqKey: reqKey.trim(), name, requestPrice, basePrice, supportFee, finalPrice, origin, method, earnedPoints };
+
+          const headerSub = document.querySelector('.text-white\\/80');
+          if (method === 'support' && headerSub) {
+            headerSub.textContent = 'PriceHunter 구매 지원 — 검증 최저가 + 1% 수수료 · 결제금액 1% 적립';
+          }
+
           const productNameEl = document.getElementById('product-name');
           const productOriginEl = document.getElementById('product-origin');
           const requestPriceEl = document.getElementById('request-price');
+          const rowRequestPrice = document.getElementById('row-request-price');
+          const basePriceEl = document.getElementById('base-price');
+          const supportFeeEl = document.getElementById('support-fee');
+          const rowSupportFee = document.getElementById('row-support-fee');
           const finalPriceEl = document.getElementById('final-price');
           const subtotalEl = document.getElementById('subtotal');
           const totalAmountEl = document.getElementById('total-amount');
           const earnedPointsEl = document.getElementById('earned-points');
-          const purchaseMethodEl = document.getElementById('purchase-method');
+          const summarySupportFeeRow = document.getElementById('summary-support-fee-row');
+          const summarySupportFee = document.getElementById('summary-support-fee');
+          const summaryPointsRow = document.getElementById('summary-points-row');
+
           if (productNameEl) productNameEl.textContent = name;
           if (productOriginEl) productOriginEl.textContent = origin;
-          if (requestPriceEl) requestPriceEl.textContent = requestPrice != null && Number.isFinite(requestPrice) && requestPrice > 0 ? formatKrw(requestPrice) : '정보 없음';
+          if (requestPriceEl && rowRequestPrice) {
+            if (requestPrice != null && Number.isFinite(requestPrice) && requestPrice > 0) {
+              requestPriceEl.textContent = formatKrw(requestPrice);
+              rowRequestPrice.classList.remove('hidden');
+            } else {
+              rowRequestPrice.classList.add('hidden');
+            }
+          }
+          if (basePriceEl) basePriceEl.textContent = formatKrw(basePrice);
           const finalStr = formatKrw(finalPrice);
           if (finalPriceEl) finalPriceEl.textContent = finalStr;
-          if (subtotalEl) subtotalEl.textContent = finalStr;
+          if (subtotalEl) subtotalEl.textContent = formatKrw(basePrice);
           if (totalAmountEl) totalAmountEl.textContent = finalStr;
-          if (earnedPointsEl) earnedPointsEl.textContent = computeEarnedPoints(finalPrice).toLocaleString() + 'P';
-          if (purchaseMethodEl) purchaseMethodEl.textContent = method === 'support' ? 'PriceHunter 구매대행 결제' : '외부 판매처 직접구매';
+
+          if (method === 'support' && supportFee > 0) {
+            if (rowSupportFee) rowSupportFee.classList.remove('hidden');
+            if (supportFeeEl) supportFeeEl.textContent = formatKrw(supportFee);
+            if (summarySupportFeeRow) summarySupportFeeRow.classList.remove('hidden');
+            if (summarySupportFee) summarySupportFee.textContent = formatKrw(supportFee);
+            if (summaryPointsRow) summaryPointsRow.classList.remove('hidden');
+            if (earnedPointsEl) earnedPointsEl.textContent = earnedPoints.toLocaleString() + 'P';
+          }
           const requestKey = 'request-' + reqKey;
           const requestData = localStorage.getItem(requestKey);
           if (requestData) {

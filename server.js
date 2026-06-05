@@ -263,13 +263,17 @@ app.get('/api/payment-info', paymentLimiter, async (req, res) => {
   }
   // Firebase 미연결 시 개발용 더미 응답 (로컬 테스트용, URL의 price/name은 절대 사용하지 않음)
   if (!adminInitialized) {
-    const devPrice = 10000;
+    const devBase = 85000;
+    const devFee = Math.max(1, Math.round(devBase * 0.01));
     return res.status(200).json({
       name: '(개발) 상품',
-      price: devPrice,
       origin: '테스트',
-      method: 'direct',
+      method: 'support',
       reqId,
+      basePrice: devBase,
+      supportFee: devFee,
+      finalPrice: devBase + devFee,
+      earnedPoints: Math.max(1, Math.round((devBase + devFee) * 0.01)),
       _dev: true
     });
   }
@@ -277,9 +281,7 @@ app.get('/api/payment-info', paymentLimiter, async (req, res) => {
     const db = admin.firestore();
     let data = null;
     const docSnap = await db.collection('requests').doc(reqId).get();
-    if (docSnap.exists) {
-      data = docSnap.data();
-    }
+    if (docSnap.exists) data = docSnap.data();
     const withHash = reqId.startsWith('PH-') ? '#' + reqId : reqId;
     if (!data) {
       const q = await db.collection('requests').where('requestNumber', '==', reqId).limit(1).get();
@@ -290,26 +292,59 @@ app.get('/api/payment-info', paymentLimiter, async (req, res) => {
       if (!qHash.empty) data = qHash.docs[0].data();
     }
     if (!data) {
-      const q2 = await db.collection('requests').where('reqNum', '==', reqId).limit(1).get();
-      if (!q2.empty) data = q2.docs[0].data();
-    }
-    if (!data) {
-      const q2Hash = await db.collection('requests').where('reqNum', '==', withHash).limit(1).get();
-      if (!q2Hash.empty) data = q2Hash.docs[0].data();
-    }
-    if (!data) {
       return res.status(404).json({ error: '해당 의뢰 정보를 찾을 수 없습니다.' });
     }
-    const price = Number(data.productPrice ?? data.price ?? data.totalAmount ?? 0);
-    if (isNaN(price) || price < 0 || price > 100000000) {
+
+    const queryMethod = (req.query.method || '').toString().trim();
+    const method =
+      queryMethod === 'support' ||
+      data.method === 'support' ||
+      data.purchaseMethod === 'support' ||
+      data.purchaseDecision === 'support'
+        ? 'support'
+        : 'direct';
+
+    const basePrice = Number(
+      data.purchaseReport?.price ??
+      data.adminResponse?.lowestPrice ??
+      data.adminResponse?.totalCost ??
+      data.productPrice ??
+      data.price ??
+      0
+    );
+    if (isNaN(basePrice) || basePrice <= 0 || basePrice > 100000000) {
       return res.status(400).json({ error: '유효한 결제 금액을 확인할 수 없습니다.' });
     }
+
+    let supportFee = 0;
+    let finalPrice = basePrice;
+    if (method === 'support') {
+      supportFee = computeSupportFee(basePrice);
+      finalPrice = basePrice + supportFee;
+    }
+    const earnedPoints = method === 'support' ? computeSupportFee(finalPrice) : 0;
+
     const name = String(data.productName ?? data.name ?? '상품').slice(0, 200);
-    const origin = String(data.productOrigin ?? data.origin ?? '정보 없음').slice(0, 100);
-    const method = (data.method === 'support' || data.purchaseMethod === 'support') ? 'support' : 'direct';
-    // 답변 완료 이후에만 결제/최종선택을 허용하는 흐름을 권장하지만, 기존 데이터 호환을 위해 상태는 함께 내려준다.
+    const origin = String(
+      data.purchaseReport?.origin ??
+      data.adminResponse?.seller ??
+      data.productOrigin ??
+      data.origin ??
+      '정보 없음'
+    ).slice(0, 100);
     const status = String(data.status || '').slice(0, 40);
-    res.json({ name, price, origin, method, status, reqId: reqId });
+    res.json({
+      name,
+      origin,
+      method,
+      status,
+      reqId,
+      basePrice,
+      supportFee,
+      finalPrice,
+      earnedPoints,
+      requestPrice: data.price ?? null
+    });
   } catch (err) {
     console.error('❌ 결제 정보 조회 실패:', err);
     res.status(500).json({ error: '결제 정보를 불러오는 중 오류가 발생했습니다.' });

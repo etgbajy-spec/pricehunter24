@@ -110,41 +110,61 @@ exports.handler = async (event) => {
       return { statusCode: 404, headers, body: JSON.stringify({ error: '해당 의뢰 정보를 찾을 수 없습니다.' }) };
     }
  
-    // 의뢰가격(의뢰자가 찾은/입력한 가격) vs 최종가격(관리자 답변/확정 금액) 분리
-    const requestPrice =
-      toNumberPrice(
-        data.requestPrice ??
-        data.requestedPrice ??
-        data.userPrice ??
-        data.price ?? // request.html 에서는 price 로 저장됨
-        data.productPrice ?? // 일부 문서는 productPrice 로 저장되어 있을 수 있음
-        0
-      );
+    // 검증 최저가 (관리자 답변 / 구매판단 리포트)
+    const basePrice = toNumberPrice(
+      data.purchaseReport?.price ??
+      data.adminResponse?.lowestPrice ??
+      data.adminResponse?.totalCost ??
+      data.totalAmount ??
+      data.finalPrice ??
+      data.finalAmount ??
+      data.productPrice ??
+      0
+    );
 
-    // 관리자 답변은 adminResponse 내부에 저장됨 (admin-dashboard.html)
-    const adminFinal =
-      toNumberPrice(
-        data.adminResponse?.totalCost ??     // "총 비용" (배송/부대비 포함)
-        data.adminResponse?.lowestPrice ??   // "최저가"
-        data.totalAmount ??
-        data.finalPrice ??
-        data.finalAmount ??
-        data.productPrice ??
-        0
-      );
+    const queryMethod = (event.queryStringParameters?.method || '').toString().trim();
+    const method =
+      queryMethod === 'support' ||
+      data.method === 'support' ||
+      data.purchaseMethod === 'support' ||
+      data.purchaseDecision === 'support'
+        ? 'support'
+        : 'direct';
 
-    const finalPrice = adminFinal;
+    const requestPrice = toNumberPrice(
+      data.requestPrice ??
+      data.requestedPrice ??
+      data.userPrice ??
+      data.price ??
+      data.productPrice ??
+      0
+    );
 
-    // 최종 결제금액은 반드시 유효해야 함 (관리자 답변 기반)
-    if (!Number.isFinite(finalPrice) || finalPrice <= 0 || finalPrice > 100000000) {
+    if (!Number.isFinite(basePrice) || basePrice <= 0 || basePrice > 100000000) {
       return { statusCode: 400, headers, body: JSON.stringify({ error: '유효한 결제 금액을 확인할 수 없습니다.' }) };
     }
- 
+
+    const SUPPORT_FEE_RATE = 0.01;
+    let supportFee = 0;
+    let finalPrice = basePrice;
+    if (method === 'support') {
+      supportFee = Math.max(1, Math.round(basePrice * SUPPORT_FEE_RATE));
+      finalPrice = basePrice + supportFee;
+    }
+    const earnedPoints = method === 'support'
+      ? Math.max(1, Math.round(finalPrice * SUPPORT_FEE_RATE))
+      : 0;
+
     const name = String(data.productName ?? data.name ?? '상품').slice(0, 200);
-    const origin = String(data.productOrigin ?? data.origin ?? '정보 없음').slice(0, 100);
-    const method = (data.method === 'support' || data.purchaseMethod === 'support') ? 'support' : 'direct';
+    const origin = String(
+      data.purchaseReport?.origin ??
+      data.adminResponse?.seller ??
+      data.productOrigin ??
+      data.origin ??
+      '정보 없음'
+    ).slice(0, 100);
     const status = String(data.status || '').slice(0, 40);
- 
+
     return {
       statusCode: 200,
       headers,
@@ -154,8 +174,11 @@ exports.handler = async (event) => {
         method,
         status,
         reqId,
+        basePrice,
+        supportFee,
         requestPrice: Number.isFinite(requestPrice) && requestPrice > 0 ? requestPrice : null,
         finalPrice,
+        earnedPoints,
       }),
     };
   } catch (e) {
