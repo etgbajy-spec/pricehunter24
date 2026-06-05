@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>의뢰 결과 입력/관리 | PriceHunter</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="purchase-report.js"></script>
+    <script src="request-data-sync.js"></script>
+    <script src="analysis-pipeline-client.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -63,6 +66,11 @@
             <button id="filter-new" class="filter-btn px-3 py-1 bg-red-500 text-white rounded font-bold hover:bg-red-600 transition text-sm" onclick="switchFilter('new')">신규의뢰</button>
             <button id="filter-progress" class="filter-btn px-3 py-1 bg-orange-500 text-white rounded font-bold hover:bg-orange-600 transition text-sm" onclick="switchFilter('progress')">진행중</button>
             <button id="filter-complete" class="filter-btn px-3 py-1 bg-green-500 text-white rounded font-bold hover:bg-green-600 transition text-sm" onclick="switchFilter('complete')">완료</button>
+            <button id="filter-ai-pending" class="filter-btn px-3 py-1 bg-indigo-500 text-white rounded font-bold hover:bg-indigo-600 transition text-sm" onclick="switchFilter('ai-pending')">🤖 AI분석대기</button>
+          </div>
+          <div class="mt-2 flex gap-2 justify-center">
+            <button type="button" id="btn-sync-firebase" class="px-3 py-1 bg-sky-500 text-white rounded text-xs font-bold hover:bg-sky-600 transition">☁️ Firebase 의뢰 불러오기</button>
+            <span id="firebase-sync-msg" class="text-xs text-gray-500 self-center"></span>
           </div>
         </div>
       </div>
@@ -124,27 +132,199 @@
           <div class="mb-2 text-gray-600"><span class="font-semibold">통관번호:</span> <span id="detail-customs"></span></div>
           <div class="mb-2 text-gray-600"><span class="font-semibold">업로드 이미지:</span> <span id="detail-img"></span></div>
         </div>
+
+        <!-- AI 분석 파이프라인 (Phase 2) -->
+        <div id="ai-pipeline-section" class="w-full mb-4 p-5 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl border border-indigo-200 text-left hidden">
+          <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+            <div>
+              <div class="font-bold text-indigo-800 text-lg">🤖 AI 분석 파이프라인</div>
+              <p class="text-xs text-gray-500 mt-1">가격 수집 → AI 초안 생성 → 관리자 검수 후 저장 (기존 수동 입력과 병행)</p>
+            </div>
+            <span id="ai-pipeline-status" class="px-3 py-1 rounded-full text-xs font-bold bg-gray-200 text-gray-600">대기</span>
+          </div>
+          <div class="flex flex-wrap gap-2 mb-4">
+            <button type="button" id="btn-run-pipeline" class="px-4 py-2 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 transition text-sm">
+              ⚡ 전체 파이프라인 실행
+            </button>
+            <button type="button" id="btn-collect-prices" class="px-4 py-2 bg-emerald-600 text-white rounded-lg font-bold hover:bg-emerald-700 transition text-sm">
+              💰 가격 수집만
+            </button>
+            <button type="button" id="btn-generate-draft" class="px-4 py-2 bg-purple-600 text-white rounded-lg font-bold hover:bg-purple-700 transition text-sm">
+              🧠 AI 초안만
+            </button>
+            <button type="button" id="btn-apply-draft" class="px-4 py-2 bg-pink-600 text-white rounded-lg font-bold hover:bg-pink-700 transition text-sm hidden">
+              ✅ 초안 폼에 적용
+            </button>
+          </div>
+          <div id="ai-pipeline-msg" class="text-sm mb-3"></div>
+          <div id="ai-collect-summary" class="hidden mb-3 p-3 bg-white rounded-lg border border-emerald-100 text-sm text-gray-700"></div>
+          <div id="ai-draft-preview" class="hidden p-4 bg-white rounded-xl border border-indigo-100 max-h-96 overflow-y-auto"></div>
+        </div>
         
         <form id="result-form" class="w-full bg-gray-50 rounded-2xl shadow-inner p-6 mb-4 text-left">
-          <div class="mb-3">
-            <label class="block text-gray-700 font-semibold mb-1" for="admin-price">최저가</label>
-            <input type="text" id="admin-price" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-pink-400 focus:outline-none" />
+          <!-- 기존 결과 입력 (하위 호환) -->
+          <div class="mb-6 p-4 bg-white rounded-xl border border-pink-100">
+            <div class="font-bold text-pink-700 mb-3">📋 기본 결과 (기존 형식 · 필수)</div>
+            <div class="mb-3">
+              <label class="block text-gray-700 font-semibold mb-1" for="admin-price">최저가</label>
+              <input type="text" id="admin-price" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-pink-400 focus:outline-none" />
+            </div>
+            <div class="mb-3">
+              <label class="block text-gray-700 font-semibold mb-1" for="admin-origin">원산지/공급처</label>
+              <input type="text" id="admin-origin" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-pink-400 focus:outline-none" />
+            </div>
+            <div class="mb-3">
+              <label class="block text-gray-700 font-semibold mb-1" for="admin-summary">종합설명</label>
+              <textarea id="admin-summary" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-pink-400 focus:outline-none" rows="6" placeholder="제품에 대한 상세한 설명을 입력하세요..."></textarea>
+            </div>
+            <div class="mb-3">
+              <label class="block text-gray-700 font-semibold mb-1" for="admin-link">구매링크</label>
+              <input type="url" id="admin-link" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-pink-400 focus:outline-none" placeholder="https://..." />
+            </div>
           </div>
-          <div class="mb-3">
-            <label class="block text-gray-700 font-semibold mb-1" for="admin-origin">원산지/공급처</label>
-            <input type="text" id="admin-origin" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-pink-400 focus:outline-none" />
+
+          <!-- 구매판단 리포트 (신규 · 선택) -->
+          <div class="mb-6 p-4 bg-gradient-to-br from-blue-50 to-emerald-50 rounded-xl border border-blue-200">
+            <div class="font-bold text-blue-800 mb-1">🧠 구매판단 리포트 (신규 · 선택 입력)</div>
+            <p class="text-xs text-gray-500 mb-4">입력하지 않아도 기존 결과 저장·조회는 그대로 동작합니다.</p>
+
+            <div class="mb-4 p-4 bg-white rounded-lg border border-blue-100">
+              <div class="font-semibold text-gray-800 mb-3">🎯 구매 판단</div>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                <div>
+                  <label class="block text-gray-600 text-sm mb-1" for="admin-verdict">판단 결과</label>
+                  <select id="admin-verdict" class="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none">
+                    <option value="">선택 안 함</option>
+                    <option value="buy">✅ 구매 추천</option>
+                    <option value="hold">⏸️ 보류 (관망)</option>
+                    <option value="skip">❌ 구매 비추천</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-gray-600 text-sm mb-1" for="admin-confidence">신뢰도 (0~100)</label>
+                  <input type="number" id="admin-confidence" min="0" max="100" class="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none" placeholder="85" />
+                </div>
+              </div>
+              <div class="mb-3">
+                <label class="block text-gray-600 text-sm mb-1" for="admin-decision-summary">한 줄 결론</label>
+                <input type="text" id="admin-decision-summary" class="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none" placeholder="지금 구매를 추천합니다. 3개월 최저가이며..." />
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-gray-600 text-sm mb-1" for="admin-recommend-for">추천 대상</label>
+                  <textarea id="admin-recommend-for" rows="2" class="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none" placeholder="가성비를 중시하는 분"></textarea>
+                </div>
+                <div>
+                  <label class="block text-gray-600 text-sm mb-1" for="admin-not-recommend-for">비추천 대상</label>
+                  <textarea id="admin-not-recommend-for" rows="2" class="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none" placeholder="최신 모델을 원하는 분"></textarea>
+                </div>
+              </div>
+            </div>
+
+            <div class="mb-4 p-4 bg-white rounded-lg border border-emerald-100">
+              <div class="font-semibold text-gray-800 mb-3">💰 가격 분석</div>
+              <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+                <div>
+                  <label class="block text-gray-600 text-xs mb-1" for="admin-current-price">현재가</label>
+                  <input type="text" id="admin-current-price" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-emerald-400 focus:outline-none" />
+                </div>
+                <div>
+                  <label class="block text-gray-600 text-xs mb-1" for="admin-lowest-price">최저가</label>
+                  <input type="text" id="admin-lowest-price" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-emerald-400 focus:outline-none" />
+                </div>
+                <div>
+                  <label class="block text-gray-600 text-xs mb-1" for="admin-avg-price">시장 평균</label>
+                  <input type="text" id="admin-avg-price" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-emerald-400 focus:outline-none" />
+                </div>
+                <div>
+                  <label class="block text-gray-600 text-xs mb-1" for="admin-requested-price">의뢰가</label>
+                  <input type="text" id="admin-requested-price" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-emerald-400 focus:outline-none" />
+                </div>
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-gray-600 text-xs mb-1" for="admin-price-trend">가격 추세</label>
+                  <select id="admin-price-trend" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-emerald-400 focus:outline-none">
+                    <option value="">선택 안 함</option>
+                    <option value="down">📉 하락</option>
+                    <option value="stable">➡️ 횡보</option>
+                    <option value="up">📈 상승</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-gray-600 text-xs mb-1" for="admin-timing-score">구매 타이밍 점수 (0~100)</label>
+                  <input type="number" id="admin-timing-score" min="0" max="100" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-emerald-400 focus:outline-none" />
+                </div>
+              </div>
+              <div class="mt-3">
+                <label class="block text-gray-600 text-xs mb-1" for="admin-timing-note">타이밍 코멘트</label>
+                <textarea id="admin-timing-note" rows="2" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-emerald-400 focus:outline-none" placeholder="2주 내 추가 할인 가능성 낮음"></textarea>
+              </div>
+            </div>
+
+            <div class="mb-4 p-4 bg-white rounded-lg border border-purple-100">
+              <div class="font-semibold text-gray-800 mb-3">⭐ 제품 분석</div>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                <div>
+                  <label class="block text-gray-600 text-xs mb-1" for="admin-value-score">가성비 점수 (0~100)</label>
+                  <input type="number" id="admin-value-score" min="0" max="100" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-purple-400 focus:outline-none" />
+                </div>
+                <div>
+                  <label class="block text-gray-600 text-xs mb-1" for="admin-review-summary">리뷰 요약</label>
+                  <textarea id="admin-review-summary" rows="2" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-purple-400 focus:outline-none"></textarea>
+                </div>
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                <div>
+                  <label class="block text-gray-600 text-xs mb-1" for="admin-pros">장점</label>
+                  <textarea id="admin-pros" rows="2" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-purple-400 focus:outline-none"></textarea>
+                </div>
+                <div>
+                  <label class="block text-gray-600 text-xs mb-1" for="admin-cons">단점</label>
+                  <textarea id="admin-cons" rows="2" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-purple-400 focus:outline-none"></textarea>
+                </div>
+              </div>
+              <div>
+                <label class="block text-gray-600 text-xs mb-1" for="admin-alternatives">대안 제품 (한 줄에 하나)</label>
+                <textarea id="admin-alternatives" rows="3" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-purple-400 focus:outline-none" placeholder="A사 XX모델 - 10% 저렴, 스펙 유사"></textarea>
+              </div>
+            </div>
+
+            <div class="mb-4 p-4 bg-white rounded-lg border border-indigo-100">
+              <div class="font-semibold text-gray-800 mb-3">🏪 판매처 분석</div>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                <div>
+                  <label class="block text-gray-600 text-xs mb-1" for="admin-seller-name">판매처명</label>
+                  <input type="text" id="admin-seller-name" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-indigo-400 focus:outline-none" />
+                </div>
+                <div>
+                  <label class="block text-gray-600 text-xs mb-1" for="admin-trust-score">신뢰도 점수 (0~100)</label>
+                  <input type="number" id="admin-trust-score" min="0" max="100" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-indigo-400 focus:outline-none" />
+                </div>
+              </div>
+              <div class="mb-3">
+                <label class="block text-gray-600 text-xs mb-1" for="admin-seller-risks">주의사항</label>
+                <textarea id="admin-seller-risks" rows="2" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-indigo-400 focus:outline-none"></textarea>
+              </div>
+              <div>
+                <label class="block text-gray-600 text-xs mb-1" for="admin-domestic-import">국내 vs 직구 비교</label>
+                <textarea id="admin-domestic-import" rows="2" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-indigo-400 focus:outline-none"></textarea>
+              </div>
+            </div>
+
+            <div class="p-4 bg-white rounded-lg border border-gray-200">
+              <div class="font-semibold text-gray-800 mb-3">⚖️ 판단 근거</div>
+              <textarea id="admin-evidence-notes" rows="3" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-gray-400 focus:outline-none" placeholder="데이터 출처, 비교 근거, 시점 고정 정보 등"></textarea>
+            </div>
           </div>
-          <div class="mb-3">
-            <label class="block text-gray-700 font-semibold mb-1" for="admin-summary">종합설명</label>
-            <textarea id="admin-summary" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-pink-400 focus:outline-none" rows="6" placeholder="제품에 대한 상세한 설명을 입력하세요..."></textarea>
-          </div>
-          <div class="mb-3">
-            <label class="block text-gray-700 font-semibold mb-1" for="admin-link">구매링크</label>
-            <input type="url" id="admin-link" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-pink-400 focus:outline-none" placeholder="https://..." />
-          </div>
-          <div class="flex gap-2">
+
+          <div class="flex gap-2 flex-wrap">
             <button type="submit" class="px-6 py-2 bg-pink-500 text-white font-bold rounded-lg hover:bg-pink-600 transition">결과 저장</button>
             <button type="button" id="admin-delete" class="px-6 py-2 bg-red-500 text-white font-bold rounded-lg hover:bg-red-600 transition">결과 삭제</button>
+          </div>
+          <div id="qa-warnings-panel" class="hidden mt-4 p-4 bg-amber-50 border border-amber-200 rounded-xl text-left">
+            <div class="font-bold text-amber-800 mb-2">⚠️ 저장 전 검수 체크</div>
+            <ul id="qa-warnings-list" class="text-sm text-amber-900 list-disc list-inside space-y-1"></ul>
           </div>
           <div id="admin-msg" class="mt-3"></div>
         </form>
@@ -193,6 +373,8 @@
       let currentReqKey = '';
       let selectedRequests = new Set();
       let currentRequest = null;
+      let lastPriceData = null;
+      let lastPipelineDraft = null;
       
       // 의뢰 목록 불러오기
       function getRequestList() {
@@ -236,6 +418,9 @@
         }
         
         const result = JSON.parse(localStorage.getItem('result-' + reqNum) || '{}');
+        if (window.PurchaseReport && PurchaseReport.isReportComplete(result)) {
+          return { status: 'complete', text: '완료', color: 'bg-green-500' };
+        }
         if (result.price && result.origin && result.summary && result.link) {
           return { status: 'complete', text: '완료', color: 'bg-green-500' };
         }
@@ -253,8 +438,9 @@
       // 구매 방식 텍스트
       function getPurchaseMethodText(method) {
         const methods = {
-          'lowest': '최저가 쇼핑몰',
-          'direct': '직접 구매',
+          'lowest': '외부 판매처 직접구매',
+          'external': '외부 판매처 직접구매',
+          'direct': 'PriceHunter 구매대행 결제',
           'none': '구매하지 않음'
         };
         return methods[method] || '구매하지 않음';
@@ -263,11 +449,21 @@
       // 구매 상태 텍스트
       function getPurchaseStatusText(status) {
         const statuses = {
-          'pending': '주문접수',
-          'processing': '처리중',
+          'pending': '결제대기',
+          'paid': '결제완료',
+          'confirmed': '결제완료',
+          'not_ordered': '외부 주문 전',
+          'ordered': '외부몰 주문 완료',
+          'processing': '구매대행 처리중',
           'shipped': '배송중',
+          'shipping': '배송중',
           'delivered': '배송완료',
-          'cancelled': '취소됨',
+          'cancel_requested': '취소 요청 접수',
+          'refund_requested': '환불 검토 중',
+          'cancelled': '취소 완료',
+          'refunded': '전액 환불 완료',
+          'partially_cancelled': '부분 환불 완료',
+          'partial_refunded': '부분 환불 완료',
           'none': '구매하지 않음'
         };
         return statuses[status] || '구매하지 않음';
@@ -276,11 +472,21 @@
       // 구매 상태 색상
       function getPurchaseStatusColor(status) {
         const colors = {
-          'pending': 'bg-yellow-500',
-          'processing': 'bg-blue-500',
-          'shipped': 'bg-purple-500',
+          'pending': 'bg-blue-500',
+          'paid': 'bg-purple-500',
+          'confirmed': 'bg-emerald-500',
+          'not_ordered': 'bg-gray-500',
+          'ordered': 'bg-blue-500',
+          'processing': 'bg-sky-500',
+          'shipped': 'bg-indigo-500',
+          'shipping': 'bg-indigo-500',
           'delivered': 'bg-green-500',
+          'cancel_requested': 'bg-red-500',
+          'refund_requested': 'bg-orange-500',
           'cancelled': 'bg-red-500',
+          'refunded': 'bg-red-500',
+          'partially_cancelled': 'bg-amber-500',
+          'partial_refunded': 'bg-amber-500',
           'none': 'bg-gray-500'
         };
         return colors[status] || 'bg-gray-500';
@@ -368,6 +574,9 @@
         // 진행상황별 필터링
         if (currentFilter !== 'all') {
           filteredRequests = filteredRequests.filter(req => {
+            if (currentFilter === 'ai-pending') {
+              return window.RequestDataSync && RequestDataSync.requestNeedsPipeline(req);
+            }
             const status = getRequestStatus(req);
             return status.status === currentFilter;
           });
@@ -413,6 +622,8 @@
           const reqNum = req.key.replace('request-', '');
           const status = getRequestStatus(req);
           const statusBadge = `<span class="px-2 py-1 rounded text-xs font-bold text-white ${status.color}">${status.text}</span>`;
+          const aiPendingBadge = (window.RequestDataSync && RequestDataSync.requestNeedsPipeline(req))
+            ? `<span class="ml-1 px-2 py-1 rounded text-xs font-bold bg-indigo-500 text-white">AI대기</span>` : '';
           
           // 구매 정보
           const purchaseInfo = getPurchaseInfo(req.key);
@@ -444,6 +655,7 @@
             <div class="flex-1 truncate flex items-center" style="min-width: 0;">
               <span class="font-semibold text-pink-600">${reqNum}</span> | 
               <span class="text-gray-700">${req.userName || '익명'}</span>
+              ${statusBadge}${aiPendingBadge}
               <span class="ml-2 text-gray-400 text-xs">${isSelected ? '▼' : '▶'}</span>
             </div>
             <div class="w-1/6 text-center text-xs text-gray-400">${req.date ? new Date(req.date).toLocaleString() : ''}</div>
@@ -480,7 +692,7 @@
         document.getElementById('detail-num').textContent = reqKey.replace('request-', '');
         document.getElementById('detail-name').textContent = req.name || '';
         document.getElementById('detail-desc').textContent = req.description || '';
-        document.getElementById('detail-url').textContent = req.url || '';
+        document.getElementById('detail-url').textContent = req.url || (req.urls && req.urls[0]) || '';
         document.getElementById('detail-price').textContent = formatPrice(req.price);
         document.getElementById('detail-username').textContent = req.userName || '';
         document.getElementById('detail-email').textContent = req.email || '';
@@ -493,22 +705,263 @@
         const resultData = localStorage.getItem('result-' + reqNum);
         if (resultData) {
           const result = JSON.parse(resultData);
-          document.getElementById('admin-price').value = result.price || '';
-          document.getElementById('admin-origin').value = result.origin || '';
-          document.getElementById('admin-summary').value = result.summary || '';
-          document.getElementById('admin-link').value = result.link || '';
+          if (window.PurchaseReport) {
+            PurchaseReport.populateAdminForm(result);
+          } else {
+            document.getElementById('admin-price').value = result.price || '';
+            document.getElementById('admin-origin').value = result.origin || '';
+            document.getElementById('admin-summary').value = result.summary || '';
+            document.getElementById('admin-link').value = result.link || '';
+          }
         } else {
-          document.getElementById('admin-price').value = '';
-          document.getElementById('admin-origin').value = '';
-          document.getElementById('admin-summary').value = '';
-          document.getElementById('admin-link').value = '';
+          if (window.PurchaseReport) {
+            PurchaseReport.populateAdminForm({});
+          } else {
+            document.getElementById('admin-price').value = '';
+            document.getElementById('admin-origin').value = '';
+            document.getElementById('admin-summary').value = '';
+            document.getElementById('admin-link').value = '';
+          }
+        }
+
+        // 의뢰가 자동 채우기 (비어 있을 때만)
+        const requestedPriceEl = document.getElementById('admin-requested-price');
+        if (requestedPriceEl && !requestedPriceEl.value && req.price) {
+          requestedPriceEl.value = req.price;
         }
         
         // 상세 섹션 표시
         document.getElementById('detail-section').classList.remove('hidden');
+        document.getElementById('ai-pipeline-section').classList.remove('hidden');
+        loadPipelineState(reqNum);
+
+        if (window.RequestDataSync && RequestDataSync.requestNeedsPipeline(req)) {
+          setTimeout(function () {
+            if (confirm('🤖 AI 분석 대기 중인 의뢰입니다.\n\n지금 「전체 파이프라인 실행」을 시작할까요?')) {
+              handleRunPipeline();
+            }
+          }, 400);
+        }
         
         // 리스트 새로고침 (선택 상태 업데이트)
         renderRequestList();
+      }
+
+      function setPipelineStatus(text, colorClass) {
+        const el = document.getElementById('ai-pipeline-status');
+        if (!el) return;
+        el.textContent = text;
+        el.className = 'px-3 py-1 rounded-full text-xs font-bold ' + (colorClass || 'bg-gray-200 text-gray-600');
+      }
+
+      function setPipelineMsg(html, type) {
+        const el = document.getElementById('ai-pipeline-msg');
+        if (!el) return;
+        const colors = {
+          ok: 'text-green-700',
+          err: 'text-red-600',
+          info: 'text-blue-700'
+        };
+        el.className = 'text-sm mb-3 ' + (colors[type] || 'text-gray-600');
+        el.innerHTML = html;
+      }
+
+      function loadPipelineState(reqNum) {
+        lastPriceData = null;
+        lastPipelineDraft = null;
+        document.getElementById('btn-apply-draft')?.classList.add('hidden');
+        document.getElementById('ai-collect-summary')?.classList.add('hidden');
+        document.getElementById('ai-draft-preview')?.classList.add('hidden');
+
+        if (!window.AnalysisPipelineClient) {
+          setPipelineStatus('클라이언트 없음', 'bg-red-100 text-red-700');
+          setPipelineMsg('analysis-pipeline-client.js를 불러올 수 없습니다.', 'err');
+          return;
+        }
+
+        const job = AnalysisPipelineClient.loadJob(reqNum);
+        const saved = AnalysisPipelineClient.loadDraft(reqNum);
+
+        if (job?.status === 'ready' && job.draft) {
+          lastPipelineDraft = job.draft;
+          lastPriceData = job.priceData;
+          setPipelineStatus('초안 준비됨', 'bg-green-500 text-white');
+          setPipelineMsg('저장된 AI 초안이 있습니다. 아래 미리보기 확인 후 「초안 폼에 적용」을 누르세요.', 'ok');
+          showDraftPreview(job.draft, job.priceData, job.mode);
+        } else if (saved?.draft) {
+          lastPipelineDraft = saved.draft;
+          lastPriceData = saved.meta?.priceData || null;
+          setPipelineStatus('초안 저장됨', 'bg-emerald-500 text-white');
+          showDraftPreview(saved.draft, lastPriceData, saved.meta?.mode);
+        } else if (job?.status === 'error') {
+          setPipelineStatus('오류', 'bg-red-500 text-white');
+          setPipelineMsg('이전 실행 오류: ' + (job.error || '알 수 없음'), 'err');
+        } else {
+          setPipelineStatus('대기', 'bg-gray-200 text-gray-600');
+          setPipelineMsg('「전체 파이프라인 실행」으로 AI 초안을 생성하세요. OPENAI_API_KEY 미설정 시 규칙 기반 초안이 생성됩니다.', 'info');
+        }
+      }
+
+      function showDraftPreview(draft, priceData, mode) {
+        const preview = document.getElementById('ai-draft-preview');
+        const summaryEl = document.getElementById('ai-collect-summary');
+        if (priceData?.summary && summaryEl) {
+          summaryEl.textContent = '💰 ' + priceData.summary;
+          summaryEl.classList.remove('hidden');
+        }
+        if (window.AnalysisPipelineClient && preview) {
+          AnalysisPipelineClient.renderDraftPreview(preview, draft, priceData, AnalysisPipelineClient.modeLabel(mode));
+        }
+        document.getElementById('btn-apply-draft')?.classList.remove('hidden');
+      }
+
+      async function handleRunPipeline() {
+        if (!currentRequest) return;
+        const btn = document.getElementById('btn-run-pipeline');
+        btn.disabled = true;
+        setPipelineStatus('실행 중…', 'bg-indigo-500 text-white');
+        setPipelineMsg('가격 수집 및 AI 초안 생성 중… (10~30초)', 'info');
+        try {
+          const result = await AnalysisPipelineClient.runPipeline(currentRequest);
+          lastPipelineDraft = result.draft;
+          lastPriceData = result.priceData;
+          setPipelineStatus('완료', 'bg-green-500 text-white');
+          setPipelineMsg('✅ 파이프라인 완료 (' + AnalysisPipelineClient.modeLabel(result.mode) + '). 초안을 검수한 뒤 폼에 적용하세요.', 'ok');
+          showDraftPreview(result.draft, result.priceData, result.mode);
+        } catch (e) {
+          setPipelineStatus('오류', 'bg-red-500 text-white');
+          setPipelineMsg('❌ ' + e.message, 'err');
+        } finally {
+          btn.disabled = false;
+        }
+      }
+
+      async function handleCollectPrices() {
+        if (!currentRequest) return;
+        setPipelineStatus('수집 중…', 'bg-emerald-500 text-white');
+        setPipelineMsg('참고 URL 및 의뢰가 분석 중…', 'info');
+        try {
+          const result = await AnalysisPipelineClient.collectPricesOnly(currentRequest);
+          lastPriceData = result.priceData;
+          const summaryEl = document.getElementById('ai-collect-summary');
+          if (summaryEl) {
+            summaryEl.textContent = '💰 ' + (result.priceData.summary || '수집 완료');
+            summaryEl.classList.remove('hidden');
+          }
+          setPipelineStatus('수집 완료', 'bg-emerald-500 text-white');
+          setPipelineMsg('✅ 가격 수집 완료. 「AI 초안만」으로 리포트 초안을 생성할 수 있습니다.', 'ok');
+        } catch (e) {
+          setPipelineStatus('오류', 'bg-red-500 text-white');
+          setPipelineMsg('❌ ' + e.message, 'err');
+        }
+      }
+
+      async function handleGenerateDraft() {
+        if (!currentRequest) return;
+        setPipelineStatus('생성 중…', 'bg-purple-500 text-white');
+        setPipelineMsg('AI 초안 생성 중…', 'info');
+        try {
+          const result = await AnalysisPipelineClient.generateDraftOnly(currentRequest, lastPriceData);
+          lastPipelineDraft = result.draft;
+          if (result.priceData) lastPriceData = result.priceData;
+          setPipelineStatus('초안 준비', 'bg-purple-500 text-white');
+          setPipelineMsg('✅ AI 초안 생성 (' + AnalysisPipelineClient.modeLabel(result.mode) + '). 검수 후 폼에 적용하세요.', 'ok');
+          showDraftPreview(result.draft, lastPriceData, result.mode);
+          const reqNum = currentReqKey.replace('request-', '');
+          AnalysisPipelineClient.saveDraft(reqNum, result.draft, { mode: result.mode, priceData: lastPriceData });
+        } catch (e) {
+          setPipelineStatus('오류', 'bg-red-500 text-white');
+          setPipelineMsg('❌ ' + e.message, 'err');
+        }
+      }
+
+      function handleApplyDraft() {
+        if (!lastPipelineDraft) {
+          alert('적용할 초안이 없습니다. 먼저 파이프라인을 실행하세요.');
+          return;
+        }
+        if (!confirm('AI 초안을 입력 폼에 적용합니다.\n기존에 입력한 내용은 덮어씁니다. 계속할까요?')) return;
+        AnalysisPipelineClient.applyDraftToForm(lastPipelineDraft);
+        updateQaWarningsPanel(lastPipelineDraft);
+        setPipelineMsg('✅ 초안이 폼에 적용되었습니다. 검수 후 「결과 저장」을 눌러주세요.', 'ok');
+        document.getElementById('result-form')?.scrollIntoView({ behavior: 'smooth' });
+      }
+
+      function updateQaWarningsPanel(reportData) {
+        const panel = document.getElementById('qa-warnings-panel');
+        const list = document.getElementById('qa-warnings-list');
+        if (!panel || !list || !window.PurchaseReport) return;
+        const warnings = PurchaseReport.getQaWarnings(reportData || PurchaseReport.collectFromAdminForm());
+        if (!warnings.length) {
+          panel.classList.add('hidden');
+          list.innerHTML = '';
+          return;
+        }
+        panel.classList.remove('hidden');
+        list.innerHTML = warnings.map(w => `<li>${w}</li>`).join('');
+      }
+
+      async function mergeFirebaseRequests() {
+        const msgEl = document.getElementById('firebase-sync-msg');
+        if (!window.AnalysisPipelineClient) {
+          if (msgEl) msgEl.textContent = 'API 클라이언트 없음';
+          return;
+        }
+        try {
+          if (msgEl) msgEl.textContent = '불러오는 중…';
+          const items = await AnalysisPipelineClient.fetchPendingFromFirebase();
+          let merged = 0;
+          items.forEach(item => {
+            const reqNum = RequestDataSync.normalizeReqNum(item.requestNumber || item.id);
+            const key = RequestDataSync.localRequestKey(reqNum);
+            if (localStorage.getItem(key)) return;
+            RequestDataSync.saveRequestLocally(reqNum, {
+              name: item.name,
+              desc: item.description,
+              description: item.description,
+              urls: item.urls || (item.url ? [item.url] : []),
+              url: item.url || '',
+              email: item.email,
+              price: item.price,
+              date: item.createdAt ? new Date(item.createdAt).getTime() : Date.now(),
+              firebaseDocId: item.id,
+              source: 'firebase'
+            });
+            RequestDataSync.createPendingAnalysisJob(reqNum, { firebaseDocId: item.id, source: 'firebase' });
+            merged++;
+          });
+          if (msgEl) msgEl.textContent = merged ? `Firebase ${merged}건 추가` : '새 의뢰 없음';
+          renderRequestList();
+          createUserTabs();
+        } catch (e) {
+          if (msgEl) msgEl.textContent = '실패: ' + e.message;
+          console.warn('Firebase sync:', e);
+        }
+      }
+
+      async function saveResultWithSync(reqNum, data) {
+        if (window.PurchaseReport) {
+          PurchaseReport.saveResult(reqNum, data);
+        } else {
+          localStorage.setItem('result-' + reqNum, JSON.stringify(data));
+        }
+        if (window.RequestDataSync) {
+          RequestDataSync.markJobPublished(reqNum);
+        }
+        let firebaseMsg = '';
+        if (window.AnalysisPipelineClient) {
+          try {
+            await AnalysisPipelineClient.syncReportToFirebase(
+              reqNum,
+              data,
+              currentRequest && currentRequest.firebaseDocId
+            );
+            firebaseMsg = '<div class="text-sky-700 text-sm mt-2">☁️ Firebase에도 저장되었습니다.</div>';
+          } catch (e) {
+            firebaseMsg = `<div class="text-orange-600 text-sm mt-2">☁️ Firebase 저장 실패: ${e.message} (localStorage에는 저장됨)</div>`;
+          }
+        }
+        return firebaseMsg;
       }
       
       // 전체 선택 처리
@@ -679,47 +1132,48 @@
         
         const resultForm = document.getElementById('result-form');
         if (resultForm) {
-          resultForm.onsubmit = function(e) {
+          resultForm.onsubmit = async function(e) {
             e.preventDefault();
             if (!currentReqKey || !currentRequest) return;
             
-            const reqNum = currentReqKey.replace('request-','');
+            const reqNum = currentReqKey.replace('request-','').replace(/^#+/, '');
             
-            const adminPrice = document.getElementById('admin-price');
-            const adminOrigin = document.getElementById('admin-origin');
-            const adminSummary = document.getElementById('admin-summary');
-            const adminLink = document.getElementById('admin-link');
-            
-            const data = {
-              price: adminPrice ? adminPrice.value : '',
-              origin: adminOrigin ? adminOrigin.value : '',
-              summary: adminSummary ? adminSummary.value : '',
-              link: adminLink ? adminLink.value : ''
-            };
+            const data = window.PurchaseReport
+              ? PurchaseReport.collectFromAdminForm()
+              : {
+                  price: document.getElementById('admin-price')?.value || '',
+                  origin: document.getElementById('admin-origin')?.value || '',
+                  summary: document.getElementById('admin-summary')?.value || '',
+                  link: document.getElementById('admin-link')?.value || ''
+                };
+
+            if (window.PurchaseReport) {
+              updateQaWarningsPanel(data);
+              const warnings = PurchaseReport.getQaWarnings(data);
+              if (warnings.length && !confirm('검수 경고가 ' + warnings.length + '건 있습니다.\n\n' + warnings.join('\n') + '\n\n그래도 저장할까요?')) {
+                return;
+              }
+            }
             
             console.log('저장할 데이터:', data);
             
-            localStorage.setItem('result-' + reqNum, JSON.stringify(data));
-            localStorage.setItem('result-PH-' + reqNum, JSON.stringify(data));
+            const firebaseMsg = await saveResultWithSync(reqNum, data);
             
-            console.log('결과 저장 완료:', {
-              key: 'result-' + reqNum,
-              data: data
-            });
+            console.log('결과 저장 완료:', { key: 'result-' + reqNum, data: data });
             
             const adminMsg = document.getElementById('admin-msg');
             if (adminMsg) {
               adminMsg.innerHTML = `
-                <div class="text-green-600 font-bold mb-2">✅ 결과가 저장되었습니다!</div>
-                <button onclick="sendManualNotification()" class="px-4 py-2 bg-blue-500 text-white rounded-lg font-bold hover:bg-blue-600 transition">
+                <div class="text-green-600 font-bold mb-2">✅ 구매판단 리포트가 저장되었습니다!</div>
+                ${firebaseMsg}
+                <button onclick="sendManualNotification()" class="px-4 py-2 bg-blue-500 text-white rounded-lg font-bold hover:bg-blue-600 transition mt-2">
                   고객에게 알림 발송
                 </button>
               `;
             }
             
-            setTimeout(() => {
-              renderRequestList();
-            }, 500);
+            setPipelineStatus('발행 완료', 'bg-green-500 text-white');
+            setTimeout(() => { renderRequestList(); }, 500);
           };
           console.log('result-form 이벤트 리스너 등록 완료');
         }
@@ -746,6 +1200,17 @@
         
         console.log('이벤트 리스너 등록 완료');
         console.log('=== 관리자 페이지 초기화 완료 ===');
+
+        document.getElementById('btn-run-pipeline')?.addEventListener('click', handleRunPipeline);
+        document.getElementById('btn-collect-prices')?.addEventListener('click', handleCollectPrices);
+        document.getElementById('btn-generate-draft')?.addEventListener('click', handleGenerateDraft);
+        document.getElementById('btn-apply-draft')?.addEventListener('click', handleApplyDraft);
+        document.getElementById('btn-sync-firebase')?.addEventListener('click', mergeFirebaseRequests);
+
+        // 폼 입력 시 QA 경고 실시간 갱신
+        document.getElementById('result-form')?.addEventListener('input', function () {
+          if (window.PurchaseReport) updateQaWarningsPanel(PurchaseReport.collectFromAdminForm());
+        });
       });
       
       // 수동 알림 발송 (임시)

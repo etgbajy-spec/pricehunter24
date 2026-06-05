@@ -11,11 +11,21 @@
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
       body { font-family: 'Noto Sans KR', sans-serif; }
+      .status-pending { color: #2563eb; }
       .status-ordered { color: #3b82f6; }
+      .status-not_ordered { color: #6b7280; }
       .status-paid { color: #8b5cf6; }
+      .status-confirmed { color: #059669; }
       .status-preparing { color: #f97316; }
+      .status-shipped { color: #6366f1; }
       .status-shipping { color: #6366f1; }
       .status-delivered { color: #10b981; }
+      .status-cancel_requested { color: #dc2626; }
+      .status-refund_requested { color: #ea580c; }
+      .status-cancelled { color: #dc2626; }
+      .status-refunded { color: #dc2626; }
+      .status-partially_cancelled { color: #d97706; }
+      .status-partial_refunded { color: #d97706; }
       .status-none { color: #6b7280; }
     </style>
   </head>
@@ -82,20 +92,20 @@
         </div>
 
         <!-- 진행상태 안내 -->
-        <div class="bg-yellow-50 rounded-xl p-4">
+          <div class="bg-yellow-50 rounded-xl p-4">
           <h3 class="font-bold text-yellow-800 mb-2">📊 구매 진행상태 안내</h3>
-          <div class="grid grid-cols-2 md:grid-cols-5 gap-2 text-sm">
+          <div class="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
             <div class="flex items-center">
-              <div class="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>
-              <span class="status-ordered">주문접수</span>
+              <div class="w-3 h-3 bg-gray-500 rounded-full mr-2"></div>
+              <span class="status-not_ordered">외부 주문 전</span>
             </div>
             <div class="flex items-center">
               <div class="w-3 h-3 bg-purple-500 rounded-full mr-2"></div>
               <span class="status-paid">결제완료</span>
             </div>
             <div class="flex items-center">
-              <div class="w-3 h-3 bg-orange-500 rounded-full mr-2"></div>
-              <span class="status-preparing">배송준비</span>
+              <div class="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>
+              <span class="status-ordered">외부몰 주문 완료</span>
             </div>
             <div class="flex items-center">
               <div class="w-3 h-3 bg-indigo-500 rounded-full mr-2"></div>
@@ -105,7 +115,12 @@
               <div class="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
               <span class="status-delivered">배송완료</span>
             </div>
+            <div class="flex items-center">
+              <div class="w-3 h-3 bg-red-500 rounded-full mr-2"></div>
+              <span class="status-cancelled">취소/환불 완료</span>
+            </div>
           </div>
+          <p class="text-xs text-yellow-700 mt-3">외부 쇼핑몰에서 직접 결제한 주문은 해당 판매처 정책이 적용되고, PriceHunter 내부 결제 건은 구매대행 기준으로 취소/환불 상태가 표시됩니다.</p>
         </div>
       </div>
     </main>
@@ -159,11 +174,21 @@
       function getPurchaseStatusText(status) {
         const statusMap = {
           'none': '구매하지 않음',
-          'ordered': '주문접수',
+          'pending': '결제대기',
+          'ordered': '외부몰 주문 완료',
+          'not_ordered': '외부 주문 전',
           'paid': '결제완료',
+          'confirmed': '결제완료',
           'preparing': '배송준비',
+          'shipped': '배송중',
           'shipping': '배송중',
-          'delivered': '배송완료'
+          'delivered': '배송완료',
+          'cancel_requested': '취소 요청 접수',
+          'refund_requested': '환불 검토 중',
+          'cancelled': '취소 완료',
+          'refunded': '전액 환불 완료',
+          'partially_cancelled': '부분 환불 완료',
+          'partial_refunded': '부분 환불 완료'
         };
         return statusMap[status] || '구매하지 않음';
       }
@@ -171,7 +196,7 @@
       // 구매 방식 텍스트 변환
       function getPurchaseMethodText(method) {
         const methodMap = {
-          'direct': 'PriceHunter 직접구매 (서비스 중단)',
+          'direct': 'PriceHunter 구매대행 결제',
           'external': '최저가 쇼핑몰',
           'none': '구매하지 않음'
         };
@@ -257,6 +282,7 @@
               <div class="space-y-2 text-sm">
                 <div><span class="font-semibold">결제방법:</span> ${order.paymentMethod || '-'}</div>
                 <div><span class="font-semibold">결제금액:</span> ${order.price || '-'}</div>
+                <div class="text-xs text-gray-500 mt-2">PriceHunter 내부 결제로 진행된 구매대행 주문입니다. 취소/환불은 구매대행 정책과 주문 진행 상태에 따라 처리됩니다.</div>
               </div>
             </div>
           `;
@@ -267,6 +293,7 @@
               <div class="space-y-2 text-sm">
                 <div><span class="font-semibold">구매 링크:</span></div>
                 <a href="${order.externalLink}" target="_blank" class="text-blue-600 underline break-all">${order.externalLink}</a>
+                <div class="text-xs text-gray-500 mt-2">외부 판매처에서 직접 결제한 주문은 해당 판매처의 취소/환불 정책이 적용됩니다.</div>
               </div>
             </div>
           `;

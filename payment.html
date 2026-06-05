@@ -314,7 +314,7 @@
           if (subtotalEl) subtotalEl.textContent = finalStr;
           if (totalAmountEl) totalAmountEl.textContent = finalStr;
           if (earnedPointsEl) earnedPointsEl.textContent = computeEarnedPoints(finalPrice).toLocaleString() + 'P';
-          if (purchaseMethodEl) purchaseMethodEl.textContent = method === 'support' ? '구매 대행 지원 서비스' : '직접 구매';
+          if (purchaseMethodEl) purchaseMethodEl.textContent = method === 'support' ? 'PriceHunter 구매대행 결제' : '외부 판매처 직접구매';
           const requestKey = 'request-' + reqKey;
           const requestData = localStorage.getItem(requestKey);
           if (requestData) {

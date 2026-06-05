@@ -6,7 +6,7 @@
   <meta name="robots" content="index, follow" />
   <meta name="description" content="PriceHunter(프라이스헌터) 최저가 검증 의뢰 - 원하는 제품의 최저가 정보를 무료로 요청하세요." />
   <link rel="canonical" href="https://pricehunt24.com/request-v2.html" />
-  <title>PriceHunter - 최저가 검증 의뢰 (최적화)</title>
+  <title>PriceHunter - 구매판단 리포트 의뢰</title>
   
   <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-N7R437NT77"></script>
@@ -17,7 +17,8 @@
     gtag('config', 'G-N7R437NT77');
   </script>
   
-  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="purchase-report.js"></script>
+  <script src="request-data-sync.js"></script>
   
   <!-- Firebase v9 SDK (모듈식) -->
   <script type="module">
@@ -251,7 +252,7 @@
               <div class="flex-1">
                 <h3 class="text-xl font-bold text-emerald-900 mb-2">구매는 추천 쇼핑몰에서 직접 진행</h3>
                 <p class="text-gray-700 leading-relaxed mb-4">
-                  최저가 정보를 받으신 후, <span class="font-bold text-emerald-700">추천 쇼핑몰 링크로 이동하여 직접 구매</span>하시면 됩니다.<br>
+                  최저가 정보를 받으신 후, <span class="font-bold text-emerald-700">추천 판매처 링크로 이동하여 직접 구매</span>하시면 됩니다.<br>
                   결제는 해당 쇼핑몰에서 진행하시며, PriceHunter는 어떤 수수료도 받지 않습니다.
                 </p>
                 <div class="bg-gradient-to-r from-blue-50 to-purple-50 backdrop-blur-sm p-4 rounded-xl border-2 border-blue-200">
@@ -289,9 +290,9 @@
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                     </svg>
                     <div>
-                      <p class="text-sm font-semibold text-purple-800 mb-1">브랜드 제품 안내</p>
+                      <p class="text-sm font-semibold text-purple-800 mb-1">모든 카테고리 의뢰 가능</p>
                       <p class="text-xs text-purple-700 leading-relaxed">
-                        브랜드 제품(애플, 삼성, LG, 명품 등)의 경우 공식 유통망의 가격 정책으로 인해 최저가 차이가 크지 않을 수 있습니다. 이 점 양해 부탁드립니다.
+                        생활용품, 가전, IT, 패션, 스포츠 등 모든 카테고리 의뢰가 가능합니다. 단, 명품(명품백·명품시계·명품 주얼리 등)은 서비스 대상에서 제외됩니다.
                       </p>
                     </div>
                   </div>
@@ -415,9 +416,9 @@
               <span class="text-xl">💝</span>
             </div>
             <div class="flex-1">
-              <div class="font-bold text-purple-800 mb-2 text-base">모든 제품 최저가 검증 서비스</div>
+              <div class="font-bold text-purple-800 mb-2 text-base">구매판단 리포트 서비스</div>
               <div class="text-sm text-gray-700 leading-relaxed mb-2">
-                PriceHunter는 모든 제품의 최저가를 찾아드리기 위해 노력하고 있습니다.
+                PriceHunter는 최저가 검증과 함께 <strong>구매판단 리포트</strong>를 제공합니다. 가격·제품·판매처를 종합 분석해 구매 여부를 판단해 드립니다.
               </div>
               <div class="bg-white/80 backdrop-blur-sm p-3 rounded-lg border border-purple-200 mt-3">
                 <div class="flex items-start gap-2">
@@ -425,7 +426,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                   </svg>
                   <p class="text-xs text-purple-700 leading-relaxed">
-                    <span class="font-semibold">브랜드 제품 안내:</span> 브랜드 제품(애플, 삼성, LG, 명품 등)의 경우 공식 유통망의 가격 정책으로 인해 최저가 차이가 크지 않을 수 있습니다. 이 점 양해 부탁드립니다.
+                    <span class="font-semibold">의뢰 가능:</span> 모든 카테고리 (생활용품, 가전, IT, 패션, 스포츠, 가구 등) · <span class="font-semibold text-pink-700">제외:</span> 명품백, 명품시계, 명품 주얼리 등 명품류
                   </p>
                 </div>
               </div>
@@ -502,8 +503,8 @@
             <input type="checkbox" id="brandExcludeAgree" required class="mt-1 mr-3 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-400">
             <div class="flex-1">
               <label for="brandExcludeAgree" class="text-sm text-gray-700">
-                <span class="font-semibold text-pink-800">[필수]</span> 브랜드배제 정책(애플·명품·스니커즈·대형TV 등)을 확인했습니다.
-                <div class="text-xs text-gray-500 mt-1">브랜드 제품은 검증에서 제외되며, 이에 동의하신 경우에만 의뢰가 가능합니다.</div>
+                <span class="font-semibold text-pink-800">[필수]</span> 명품 제외 정책(명품백·명품시계·명품 주얼리 등)을 확인했습니다.
+                <div class="text-xs text-gray-500 mt-1">명품류는 구매판단 리포트 대상에서 제외됩니다. 이에 동의하신 경우에만 의뢰가 가능합니다.</div>
               </label>
             </div>
             <button type="button" onclick="showBrandPolicyPopup()" class="ml-3 px-3 py-1 bg-pink-600 text-white text-xs rounded-lg hover:bg-pink-700 transition-colors">
@@ -515,9 +516,9 @@
         <!-- 마이크로카피 -->
         <div class="bg-blue-50 p-4 rounded-lg mb-6 border border-blue-200">
           <div class="text-center">
-            <div class="text-blue-800 font-semibold text-lg mb-2">💡 전문가가 더 저렴한 최저가를 찾아드립니다!</div>
+            <div class="text-blue-800 font-semibold text-lg mb-2">💡 AI 기반 구매판단 리포트를 제공합니다!</div>
             <div class="text-sm text-blue-700">
-              고객님이 의뢰하신 제품보다 더 저렴한 가격을 찾아서 상세한 검증 리포트를 제공해드립니다.
+              최저가 검증과 함께 가격·제품·판매처를 종합 분석한 구매판단 리포트를 제공해드립니다.
             </div>
           </div>
         </div>
@@ -572,7 +573,7 @@
                  class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-emerald-400 focus:outline-none transition input-animate" 
                  placeholder="예: user@email.com" />
           <div class="text-xs text-emerald-600 mt-1">
-            📧 검증 결과 리포트를 이메일로 발송해드립니다
+            📧 구매판단 리포트를 이메일로 발송해드립니다
           </div>
         </div>
 
@@ -614,7 +615,7 @@
 
         <!-- 제출 버튼 -->
         <button type="submit" class="w-full py-4 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-bold rounded-lg shadow-lg btn-animate text-lg" id="submit-btn">
-          🚀 최저가 검증 의뢰 제출하기
+          🚀 구매판단 리포트 의뢰 제출하기
         </button>
         
         <button type="button" class="w-full mt-3 py-2 bg-gray-200 text-gray-700 rounded-lg shadow btn-animate" id="back-step-1">
@@ -628,7 +629,7 @@
       <div class="p-6 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-700 text-center">
         <div class="text-4xl mb-4">✅</div>
         <h3 class="text-2xl font-bold mb-2">의뢰가 정상적으로 접수되었습니다!</h3>
-        <p class="text-lg mb-4">검증 리포트는 24-48시간 내 전달됩니다.</p>
+        <p class="text-lg mb-4">구매판단 리포트는 24-48시간 내 전달됩니다.</p>
         <div class="bg-white p-4 rounded-lg border border-emerald-200">
           <div class="text-sm text-gray-600 mb-2">의뢰 번호</div>
           <div class="font-mono text-lg font-bold" id="request-number"></div>
@@ -725,81 +726,61 @@
     </div>
   </div>
 
-  <!-- 브랜드 배제 정책 팝업 -->
+  <!-- 명품 제외 정책 팝업 -->
   <div id="brandPolicyPopup" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
     <div class="flex items-center justify-center min-h-screen p-4">
       <div class="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
         <div class="p-6">
           <div class="flex items-center justify-between mb-6">
-            <h3 class="text-2xl font-bold text-gray-800">🏷️ 브랜드 배제 정책 안내</h3>
+            <h3 class="text-2xl font-bold text-gray-800">💎 명품 제외 정책 안내</h3>
             <button onclick="closeBrandPolicyPopup()" class="text-gray-400 hover:text-gray-600 text-2xl p-2 hover:bg-gray-100 rounded-full transition">&times;</button>
           </div>
           
           <div class="space-y-4 text-sm text-gray-700">
             <div class="bg-pink-50 p-4 rounded-lg border border-pink-200">
-              <h4 class="font-semibold text-pink-800 mb-2">❌ 검증 제외 브랜드</h4>
-              <p class="mb-3">다음 브랜드의 제품은 최저가 검증에서 제외됩니다:</p>
-              <div class="grid grid-cols-2 gap-2">
+              <h4 class="font-semibold text-pink-800 mb-2">❌ 서비스 제외 대상 (명품류)</h4>
+              <p class="mb-3">다음 명품 제품은 구매판단 리포트 대상에서 제외됩니다:</p>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
                 <div class="bg-white p-3 rounded border">
-                  <strong>전자제품:</strong><br>
-                  • Apple (아이폰, 아이패드, 맥북 등)<br>
-                  • Samsung (갤럭시, TV, 가전제품)<br>
-                  • LG (TV, 가전제품, 모니터)<br>
-                  • Sony, Panasonic 등
+                  <strong>명품 가방</strong><br>
+                  • 루이비통, 샤넬, 구찌, 에르메스, 프라다, 디올 등
                 </div>
                 <div class="bg-white p-3 rounded border">
-                  <strong>패션/액세서리:</strong><br>
-                  • 명품 브랜드 (루이비통, 샤넬 등)<br>
-                  • 스니커즈 (나이키, 아디다스 등)<br>
-                  • 시계 (롤렉스, 오메가 등)<br>
-                  • 가방, 지갑 등
+                  <strong>명품 시계 · 주얼리</strong><br>
+                  • 롤렉스, 오메가, 까르띠에, 티파니, 불가리 등<br>
+                  • 명품 반지, 목걸이, 귀걸이 등
                 </div>
               </div>
             </div>
             
-            <div class="bg-orange-50 p-4 rounded-lg border border-orange-200">
-              <h4 class="font-semibold text-orange-800 mb-2">📺 대형 TV 제외 사유</h4>
-              <ul class="list-disc list-inside space-y-1">
-                <li>대형 TV는 모델명이 복잡하고 옵션(인치, 해상도, 기능)이 다양합니다</li>
-                <li>정확한 모델 비교를 위해서는 매우 상세한 정보가 필요합니다</li>
-                <li>가격 변동이 심하고 프로모션 정책이 복잡합니다</li>
-                <li>배송비, 설치비 등 추가 비용이 많이 발생합니다</li>
-              </ul>
-            </div>
-            
             <div class="bg-blue-50 p-4 rounded-lg border border-blue-200">
-              <h4 class="font-semibold text-blue-800 mb-2">✅ 검증 가능한 제품</h4>
+              <h4 class="font-semibold text-blue-800 mb-2">✅ 의뢰 가능한 모든 카테고리</h4>
+              <p class="mb-2">명품을 제외한 <strong>모든 카테고리</strong> 의뢰가 가능합니다:</p>
               <ul class="list-disc list-inside space-y-1">
-                <li><strong>생활용품:</strong> 캠핑용품, 주방용품, 욕실용품, 청소용품</li>
-                <li><strong>가구:</strong> 책상, 의자, 선반, 옷장 (브랜드 무관)</li>
-                <li><strong>의류:</strong> 기본 의류, 속옷, 양말 (브랜드 무관)</li>
-                <li><strong>기타:</strong> 문구용품, 인테리어 소품, 운동용품</li>
+                <li><strong>전자/IT:</strong> 스마트폰, 노트북, 태블릿, 가전, 주변기기 (애플, 삼성, LG 등 브랜드 포함)</li>
+                <li><strong>패션/스포츠:</strong> 의류, 신발, 스니커즈, 운동용품 (나이키, 아디다스 등 포함)</li>
+                <li><strong>생활/가구:</strong> 주방용품, 캠핑, 가구, 인테리어, 대형 TV 등</li>
+                <li><strong>기타:</strong> 문구, 뷰티, 반려동물용품 등 모든 일반 제품</li>
               </ul>
             </div>
             
             <div class="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
-              <h4 class="font-semibold text-yellow-800 mb-2">🤔 브랜드 배제 이유</h4>
+              <h4 class="font-semibold text-yellow-800 mb-2">🤔 명품만 제외하는 이유</h4>
               <ul class="list-disc list-inside space-y-1">
-                <li><strong>가격 변동성:</strong> 브랜드 제품은 가격 변동이 매우 심합니다</li>
-                <li><strong>정확성 한계:</strong> 모델명, 옵션에 따른 미세한 차이로 비교가 어렵습니다</li>
-                <li><strong>프로모션 복잡성:</strong> 다양한 할인, 쿠폰, 이벤트로 일관된 비교가 어렵습니다</li>
-                <li><strong>서비스 품질:</strong> 브랜드 제품보다 일반 제품에서 더 큰 절약 효과를 기대할 수 있습니다</li>
+                <li><strong>진품 인증:</strong> 명품은 정품/가품 구분이 핵심이며, 가격 비교만으로 판단하기 어렵습니다</li>
+                <li><strong>시장 특성:</strong> 중고·병행수입·리셀 시장 등 가격 형성이 복잡합니다</li>
+                <li><strong>서비스 품질:</strong> 일반 제품에서 더 정확하고 유용한 구매판단 리포트를 제공하기 위함입니다</li>
               </ul>
             </div>
             
             <div class="bg-green-50 p-4 rounded-lg border border-green-200">
-              <h4 class="font-semibold text-green-800 mb-2">💡 추천 의뢰 방법</h4>
-              <ul class="list-disc list-inside space-y-1">
-                <li>브랜드보다는 <strong>기능과 용도</strong>에 집중해서 의뢰하세요</li>
-                <li>예: "아이폰" 대신 "스마트폰 충전기, 20W, USB-C"</li>
-                <li>예: "나이키 운동화" 대신 "운동화, 화이트, 270mm"</li>
-                <li>구체적인 스펙과 용도를 명시하면 더 정확한 검증이 가능합니다</li>
-              </ul>
+              <h4 class="font-semibold text-green-800 mb-2">💡 구매판단 리포트란?</h4>
+              <p>최저가 정보뿐 아니라 가격 추세, 제품 가성비, 판매처 신뢰도, 구매 추천/보류/비추천까지 종합적으로 분석한 리포트입니다.</p>
             </div>
             
             <div class="bg-red-50 p-4 rounded-lg border border-red-200">
-              <h4 class="font-semibold text-red-800 mb-2">⚠️ 브랜드 제품 의뢰 시</h4>
-              <p>브랜드 제품을 의뢰하신 경우 검증이 제한되거나 거부될 수 있습니다. 이에 동의하시는 경우에만 의뢰를 진행해 주세요.</p>
+              <h4 class="font-semibold text-red-800 mb-2">⚠️ 명품 의뢰 시</h4>
+              <p>명품백·명품시계·명품 주얼리 등 명품류를 의뢰하신 경우 서비스가 제한되거나 거부될 수 있습니다. 이에 동의하시는 경우에만 의뢰를 진행해 주세요.</p>
             </div>
           </div>
           
@@ -1006,7 +987,7 @@
       }
       
       if (!document.getElementById('brandExcludeAgree').checked) {
-        alert('브랜드 배제 정책에 동의해 주세요.');
+        alert('명품 제외 정책에 동의해 주세요.');
         return;
       }
       
@@ -1174,7 +1155,7 @@
       }
       
       if (!document.getElementById('brandExcludeAgree').checked) {
-        alert('브랜드 배제 정책에 동의해 주세요.');
+        alert('명품 제외 정책에 동의해 주세요.');
         return;
       }
       
@@ -1428,7 +1409,18 @@
         };
         
         try {
-          await saveRequestToFirebase(reqData, reqNum);
+          const firebaseDocId = await saveRequestToFirebase(reqData, reqNum);
+
+          // localStorage 동기화 + AI 분석 Job 생성 (반자동 모드)
+          if (window.RequestDataSync) {
+            RequestDataSync.saveRequestLocally(reqNum, {
+              ...reqData,
+              url: urls[0] || '',
+              description: desc,
+              firebaseDocId: firebaseDocId
+            });
+            RequestDataSync.createPendingAnalysisJob(reqNum, { firebaseDocId: firebaseDocId });
+          }
           
           // sessionStorage에 의뢰 데이터 저장 (완료 페이지에서 사용)
           sessionStorage.setItem('request', JSON.stringify({

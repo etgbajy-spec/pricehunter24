@@ -323,6 +323,8 @@ const SUPPORT_FEE_RATE = 0.01;
 
 /** 구매대행 배송·처리 단계 (관리자 업데이트) */
 const FULFILLMENT_STATUSES = ['not_ordered', 'ordered', 'shipped', 'delivered'];
+const PAID_LIKE_PAYMENT_STATUSES = ['paid', 'confirmed'];
+const CANCELLED_PAYMENT_STATUSES = ['cancelled', 'partially_cancelled'];
 const ADMIN_RELAX_FULFILLMENT = process.env.ADMIN_RELAX_FULFILLMENT === '1';
 
 function sanitizeReqId(input) {
@@ -371,6 +373,22 @@ async function requireAdmin(req, res, next) {
 function normalizeFulfillmentStatus(v) {
   const s = String(v || '').trim();
   return FULFILLMENT_STATUSES.includes(s) ? s : 'not_ordered';
+}
+
+function normalizePaymentStatus(v) {
+  const s = String(v || '').trim().toLowerCase();
+  if (['paid', 'confirmed', 'done', '완료', '결제완료'].includes(s)) return 'paid';
+  if (CANCELLED_PAYMENT_STATUSES.includes(s)) return s;
+  if (['pending', 'created', 'ready'].includes(s)) return s;
+  return s;
+}
+
+function isPaidLikePaymentStatus(v) {
+  return PAID_LIKE_PAYMENT_STATUSES.includes(normalizePaymentStatus(v));
+}
+
+function isCancelledPaymentStatus(v) {
+  return CANCELLED_PAYMENT_STATUSES.includes(normalizePaymentStatus(v));
 }
 
 async function updatePointsLedgerForOrder(db, orderId, updater) {
@@ -453,8 +471,8 @@ app.post('/api/toss/create-order', paymentLimiter, validateInput, async (req, re
       return res.status(400).json({ error: '유효한 결제 금액을 확인할 수 없습니다.' });
     }
 
-    const ps = String(requestData.paymentStatus || '');
-    if (ps === 'paid') {
+    const ps = normalizePaymentStatus(requestData.paymentStatus);
+    if (isPaidLikePaymentStatus(ps)) {
       return res.status(400).json({ error: '이미 결제가 완료된 의뢰입니다. 새 결제를 만들 수 없습니다.' });
     }
 
@@ -463,11 +481,11 @@ app.post('/api/toss/create-order', paymentLimiter, validateInput, async (req, re
       const prevSnap = await db.collection('payments').doc(latest).get();
       if (prevSnap.exists) {
         const prev = prevSnap.data() || {};
-        const st = String(prev.status || '');
-        if (st === 'paid') {
+        const st = normalizePaymentStatus(prev.status);
+        if (isPaidLikePaymentStatus(st)) {
           return res.status(400).json({ error: '진행 중인 유효한 결제가 있습니다. 새 결제를 만들 수 없습니다.' });
         }
-        if (st === 'created' || st === 'pending') {
+        if (st === 'created' || st === 'pending' || st === 'ready') {
           await prevSnap.ref.update({
             status: 'abandoned',
             abandonedReason: 'replaced_by_new_checkout',
@@ -629,7 +647,7 @@ app.post('/api/admin/purchase-confirm', paymentLimiter, validateInput, requireAd
     const paySnap = await payRef.get();
     if (!paySnap.exists) return res.status(404).json({ error: '주문 정보를 찾을 수 없습니다.' });
     const pay = paySnap.data() || {};
-    if (pay.status !== 'paid') return res.status(400).json({ error: '결제 완료(paid) 상태에서만 구매확정이 가능합니다.' });
+    if (!isPaidLikePaymentStatus(pay.status)) return res.status(400).json({ error: '결제 완료 상태에서만 구매확정이 가능합니다.' });
     if (pay.pointsStatus === 'available') return res.status(400).json({ error: '이미 구매확정(적립금 확정) 처리된 주문입니다.' });
 
     if (pay.requestDocId) {
@@ -696,7 +714,7 @@ app.post('/api/admin/payment-cancel', paymentLimiter, validateInput, requireAdmi
     if (!paySnap.exists) return res.status(404).json({ error: '주문 정보를 찾을 수 없습니다.' });
     const pay = paySnap.data() || {};
     if (!pay.paymentKey) return res.status(400).json({ error: 'paymentKey가 없어 취소할 수 없습니다.' });
-    if (pay.status !== 'paid') return res.status(400).json({ error: '결제 완료(paid) 상태에서만 취소가 가능합니다.' });
+    if (!isPaidLikePaymentStatus(pay.status)) return res.status(400).json({ error: '결제 완료 상태에서만 취소가 가능합니다.' });
 
     if (pay.requestDocId) {
       const reqSnap = await db.collection('requests').doc(pay.requestDocId).get();
@@ -885,18 +903,52 @@ app.post('/api/webhook/payment', express.json(), webhookLimiter, async (req, res
       return res.status(400).json({ error: 'orderId 또는 paymentKey 필요' });
     }
     writeAuditLog('payment_webhook', 'payment_provider', String(orderId), { status, amount, receivedAt: new Date().toISOString() });
-    if (adminInitialized && (status === 'DONE' || status === 'paid' || body.status === '완료')) {
+    if (adminInitialized && isPaidLikePaymentStatus(status)) {
       try {
         const db = admin.firestore();
         const payRef = db.collection('payments').doc(String(orderId));
         const paySnap = await payRef.get();
         if (paySnap.exists) {
-          await payRef.update({ status: 'confirmed', confirmedAt: admin.firestore.FieldValue.serverTimestamp() });
+          const payData = paySnap.data() || {};
+          if (!isCancelledPaymentStatus(payData.status)) {
+            await payRef.update({
+              status: 'paid',
+              providerStatus: String(status || ''),
+              webhookReceivedAt: admin.firestore.FieldValue.serverTimestamp(),
+              updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+            });
+          }
+
+          if (payData.requestDocId) {
+            const reqRef = db.collection('requests').doc(payData.requestDocId);
+            const reqSnap = await reqRef.get();
+            if (reqSnap.exists) {
+              const reqData = reqSnap.data() || {};
+              if (!isCancelledPaymentStatus(reqData.paymentStatus)) {
+                await reqRef.update({
+                  paymentStatus: 'paid',
+                  paymentOrderId: String(orderId),
+                  fulfillmentStatus: normalizeFulfillmentStatus(reqData.fulfillmentStatus),
+                  fulfillmentUpdatedAt: reqData.fulfillmentStatus
+                    ? (reqData.fulfillmentUpdatedAt || admin.firestore.FieldValue.serverTimestamp())
+                    : admin.firestore.FieldValue.serverTimestamp(),
+                  updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+                });
+              }
+            }
+          }
         }
+
         const orderRef = db.collection('orders').doc(String(orderId));
         const orderSnap = await orderRef.get();
         if (orderSnap.exists) {
-          await orderRef.update({ paymentStatus: 'confirmed', updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+          const orderData = orderSnap.data() || {};
+          if (!isCancelledPaymentStatus(orderData.paymentStatus)) {
+            await orderRef.update({
+              paymentStatus: 'paid',
+              updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+            });
+          }
         }
       } catch (e) {
         console.error('Webhook order/payment update failed:', e.message);
@@ -908,6 +960,176 @@ app.post('/api/webhook/payment', express.json(), webhookLimiter, async (req, res
     res.status(500).json({ error: 'Internal error' });
   }
 });
+
+// ===== AI 분석 파이프라인 (Phase 2) =====
+const analysisPipeline = (() => {
+  try { return require('./analysis-pipeline'); } catch (e) { return null; }
+})();
+
+async function requireAdminOrApiKey(req, res, next) {
+  const apiKey = String(req.headers['x-admin-api-key'] || '').trim();
+  const expected = process.env.ADMIN_API_SECRET || (process.env.NODE_ENV === 'production' ? '' : 'pricehunter-dev-admin');
+  if (expected && apiKey && apiKey === expected) {
+    req.adminUser = { uid: 'api-key', email: 'admin@api-key' };
+    return next();
+  }
+  return requireAdmin(req, res, next);
+}
+
+const analysisLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  message: { error: 'AI 분석 요청이 너무 많습니다. 잠시 후 다시 시도해주세요.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+function validateAnalysisRequest(body) {
+  const request = body?.request;
+  if (!request || typeof request !== 'object') {
+    return { error: 'request 객체가 필요합니다.' };
+  }
+  const name = String(request.name || request.productName || '').trim();
+  if (!name || name.length > 200) {
+    return { error: '유효한 제품명이 필요합니다.' };
+  }
+  return { request };
+}
+
+if (analysisPipeline) {
+  app.post('/api/analysis/collect-prices', analysisLimiter, requireAdminOrApiKey, async (req, res) => {
+    try {
+      const validated = validateAnalysisRequest(req.body);
+      if (validated.error) return res.status(400).json({ error: validated.error });
+      const priceData = await analysisPipeline.collectPrices(validated.request);
+      writeAuditLog('analysis_collect', req.adminUser?.uid || 'admin', validated.request.name?.slice(0, 50), { ok: true });
+      return res.json({ ok: true, priceData });
+    } catch (e) {
+      console.error('collect-prices error:', e);
+      return res.status(500).json({ error: e.message || '가격 수집 중 오류' });
+    }
+  });
+
+  app.post('/api/analysis/generate-draft', analysisLimiter, requireAdminOrApiKey, async (req, res) => {
+    try {
+      const validated = validateAnalysisRequest(req.body);
+      if (validated.error) return res.status(400).json({ error: validated.error });
+      let priceData = req.body?.priceData;
+      if (!priceData) {
+        priceData = await analysisPipeline.collectPrices(validated.request);
+      }
+      const { draft, mode } = await analysisPipeline.generateDraft(validated.request, priceData, req.body?.options || {});
+      writeAuditLog('analysis_draft', req.adminUser?.uid || 'admin', validated.request.name?.slice(0, 50), { mode });
+      return res.json({ ok: true, draft, mode, priceData });
+    } catch (e) {
+      console.error('generate-draft error:', e);
+      return res.status(500).json({ error: e.message || 'AI 초안 생성 중 오류' });
+    }
+  });
+
+  app.post('/api/analysis/run-pipeline', analysisLimiter, requireAdminOrApiKey, async (req, res) => {
+    try {
+      const validated = validateAnalysisRequest(req.body);
+      if (validated.error) return res.status(400).json({ error: validated.error });
+      const result = await analysisPipeline.runAnalysisPipeline(validated.request, req.body?.options || {});
+      writeAuditLog('analysis_pipeline', req.adminUser?.uid || 'admin', validated.request.name?.slice(0, 50), { mode: result.mode });
+      return res.json(result);
+    } catch (e) {
+      console.error('run-pipeline error:', e);
+      return res.status(500).json({ error: e.message || '분석 파이프라인 오류' });
+    }
+  });
+
+  console.log('✅ AI 분석 파이프라인 API 등록 완료');
+} else {
+  console.warn('⚠️ analysis-pipeline.js 로드 실패 — AI API 비활성');
+}
+
+// ===== 반자동 모드: Firebase 리포트 동기화 =====
+if (adminInitialized) {
+  app.get('/api/admin/pending-requests', analysisLimiter, requireAdminOrApiKey, async (req, res) => {
+    try {
+      const db = admin.firestore();
+      let snap;
+      try {
+        snap = await db.collection('requests').orderBy('createdAt', 'desc').limit(80).get();
+      } catch (e) {
+        snap = await db.collection('requests').limit(80).get();
+      }
+      const items = [];
+      snap.forEach(doc => {
+        const d = doc.data() || {};
+        if (d.purchaseReport || d.adminResponse) return;
+        const st = String(d.status || '');
+        if (st === '답변완료' || st === 'complete' || st === 'completed') return;
+        items.push({
+          id: doc.id,
+          requestNumber: d.requestNumber || d.reqNum || doc.id,
+          name: d.name || '',
+          email: d.email || '',
+          price: d.price || '',
+          url: (d.urls && d.urls[0]) || d.url || '',
+          urls: d.urls || [],
+          description: d.desc || d.description || '',
+          createdAt: d.createdAt?.toDate?.()?.toISOString?.() || d.date || null,
+          analysisStatus: d.analysisStatus || 'pending'
+        });
+      });
+      items.sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+      return res.json({ ok: true, items });
+    } catch (e) {
+      console.error('pending-requests error:', e);
+      return res.status(500).json({ error: '의뢰 목록 조회 실패' });
+    }
+  });
+
+  app.post('/api/admin/save-purchase-report', analysisLimiter, requireAdminOrApiKey, async (req, res) => {
+    try {
+      const { firebaseDocId, reqNum, report } = req.body || {};
+      if (!report || typeof report !== 'object') {
+        return res.status(400).json({ error: 'report 객체가 필요합니다.' });
+      }
+      const db = admin.firestore();
+      let docRef = null;
+      if (firebaseDocId) {
+        docRef = db.collection('requests').doc(String(firebaseDocId));
+        const snap = await docRef.get();
+        if (!snap.exists) docRef = null;
+      }
+      if (!docRef && reqNum) {
+        const loaded = await loadRequestByReqId(db, sanitizeReqId(reqNum));
+        if (loaded) docRef = db.collection('requests').doc(loaded.id);
+      }
+      if (!docRef) {
+        return res.status(404).json({ error: 'Firebase 의뢰 문서를 찾을 수 없습니다. firebaseDocId 또는 reqNum을 확인하세요.' });
+      }
+      const payload = {
+        purchaseReport: report,
+        reportVersion: report.reportVersion || 'v2',
+        adminResponse: {
+          lowestPrice: report.price || '',
+          seller: report.origin || '',
+          additionalInfo: report.summary || '',
+          link: report.link || '',
+          purchaseVerdict: report.decision?.verdict || '',
+          purchaseSummary: report.decision?.summary || '',
+          confidence: report.decision?.confidence || ''
+        },
+        status: '답변완료',
+        analysisStatus: 'published',
+        responseDate: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      };
+      await docRef.update(payload);
+      writeAuditLog('save_purchase_report', req.adminUser?.uid || 'admin', docRef.id, { reqNum: reqNum || '' });
+      return res.json({ ok: true, docId: docRef.id });
+    } catch (e) {
+      console.error('save-purchase-report error:', e);
+      return res.status(500).json({ error: e.message || 'Firebase 저장 실패' });
+    }
+  });
+  console.log('✅ 반자동 Firebase 동기화 API 등록 완료');
+}
 
 // 카카오 액세스 토큰을 Firebase 커스텀 토큰으로 교환
 app.post('/api/kakao-to-firebase-token', generateCSRFToken, verifyCSRF, validateInput, async (req, res) => {

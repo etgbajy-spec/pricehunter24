@@ -20,6 +20,7 @@
     - 이 경고는 개발 중에는 무시해도 됩니다!
   -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="purchase-report.js"></script>
   
   <!-- Firebase v9 SDK (모듈식) -->
   <script type="module">
@@ -441,7 +442,7 @@
                       </button>
                     </div>
                     <div class="text-xs text-gray-500 text-center">
-                      💡 링크로 이동하여 직접 구매하실 수 있습니다.
+                      💡 외부 판매처 링크로 이동하여 직접 결제하실 수 있습니다.
                     </div>
                   </div>
                 </div>
@@ -675,7 +676,7 @@
                   <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <a id="btn-direct-buy" href="#" target="_blank" rel="noopener noreferrer"
                        class="px-4 py-3 rounded-xl bg-gray-900 text-white font-bold text-center hover:bg-black transition">
-                      쇼핑몰에서 직접구매
+                      외부 판매처 직접구매
                     </a>
                     <a id="btn-support-buy" href="#" role="button"
                        class="px-4 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-bold text-center hover:from-emerald-600 hover:to-emerald-700 transition">
@@ -1145,9 +1146,9 @@
               <div class="text-sm text-gray-600">${userName} | ${formattedDate}</div>
               <div class="text-sm text-gray-500 mt-1">${productName}</div>
               <div class="mt-2 flex flex-wrap gap-2">
-                ${paymentStatus ? `<span class="inline-block px-2 py-0.5 text-xs rounded-full ${paymentStatus === 'paid' ? 'bg-purple-100 text-purple-700' : paymentStatus === 'pending' ? 'bg-blue-100 text-blue-700' : paymentStatus.includes('cancel') ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'}">결제: ${escapeHtml(paymentStatus)}</span>` : ''}
-                ${fulfillmentStatus ? `<span class="inline-block px-2 py-0.5 text-xs rounded-full ${fulfillmentStatus === 'delivered' ? 'bg-emerald-100 text-emerald-700' : fulfillmentStatus === 'shipped' ? 'bg-indigo-100 text-indigo-700' : fulfillmentStatus === 'ordered' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'}">진행: ${escapeHtml(fulfillmentStatus)}</span>` : ''}
-                ${request.pointsStatus ? `<span class="inline-block px-2 py-0.5 text-xs rounded-full ${request.pointsStatus === 'available' ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-700'}">적립금: ${escapeHtml(request.pointsStatus)}</span>` : ''}
+                ${paymentStatus ? `<span class="inline-block px-2 py-0.5 text-xs rounded-full ${getPaymentStatusBadgeClass(paymentStatus)}">결제: ${escapeHtml(getPaymentStatusLabel(paymentStatus))}</span>` : ''}
+                ${fulfillmentStatus ? `<span class="inline-block px-2 py-0.5 text-xs rounded-full ${getFulfillmentStatusBadgeClass(fulfillmentStatus)}">진행: ${escapeHtml(getFulfillmentStatusLabel(fulfillmentStatus))}</span>` : ''}
+                ${request.pointsStatus || isCancelledPaymentStatus(paymentStatus) ? `<span class="inline-block px-2 py-0.5 text-xs rounded-full ${getPointsStatusBadgeClass(request.pointsStatus, paymentStatus)}">적립금: ${escapeHtml(getPointsStatusLabel(request.pointsStatus, paymentStatus))}</span>` : ''}
               </div>
             </div>
             <div class="ml-4 text-right">
@@ -1201,7 +1202,7 @@
         const pts = plannedPointsForRequest(r);
         if (!pts) return;
         if (r.pointsStatus === 'available') available += pts;
-        else if (r.paymentStatus === 'paid') pending += pts;
+        else if (['paid', 'confirmed'].includes(normalizeFlowStatus(r.paymentStatus))) pending += pts;
       });
 
       availableEl.textContent = Number(available).toLocaleString();
@@ -1678,6 +1679,76 @@
     function escapeHtml(str) {
       if (!str) return '';
       return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    function normalizeFlowStatus(value) {
+      return (value || '').toString().trim().toLowerCase();
+    }
+
+    function isCancelledPaymentStatus(status) {
+      return ['cancelled', 'partially_cancelled'].includes(normalizeFlowStatus(status));
+    }
+
+    function getPaymentStatusLabel(status) {
+      switch (normalizeFlowStatus(status)) {
+        case 'pending': return '결제대기';
+        case 'paid': return '결제완료';
+        case 'confirmed': return '결제완료';
+        case 'cancelled': return '전액 환불 완료';
+        case 'partially_cancelled': return '부분 환불 완료';
+        default: return status || '';
+      }
+    }
+
+    function getPaymentStatusBadgeClass(status) {
+      switch (normalizeFlowStatus(status)) {
+        case 'pending': return 'bg-blue-100 text-blue-700';
+        case 'paid': return 'bg-purple-100 text-purple-700';
+        case 'confirmed': return 'bg-emerald-100 text-emerald-700';
+        case 'cancelled': return 'bg-red-100 text-red-700';
+        case 'partially_cancelled': return 'bg-amber-100 text-amber-700';
+        default: return 'bg-gray-100 text-gray-700';
+      }
+    }
+
+    function getFulfillmentStatusLabel(status) {
+      switch (normalizeFlowStatus(status)) {
+        case 'not_ordered': return '외부 주문 전';
+        case 'ordered': return '외부몰 주문 완료';
+        case 'shipped': return '배송중';
+        case 'delivered': return '배송완료';
+        default: return status || '';
+      }
+    }
+
+    function getFulfillmentStatusBadgeClass(status) {
+      switch (normalizeFlowStatus(status)) {
+        case 'not_ordered': return 'bg-gray-100 text-gray-700';
+        case 'ordered': return 'bg-blue-100 text-blue-700';
+        case 'shipped': return 'bg-indigo-100 text-indigo-700';
+        case 'delivered': return 'bg-emerald-100 text-emerald-700';
+        default: return 'bg-gray-100 text-gray-700';
+      }
+    }
+
+    function getPointsStatusLabel(pointsStatus, paymentStatus) {
+      if (isCancelledPaymentStatus(paymentStatus)) return '적립 제외';
+      switch (normalizeFlowStatus(pointsStatus)) {
+        case 'planned': return '적립 예정';
+        case 'available': return '적립 완료';
+        case 'reversed': return '적립 회수';
+        default: return pointsStatus || '';
+      }
+    }
+
+    function getPointsStatusBadgeClass(pointsStatus, paymentStatus) {
+      if (isCancelledPaymentStatus(paymentStatus)) return 'bg-red-100 text-red-700';
+      switch (normalizeFlowStatus(pointsStatus)) {
+        case 'available': return 'bg-emerald-100 text-emerald-700';
+        case 'planned': return 'bg-gray-100 text-gray-700';
+        case 'reversed': return 'bg-red-100 text-red-700';
+        default: return 'bg-gray-100 text-gray-700';
+      }
     }
 
     // 댓글 렌더링 함수 (기존 contact.html 그대로)
@@ -3502,14 +3573,10 @@
       // 결제/진행 현황
       const paymentStatusRaw = (request.paymentStatus || '').toString();
       const fulfillmentRaw = (request.fulfillmentStatus || '').toString();
-      const paymentText = paymentStatusRaw ? (paymentStatusRaw === 'paid' ? '결제완료' : paymentStatusRaw) : '미결제';
-      const fulfillmentTextMap = {
-        not_ordered: '주문 전',
-        ordered: '주문완료',
-        shipped: '배송중',
-        delivered: '배송완료',
-      };
-      const fulfillmentText = fulfillmentRaw ? (fulfillmentTextMap[fulfillmentRaw] || fulfillmentRaw) : (paymentStatusRaw === 'paid' ? '주문 전' : '대기');
+      const paymentText = paymentStatusRaw ? getPaymentStatusLabel(paymentStatusRaw) : '미결제';
+      const fulfillmentText = isCancelledPaymentStatus(paymentStatusRaw)
+        ? '취소/환불 처리됨'
+        : (fulfillmentRaw ? getFulfillmentStatusLabel(fulfillmentRaw) : (['paid', 'confirmed'].includes(normalizeFlowStatus(paymentStatusRaw)) ? '외부 주문 전' : '대기'));
       const payEl = document.getElementById('modal-payment-status');
       const fulEl = document.getElementById('modal-fulfillment-status');
       if (payEl) payEl.textContent = paymentText;
@@ -3520,7 +3587,7 @@
         if (!el) return;
         el.className = 'px-3 py-2 rounded-lg border text-center ' + (active ? 'bg-emerald-50 border-emerald-300 text-emerald-700 font-semibold' : 'bg-white border-gray-200 text-gray-500');
       }
-      const paid = paymentStatusRaw === 'paid';
+      const paid = ['paid', 'confirmed'].includes(normalizeFlowStatus(paymentStatusRaw));
       setStepActive('ful-step-paid', paid);
       setStepActive('ful-step-ordered', paid && (fulfillmentRaw === 'ordered' || fulfillmentRaw === 'shipped' || fulfillmentRaw === 'delivered'));
       setStepActive('ful-step-shipped', paid && (fulfillmentRaw === 'shipped' || fulfillmentRaw === 'delivered'));
@@ -3569,7 +3636,7 @@
 
           const reqNumRaw = (request.reqNum || request.requestNumber || '').toString();
           const reqId = reqNumRaw.replace(/^#+/, '');
-          const sellerLink = (request.adminResponse && typeof request.adminResponse === 'object') ? request.adminResponse.sellerLink : null;
+          const sellerLink = (request.adminResponse && typeof request.adminResponse === 'object') ? (request.adminResponse.sellerLink || request.adminResponse.link) : null;
           const fallbackLink = request.sellerLink || request.link || request.url || null;
           const directLink = (sellerLink && /^https?:\/\//i.test(String(sellerLink))) ? String(sellerLink) : (fallbackLink && /^https?:\/\//i.test(String(fallbackLink)) ? String(fallbackLink) : '');
 
@@ -3578,11 +3645,11 @@
           if (!directLink) {
             btnDirect.setAttribute('aria-disabled', 'true');
             btnDirect.classList.add('opacity-50', 'pointer-events-none');
-            btnDirect.textContent = '직접구매 링크 없음';
+            btnDirect.textContent = '외부 판매처 링크 없음';
           } else {
             btnDirect.removeAttribute('aria-disabled');
             btnDirect.classList.remove('opacity-50', 'pointer-events-none');
-            btnDirect.textContent = '쇼핑몰에서 직접구매';
+            btnDirect.textContent = '외부 판매처 직접구매';
             btnDirect.onclick = function (e) {
               e.preventDefault();
               fetch('/api/purchase-decision', {
@@ -3642,8 +3709,22 @@
     // 회원용 답변 표시 포맷팅 (의뢰건과 비교)
     function formatMemberResponseDisplay(responseData, originalRequest) {
       let html = '<div class="space-y-4">';
-      
-      // 가격 비교 섹션
+
+      const verdict = responseData.purchaseVerdict;
+      const verdictLabels = { buy: '✅ 구매 추천', hold: '⏸️ 보류 (관망)', skip: '❌ 구매 비추천' };
+      if (verdict && verdictLabels[verdict]) {
+        html += `
+          <div class="p-4 rounded-lg border-2 border-indigo-200 bg-indigo-50">
+            <div class="font-bold text-indigo-800 mb-1">${verdictLabels[verdict]}</div>
+            ${responseData.purchaseSummary ? `<div class="text-indigo-900">${responseData.purchaseSummary}</div>` : ''}
+            ${responseData.confidence ? `<div class="text-xs text-indigo-600 mt-1">신뢰도 ${responseData.confidence}%</div>` : ''}
+          </div>
+        `;
+      }
+
+      if (originalRequest && originalRequest.purchaseReport && window.PurchaseReport) {
+        html += PurchaseReport.renderPurchaseReportHTML(originalRequest.purchaseReport);
+      }
       if (responseData.lowestPrice || originalRequest.originalPrice) {
         html += `
           <div class="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-4 border-l-4 border-green-500">
@@ -3679,13 +3760,14 @@
       }
       
       // 판매 링크
-      if (responseData.sellerLink) {
+      const purchaseLink = responseData.sellerLink || responseData.link;
+      if (purchaseLink) {
         html += `
           <div class="flex items-center p-3 bg-purple-50 rounded-lg border-l-4 border-purple-500">
             <span class="text-2xl mr-3">🔗</span>
             <div>
               <div class="font-semibold text-purple-800">구매 링크</div>
-              <a href="${responseData.sellerLink}" target="_blank" class="text-purple-600 hover:underline break-all">${responseData.sellerLink}</a>
+              <a href="${purchaseLink}" target="_blank" rel="noopener noreferrer" class="text-purple-600 hover:underline break-all">${purchaseLink}</a>
             </div>
           </div>
         `;

@@ -46,6 +46,31 @@
   to = "/.netlify/functions/portone-status"
   status = 200
 
+[[redirects]]
+  from = "/api/analysis/run-pipeline"
+  to = "/.netlify/functions/analysis-pipeline"
+  status = 200
+
+[[redirects]]
+  from = "/api/analysis/collect-prices"
+  to = "/.netlify/functions/analysis-pipeline"
+  status = 200
+
+[[redirects]]
+  from = "/api/analysis/generate-draft"
+  to = "/.netlify/functions/analysis-pipeline"
+  status = 200
+
+[[redirects]]
+  from = "/api/admin/pending-requests"
+  to = "/.netlify/functions/admin-semi-auto"
+  status = 200
+
+[[redirects]]
+  from = "/api/admin/save-purchase-report"
+  to = "/.netlify/functions/admin-semi-auto"
+  status = 200
+
 # 후기 페이지: 과거 410 규칙/대시보드 리다이렉트가 남아 있어도 실제 콘텐츠로 연결
 [[redirects]]
   from = "/reviews.html"
@@ -60,6 +85,8 @@
   force = true
 
 # ===== 삭제된 과거 페이지 (SEO 정리: 410 Gone) =====
+# result-search.html 은 구매판단 리포트 조회에 사용 — 410 제외
+
 [[redirects]]
   from = "/advanced-search"
   to = "/deleted.html"
@@ -68,18 +95,6 @@
 
 [[redirects]]
   from = "/advanced-search.html"
-  to = "/deleted.html"
-  status = 410
-  force = true
-
-[[redirects]]
-  from = "/result-search"
-  to = "/deleted.html"
-  status = 410
-  force = true
-
-[[redirects]]
-  from = "/result-search.html"
   to = "/deleted.html"
   status = 410
   force = true
