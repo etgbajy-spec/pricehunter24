@@ -23,7 +23,7 @@
     <script type="module">
       import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
       import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
-      import { getFirestore, collection, query, orderBy, onSnapshot, getDocs, getDoc, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, where, limit } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
+      import { getFirestore, collection, query, orderBy, onSnapshot, getDocs, getDoc, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, where, limit, Timestamp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
       import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-storage.js';
       
       // Firebase 설정
@@ -50,7 +50,7 @@
         window.firebaseDb = db;
         window.firebaseStorage = storage;
         window.firebaseAuthFunctions = { onAuthStateChanged };
-        window.firebaseFirestoreFunctions = { collection, query, orderBy, onSnapshot, getDocs, getDoc, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, where, limit };
+        window.firebaseFirestoreFunctions = { collection, query, orderBy, onSnapshot, getDocs, getDoc, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, where, limit, Timestamp };
         window.firebaseStorageFunctions = { ref, uploadBytes, getDownloadURL, deleteObject };
         
         console.log('✅ 관리자 대시보드 Firebase v9 초기화 완료');
@@ -182,6 +182,9 @@
     
     
     <script>
+        let adminAuthVerified = false;
+        let adminAuthCheckTimer = null;
+
         // 관리자 대시보드 초기화
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🚀 관리자 대시보드 초기화 시작...');
@@ -196,21 +199,40 @@
             if (window.firebaseAuthFunctions && window.firebaseAuthFunctions.onAuthStateChanged) {
                 window.firebaseAuthFunctions.onAuthStateChanged(window.firebaseAuth, async (user) => {
                     console.log('🔐 Firebase Auth 상태 변경:', user ? user.email : '로그아웃됨');
-                    
+                    if (adminAuthCheckTimer) clearTimeout(adminAuthCheckTimer);
+
                     if (!user) {
-                        // 로그아웃 상태 - 로그인 섹션 표시
-                        showLoginSection();
-                    } else {
-                        // 로그인 상태 - 관리자 권한 확인 후 대시보드 표시
-                        const isAdmin = await checkAdminPermission(user);
+                        // 토큰 갱신 중 잠깐 null이 올 수 있어 짧게 대기
+                        adminAuthCheckTimer = setTimeout(() => {
+                            if (!window.firebaseAuth || window.firebaseAuth.currentUser) return;
+                            adminAuthVerified = false;
+                            showLoginSection(false);
+                        }, 800);
+                        return;
+                    }
+
+                    adminAuthCheckTimer = setTimeout(async () => {
+                        const currentUser = window.firebaseAuth && window.firebaseAuth.currentUser;
+                        if (!currentUser) return;
+
+                        const isAdmin = await checkAdminPermission(currentUser, { allowCached: true });
                         if (isAdmin) {
+                            adminAuthVerified = true;
                             document.getElementById('login-section').classList.add('hidden');
                             document.getElementById('dashboard-section').classList.remove('hidden');
+                            if (document.getElementById('admin-info')) {
+                                document.getElementById('admin-info').textContent = currentUser.email || '';
+                            }
                             loadDashboardData();
-                        } else {
-                            showLoginSection();
+                            return;
                         }
-                    }
+
+                        if (!adminAuthVerified) {
+                            showLoginSection(false);
+                        } else {
+                            console.warn('⚠️ 관리자 권한 재확인 실패 — 기존 세션 유지');
+                        }
+                    }, 200);
                 });
             }
             
@@ -330,7 +352,7 @@
         }
         
         // 관리자 권한 확인 함수
-        async function checkAdminPermission(user) {
+        async function checkAdminPermission(user, options = {}) {
             try {
                 if (!user || !user.uid) return false;
                 
@@ -349,9 +371,25 @@
                 
             } catch (error) {
                 console.error('❌ 관리자 권한 확인 실패:', error);
+                if (options.allowCached && adminAuthVerified && window.firebaseAuth?.currentUser?.uid === user?.uid) {
+                    return true;
+                }
                 return false;
             }
         }
+
+        window.adminLogout = async function() {
+            adminAuthVerified = false;
+            try {
+                const { signOut } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js');
+                if (window.firebaseAuth) {
+                    await signOut(window.firebaseAuth);
+                }
+            } catch (error) {
+                console.error('❌ 로그아웃 실패:', error);
+            }
+            showLoginSection(false);
+        };
 
         // 관리자 로그인 함수
         window.adminLogin = async function() {
@@ -410,6 +448,7 @@
                 }
                 
                 console.log('✅ 관리자 권한 확인됨');
+                adminAuthVerified = true;
                 
                 // 로그인 성공 시 대시보드 표시
                 document.getElementById('login-section').classList.add('hidden');
@@ -1207,9 +1246,12 @@
                         </span>
                     </td>
                     <td class="px-4 py-3 text-sm">
-                        <div class="flex gap-2">
+                        <div class="flex flex-wrap gap-1">
                         <button onclick="viewRequestDetail('${request.id}')" class="px-2 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600">
-                            상세보기
+                            상세
+                        </button>
+                        <button onclick="copyRequestData('${request.id}')" class="px-2 py-1 bg-gray-600 text-white text-xs rounded hover:bg-gray-700">
+                            복사
                         </button>
                             ${request.reviewBoardAgree ? `
                             <button onclick="publishToReviewBoard('${request.id}')" class="px-2 py-1 bg-purple-500 text-white text-xs rounded hover:bg-purple-600" title="후기게시판에 올리기">
@@ -1540,9 +1582,12 @@
                             </span>
                         </div>
                         <div class="col-span-1 text-center">
-                            <div class="flex gap-2 justify-center">
+                            <div class="flex flex-wrap gap-1 justify-center">
                             <button onclick="viewRequestDetail('${request.id}')" class="px-2 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600">
-                                상세보기
+                                상세
+                            </button>
+                            <button onclick="copyRequestData('${request.id}')" class="px-2 py-1 bg-gray-600 text-white text-xs rounded hover:bg-gray-700">
+                                복사
                             </button>
                                 ${request.reviewBoardAgree ? `
                                 <button onclick="publishToReviewBoard('${request.id}')" class="px-2 py-1 bg-purple-500 text-white text-xs rounded hover:bg-purple-600" title="후기게시판에 올리기">
@@ -1893,13 +1938,11 @@
             }
         }
 
-        // 로그인 섹션 표시 함수
-        function showLoginSection() {
+        // 로그인 섹션 표시 (shouldSignOut=true일 때만 명시적 로그아웃)
+        function showLoginSection(shouldSignOut = false) {
             document.getElementById('login-section').classList.remove('hidden');
             document.getElementById('dashboard-section').classList.add('hidden');
-            
-            // 로그아웃 처리
-            if (window.firebaseAuth) {
+            if (shouldSignOut && window.firebaseAuth) {
                 window.firebaseAuth.signOut().catch(error => {
                     console.error('❌ 로그아웃 실패:', error);
                 });
@@ -1913,16 +1956,21 @@
             // 관리자 권한 재확인
             if (!window.firebaseAuth || !window.firebaseAuth.currentUser) {
                 console.error('❌ 인증되지 않은 사용자입니다.');
-                showLoginSection();
+                showLoginSection(false);
                 return;
             }
             
-            const isAdmin = await checkAdminPermission(window.firebaseAuth.currentUser);
+            const isAdmin = await checkAdminPermission(window.firebaseAuth.currentUser, { allowCached: true });
             if (!isAdmin) {
+                if (adminAuthVerified) {
+                    console.warn('⚠️ 관리자 권한 재확인 실패 — 기존 세션 유지');
+                    return;
+                }
                 console.error('❌ 관리자 권한이 없습니다.');
-                showLoginSection();
+                showLoginSection(false);
                 return;
             }
+            adminAuthVerified = true;
             
             if (!window.firebaseDb) {
                 console.error('❌ Firestore가 초기화되지 않았습니다.');
@@ -4737,6 +4785,90 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                         </div>
                     </div>
 
+                    <!-- 의뢰 데이터 수정 -->
+                    <div class="mb-6">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                            ✏️ 의뢰 데이터 수정
+                        </h3>
+                        <div class="bg-slate-50 rounded-lg p-4 border-l-4 border-slate-500">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                                <div>
+                                    <label for="admin-edit-request-date" class="block text-xs font-semibold text-gray-600 mb-1">의뢰일시</label>
+                                    <input type="datetime-local" id="admin-edit-request-date" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                </div>
+                                <div>
+                                    <label for="admin-edit-status" class="block text-xs font-semibold text-gray-600 mb-1">진행상황</label>
+                                    <select id="admin-edit-status" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                        <option value="pending">pending / 접수대기</option>
+                                        <option value="접수됨">접수됨</option>
+                                        <option value="처리중">처리중</option>
+                                        <option value="completed">completed</option>
+                                        <option value="답변완료">답변완료</option>
+                                        <option value="완료">완료</option>
+                                        <option value="취소">취소</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label for="admin-edit-progress" class="block text-xs font-semibold text-gray-600 mb-1">진행률 (%)</label>
+                                    <input type="number" id="admin-edit-progress" min="0" max="100" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                </div>
+                                <div>
+                                    <label for="admin-edit-status-detail" class="block text-xs font-semibold text-gray-600 mb-1">진행 상세</label>
+                                    <input type="text" id="admin-edit-status-detail" class="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="예: 검색 진행 중">
+                                </div>
+                                <div>
+                                    <label for="admin-edit-purchase-method" class="block text-xs font-semibold text-gray-600 mb-1">구매방식</label>
+                                    <input type="text" id="admin-edit-purchase-method" class="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="예: self / support">
+                                </div>
+                                <div>
+                                    <label for="admin-edit-purchase-status" class="block text-xs font-semibold text-gray-600 mb-1">구매상태</label>
+                                    <input type="text" id="admin-edit-purchase-status" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                </div>
+                                <div>
+                                    <label for="admin-edit-payment-status" class="block text-xs font-semibold text-gray-600 mb-1">결제상태</label>
+                                    <select id="admin-edit-payment-status" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                        <option value="">(미설정)</option>
+                                        <option value="pending">pending / 결제대기</option>
+                                        <option value="paid">paid / 결제완료</option>
+                                        <option value="confirmed">confirmed</option>
+                                        <option value="cancelled">cancelled / 환불</option>
+                                        <option value="partially_cancelled">partially_cancelled</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label for="admin-edit-fulfillment-status" class="block text-xs font-semibold text-gray-600 mb-1">구매대행 진행</label>
+                                    <select id="admin-edit-fulfillment-status" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                        <option value="">(미설정)</option>
+                                        <option value="not_ordered">not_ordered / 외부 주문 전</option>
+                                        <option value="ordered">ordered / 주문 완료</option>
+                                        <option value="shipped">shipped / 배송중</option>
+                                        <option value="delivered">delivered / 배송완료</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label for="admin-edit-points-status" class="block text-xs font-semibold text-gray-600 mb-1">적립금 상태</label>
+                                    <select id="admin-edit-points-status" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                        <option value="">(미설정)</option>
+                                        <option value="planned">planned / 적립 예정</option>
+                                        <option value="available">available / 적립 확정</option>
+                                        <option value="cancelled">cancelled / 적립 취소</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="flex flex-wrap gap-3 mt-4">
+                                <button type="button" onclick="saveRequestMetaFromModal()" class="px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-800 transition">
+                                    수정 저장
+                                </button>
+                                <button type="button" onclick="copyRequestData()" class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition">
+                                    📋 데이터 복사
+                                </button>
+                                <button type="button" onclick="exportRequestData()" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition">
+                                    💾 JSON 내보내기
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- 관리자 액션 -->
                     <div class="mb-6">
                         <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
@@ -4744,14 +4876,8 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                         </h3>
                         <div class="bg-red-50 rounded-lg p-4 border-l-4 border-red-500">
                             <div class="flex flex-wrap gap-3">
-                                <button onclick="updateRequestStatusFromModal()" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition">
-                                    상태 업데이트
-                                </button>
                                 <button onclick="deleteRequestFromModal()" class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition">
                                     의뢰 삭제
-                                </button>
-                                <button onclick="exportRequestData()" class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition">
-                                    데이터 내보내기
                                 </button>
                             </div>
                         </div>
@@ -4960,6 +5086,147 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             }
         }
 
+        function parseRequestDate(dateValue) {
+            if (!dateValue) return null;
+            try {
+                if (dateValue.toDate) return dateValue.toDate();
+                if (dateValue.seconds) return new Date(dateValue.seconds * 1000);
+                if (typeof dateValue === 'number') return new Date(dateValue);
+                if (typeof dateValue === 'string') {
+                    const parsed = new Date(dateValue);
+                    return isNaN(parsed.getTime()) ? null : parsed;
+                }
+                return null;
+            } catch (error) {
+                console.error('날짜 파싱 오류:', error, dateValue);
+                return null;
+            }
+        }
+
+        function toDatetimeLocalValue(dateValue) {
+            const date = parseRequestDate(dateValue);
+            if (!date || isNaN(date.getTime())) return '';
+            const pad = (n) => String(n).padStart(2, '0');
+            return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+        }
+
+        function serializeRequestForExport(request) {
+            const replacer = (key, value) => {
+                if (value && typeof value === 'object' && typeof value.toDate === 'function') {
+                    return value.toDate().toISOString();
+                }
+                if (value && typeof value === 'object' && typeof value.seconds === 'number') {
+                    return new Date(value.seconds * 1000).toISOString();
+                }
+                return value;
+            };
+            return JSON.parse(JSON.stringify(request, replacer));
+        }
+
+        function fillAdminRequestEditForm(request) {
+            window.__adminModalRequestData = request;
+            const setValue = (id, value) => {
+                const el = document.getElementById(id);
+                if (el) el.value = value == null ? '' : String(value);
+            };
+            setValue('admin-edit-request-date', toDatetimeLocalValue(request.reqDate || request.createdAt || request.date));
+            setValue('admin-edit-status', request.status || 'pending');
+            setValue('admin-edit-progress', request.progress != null ? request.progress : '');
+            setValue('admin-edit-status-detail', request.statusDetail || '');
+            setValue('admin-edit-purchase-method', request.purchaseMethod || '');
+            setValue('admin-edit-purchase-status', request.purchaseStatus || '');
+            setValue('admin-edit-payment-status', request.paymentStatus || '');
+            setValue('admin-edit-fulfillment-status', request.fulfillmentStatus || '');
+            setValue('admin-edit-points-status', request.pointsStatus || '');
+        }
+
+        async function getRequestDataForAdmin(requestId) {
+            if (requestId && window.__adminModalRequestData?.id === requestId) {
+                return window.__adminModalRequestData;
+            }
+            const requests = await getRequestsFromFirebase();
+            return requests.find((r) => r.id === requestId) || null;
+        }
+
+        window.copyRequestData = async function(requestId) {
+            try {
+                const data = requestId
+                    ? await getRequestDataForAdmin(requestId)
+                    : window.__adminModalRequestData;
+                if (!data) {
+                    alert('복사할 의뢰 데이터를 찾을 수 없습니다.');
+                    return;
+                }
+                const text = JSON.stringify(serializeRequestForExport(data), null, 2);
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    await navigator.clipboard.writeText(text);
+                } else {
+                    const ta = document.createElement('textarea');
+                    ta.value = text;
+                    document.body.appendChild(ta);
+                    ta.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(ta);
+                }
+                alert('의뢰 데이터가 클립보드에 복사되었습니다.');
+            } catch (error) {
+                console.error('의뢰 데이터 복사 실패:', error);
+                alert('데이터 복사에 실패했습니다.');
+            }
+        };
+
+        window.saveRequestMetaFromModal = async function() {
+            if (!currentRequestId) {
+                alert('의뢰 ID를 찾을 수 없습니다. 페이지를 새로고침하고 다시 시도해주세요.');
+                return;
+            }
+
+            const dateStr = document.getElementById('admin-edit-request-date')?.value || '';
+            const updateData = {
+                status: document.getElementById('admin-edit-status')?.value || 'pending',
+                progress: Number(document.getElementById('admin-edit-progress')?.value) || 0,
+                statusDetail: (document.getElementById('admin-edit-status-detail')?.value || '').trim(),
+                purchaseMethod: (document.getElementById('admin-edit-purchase-method')?.value || '').trim(),
+                purchaseStatus: (document.getElementById('admin-edit-purchase-status')?.value || '').trim(),
+                paymentStatus: document.getElementById('admin-edit-payment-status')?.value || '',
+                fulfillmentStatus: document.getElementById('admin-edit-fulfillment-status')?.value || '',
+                pointsStatus: document.getElementById('admin-edit-points-status')?.value || '',
+                lastUpdated: Date.now()
+            };
+
+            if (dateStr) {
+                const parsedDate = new Date(dateStr);
+                if (!isNaN(parsedDate.getTime())) {
+                    updateData.date = parsedDate.getTime();
+                    updateData.reqDate = parsedDate.toISOString();
+                    const { Timestamp, serverTimestamp } = window.firebaseFirestoreFunctions;
+                    if (Timestamp) updateData.createdAt = Timestamp.fromDate(parsedDate);
+                    if (serverTimestamp) updateData.updatedAt = serverTimestamp();
+                }
+            } else if (window.firebaseFirestoreFunctions.serverTimestamp) {
+                updateData.updatedAt = window.firebaseFirestoreFunctions.serverTimestamp();
+            }
+
+            try {
+                const success = await updateRequestInFirebase(currentRequestId, updateData);
+                if (!success) {
+                    alert('의뢰 데이터 수정에 실패했습니다.');
+                    return;
+                }
+                alert('의뢰 데이터가 저장되었습니다.');
+                const requests = await getRequestsFromFirebase();
+                const updated = requests.find((r) => r.id === currentRequestId);
+                if (updated) {
+                    window.__adminModalRequestData = updated;
+                    await fillAdminRequestDetailModal(updated);
+                }
+                renderRequestList();
+            } catch (error) {
+                console.error('의뢰 데이터 수정 실패:', error);
+                alert('의뢰 데이터 수정 중 오류가 발생했습니다.');
+            }
+        };
+
         // 관리자용 모달 데이터 채우기 (이메일은 의뢰 → 회원(users) 순으로 조회)
         async function fillAdminRequestDetailModal(request) {
             // 의뢰 기본 정보
@@ -5015,6 +5282,8 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
 
             // 추가 요청사항
             document.getElementById('admin-modal-special-request').textContent = request.specialRequest || request.additionalRequest || 'N/A';
+
+            fillAdminRequestEditForm(request);
 
             // 기존 답변을 폼에 채우기
             loadExistingResponseToForm(request);
@@ -5898,16 +6167,29 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             return html;
         }
 
-        // 관리자 액션 함수들
-        function updateRequestStatusFromModal() {
-            const requestNumber = document.getElementById('admin-modal-request-number').textContent;
-            const newStatus = prompt('새로운 상태를 입력하세요 (대기/처리중/완료/취소):');
-            if (newStatus) {
-                // 상태 업데이트 로직 구현
-                console.log('상태 업데이트:', requestNumber, newStatus);
-                alert('상태가 업데이트되었습니다.');
+        window.exportRequestData = async function() {
+            try {
+                const data = window.__adminModalRequestData || (currentRequestId ? await getRequestDataForAdmin(currentRequestId) : null);
+                if (!data) {
+                    alert('내보낼 의뢰 데이터를 찾을 수 없습니다.');
+                    return;
+                }
+                const exportObj = serializeRequestForExport(data);
+                const blob = new Blob([JSON.stringify(exportObj, null, 2)], { type: 'application/json;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                const fileName = (data.reqNum || data.requestNumber || data.id || 'request') + '.json';
+                a.href = url;
+                a.download = fileName.replace(/[^\w.-]+/g, '_');
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            } catch (error) {
+                console.error('의뢰 데이터 내보내기 실패:', error);
+                alert('데이터 내보내기에 실패했습니다.');
             }
-        }
+        };
 
         async function deleteRequestFromModal() {
             if (!currentRequestId) {
@@ -5933,13 +6215,6 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 console.error('의뢰 삭제 실패:', error);
                 alert('의뢰 삭제 중 오류가 발생했습니다.');
             }
-        }
-
-        function exportRequestData() {
-            const requestNumber = document.getElementById('admin-modal-request-number').textContent;
-            // 데이터 내보내기 로직 구현
-            console.log('데이터 내보내기:', requestNumber);
-            alert('데이터가 내보내기되었습니다.');
         }
 
         // 관리자용 모달 이벤트 리스너 등록
