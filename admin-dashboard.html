@@ -185,6 +185,218 @@
         let adminAuthVerified = false;
         let adminAuthCheckTimer = null;
 
+        // ── 관리자 리스트 보기 (페이지네이션 · 월별 · 검색) ──
+        let allRequestsCache = [];
+        let allMembersCache = [];
+        const requestsListView = { page: 1, pageSize: 20, month: 'all', search: '', status: 'all' };
+        const membersListView = { page: 1, pageSize: 20, month: 'all', search: '', loginMethod: 'all' };
+        const reviewsListView = { page: 1, pageSize: 20, month: 'all' };
+
+        function parseAdminListDate(value) {
+            if (!value) return null;
+            try {
+                if (value.toDate) return value.toDate();
+                if (value.seconds) return new Date(value.seconds * 1000);
+                if (typeof value === 'number') return new Date(value);
+                if (typeof value === 'string') {
+                    const d = new Date(value);
+                    return isNaN(d.getTime()) ? null : d;
+                }
+            } catch (e) { /* ignore */ }
+            return null;
+        }
+
+        function getAdminMonthKey(value) {
+            const d = parseAdminListDate(value);
+            if (!d || isNaN(d.getTime())) return '';
+            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        }
+
+        function formatAdminMonthLabel(key) {
+            if (!key || key === 'all') return '전체 기간';
+            const [y, m] = key.split('-');
+            return `${y}년 ${Number(m)}월`;
+        }
+
+        function populateAdminMonthSelect(selectEl, items, getDateValue) {
+            if (!selectEl) return;
+            const months = new Set();
+            (items || []).forEach((item) => {
+                const key = getAdminMonthKey(getDateValue(item));
+                if (key) months.add(key);
+            });
+            const sorted = Array.from(months).sort().reverse();
+            const prev = selectEl.value || 'all';
+            selectEl.innerHTML = '<option value="all">전체 기간</option>' +
+                sorted.map((m) => `<option value="${m}">${formatAdminMonthLabel(m)}</option>`).join('');
+            selectEl.value = [...selectEl.options].some((o) => o.value === prev) ? prev : 'all';
+        }
+
+        function paginateAdminList(items, viewState) {
+            const rawSize = viewState.pageSize;
+            const pageSize = rawSize === 'all' ? Math.max(items.length, 1) : (Number(rawSize) || 20);
+            const totalItems = items.length;
+            const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+            const page = Math.min(Math.max(1, viewState.page || 1), totalPages);
+            viewState.page = page;
+            const start = (page - 1) * pageSize;
+            return {
+                pageItems: items.slice(start, start + pageSize),
+                page,
+                pageSize: rawSize === 'all' ? totalItems : pageSize,
+                totalItems,
+                totalPages
+            };
+        }
+
+        function renderAdminListFooter(containerId, meta, onPageChange) {
+            const el = document.getElementById(containerId);
+            if (!el) return;
+            if (!meta.totalItems) {
+                el.innerHTML = '<div class="text-sm text-gray-500 py-3 px-4 border-t bg-gray-50">표시할 데이터가 없습니다.</div>';
+                return;
+            }
+            const from = (meta.page - 1) * (meta.pageSize || 1) + 1;
+            const to = Math.min(meta.page * (meta.pageSize || meta.totalItems), meta.totalItems);
+            el.innerHTML = `
+                <div class="flex flex-wrap items-center justify-between gap-3 py-3 px-4 border-t bg-gray-50 text-sm">
+                    <div class="text-gray-600">총 <strong>${meta.totalItems}</strong>건 · ${from}–${to}번째 표시 · <strong>${meta.page}</strong> / ${meta.totalPages} 페이지</div>
+                    <div class="flex gap-2">
+                        <button type="button" class="px-3 py-1.5 rounded-lg border border-gray-300 bg-white hover:bg-gray-100 disabled:opacity-40" data-nav="prev" ${meta.page <= 1 ? 'disabled' : ''}>◀ 이전</button>
+                        <button type="button" class="px-3 py-1.5 rounded-lg border border-gray-300 bg-white hover:bg-gray-100 disabled:opacity-40" data-nav="next" ${meta.page >= meta.totalPages ? 'disabled' : ''}>다음 ▶</button>
+                    </div>
+                </div>`;
+            el.querySelectorAll('button[data-nav]').forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    if (btn.dataset.nav === 'prev' && meta.page > 1) onPageChange(meta.page - 1);
+                    if (btn.dataset.nav === 'next' && meta.page < meta.totalPages) onPageChange(meta.page + 1);
+                });
+            });
+        }
+
+        function adminListToolbarHtml(prefix, options = {}) {
+            const statusOptions = (options.statusOptions || []).map((o) =>
+                `<option value="${o.value}">${o.label}</option>`
+            ).join('');
+            const loginOptions = (options.loginOptions || []).map((o) =>
+                `<option value="${o.value}">${o.label}</option>`
+            ).join('');
+            return `
+                <div class="flex flex-wrap gap-3 items-end">
+                    <div class="flex-1 min-w-[200px]">
+                        <label class="block text-xs font-semibold text-gray-600 mb-1">검색</label>
+                        <input type="text" id="${prefix}-search" placeholder="${options.searchPlaceholder || '검색...'}" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-pink-400 focus:outline-none">
+                    </div>
+                    <div class="min-w-[140px]">
+                        <label class="block text-xs font-semibold text-gray-600 mb-1">월별 보기</label>
+                        <select id="${prefix}-month" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"></select>
+                    </div>
+                    ${options.showStatus ? `
+                    <div class="min-w-[120px]">
+                        <label class="block text-xs font-semibold text-gray-600 mb-1">${options.statusLabel || '상태'}</label>
+                        <select id="${prefix}-status" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">${statusOptions}</select>
+                    </div>` : ''}
+                    ${options.showLogin ? `
+                    <div class="min-w-[120px]">
+                        <label class="block text-xs font-semibold text-gray-600 mb-1">로그인 방식</label>
+                        <select id="${prefix}-login" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">${loginOptions}</select>
+                    </div>` : ''}
+                    <div class="min-w-[100px]">
+                        <label class="block text-xs font-semibold text-gray-600 mb-1">표시 개수</label>
+                        <select id="${prefix}-page-size" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                            <option value="10">10개</option>
+                            <option value="20" selected>20개</option>
+                            <option value="50">50개</option>
+                            <option value="all">전체</option>
+                        </select>
+                    </div>
+                    <button type="button" onclick="${options.resetFn}()" class="px-3 py-2 bg-gray-500 text-white rounded-lg text-sm hover:bg-gray-600">초기화</button>
+                </div>
+                <div id="${prefix}-summary" class="mt-2 text-xs text-gray-500"></div>`;
+        }
+
+        function initAdminListFilterEvents(prefix, viewState, applyFn) {
+            const searchEl = document.getElementById(`${prefix}-search`);
+            const monthEl = document.getElementById(`${prefix}-month`);
+            const statusEl = document.getElementById(`${prefix}-status`);
+            const loginEl = document.getElementById(`${prefix}-login`);
+            const sizeEl = document.getElementById(`${prefix}-page-size`);
+            let searchTimer = null;
+
+            const syncFromDom = () => {
+                viewState.search = (searchEl?.value || '').trim().toLowerCase();
+                viewState.month = monthEl?.value || 'all';
+                viewState.status = statusEl?.value || 'all';
+                viewState.loginMethod = loginEl?.value || 'all';
+                viewState.pageSize = sizeEl?.value || 20;
+                viewState.page = 1;
+                applyFn();
+            };
+
+            if (searchEl) {
+                searchEl.addEventListener('input', () => {
+                    clearTimeout(searchTimer);
+                    searchTimer = setTimeout(syncFromDom, 300);
+                });
+            }
+            [monthEl, statusEl, loginEl, sizeEl].forEach((el) => {
+                if (el) el.addEventListener('change', syncFromDom);
+            });
+        }
+
+        function setupAdminListToolbars() {
+            const requestToolbar = document.getElementById('request-list-toolbar');
+            if (requestToolbar && !requestToolbar.dataset.initialized) {
+                requestToolbar.innerHTML = adminListToolbarHtml('request-list', {
+                    searchPlaceholder: '의뢰번호, 회원명, 제품명, 이메일...',
+                    showStatus: true,
+                    statusLabel: '진행상황',
+                    statusOptions: [
+                        { value: 'all', label: '전체' },
+                        { value: 'pending', label: '접수/대기' },
+                        { value: 'progress', label: '진행중' },
+                        { value: 'done', label: '완료' }
+                    ],
+                    resetFn: 'resetRequestListFilters'
+                });
+                initAdminListFilterEvents('request-list', requestsListView, applyRequestListFilters);
+                requestToolbar.dataset.initialized = '1';
+            }
+
+            const membersToolbar = document.getElementById('members-list-toolbar');
+            if (membersToolbar && !membersToolbar.dataset.initialized) {
+                membersToolbar.innerHTML = adminListToolbarHtml('members-list', {
+                    searchPlaceholder: '회원명, 이메일, 전화번호...',
+                    showLogin: true,
+                    loginOptions: [
+                        { value: 'all', label: '전체' },
+                        { value: 'email', label: '이메일' },
+                        { value: 'kakao', label: '카카오' }
+                    ],
+                    resetFn: 'resetMembersListFilters'
+                });
+                initAdminListFilterEvents('members-list', membersListView, applyMembersListFilters);
+                membersToolbar.dataset.initialized = '1';
+            }
+
+            const reviewsToolbar = document.getElementById('reviews-list-toolbar');
+            if (reviewsToolbar && !reviewsToolbar.dataset.initialized) {
+                reviewsToolbar.innerHTML = adminListToolbarHtml('reviews-list', {
+                    searchPlaceholder: '제품명, 작성자명, 후기 내용 검색...',
+                    showStatus: true,
+                    statusLabel: '승인 상태',
+                    statusOptions: [
+                        { value: 'all', label: '전체' },
+                        { value: 'approved', label: '승인됨' },
+                        { value: 'pending', label: '대기 중' }
+                    ],
+                    resetFn: 'resetReviewsListFilters'
+                });
+                initAdminListFilterEvents('reviews-list', reviewsListView, applyReviewFilters);
+                reviewsToolbar.dataset.initialized = '1';
+            }
+        }
+
         // 관리자 대시보드 초기화
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🚀 관리자 대시보드 초기화 시작...');
@@ -194,6 +406,8 @@
             console.log('- window.editReview:', typeof window.editReview);
             console.log('- window.editReviewWithModal:', typeof window.editReviewWithModal);
             console.log('- window.closeEditReviewModal:', typeof window.closeEditReviewModal);
+            
+            setupAdminListToolbars();
             
             // Firebase 상태 모니터링 추가
             if (window.firebaseAuthFunctions && window.firebaseAuthFunctions.onAuthStateChanged) {
@@ -989,155 +1203,111 @@
             }
         }
 
-        // 사용자 테이블 업데이트 (개선된 버전)
-        function updateUsersTable(users) {
-            console.log('📋 회원 테이블 업데이트 시작...');
-            console.log('👥 표시할 사용자 수:', users.length);
-            
+        function getMemberListDate(user) {
+            return user.createdAt || user.joinDate;
+        }
+
+        function applyMembersListFilters() {
             const tbody = document.getElementById('members-table-body');
-            if (!tbody) {
-                console.error('❌ members-table-body 요소를 찾을 수 없습니다.');
-                return;
-            }
+            if (!tbody) return;
 
-            tbody.innerHTML = '';
+            membersListView.search = (document.getElementById('members-list-search')?.value || membersListView.search || '').trim().toLowerCase();
+            membersListView.month = document.getElementById('members-list-month')?.value || membersListView.month || 'all';
+            membersListView.loginMethod = document.getElementById('members-list-login')?.value || membersListView.loginMethod || 'all';
+            membersListView.pageSize = document.getElementById('members-list-page-size')?.value || membersListView.pageSize || 20;
 
-            if (users.length === 0) {
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="9" class="px-6 py-4 text-center text-gray-500">
-                            등록된 회원이 없습니다.
-                        </td>
-                    </tr>
-                `;
-                return;
-            }
+            populateAdminMonthSelect(document.getElementById('members-list-month'), allMembersCache, getMemberListDate);
 
-            // 사용자 데이터 정렬 (Firebase 우선, 최신순)
-            const sortedUsers = users.sort((a, b) => {
-                // Firebase 사용자를 우선으로
+            let filtered = allMembersCache.filter((user) => {
+                const hay = [
+                    user.displayName, user.name, user.email, user.phone, user.id
+                ].filter(Boolean).join(' ').toLowerCase();
+                const matchSearch = !membersListView.search || hay.includes(membersListView.search);
+                const matchMonth = membersListView.month === 'all' || getAdminMonthKey(getMemberListDate(user)) === membersListView.month;
+                const method = (user.loginMethod || user.loginType || 'email').toLowerCase();
+                const matchLogin = membersListView.loginMethod === 'all' ||
+                    (membersListView.loginMethod === 'kakao' && method.includes('kakao')) ||
+                    (membersListView.loginMethod === 'email' && !method.includes('kakao'));
+                return matchSearch && matchMonth && matchLogin;
+            });
+
+            filtered.sort((a, b) => {
                 if (a.source === 'Firebase' && b.source !== 'Firebase') return -1;
                 if (a.source !== 'Firebase' && b.source === 'Firebase') return 1;
-                
-                // 같은 소스 내에서는 최신순
-                const dateA = a.createdAt ? (a.createdAt.seconds ? a.createdAt.seconds * 1000 : new Date(a.createdAt).getTime()) : 0;
-                const dateB = b.createdAt ? (b.createdAt.seconds ? b.createdAt.seconds * 1000 : new Date(b.createdAt).getTime()) : 0;
+                const dateA = parseAdminListDate(getMemberListDate(a))?.getTime() || 0;
+                const dateB = parseAdminListDate(getMemberListDate(b))?.getTime() || 0;
                 return dateB - dateA;
             });
 
-            sortedUsers.forEach((user, index) => {
-                console.log(`👤 사용자 ${index + 1}:`, {
-                    email: user.email,
-                    name: user.displayName || user.name,
-                    source: user.source,
-                    phone: user.phone
+            const meta = paginateAdminList(filtered, membersListView);
+            const summaryEl = document.getElementById('members-list-summary');
+            if (summaryEl) {
+                summaryEl.textContent = `필터 결과 ${meta.totalItems}명 · ${formatAdminMonthLabel(membersListView.month)} · ${membersListView.pageSize === 'all' ? '전체 표시' : membersListView.pageSize + '개씩'}`;
+            }
+
+            tbody.innerHTML = '';
+            if (!meta.totalItems) {
+                tbody.innerHTML = '<tr><td colspan="9" class="px-6 py-4 text-center text-gray-500">조건에 맞는 회원이 없습니다.</td></tr>';
+            } else {
+                meta.pageItems.forEach((user) => {
+                    const row = document.createElement('tr');
+                    row.className = 'hover:bg-gray-50';
+                    const loginMethod = user.loginMethod || user.loginType || 'email';
+                    const joinDateObj = parseAdminListDate(getMemberListDate(user));
+                    const joinDate = joinDateObj ? joinDateObj.toLocaleDateString('ko-KR') : '알 수 없음';
+                    const updateDateObj = parseAdminListDate(user.updatedAt);
+                    const lastUpdate = updateDateObj ? updateDateObj.toLocaleDateString('ko-KR') : '알 수 없음';
+                    const userName = user.displayName || user.name || '이름 없음';
+                    const userEmail = user.email || '이메일 없음';
+                    const userPhone = user.phone || '-';
+                    row.innerHTML = `
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center text-gray-600 text-xs font-bold">${userName.charAt(0)}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap"><div class="text-sm font-medium text-gray-900">${userName}</div></td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${loginMethod === 'kakao' ? 'bg-yellow-100 text-yellow-800' : 'bg-blue-100 text-blue-800'}">${loginMethod === 'kakao' ? '카카오톡' : '이메일'}</span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${userEmail}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${userPhone}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${joinDate}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${lastUpdate}</td>
+                        <td class="px-6 py-4 whitespace-nowrap"><span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Firebase</span></td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <button onclick="viewUserDetails('${user.email || user.id}')" class="text-indigo-600 hover:text-indigo-900 mr-3">상세보기</button>
+                            <button onclick="deleteUser('${user.email || user.id}')" class="text-red-600 hover:text-red-900">삭제</button>
+                        </td>`;
+                    tbody.appendChild(row);
                 });
-                
-                const row = document.createElement('tr');
-                row.className = 'hover:bg-gray-50';
-                
-                const profileImage = user.photoURL || user.profileImage || 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%236b7280"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>';
-                const loginMethod = user.loginMethod || user.loginType || 'email';
-                
-                // 날짜 처리 개선 (안전한 파싱)
-                let joinDate = '알 수 없음';
-                if (user.createdAt) {
-                    try {
-                        let date;
-                        if (user.createdAt.toDate) {
-                            date = user.createdAt.toDate();
-                        } else if (user.createdAt.seconds) {
-                            date = new Date(user.createdAt.seconds * 1000);
-                        } else if (typeof user.createdAt === 'string' || typeof user.createdAt === 'number') {
-                            date = new Date(user.createdAt);
-                        } else {
-                            date = null;
-                        }
-                        if (date && !isNaN(date.getTime())) {
-                            joinDate = date.toLocaleDateString('ko-KR');
-                        }
-                    } catch (error) {
-                        console.error('가입일 파싱 오류:', error);
-                        joinDate = '알 수 없음';
-                    }
-                } else if (user.joinDate) {
-                    try {
-                        const date = new Date(user.joinDate);
-                        if (!isNaN(date.getTime())) {
-                            joinDate = date.toLocaleDateString('ko-KR');
-                        }
-                    } catch (error) {
-                        console.error('가입일 파싱 오류:', error);
-                        joinDate = '알 수 없음';
-                    }
-                }
-                
-                let lastUpdate = '알 수 없음';
-                if (user.updatedAt) {
-                    try {
-                        let date;
-                        if (user.updatedAt.toDate) {
-                            date = user.updatedAt.toDate();
-                        } else if (user.updatedAt.seconds) {
-                            date = new Date(user.updatedAt.seconds * 1000);
-                        } else if (typeof user.updatedAt === 'string' || typeof user.updatedAt === 'number') {
-                            date = new Date(user.updatedAt);
-                        } else {
-                            date = null;
-                        }
-                        if (date && !isNaN(date.getTime())) {
-                            lastUpdate = date.toLocaleDateString('ko-KR');
-                        }
-                    } catch (error) {
-                        console.error('마지막 업데이트 파싱 오류:', error);
-                        lastUpdate = '알 수 없음';
-                    }
-                }
-                
-                const dataSource = 'Firebase';
-                const dataSourceColor = 'bg-green-100 text-green-800';
-                // 포인트 시스템 제거됨
-                const userName = user.displayName || user.name || '이름 없음';
-                const userEmail = user.email || '이메일 없음';
-                const userPhone = user.phone || '-';
-                
-                row.innerHTML = `
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="flex items-center">
-                            <div class="h-10 w-10 flex-shrink-0">
-                                <div class="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center text-gray-600 text-xs font-bold">
-                                    ${userName.charAt(0)}
-                                </div>
-                            </div>
-                        </div>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="text-sm font-medium text-gray-900">${userName}</div>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${loginMethod === 'kakao' ? 'bg-yellow-100 text-yellow-800' : 'bg-blue-100 text-blue-800'}">
-                            ${loginMethod === 'kakao' ? '카카오톡' : '이메일'}
-                        </span>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${userEmail}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${userPhone}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${joinDate}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${lastUpdate}</td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${dataSourceColor}">
-                            ${dataSource}
-                        </span>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <button onclick="viewUserDetails('${user.email || user.id}')" class="text-indigo-600 hover:text-indigo-900 mr-3">상세보기</button>
-                        <button onclick="deleteUser('${user.email || user.id}')" class="text-red-600 hover:text-red-900">삭제</button>
-                    </td>
-                `;
-                
-                tbody.appendChild(row);
+            }
+
+            renderAdminListFooter('members-list-footer', meta, (page) => {
+                membersListView.page = page;
+                applyMembersListFilters();
             });
-            
-            console.log('✅ 회원 테이블 업데이트 완료');
+        }
+
+        window.resetMembersListFilters = function() {
+            membersListView.page = 1;
+            membersListView.pageSize = 20;
+            membersListView.month = 'all';
+            membersListView.search = '';
+            membersListView.loginMethod = 'all';
+            const searchEl = document.getElementById('members-list-search');
+            const monthEl = document.getElementById('members-list-month');
+            const loginEl = document.getElementById('members-list-login');
+            const sizeEl = document.getElementById('members-list-page-size');
+            if (searchEl) searchEl.value = '';
+            if (monthEl) monthEl.value = 'all';
+            if (loginEl) loginEl.value = 'all';
+            if (sizeEl) sizeEl.value = '20';
+            applyMembersListFilters();
+        };
+
+        // 사용자 테이블 업데이트 (개선된 버전)
+        function updateUsersTable(users) {
+            allMembersCache = [...(users || [])];
+            applyMembersListFilters();
         }
 
         // Firebase에서 의뢰 데이터 가져오기 (실시간 구독)
@@ -1182,12 +1352,9 @@
                     });
                     
                     console.log(`✅ 실시간 의뢰 데이터 업데이트: ${requests.length}개`);
-                    console.log('📊 실시간 의뢰 데이터 상세:', requests);
                     
-                    // UI 업데이트
-                    updateRequestListUI(requests);
-                    
-                    // 통계 업데이트
+                    allRequestsCache = requests;
+                    applyRequestListFilters();
                     updateRequestStats(requests);
                 }, (error) => {
                     console.error('❌ 의뢰 데이터 실시간 구독 오류:', error);
@@ -1198,71 +1365,125 @@
             }
         }
         
-        // 의뢰 목록 UI 업데이트
-        function updateRequestListUI(requests) {
+        function getRequestListDate(request) {
+            return request.createdAt || request.date || request.reqDate;
+        }
+
+        function formatRequestListDate(request) {
+            const d = parseAdminListDate(getRequestListDate(request));
+            return d && !isNaN(d.getTime()) ? d.toLocaleDateString('ko-KR') : '날짜 없음';
+        }
+
+        function matchesRequestStatusFilter(status, filter) {
+            const s = (status || '').toString();
+            if (filter === 'all') return true;
+            if (filter === 'pending') return ['pending', '접수됨', '대기'].includes(s) || !s;
+            if (filter === 'progress') return ['처리중', 'processing', 'in_progress'].includes(s);
+            if (filter === 'done') return ['completed', '답변완료', '완료'].includes(s);
+            return true;
+        }
+
+        function buildRequestListItemHtml(request) {
+            const createdAt = formatRequestListDate(request);
+            const isDone = request.status === 'completed' || request.status === '답변완료';
+            return `
+                <div class="col-span-1 flex items-center">
+                    <input type="checkbox" class="request-checkbox" data-id="${request.id}">
+                </div>
+                <div class="col-span-2">
+                    <div class="font-semibold text-blue-600">${request.requestNumber || request.reqNum || '번호 없음'}</div>
+                    <div class="text-sm text-gray-600">${request.userName || request.name || '이름 없음'}</div>
+                </div>
+                <div class="col-span-1 text-center text-sm">${createdAt}</div>
+                <div class="col-span-1 text-center">
+                    <span class="px-2 py-1 text-xs rounded-full ${isDone ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}">
+                        ${isDone ? '완료' : (request.status || '진행중')}
+                    </span>
+                </div>
+                <div class="col-span-1 text-center text-sm">${request.purchaseMethod || '-'}</div>
+                <div class="col-span-1 text-center text-sm">${request.purchaseStatus || '-'}</div>
+                <div class="col-span-1 text-center">
+                    <span class="px-2 py-1 text-xs rounded-full ${request.reviewBoardAgree ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-500'}">
+                        ${request.reviewBoardAgree ? '✓ 동의' : '✗ 미동의'}
+                    </span>
+                </div>
+                <div class="col-span-1 text-center">
+                    <div class="flex flex-wrap gap-1 justify-center">
+                        <button onclick="viewRequestDetail('${request.id}')" class="px-2 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600">상세</button>
+                        <button onclick="duplicateRequestData('${request.id}')" class="px-2 py-1 bg-gray-600 text-white text-xs rounded hover:bg-gray-700">복제</button>
+                        ${request.reviewBoardAgree ? `<button onclick="publishToReviewBoard('${request.id}')" class="px-2 py-1 bg-purple-500 text-white text-xs rounded hover:bg-purple-600" title="후기게시판에 올리기">후기등록</button>` : ''}
+                    </div>
+                </div>`;
+        }
+
+        function applyRequestListFilters() {
             const requestList = document.getElementById('request-list');
-            
-            if (!requestList) {
-                console.warn('⚠️ request-list 요소를 찾을 수 없습니다.');
-                return;
-            }
-            
-            requestList.innerHTML = '';
-            
-            if (requests.length === 0) {
-                requestList.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-gray-500">의뢰가 없습니다.</td></tr>';
-                return;
-            }
-            
-            requests.forEach((request) => {
-                const row = document.createElement('tr');
-                row.className = 'hover:bg-gray-50';
-                row.innerHTML = `
-                    <td class="px-4 py-3">
-                        <input type="checkbox" class="request-checkbox" value="${request.id}">
-                    </td>
-                    <td class="px-4 py-3 text-sm">${request.reqNum || request.requestNumber || 'N/A'}</td>
-                    <td class="px-4 py-3 text-sm">${request.productName || request.name || 'N/A'}</td>
-                    <td class="px-4 py-3 text-sm">${request.userName || request.name || 'N/A'}</td>
-                    <td class="px-4 py-3 text-sm">
-                        <span class="px-2 py-1 text-xs rounded-full ${request.status === '답변완료' ? 'bg-green-100 text-green-800' : request.status === '처리중' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'}">
-                            ${request.status || '대기'}
-                        </span>
-                        <div class="mt-2 flex flex-wrap gap-1">
-                            ${request.paymentStatus ? `
-                              <span class="px-2 py-0.5 text-[11px] rounded-full ${getPaymentStatusBadgeClass(request.paymentStatus)}">결제: ${getPaymentStatusLabel(request.paymentStatus)}</span>
-                            ` : ''}
-                            ${request.fulfillmentStatus ? `
-                              <span class="px-2 py-0.5 text-[11px] rounded-full ${getFulfillmentStatusBadgeClass(request.fulfillmentStatus)}">진행: ${getFulfillmentStatusLabel(request.fulfillmentStatus)}</span>
-                            ` : ''}
-                            ${request.pointsStatus || isCancelledPaymentStatus(request.paymentStatus) ? `
-                              <span class="px-2 py-0.5 text-[11px] rounded-full ${getPointsStatusBadgeClass(request.pointsStatus, request.paymentStatus)}">적립: ${getPointsStatusLabel(request.pointsStatus, request.paymentStatus)}</span>
-                            ` : ''}
-                        </div>
-                    </td>
-                    <td class="px-4 py-3 text-sm">
-                        <span class="px-2 py-1 text-xs rounded-full ${request.reviewBoardAgree ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-500'}">
-                            ${request.reviewBoardAgree ? '✓ 동의' : '✗ 미동의'}
-                        </span>
-                    </td>
-                    <td class="px-4 py-3 text-sm">
-                        <div class="flex flex-wrap gap-1">
-                        <button onclick="viewRequestDetail('${request.id}')" class="px-2 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600">
-                            상세
-                        </button>
-                        <button onclick="duplicateRequestData('${request.id}')" class="px-2 py-1 bg-gray-600 text-white text-xs rounded hover:bg-gray-700">
-                            복제
-                        </button>
-                            ${request.reviewBoardAgree ? `
-                            <button onclick="publishToReviewBoard('${request.id}')" class="px-2 py-1 bg-purple-500 text-white text-xs rounded hover:bg-purple-600" title="후기게시판에 올리기">
-                                후기등록
-                            </button>
-                            ` : ''}
-                        </div>
-                    </td>
-                `;
-                requestList.appendChild(row);
+            if (!requestList) return;
+
+            const search = (requestsListView.search || (document.getElementById('request-list-search')?.value || '')).trim().toLowerCase();
+            requestsListView.search = search;
+            requestsListView.month = document.getElementById('request-list-month')?.value || requestsListView.month || 'all';
+            requestsListView.status = document.getElementById('request-list-status')?.value || requestsListView.status || 'all';
+            requestsListView.pageSize = document.getElementById('request-list-page-size')?.value || requestsListView.pageSize || 20;
+
+            populateAdminMonthSelect(document.getElementById('request-list-month'), allRequestsCache, getRequestListDate);
+
+            let filtered = allRequestsCache.filter((request) => {
+                const hay = [
+                    request.reqNum, request.requestNumber, request.userName, request.name,
+                    request.productName, request.email, request.userEmail
+                ].filter(Boolean).join(' ').toLowerCase();
+                const matchSearch = !search || hay.includes(search);
+                const matchMonth = requestsListView.month === 'all' || getAdminMonthKey(getRequestListDate(request)) === requestsListView.month;
+                const matchStatus = matchesRequestStatusFilter(request.status, requestsListView.status);
+                return matchSearch && matchMonth && matchStatus;
             });
+
+            const meta = paginateAdminList(filtered, requestsListView);
+            const summaryEl = document.getElementById('request-list-summary');
+            if (summaryEl) {
+                summaryEl.textContent = `필터 결과 ${meta.totalItems}건 · ${formatAdminMonthLabel(requestsListView.month)} · ${requestsListView.pageSize === 'all' ? '전체 표시' : requestsListView.pageSize + '개씩'}`;
+            }
+
+            if (!meta.totalItems) {
+                requestList.innerHTML = '<li class="p-6 text-center text-gray-500 col-span-9">조건에 맞는 의뢰가 없습니다.</li>';
+            } else {
+                requestList.innerHTML = '';
+                meta.pageItems.forEach((request) => {
+                    const listItem = document.createElement('li');
+                    listItem.className = 'grid grid-cols-9 gap-2 px-4 py-3 hover:bg-pink-100 transition-colors';
+                    listItem.innerHTML = buildRequestListItemHtml(request);
+                    requestList.appendChild(listItem);
+                });
+            }
+
+            renderAdminListFooter('request-list-footer', meta, (page) => {
+                requestsListView.page = page;
+                applyRequestListFilters();
+            });
+        }
+
+        window.resetRequestListFilters = function() {
+            requestsListView.page = 1;
+            requestsListView.pageSize = 20;
+            requestsListView.month = 'all';
+            requestsListView.search = '';
+            requestsListView.status = 'all';
+            const searchEl = document.getElementById('request-list-search');
+            const monthEl = document.getElementById('request-list-month');
+            const statusEl = document.getElementById('request-list-status');
+            const sizeEl = document.getElementById('request-list-page-size');
+            if (searchEl) searchEl.value = '';
+            if (monthEl) monthEl.value = 'all';
+            if (statusEl) statusEl.value = 'all';
+            if (sizeEl) sizeEl.value = '20';
+            applyRequestListFilters();
+        };
+
+        // 의뢰 목록 UI 업데이트 (실시간 구독용 — applyRequestListFilters로 위임)
+        function updateRequestListUI(requests) {
+            allRequestsCache = requests || [];
+            applyRequestListFilters();
         }
         
         // Firebase에서 의뢰 데이터 가져오기 (일회성 조회 - 호환성 유지)
@@ -1545,88 +1766,9 @@
         // 의뢰 목록 렌더링 (Firebase 데이터)
         async function renderRequestList() {
             try {
-                const requests = await getRequestsFromFirebase();
-                const requestList = document.getElementById('request-list');
-                
-                if (!requestList) {
-                    console.error('의뢰 목록 요소를 찾을 수 없습니다.');
-                    return;
-                }
-                
-                if (requests.length === 0) {
-                    requestList.innerHTML = '<li class="p-4 text-center text-gray-500">의뢰 내역이 없습니다.</li>';
-                    return;
-                }
-                
-                requestList.innerHTML = '';
-                requests.forEach(request => {
-                    const listItem = document.createElement('li');
-                    listItem.className = 'grid grid-cols-9 gap-2 px-4 py-3 hover:bg-pink-100 transition-colors';
-                    
-                    let createdAt = '날짜 없음';
-                    if (request.createdAt) {
-                        try {
-                            let date;
-                            if (request.createdAt.toDate) {
-                                date = request.createdAt.toDate();
-                            } else if (request.createdAt.seconds) {
-                                date = new Date(request.createdAt.seconds * 1000);
-                            } else if (typeof request.createdAt === 'string' || typeof request.createdAt === 'number') {
-                                date = new Date(request.createdAt);
-                            } else {
-                                date = null;
-                            }
-                            if (date && !isNaN(date.getTime())) {
-                                createdAt = date.toLocaleDateString('ko-KR');
-                            }
-                        } catch (error) {
-                            console.error('날짜 포맷팅 오류:', error);
-                            createdAt = '날짜 없음';
-                        }
-                    }
-                    
-                    listItem.innerHTML = `
-                        <div class="col-span-1 flex items-center">
-                            <input type="checkbox" class="request-checkbox" data-id="${request.id}">
-                        </div>
-                        <div class="col-span-2">
-                            <div class="font-semibold text-blue-600">${request.requestNumber || '번호 없음'}</div>
-                            <div class="text-sm text-gray-600">${request.userName || request.name || '이름 없음'}</div>
-                        </div>
-                        <div class="col-span-1 text-center text-sm">${createdAt}</div>
-                        <div class="col-span-1 text-center">
-                            <span class="px-2 py-1 text-xs rounded-full ${request.status === 'completed' || request.status === '답변완료' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}">
-                                ${request.status === 'completed' || request.status === '답변완료' ? '완료' : '진행중'}
-                            </span>
-                        </div>
-                        <div class="col-span-1 text-center text-sm">${request.purchaseMethod || '-'}</div>
-                        <div class="col-span-1 text-center text-sm">${request.purchaseStatus || '-'}</div>
-                        <div class="col-span-1 text-center">
-                            <span class="px-2 py-1 text-xs rounded-full ${request.reviewBoardAgree ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-500'}">
-                                ${request.reviewBoardAgree ? '✓ 동의' : '✗ 미동의'}
-                            </span>
-                        </div>
-                        <div class="col-span-1 text-center">
-                            <div class="flex flex-wrap gap-1 justify-center">
-                            <button onclick="viewRequestDetail('${request.id}')" class="px-2 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600">
-                                상세
-                            </button>
-                            <button onclick="duplicateRequestData('${request.id}')" class="px-2 py-1 bg-gray-600 text-white text-xs rounded hover:bg-gray-700">
-                                복제
-                            </button>
-                                ${request.reviewBoardAgree ? `
-                                <button onclick="publishToReviewBoard('${request.id}')" class="px-2 py-1 bg-purple-500 text-white text-xs rounded hover:bg-purple-600" title="후기게시판에 올리기">
-                                    후기등록
-                                </button>
-                                ` : ''}
-                            </div>
-                        </div>
-                    `;
-                    
-                    requestList.appendChild(listItem);
-                });
-                
-                console.log(`✅ 의뢰 목록 ${requests.length}개 렌더링 완료`);
+                allRequestsCache = await getRequestsFromFirebase();
+                applyRequestListFilters();
+                console.log(`✅ 의뢰 목록 ${allRequestsCache.length}개 로드 완료`);
             } catch (error) {
                 console.error('❌ 의뢰 목록 렌더링 실패:', error);
             }
@@ -4033,7 +4175,10 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                     
                     <!-- 의뢰 목록 -->
                     <div class="bg-white rounded-xl shadow-lg overflow-hidden">
-                        <div class="font-bold text-gray-700 p-4 border-b">접수된 의뢰 목록</div>
+                        <div class="font-bold text-gray-700 p-4 border-b flex flex-wrap justify-between items-center gap-2">
+                            <span>접수된 의뢰 목록</span>
+                        </div>
+                        <div id="request-list-toolbar" class="p-4 border-b bg-pink-50/60"></div>
                         <div class="grid grid-cols-9 gap-2 px-4 py-2 bg-pink-100 text-sm font-bold text-pink-700">
                             <div class="col-span-1">선택</div>
                             <div class="col-span-2">의뢰번호/회원명</div>
@@ -4047,6 +4192,7 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                         <ul id="request-list" class="bg-pink-50 divide-y divide-pink-100">
                             <!-- 동적으로 생성됨 -->
                         </ul>
+                        <div id="request-list-footer"></div>
                     </div>
                     
                     <!-- 의뢰 상세 및 결과 입력 -->
@@ -4176,6 +4322,7 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
 
                     <!-- 회원 목록 -->
                     <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                        <div id="members-list-toolbar" class="p-4 border-b bg-green-50/60"></div>
                         <div class="overflow-x-auto">
                             <table class="w-full">
                                 <thead class="bg-green-50">
@@ -4196,6 +4343,7 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                                 </tbody>
                             </table>
                         </div>
+                        <div id="members-list-footer"></div>
                     </div>
                 </div>
 
@@ -4238,20 +4386,7 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
 
                     <!-- 필터 및 검색 -->
                     <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
-                        <div class="flex flex-wrap gap-4 items-center">
-                            <div class="flex-1 min-w-[200px]">
-                                <input type="text" id="review-search" placeholder="제품명, 작성자명, 후기 내용 검색..." 
-                                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
-                            </div>
-                            <select id="review-status-filter" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
-                                <option value="all">전체</option>
-                                    <option value="approved">승인됨</option>
-                                    <option value="pending">대기 중</option>
-                                </select>
-                            <button onclick="clearReviewFilters()" class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition">
-                                필터 초기화
-                                </button>
-                        </div>
+                        <div id="reviews-list-toolbar"></div>
                     </div>
 
                     <!-- 후기 목록 테이블 -->
@@ -4279,6 +4414,7 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                                 </tbody>
                             </table>
                         </div>
+                        <div id="reviews-list-footer"></div>
                     </div>
                 </div>
 
@@ -8108,7 +8244,7 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
 
                 filteredReviews = [...allReviews];
                 updateReviewStatistics();
-                renderReviewsTable();
+                applyReviewFilters();
                 
                 console.log(`✅ 후기 데이터 로드 완료: ${allReviews.length}개`);
                 
@@ -8160,7 +8296,6 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                     filteredReviews = [...allReviews];
                     applyReviewFilters();
                     updateReviewStatistics();
-                    renderReviewsTable();
                     
                     console.log(`✅ 후기 데이터 실시간 업데이트 완료: ${allReviews.length}개`);
                 }, (error) => {
@@ -8188,40 +8323,67 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
 
         // 필터 적용
         function applyReviewFilters() {
-            const searchTerm = document.getElementById('review-search')?.value.toLowerCase() || '';
-            const statusFilter = document.getElementById('review-status-filter')?.value || 'all';
+            const searchTerm = (document.getElementById('reviews-list-search')?.value ||
+                document.getElementById('review-search')?.value || '').toLowerCase();
+            const statusFilter = document.getElementById('reviews-list-status')?.value ||
+                document.getElementById('review-status-filter')?.value || 'all';
+            reviewsListView.month = document.getElementById('reviews-list-month')?.value || reviewsListView.month || 'all';
+            reviewsListView.pageSize = document.getElementById('reviews-list-page-size')?.value || reviewsListView.pageSize || 20;
+
+            populateAdminMonthSelect(document.getElementById('reviews-list-month'), allReviews, (r) => r.createdAt);
 
             filteredReviews = allReviews.filter(review => {
-                // 검색 필터
                 const matchesSearch = !searchTerm || 
                     (review.productName || '').toLowerCase().includes(searchTerm) ||
                     (review.userName || review.name || '').toLowerCase().includes(searchTerm) ||
                     (review.review || '').toLowerCase().includes(searchTerm);
 
-                // 상태 필터
                 const matchesStatus = statusFilter === 'all' ||
                     (statusFilter === 'approved' && review.approved === true) ||
                     (statusFilter === 'pending' && review.approved !== true);
 
-                return matchesSearch && matchesStatus;
+                const matchesMonth = reviewsListView.month === 'all' ||
+                    getAdminMonthKey(review.createdAt) === reviewsListView.month;
+
+                return matchesSearch && matchesStatus && matchesMonth;
             });
 
+            reviewsListView.page = 1;
             renderReviewsTable();
         }
 
         // 필터 초기화
         function clearReviewFilters() {
-            document.getElementById('review-search').value = '';
-            document.getElementById('review-status-filter').value = 'all';
-            applyReviewFilters();
+            resetReviewsListFilters();
         }
+
+        window.resetReviewsListFilters = function() {
+            reviewsListView.page = 1;
+            reviewsListView.pageSize = 20;
+            reviewsListView.month = 'all';
+            const searchEl = document.getElementById('reviews-list-search');
+            const monthEl = document.getElementById('reviews-list-month');
+            const statusEl = document.getElementById('reviews-list-status');
+            const sizeEl = document.getElementById('reviews-list-page-size');
+            if (searchEl) searchEl.value = '';
+            if (monthEl) monthEl.value = 'all';
+            if (statusEl) statusEl.value = 'all';
+            if (sizeEl) sizeEl.value = '20';
+            applyReviewFilters();
+        };
 
         // 후기 테이블 렌더링
         function renderReviewsTable() {
             const tbody = document.getElementById('reviews-table-body');
             if (!tbody) return;
 
-            if (filteredReviews.length === 0) {
+            const meta = paginateAdminList(filteredReviews, reviewsListView);
+            const summaryEl = document.getElementById('reviews-list-summary');
+            if (summaryEl) {
+                summaryEl.textContent = `필터 결과 ${meta.totalItems}건 · ${formatAdminMonthLabel(reviewsListView.month)} · ${reviewsListView.pageSize === 'all' ? '전체 표시' : reviewsListView.pageSize + '개씩'}`;
+            }
+
+            if (meta.totalItems === 0) {
                 tbody.innerHTML = `
                     <tr>
                         <td colspan="7" class="px-6 py-8 text-center text-gray-500">
@@ -8231,10 +8393,14 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                         </td>
                     </tr>
                 `;
+                renderAdminListFooter('reviews-list-footer', meta, (page) => {
+                    reviewsListView.page = page;
+                    renderReviewsTable();
+                });
                 return;
             }
 
-            tbody.innerHTML = filteredReviews.map(review => {
+            tbody.innerHTML = meta.pageItems.map(review => {
                 const savings = review.savings || '0원';
                 const savingsPercent = review.savingsPercent || 0;
                 const rating = review.rating || 5;
@@ -8308,6 +8474,11 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                     </tr>
                 `;
             }).join('');
+
+            renderAdminListFooter('reviews-list-footer', meta, (page) => {
+                reviewsListView.page = page;
+                renderReviewsTable();
+            });
         }
 
         // 후기 수정
@@ -8495,19 +8666,6 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
         window.deleteReview = deleteReview;
         window.closeEditReviewModal = closeEditReviewModal;
         window.clearReviewFilters = clearReviewFilters;
-
-        // 필터 이벤트 리스너
-        document.addEventListener('DOMContentLoaded', function() {
-            const searchInput = document.getElementById('review-search');
-            const statusFilter = document.getElementById('review-status-filter');
-            
-            if (searchInput) {
-                searchInput.addEventListener('input', applyReviewFilters);
-            }
-            if (statusFilter) {
-                statusFilter.addEventListener('change', applyReviewFilters);
-            }
-        });
 
         // 페이지 언마운트 시 실시간 구독 해제 (메모리 누수 방지)
         window.addEventListener('beforeunload', function() {
