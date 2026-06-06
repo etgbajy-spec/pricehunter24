@@ -4,6 +4,8 @@
  */
 'use strict';
 
+const ReportPresets = require('./report-presets');
+
 const REPORT_JSON_SCHEMA = {
   reportVersion: 'v2',
   price: 'string (최저가, 숫자 또는 N원)',
@@ -194,67 +196,42 @@ function generateRuleBasedDraft(requestData, priceData) {
   const reference = priceData.referencePrice;
   const lowest = priceData.lowestPrice;
   const marketplace = priceData.marketplace || detectMarketplace(priceData.referenceUrl);
+  const productName = priceData.productName || requestData.name || '해당 제품';
 
   let verdict = 'hold';
-  let timingScore = 55;
-  let confidence = 60;
-
   if (lowest && requested && lowest < requested * 0.9) {
     verdict = 'buy';
-    timingScore = 82;
-    confidence = 72;
   } else if (reference && requested && reference > requested * 1.15) {
     verdict = 'skip';
-    timingScore = 35;
-    confidence = 65;
   }
 
-  const productName = priceData.productName || '해당 제품';
-  const decisionSummary =
-    verdict === 'buy'
-      ? `현재 ${formatPriceKr(lowest || requested)} 수준이 의뢰가 대비 유리해 구매를 검토할 만합니다.`
-      : verdict === 'skip'
-        ? '참고 가격이 의뢰가보다 높아 지금 구매는 권장하지 않습니다.'
-        : lowest && requested && lowest >= requested
-          ? '현재 최저가가 의뢰가와 같습니다. 추가 할인·프로모션 시점까지 관망을 권장드립니다.'
-          : '가격 변동 가능성이 있어 당장 구매보다 관망이 유리합니다.';
+  const trend = priceData.trend || (verdict === 'buy' ? 'down' : verdict === 'skip' ? 'up' : 'stable');
+  const verifiedPrice = formatPriceKr(lowest || reference || requested || '');
 
-  return normalizeDraft({
+  const base = normalizeDraft({
     reportVersion: 'v2',
-    price: formatPriceKr(lowest || reference || requested || ''),
+    price: verifiedPrice,
     origin: marketplace?.name ? `${marketplace.name} / PriceHunter 검증` : 'PriceHunter 검증',
-    summary: `<p><strong>${productName}</strong> — PriceHunter 검증팀이 ${formatPriceKr(lowest || reference || requested || '')} 수준의 최저가를 확인했습니다.</p>`,
+    summary: `<p><strong>${productName}</strong> — PriceHunter 검증팀이 ${verifiedPrice} 수준의 최저가를 확인했습니다.</p>`,
     link: priceData.referenceUrl || requestData.url || '',
-    decision: {
-      verdict,
-      summary: decisionSummary,
-      confidence,
-      recommendFor: verdict === 'buy' ? '가격 대비 구매를 고려 중인 분' : '충분한 정보 확인 후 결정하고 싶은 분',
-      notRecommendFor: verdict === 'skip' ? '즉시 구매가 필요한 분' : ''
-    },
+    decision: { verdict },
     priceAnalysis: {
       currentPrice: formatPriceKr(reference || requested || ''),
-      lowestPrice: formatPriceKr(lowest || reference || requested || ''),
-      avgPrice: formatPriceKr(priceData.avgPrice || ''),
+      lowestPrice: verifiedPrice,
+      avgPrice: formatPriceKr(priceData.avgPrice || reference || requested || ''),
       requestedPrice: formatPriceKr(requested || ''),
-      trend: priceData.trend || 'stable',
-      timingScore,
-      timingNote: priceData.trend === 'down' ? '하락 또는 유리한 가격대가 관찰됩니다.' : '추가 가격 변동 모니터링을 권장합니다.'
-    },
-    productAnalysis: {
-      valueScore: verdict === 'buy' ? 75 : 55,
-      reviewSummary: '',
-      pros: requestData.description ? '의뢰하신 스펙/용도에 부합하는 제품' : '',
-      cons: '',
-      alternatives: ''
-    },
-    sellerAnalysis: {
-      sellerName: marketplace?.name || '',
-      trustScore: marketplace?.trust || 70,
-      risks: marketplace?.name === '해외직구' ? '배송·관세·AS 리스크가 있을 수 있습니다' : '',
-      domesticVsImport: marketplace?.name === '해외직구' ? '직구 시 총비용(관세·배송)을 함께 확인했습니다' : '국내 구매 기준으로 검증했습니다'
-    },
-    evidenceNotes: priceData.summary ? priceData.summary.replace(/^수집 요약:\s*/, '') : ''
+      trend
+    }
+  });
+
+  return ReportPresets.enrichDraft(base, {
+    productName,
+    lowestPrice: lowest || reference || requested,
+    requestedPrice: requested,
+    sellerName: base.origin,
+    referenceUrl: priceData.referenceUrl || requestData.url || '',
+    description: requestData.description || requestData.desc || '',
+    priceSummary: priceData.summary || ''
   });
 }
 
@@ -352,6 +329,16 @@ async function generateDraft(requestData, priceData, options) {
   } else {
     draft = generateRuleBasedDraft(requestData, priceData);
   }
+
+  draft = ReportPresets.enrichDraft(draft, {
+    productName: requestData.name || requestData.productName,
+    lowestPrice: parsePriceNumber(draft.price) || priceData.lowestPrice,
+    requestedPrice: priceData.requestedPrice,
+    sellerName: draft.origin,
+    referenceUrl: draft.link || requestData.url,
+    description: requestData.description || requestData.desc,
+    priceSummary: priceData.summary
+  });
 
   return { draft, mode, pipelineMeta: { mode, generatedAt: new Date().toISOString() } };
 }

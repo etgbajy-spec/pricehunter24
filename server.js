@@ -273,7 +273,7 @@ app.get('/api/payment-info', paymentLimiter, async (req, res) => {
       basePrice: devBase,
       supportFee: devFee,
       finalPrice: devBase + devFee,
-      earnedPoints: Math.max(1, Math.round((devBase + devFee) * 0.01)),
+      earnedPoints: Math.max(1, Math.round(devBase * 0.01)),
       _dev: true
     });
   }
@@ -330,7 +330,7 @@ app.get('/api/payment-info', paymentLimiter, async (req, res) => {
       supportFee = computeSupportFee(basePrice);
       finalPrice = basePrice + supportFee;
     }
-    const earnedPoints = method === 'support' ? computeSupportFee(finalPrice) : 0;
+    const earnedPoints = method === 'support' ? computeSupportFee(basePrice) : 0;
 
     const name = String(data.productName ?? data.name ?? '상품').slice(0, 200);
     const origin = String(
@@ -564,7 +564,7 @@ app.post('/api/toss/create-order', paymentLimiter, validateInput, async (req, re
       status: 'created',
       supportFeeRate: SUPPORT_FEE_RATE,
       supportFeeAmount: supportFee,
-      pointsPlanned: supportFee, // 결제금액 1%를 적립금으로 지급 (구매확정 후 확정)
+      pointsPlanned: supportFee, // 구매 지원 수수료 전액 적립 (구매확정 후 확정)
       pointsStatus: 'planned',
       customer,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),

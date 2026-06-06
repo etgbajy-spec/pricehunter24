@@ -7,6 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
     <script src="purchase-report.js"></script>
+    <script src="report-presets.js"></script>
     <script src="request-data-sync.js"></script>
     <script src="customer-notification.js"></script>
     <script src="analysis-pipeline-client.js"></script>
@@ -1264,6 +1265,37 @@
 
         // 폼 입력 시 QA 경고 실시간 갱신
         document.getElementById('result-form')?.addEventListener('input', function () {
+          if (window.PurchaseReport) updateQaWarningsPanel(PurchaseReport.collectFromAdminForm());
+        });
+
+        function adminFormVal(id) {
+          var el = document.getElementById(id);
+          return el ? el.value.trim() : '';
+        }
+
+        function getAdminPresetContext() {
+          if (!window.ReportPresets) return {};
+          return ReportPresets.buildAdminFormContextFromRequest(currentRequest, {
+            lowestPrice: adminFormVal('admin-price') || adminFormVal('admin-lowest-price'),
+            requestedPrice: adminFormVal('admin-requested-price') || (currentRequest && currentRequest.price),
+            sellerName: adminFormVal('admin-origin'),
+            link: adminFormVal('admin-link'),
+            priceSummary: ''
+          });
+        }
+
+        document.getElementById('admin-verdict')?.addEventListener('change', function () {
+          var verdict = this.value;
+          if (!verdict || !window.ReportPresets) return;
+          ReportPresets.applyVerdictToAdminForm(verdict, getAdminPresetContext());
+          ReportPresets.applyAnalysisSectionsToAdminForm(getAdminPresetContext());
+          if (window.PurchaseReport) updateQaWarningsPanel(PurchaseReport.collectFromAdminForm());
+        });
+
+        document.getElementById('admin-price-trend')?.addEventListener('change', function () {
+          var trend = this.value;
+          if (!trend || !window.ReportPresets) return;
+          ReportPresets.applyTrendToAdminForm(trend, getAdminPresetContext());
           if (window.PurchaseReport) updateQaWarningsPanel(PurchaseReport.collectFromAdminForm());
         });
       });

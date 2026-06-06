@@ -151,9 +151,7 @@ exports.handler = async (event) => {
       supportFee = Math.max(1, Math.round(basePrice * SUPPORT_FEE_RATE));
       finalPrice = basePrice + supportFee;
     }
-    const earnedPoints = method === 'support'
-      ? Math.max(1, Math.round(finalPrice * SUPPORT_FEE_RATE))
-      : 0;
+    const earnedPoints = method === 'support' ? supportFee : 0;
 
     const name = String(data.productName ?? data.name ?? '상품').slice(0, 200);
     const origin = String(
