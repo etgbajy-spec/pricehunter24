@@ -2494,31 +2494,37 @@
                 image: productImage,
                 originalPrice: originalPrice,
                 finalPrice: finalPrice,
-                createdAt: data.createdAt || data.timestamp || new Date()
+                createdAt: data.createdAt || data.timestamp || new Date(),
+                featured: data.featured === true
               });
             }
           });
 
-          // 최근 절약 사례 (최신순 정렬 후 최대 6개)
-          const sortedReviews = allReviews.sort((a, b) => {
-            // createdAt이 있으면 최신순, 없으면 절약액 기준
+          function compareHeroReviews(a, b) {
+            const aFeatured = a.featured === true ? 1 : 0;
+            const bFeatured = b.featured === true ? 1 : 0;
+            if (aFeatured !== bFeatured) return bFeatured - aFeatured;
+
             try {
               if (a.createdAt && b.createdAt) {
-                // Firestore Timestamp인 경우
                 if (a.createdAt.toMillis && b.createdAt.toMillis) {
                   return b.createdAt.toMillis() - a.createdAt.toMillis();
                 }
-                // Date 객체인 경우
                 if (a.createdAt instanceof Date && b.createdAt instanceof Date) {
                   return b.createdAt.getTime() - a.createdAt.getTime();
                 }
+                const aMs = new Date(a.createdAt).getTime();
+                const bMs = new Date(b.createdAt).getTime();
+                if (!isNaN(aMs) && !isNaN(bMs)) return bMs - aMs;
               }
             } catch (e) {
               console.warn('⚠️ 날짜 정렬 오류:', e);
             }
-            // 날짜가 없으면 절약액 기준 내림차순
             return b.savings - a.savings;
-          });
+          }
+
+          // 추천 후기(featured) 우선 → 그다음 최신순(또는 절약액)
+          const sortedReviews = allReviews.sort(compareHeroReviews);
           
           // "더보기"를 위해 전체 목록을 전역으로 보관
           window.heroAllSavingsReviews = sortedReviews;
@@ -2602,10 +2608,8 @@
           return;
         }
 
-        // 절약액 기준으로 정렬 (내림차순)
-        const sortedSavings = [...recentSavings].sort((a, b) => b.savings - a.savings);
-        
-        cardsContainer.innerHTML = sortedSavings.map((item, index) => {
+        // 전달된 순서 유지 (추천 후기 우선 정렬은 loadHeroStats에서 적용)
+        cardsContainer.innerHTML = recentSavings.map((item, index) => {
           const originalPrice = item.originalPrice || 0;
           const finalPrice = item.finalPrice || (originalPrice - item.savings);
           const displayOriginalPrice = originalPrice > 0 ? originalPrice : (finalPrice + item.savings);

@@ -285,6 +285,10 @@
         const mode = sortEl?.value || 'newest';
         const arr = [...list];
         arr.sort((a, b) => {
+          const aFeatured = a.featured === true ? 1 : 0;
+          const bFeatured = b.featured === true ? 1 : 0;
+          if (aFeatured !== bFeatured) return bFeatured - aFeatured;
+
           const ac = a.__computed || {};
           const bc = b.__computed || {};
           if (mode === 'savings') return (bc.savings || 0) - (ac.savings || 0);
