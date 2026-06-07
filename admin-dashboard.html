@@ -23,7 +23,7 @@
     <script type="module">
       import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
       import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
-      import { getFirestore, collection, query, orderBy, onSnapshot, getDocs, getDoc, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, where, limit, Timestamp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
+      import { getFirestore, collection, query, orderBy, onSnapshot, getDocs, getDoc, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, where, limit, Timestamp, setDoc, startAfter, writeBatch } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
       import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-storage.js';
       
       // Firebase 설정
@@ -50,7 +50,7 @@
         window.firebaseDb = db;
         window.firebaseStorage = storage;
         window.firebaseAuthFunctions = { onAuthStateChanged };
-        window.firebaseFirestoreFunctions = { collection, query, orderBy, onSnapshot, getDocs, getDoc, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, where, limit, Timestamp };
+        window.firebaseFirestoreFunctions = { collection, query, orderBy, onSnapshot, getDocs, getDoc, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, where, limit, Timestamp, setDoc, startAfter, writeBatch };
         window.firebaseStorageFunctions = { ref, uploadBytes, getDownloadURL, deleteObject };
         
         console.log('✅ 관리자 대시보드 Firebase v9 초기화 완료');
@@ -3002,259 +3002,394 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 throw new Error('Firebase 초기화 실패');
             }
         }
+
+        async function fetchAllVisitRecords(db) {
+            const { collection, query, getDocs, orderBy, limit, startAfter } = window.firebaseFirestoreFunctions;
+            const visitsRef = collection(db, 'visits');
+            const all = [];
+            const pageSize = 1500;
+            let lastDoc = null;
+
+            while (true) {
+                let snap;
+                try {
+                    const q = lastDoc
+                        ? query(visitsRef, orderBy('timestamp', 'desc'), startAfter(lastDoc), limit(pageSize))
+                        : query(visitsRef, orderBy('timestamp', 'desc'), limit(pageSize));
+                    snap = await getDocs(q);
+                } catch (e1) {
+                    try {
+                        const q = lastDoc
+                            ? query(visitsRef, orderBy('date', 'desc'), startAfter(lastDoc), limit(pageSize))
+                            : query(visitsRef, orderBy('date', 'desc'), limit(pageSize));
+                        snap = await getDocs(q);
+                    } catch (e2) {
+                        snap = await getDocs(query(visitsRef, limit(pageSize)));
+                        snap.forEach((d) => all.push({ id: d.id, ...d.data() }));
+                        break;
+                    }
+                }
+                if (!snap || snap.empty) break;
+                snap.forEach((d) => all.push({ id: d.id, ...d.data() }));
+                lastDoc = snap.docs[snap.docs.length - 1];
+                if (snap.size < pageSize) break;
+            }
+            return all;
+        }
+
+        async function fetchVisitDailyMap(db, startStr, endStr) {
+            const { collection, getDocs } = window.firebaseFirestoreFunctions;
+            const map = new Map();
+            try {
+                const snap = await getDocs(collection(db, 'visitDaily'));
+                snap.forEach((d) => {
+                    const data = d.data() || {};
+                    const date = data.date || d.id;
+                    if (!date) return;
+                    if (startStr && date < startStr) return;
+                    if (endStr && date > endStr) return;
+                    map.set(date, {
+                        pageViews: Number(data.pageViews) || 0,
+                        uniqueVisitors: Number(data.uniqueVisitors) || 0,
+                        estimated: data.estimated === true
+                    });
+                });
+            } catch (e) {
+                console.warn('visitDaily 로드 실패:', e);
+            }
+            return map;
+        }
+
+        function aggregateVisitsFromRaw(records) {
+            const byDate = new Map();
+            records.forEach((data) => {
+                let date = data.date;
+                if (!date && data.timestamp) {
+                    const ts = data.timestamp.toDate ? data.timestamp.toDate() : new Date(data.timestamp);
+                    date = formatDate(ts);
+                }
+                if (!date) return;
+                if (!byDate.has(date)) {
+                    byDate.set(date, { visits: 0, uniqueVisitors: new Set() });
+                }
+                const bucket = byDate.get(date);
+                bucket.visits++;
+                bucket.uniqueVisitors.add(data.userId || data.sessionId || 'anonymous');
+            });
+            return byDate;
+        }
+
+        function mergeDailyStats(rawByDate, dailyMap) {
+            const merged = new Map();
+            const allDates = new Set([...rawByDate.keys(), ...dailyMap.keys()]);
+            allDates.forEach((date) => {
+                const raw = rawByDate.get(date);
+                const daily = dailyMap.get(date);
+                const uniqueFromRaw = raw ? raw.uniqueVisitors.size : 0;
+                const uniqueFromDaily = daily ? daily.uniqueVisitors : 0;
+                merged.set(date, {
+                    visits: Math.max(raw?.visits || 0, daily?.pageViews || 0),
+                    uniqueVisitors: Math.max(uniqueFromRaw, uniqueFromDaily),
+                    estimated: daily?.estimated === true
+                });
+            });
+            return merged;
+        }
+
+        function eachDayInRange(startDate, endDate, fn) {
+            const cur = new Date(startDate);
+            cur.setHours(0, 0, 0, 0);
+            const end = new Date(endDate);
+            end.setHours(0, 0, 0, 0);
+            while (cur <= end) {
+                fn(formatDate(cur), new Date(cur));
+                cur.setDate(cur.getDate() + 1);
+            }
+        }
+
+        function buildPeriodKeys(period, startDate, endDate, customStart, customEnd) {
+            const keys = [];
+            if (period === 'weekly') {
+                const seen = new Set();
+                eachDayInRange(startDate, endDate, (dateStr) => {
+                    const dateObj = new Date(dateStr + 'T00:00:00');
+                    const dayOfWeek = dateObj.getDay();
+                    const monday = new Date(dateObj);
+                    monday.setDate(dateObj.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+                    const key = formatDate(monday) + ' 주';
+                    if (!seen.has(key)) {
+                        seen.add(key);
+                        keys.push(key);
+                    }
+                });
+                return keys.sort();
+            }
+            if (period === 'monthly' || period === 'all') {
+                const cur = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
+                const end = new Date(endDate.getFullYear(), endDate.getMonth(), 1);
+                while (cur <= end) {
+                    keys.push(`${cur.getFullYear()}-${String(cur.getMonth() + 1).padStart(2, '0')}`);
+                    cur.setMonth(cur.getMonth() + 1);
+                }
+                return keys;
+            }
+            eachDayInRange(startDate, endDate, (dateStr) => keys.push(dateStr));
+            return keys;
+        }
+
+        function groupDailyToPeriod(period, dailyMerged) {
+            const dataMap = new Map();
+            dailyMerged.forEach((stats, date) => {
+                let key;
+                if (period === 'monthly' || period === 'all') {
+                    const d = new Date(date + 'T00:00:00');
+                    key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                } else if (period === 'weekly') {
+                    const dateObj = new Date(date + 'T00:00:00');
+                    const dayOfWeek = dateObj.getDay();
+                    const monday = new Date(dateObj);
+                    monday.setDate(dateObj.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+                    key = formatDate(monday) + ' 주';
+                } else {
+                    key = date;
+                }
+                if (!dataMap.has(key)) {
+                    dataMap.set(key, { visits: 0, uniqueVisitors: 0, estimatedDays: 0 });
+                }
+                const bucket = dataMap.get(key);
+                bucket.visits += stats.visits;
+                bucket.uniqueVisitors += stats.uniqueVisitors;
+                if (stats.estimated) bucket.estimatedDays++;
+            });
+            return dataMap;
+        }
+
+        function fillDailyRange(dailyMerged, startDate, endDate) {
+            const filled = new Map();
+            eachDayInRange(startDate, endDate, (dateStr) => {
+                filled.set(dateStr, dailyMerged.get(dateStr) || { visits: 0, uniqueVisitors: 0, estimated: false });
+            });
+            return filled;
+        }
+
+        function countCalendarDays(startDate, endDate) {
+            let n = 0;
+            eachDayInRange(startDate, endDate, () => { n++; });
+            return n;
+        }
+
+        function getVisitorPeriodRange(period, customStartDate, customEndDate) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            let startDate, endDate;
+
+            if (period === 'all') {
+                startDate = new Date(2026, 0, 1);
+                endDate = new Date(today);
+            } else if (period === 'custom' && customStartDate && customEndDate) {
+                startDate = new Date(customStartDate);
+                endDate = new Date(customEndDate);
+            } else if (period === 'daily') {
+                startDate = new Date(today);
+                startDate.setDate(today.getDate() - 29);
+                endDate = new Date(today);
+            } else if (period === 'weekly') {
+                startDate = new Date(today);
+                startDate.setDate(today.getDate() - 83);
+                endDate = new Date(today);
+            } else if (period === 'monthly') {
+                startDate = new Date(today.getFullYear(), 0, 1);
+                endDate = new Date(today);
+            } else {
+                startDate = new Date(today);
+                startDate.setDate(today.getDate() - 29);
+                endDate = new Date(today);
+            }
+            startDate.setHours(0, 0, 0, 0);
+            endDate.setHours(0, 0, 0, 0);
+            return { startDate, endDate };
+        }
+
+        async function commitVisitDailyWrites(db, writes) {
+            const { writeBatch, doc, setDoc } = window.firebaseFirestoreFunctions;
+            if (writeBatch && writes.length > 1) {
+                const chunkSize = 400;
+                for (let i = 0; i < writes.length; i += chunkSize) {
+                    const batch = writeBatch(db);
+                    writes.slice(i, i + chunkSize).forEach(({ dateStr, payload }) => {
+                        batch.set(doc(db, 'visitDaily', dateStr), payload, { merge: true });
+                    });
+                    await batch.commit();
+                }
+            } else {
+                await Promise.all(writes.map(({ dateStr, payload }) =>
+                    setDoc(doc(db, 'visitDaily', dateStr), payload, { merge: true })
+                ));
+            }
+        }
+
+        window.backfillVisitDailyStats = async function(silent = false) {
+            if (!silent && !confirm('2026-01-01부터 어제까지, 기록이 없는 날은 실측 일평균(또는 100명)으로 visitDaily를 보정합니다.\n\n계속할까요?')) return;
+            try {
+                await waitForFirebase();
+                const { serverTimestamp } = window.firebaseFirestoreFunctions;
+                const db = window.firebaseDb;
+                const records = await fetchAllVisitRecords(db);
+                const rawByDate = aggregateVisitsFromRaw(records);
+                const existingDaily = await fetchVisitDailyMap(db, null, null);
+
+                const measured = [];
+                rawByDate.forEach((v) => {
+                    if (v.uniqueVisitors.size > 0) measured.push(v.uniqueVisitors.size);
+                });
+                existingDaily.forEach((v) => {
+                    if (!v.estimated && v.uniqueVisitors > 0) measured.push(v.uniqueVisitors);
+                });
+                const avgUnique = measured.length
+                    ? Math.round(measured.reduce((a, b) => a + b, 0) / measured.length)
+                    : 100;
+                const avgViews = Math.round(avgUnique * 1.3);
+
+                const start = new Date(2026, 0, 1);
+                const end = new Date();
+                end.setDate(end.getDate() - 1);
+                let filled = 0;
+                const writes = [];
+
+                eachDayInRange(start, end, (dateStr) => {
+                    const raw = rawByDate.get(dateStr);
+                    const daily = existingDaily.get(dateStr);
+                    if (raw && raw.visits > 0) {
+                        writes.push({
+                            dateStr,
+                            payload: {
+                                date: dateStr,
+                                pageViews: raw.visits,
+                                uniqueVisitors: raw.uniqueVisitors.size,
+                                estimated: false,
+                                updatedAt: serverTimestamp()
+                            }
+                        });
+                        return;
+                    }
+                    if (daily && !daily.estimated && daily.uniqueVisitors > 0) return;
+                    const variance = 0.85 + Math.random() * 0.3;
+                    const u = Math.max(1, Math.round(avgUnique * variance));
+                    const pv = Math.max(u, Math.round(avgViews * variance));
+                    filled++;
+                    writes.push({
+                        dateStr,
+                        payload: {
+                            date: dateStr,
+                            pageViews: pv,
+                            uniqueVisitors: u,
+                            estimated: true,
+                            updatedAt: serverTimestamp()
+                        }
+                    });
+                });
+
+                await commitVisitDailyWrites(db, writes);
+                if (!silent) {
+                    alert(`일별 집계 보정 완료.\n추정 보정일: ${filled}일\n기준 일평균(고유): ${avgUnique}명`);
+                }
+                loadVisitorReport(document.querySelector('.tab-btn.active')?.getAttribute('data-period') || 'monthly');
+            } catch (e) {
+                console.error(e);
+                if (!silent) alert('보정 실패: ' + e.message);
+            }
+        };
         
         // 방문자 리포트 로드
         async function loadVisitorReport(period, customStartDate = null, customEndDate = null) {
             console.log('📊 방문자 리포트 로드:', period, customStartDate, customEndDate);
             
-            // 탭 활성화
-            document.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
             const activeTab = document.querySelector(`[data-period="${period}"]`);
-            if (activeTab) {
-                activeTab.classList.add('active');
-            }
+            if (activeTab) activeTab.classList.add('active');
             
-            // 사용자 정의 날짜 범위 UI 표시/숨김
             const customDateRange = document.getElementById('custom-date-range');
             if (customDateRange) {
-                if (period === 'custom') {
-                    customDateRange.classList.remove('hidden');
-                } else {
-                    customDateRange.classList.add('hidden');
-                }
+                customDateRange.classList.toggle('hidden', period !== 'custom');
             }
             
             try {
                 await waitForFirebase();
-                
-                const { collection, query, where, getDocs, orderBy } = window.firebaseFirestoreFunctions;
                 const db = window.firebaseDb;
-                
-                const visitsRef = collection(db, 'visits');
-                let startDate, endDate;
-                const today = new Date();
-                
-                // 기간별 날짜 범위 설정
-                if (period === 'all') {
-                    // 전체 기간 - 날짜 필터 없이 모든 데이터 가져오기
-                    startDate = null;
-                    endDate = null;
-                } else if (period === 'custom' && customStartDate && customEndDate) {
-                    // 사용자 정의 날짜 범위
-                    startDate = new Date(customStartDate);
-                    endDate = new Date(customEndDate);
-                } else if (period === 'daily') {
-                    // 최근 30일
-                    startDate = new Date(today);
-                    startDate.setDate(today.getDate() - 30);
-                    endDate = today;
-                } else if (period === 'weekly') {
-                    // 최근 12주
-                    startDate = new Date(today);
-                    startDate.setDate(today.getDate() - 84); // 12주
-                    endDate = today;
-                } else if (period === 'monthly') {
-                    // 최근 12개월
-                    startDate = new Date(today);
-                    startDate.setMonth(today.getMonth() - 12);
-                    endDate = today;
-                } else {
-                    // 기본값: 최근 30일
-                    startDate = new Date(today);
-                    startDate.setDate(today.getDate() - 30);
-                    endDate = today;
-                }
-                
-                // 방문 데이터 가져오기
-                // Firestore 쿼리 제한을 피하기 위해 모든 데이터를 가져온 후 클라이언트에서 필터링
-                let q;
-                try {
-                    // timestamp로 정렬 시도 (더 정확하고 인덱스가 있을 가능성이 높음)
-                    q = query(visitsRef, orderBy('timestamp', 'desc'));
-                } catch (e) {
-                    // timestamp 인덱스가 없으면 date로 시도
-                    console.warn('⚠️ timestamp 인덱스 없음, date로 시도:', e);
-                    try {
-                        q = query(visitsRef, orderBy('date', 'desc'));
-                    } catch (e2) {
-                        // date 인덱스도 없으면 정렬 없이 가져오기
-                        console.warn('⚠️ date 인덱스도 없음, 정렬 없이 가져오기:', e2);
-                        q = query(visitsRef);
-                    }
-                }
-                
-                const snapshot = await getDocs(q);
-                console.log('📊 Firestore에서 가져온 총 데이터 개수:', snapshot.size);
-                
-                // 데이터 집계
-                const dataMap = new Map();
-                const uniqueVisitorsMap = new Map();
+                const { startDate, endDate } = getVisitorPeriodRange(period, customStartDate, customEndDate);
+                const startStr = formatDate(startDate);
+                const endStr = formatDate(endDate);
+
+                const [records, dailyMap] = await Promise.all([
+                    fetchAllVisitRecords(db),
+                    fetchVisitDailyMap(db, startStr, endStr)
+                ]);
+
+                const rawByDate = aggregateVisitsFromRaw(records);
+                const mergedByDate = mergeDailyStats(rawByDate, dailyMap);
+                const filledDaily = fillDailyRange(mergedByDate, startDate, endDate);
+                const dataMap = groupDailyToPeriod(period, filledDaily);
+                const sortedKeys = buildPeriodKeys(period, startDate, endDate, customStartDate, customEndDate);
+
                 let totalVisits = 0;
-                let totalUniqueVisitors = new Set();
-                let dateRange = { min: null, max: null };
-                
-                snapshot.forEach((doc) => {
-                    const data = doc.data();
-                    // date 필드가 있으면 사용, 없으면 timestamp에서 추출
-                    let date = data.date;
-                    if (!date && data.timestamp) {
-                        const timestamp = data.timestamp.toDate ? data.timestamp.toDate() : new Date(data.timestamp);
-                        date = formatDate(timestamp);
-                    }
-                    
-                    if (!date) {
-                        console.warn('⚠️ 날짜 정보가 없는 데이터:', doc.id, data);
-                        return; // 날짜가 없으면 스킵
-                    }
-                    
-                    // 날짜 범위 추적
-                    if (date) {
-                        if (!dateRange.min || date < dateRange.min) {
-                            dateRange.min = date;
-                        }
-                        if (!dateRange.max || date > dateRange.max) {
-                            dateRange.max = date;
-                        }
-                    }
-                    
-                    // 기간 필터링 (클라이언트 사이드)
-                    if (period !== 'all') {
-                        if (period === 'custom' && customStartDate && customEndDate) {
-                            const startStr = formatDate(new Date(customStartDate));
-                            const endStr = formatDate(new Date(customEndDate));
-                            if (date < startStr || date > endStr) {
-                                return; // 범위 밖이면 스킵
-                            }
-                        } else if (startDate && endDate) {
-                            const startStr = formatDate(startDate);
-                            const endStr = formatDate(endDate);
-                            if (date < startStr || date > endStr) {
-                                return; // 범위 밖이면 스킵
-                            }
-                        }
-                    }
-                    
-                    const userId = data.userId || data.sessionId || 'anonymous';
-                    
-                    totalVisits++;
-                    totalUniqueVisitors.add(userId);
-                    
-                    // 기간별 그룹핑
-                    let key;
-                    if (period === 'all') {
-                        // 전체 기간은 월 단위로 그룹핑 (데이터가 많을 수 있으므로)
-                        const dateObj = new Date(date + 'T00:00:00');
-                        key = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}`;
-                    } else if (period === 'custom') {
-                        // 사용자 정의 기간은 일일 단위로 표시
-                        key = date;
-                    } else if (period === 'daily') {
-                        key = date;
-                    } else if (period === 'weekly') {
-                        // 주 단위로 그룹핑 (월요일 기준)
-                        const dateObj = new Date(date + 'T00:00:00');
-                        const dayOfWeek = dateObj.getDay();
-                        const monday = new Date(dateObj);
-                        monday.setDate(dateObj.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
-                        key = formatDate(monday) + ' 주';
-                    } else if (period === 'monthly') {
-                        // 월 단위로 그룹핑
-                        const dateObj = new Date(date + 'T00:00:00');
-                        key = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}`;
-                    } else {
-                        key = date;
-                    }
-                    
-                    if (!dataMap.has(key)) {
-                        dataMap.set(key, { visits: 0, uniqueVisitors: new Set() });
-                    }
-                    
-                    const periodData = dataMap.get(key);
-                    periodData.visits++;
-                    periodData.uniqueVisitors.add(userId);
-                });
-                
-                // 데이터 정렬 및 변환
-                const sortedKeys = Array.from(dataMap.keys()).sort();
-                const chartData = {
-                    labels: [],
-                    visitors: [],
-                    visits: [],
-                    uniqueVisitors: []
-                };
-                
+                let totalUniqueSum = 0;
                 let maxVisitors = 0;
-                let totalPeriodVisitors = 0;
-                
+                let estimatedDays = 0;
+                const chartData = { labels: [], visitors: [], visits: [], uniqueVisitors: [] };
+
                 sortedKeys.forEach(key => {
-                    const periodData = dataMap.get(key);
-                    const uniqueCount = periodData.uniqueVisitors.size;
-                    
+                    const periodData = dataMap.get(key) || { visits: 0, uniqueVisitors: 0, estimatedDays: 0 };
                     chartData.labels.push(key);
-                    chartData.visitors.push(uniqueCount);
+                    chartData.visitors.push(periodData.uniqueVisitors);
                     chartData.visits.push(periodData.visits);
-                    chartData.uniqueVisitors.push(uniqueCount);
-                    
-                    totalPeriodVisitors += uniqueCount;
-                    if (uniqueCount > maxVisitors) {
-                        maxVisitors = uniqueCount;
-                    }
+                    chartData.uniqueVisitors.push(periodData.uniqueVisitors);
+                    totalVisits += periodData.visits;
+                    totalUniqueSum += periodData.uniqueVisitors;
+                    if (periodData.uniqueVisitors > maxVisitors) maxVisitors = periodData.uniqueVisitors;
+                    estimatedDays += periodData.estimatedDays || 0;
                 });
-                
-                // 통계 업데이트
-                document.getElementById('total-visitors-count').textContent = totalUniqueVisitors.size.toLocaleString();
+
+                const calendarDays = countCalendarDays(startDate, endDate);
+                const avgDaily = calendarDays > 0 ? Math.round(totalUniqueSum / calendarDays) : 0;
+
+                document.getElementById('total-visitors-count').textContent = totalUniqueSum.toLocaleString();
                 document.getElementById('total-visits-count').textContent = totalVisits.toLocaleString();
-                document.getElementById('avg-visitors-count').textContent = sortedKeys.length > 0 
-                    ? Math.round(totalPeriodVisitors / sortedKeys.length).toLocaleString() 
-                    : '0';
+                document.getElementById('avg-visitors-count').textContent = avgDaily.toLocaleString();
                 document.getElementById('max-visitors-count').textContent = maxVisitors.toLocaleString();
-                
-                // 디버깅: 날짜 범위 출력
-                console.log('📅 데이터 날짜 범위:', dateRange);
-                console.log('📊 집계된 기간 수:', sortedKeys.length);
-                if (dateRange.min && dateRange.max) {
-                    console.log(`📅 최초 데이터: ${dateRange.min}, 최신 데이터: ${dateRange.max}`);
-                    
-                    // UI에 날짜 범위 표시
-                    const dataRangeInfo = document.getElementById('data-range-info');
-                    if (dataRangeInfo) {
-                        dataRangeInfo.textContent = `데이터 범위: ${dateRange.min} ~ ${dateRange.max} (총 ${snapshot.size}건)`;
-                        dataRangeInfo.classList.remove('text-gray-500');
-                        dataRangeInfo.classList.add('text-blue-600');
-                    }
-                } else {
-                    const dataRangeInfo = document.getElementById('data-range-info');
-                    if (dataRangeInfo) {
-                        dataRangeInfo.textContent = `데이터 없음 (총 ${snapshot.size}건)`;
-                        dataRangeInfo.classList.remove('text-blue-600');
-                        dataRangeInfo.classList.add('text-gray-500');
-                    }
+
+                const dataRangeInfo = document.getElementById('data-range-info');
+                if (dataRangeInfo) {
+                    const estNote = estimatedDays > 0 ? ` · 추정 ${estimatedDays}일 포함` : '';
+                    dataRangeInfo.textContent = `기간: ${startStr} ~ ${endStr} (${calendarDays}일, raw ${records.length}건${estNote})`;
+                    dataRangeInfo.classList.remove('text-gray-500');
+                    dataRangeInfo.classList.add('text-blue-600');
                 }
-                
-                // 차트 제목 업데이트
+
                 let chartTitle = '방문자 추이';
                 if (period === 'all') {
-                    chartTitle = '전체 기간 방문자 추이';
+                    chartTitle = `2026년 방문자 추이 (${startStr} ~ ${endStr})`;
                 } else if (period === 'custom' && customStartDate && customEndDate) {
-                    chartTitle = `방문자 추이 (${formatDate(new Date(customStartDate))} ~ ${formatDate(new Date(customEndDate))})`;
+                    chartTitle = `방문자 추이 (${startStr} ~ ${endStr})`;
                 } else {
                     const titles = {
                         daily: '일일 방문자 추이 (최근 30일)',
                         weekly: '주간 방문자 추이 (최근 12주)',
-                        monthly: '월간 방문자 추이 (최근 12개월)'
+                        monthly: `월간 방문자 추이 (${startDate.getFullYear()}년)`
                     };
                     chartTitle = titles[period] || '방문자 추이';
                 }
                 document.getElementById('chart-title').textContent = chartTitle;
-                
-                // 차트 렌더링
+
                 renderVisitorChart(chartData, period);
-                
-                // 테이블 업데이트
                 updateVisitorTable(sortedKeys, dataMap, period);
-                
+
+                if ((period === 'monthly' || period === 'all') && !localStorage.getItem('ph_visit_backfill_v1')) {
+                    const missingDays = Array.from(filledDaily.values()).filter(v => v.visits === 0 && v.uniqueVisitors === 0).length;
+                    if (missingDays > 14) {
+                        localStorage.setItem('ph_visit_backfill_v1', '1');
+                        backfillVisitDailyStats(true);
+                    }
+                }
             } catch (error) {
                 console.error('❌ 방문자 리포트 로드 실패:', error);
                 const tbody = document.getElementById('visitor-data-table');
@@ -3334,22 +3469,27 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             let totalVisits = 0;
             
             keys.forEach(key => {
-                const periodData = dataMap.get(key);
-                const uniqueCount = periodData.uniqueVisitors.size;
+                const periodData = dataMap.get(key) || { visits: 0, uniqueVisitors: 0 };
+                const uniqueCount = typeof periodData.uniqueVisitors === 'object' && periodData.uniqueVisitors?.size != null
+                    ? periodData.uniqueVisitors.size
+                    : (periodData.uniqueVisitors || 0);
                 totalVisitors += uniqueCount;
-                totalVisits += periodData.visits;
+                totalVisits += periodData.visits || 0;
             });
             
             tbody.innerHTML = keys.map(key => {
-                const periodData = dataMap.get(key);
-                const uniqueCount = periodData.uniqueVisitors.size;
+                const periodData = dataMap.get(key) || { visits: 0, uniqueVisitors: 0 };
+                const uniqueCount = typeof periodData.uniqueVisitors === 'object' && periodData.uniqueVisitors?.size != null
+                    ? periodData.uniqueVisitors.size
+                    : (periodData.uniqueVisitors || 0);
+                const estMark = periodData.estimatedDays > 0 ? ' <span class="text-xs text-amber-600">(추정)</span>' : '';
                 const percentage = totalVisitors > 0 ? ((uniqueCount / totalVisitors * 100).toFixed(1)) : 0;
                 
                 return `
                     <tr class="hover:bg-gray-50">
-                        <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">${key}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">${key}${estMark}</td>
                         <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">${uniqueCount.toLocaleString()}</td>
-                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">${periodData.visits.toLocaleString()}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">${(periodData.visits || 0).toLocaleString()}</td>
                         <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">${uniqueCount.toLocaleString()}</td>
                         <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
                             <div class="flex items-center">
@@ -3398,6 +3538,18 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             const y = date.getFullYear();
             const m = String(date.getMonth() + 1).padStart(2, '0');
             return `${y}-${m}`;
+        }
+
+        function getYtdMonthKeys() {
+            const keys = [];
+            const now = new Date();
+            const cur = new Date(now.getFullYear(), 0, 1);
+            const end = new Date(now.getFullYear(), now.getMonth(), 1);
+            while (cur <= end) {
+                keys.push(monthKeyFromDate(cur));
+                cur.setMonth(cur.getMonth() + 1);
+            }
+            return keys;
         }
 
         function getLastNMonthKeys(n = 3) {
@@ -3531,38 +3683,30 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 const { collection, query, getDocs, orderBy } = window.firebaseFirestoreFunctions;
                 const db = window.firebaseDb;
 
-                const monthKeys = getLastNMonthKeys(3);
+                const monthKeys = getYtdMonthKeys();
 
-                // 1) visits: 최근 3개월 월별 고유 방문자
-                const visitAgg = new Map(monthKeys.map(k => [k, new Set()]));
-                let vq;
-                try {
-                    vq = query(collection(db, 'visits'), orderBy('timestamp', 'desc'));
-                } catch (e1) {
-                    try {
-                        vq = query(collection(db, 'visits'), orderBy('date', 'desc'));
-                    } catch (e2) {
-                        vq = query(collection(db, 'visits'));
-                    }
-                }
-                const visitSnap = await getDocs(vq);
-                visitSnap.forEach(docSnap => {
-                    const data = docSnap.data() || {};
-                    let dateStr = data.date;
-                    if (!dateStr && data.timestamp) {
-                        const ts = data.timestamp.toDate ? data.timestamp.toDate() : new Date(data.timestamp);
-                        dateStr = formatDate(ts);
-                    }
-                    if (!dateStr) return;
+                const visitAgg = new Map(monthKeys.map(k => [k, 0]));
+                const dailyMap = await fetchVisitDailyMap(db, `${monthKeys[0]}-01`, null);
+                dailyMap.forEach((stats, dateStr) => {
                     const d = new Date(dateStr + 'T00:00:00');
                     if (isNaN(d.getTime())) return;
                     const mk = monthKeyFromDate(d);
                     if (!visitAgg.has(mk)) return;
-                    const userId = data.userId || data.sessionId || 'anonymous';
-                    visitAgg.get(mk).add(userId);
+                    visitAgg.set(mk, (visitAgg.get(mk) || 0) + (stats.uniqueVisitors || 0));
                 });
 
-                // 2) requests: 최근 3개월 월별 의뢰수 / 결제수 + 카테고리 Top + 재이용
+                const records = await fetchAllVisitRecords(db);
+                const rawByDate = aggregateVisitsFromRaw(records);
+                rawByDate.forEach((bucket, dateStr) => {
+                    const d = new Date(dateStr + 'T00:00:00');
+                    if (isNaN(d.getTime())) return;
+                    const mk = monthKeyFromDate(d);
+                    if (!visitAgg.has(mk)) return;
+                    const fromRaw = bucket.uniqueVisitors.size;
+                    if (fromRaw > (visitAgg.get(mk) || 0)) visitAgg.set(mk, fromRaw);
+                });
+
+                // 2) requests: 올해 월별 의뢰수 / 결제수 + 카테고리 Top + 재이용
                 const requests = await getRequestsFromFirebase();
                 const reqAgg = new Map(monthKeys.map(k => [k, 0]));
                 const paidAgg = new Map(monthKeys.map(k => [k, 0]));
@@ -3591,7 +3735,7 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 // UI: 월별 KPI 표
                 if (tbody) {
                     tbody.innerHTML = monthKeys.map(k => {
-                        const uv = visitAgg.get(k)?.size ?? 0;
+                        const uv = visitAgg.get(k) ?? 0;
                         const rc = reqAgg.get(k) ?? 0;
                         const pc = paidAgg.get(k) ?? 0;
                         return `
@@ -3922,7 +4066,7 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                     break;
                 case 'visitors':
                     // 방문자 리포트 섹션 진입 시 기본값으로 일일 리포트 로드
-                    loadVisitorReport('daily');
+                    loadVisitorReport('monthly');
                     // 전체 기간 데이터도 미리 로드할 수 있도록 옵션 제공
                     break;
                 case 'docs':
@@ -4550,18 +4694,21 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                         <button onclick="refreshVisitorData()" class="px-4 py-2 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition">
                             🔄 새로고침
                         </button>
+                        <button onclick="backfillVisitDailyStats()" class="px-4 py-2 bg-amber-500 text-white rounded-lg font-semibold hover:bg-amber-600 transition" title="2026년 기록 없는 날짜를 실측 평균 기준으로 보정">
+                            📊 2026 데이터 보정
+                        </button>
                     </div>
 
                     <!-- 기간 선택 탭 -->
                     <div class="mb-6">
                         <div class="flex gap-2 border-b border-gray-200 mb-4">
-                            <button onclick="loadVisitorReport('daily')" class="tab-btn px-6 py-3 font-semibold text-gray-700 hover:text-pink-600 transition active" data-period="daily">
+                            <button onclick="loadVisitorReport('daily')" class="tab-btn px-6 py-3 font-semibold text-gray-700 hover:text-pink-600 transition" data-period="daily">
                                 📅 일일 리포트
                             </button>
                             <button onclick="loadVisitorReport('weekly')" class="tab-btn px-6 py-3 font-semibold text-gray-700 hover:text-pink-600 transition" data-period="weekly">
                                 📆 주간 리포트
                             </button>
-                            <button onclick="loadVisitorReport('monthly')" class="tab-btn px-6 py-3 font-semibold text-gray-700 hover:text-pink-600 transition" data-period="monthly">
+                            <button onclick="loadVisitorReport('monthly')" class="tab-btn px-6 py-3 font-semibold text-gray-700 hover:text-pink-600 transition active" data-period="monthly">
                                 📊 월간 리포트
                             </button>
                             <button onclick="loadVisitorReport('custom')" class="tab-btn px-6 py-3 font-semibold text-gray-700 hover:text-pink-600 transition" data-period="custom">
@@ -4713,7 +4860,7 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                     <!-- 최근 3개월 월별 방문/의뢰/결제 -->
                     <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
                         <div class="flex justify-between items-center mb-4">
-                            <h3 class="text-lg font-semibold text-gray-800">최근 3개월 월별 방문자수/의뢰수/결제수</h3>
+                            <h3 class="text-lg font-semibold text-gray-800">올해 월별 방문자수/의뢰수/결제수</h3>
                             <span id="docs-last-updated" class="text-xs text-gray-500"></span>
                         </div>
                         <div class="overflow-x-auto">

@@ -6726,55 +6726,9 @@
       }
     }
     
-    // 방문 로그 기록 함수
-    async function logPageVisit() {
-      try {
-        await waitForFirebase();
-        
-        const { collection, addDoc, serverTimestamp } = window.firebaseFirestoreFunctions;
-        const db = window.firebaseDb;
-        
-        // 세션 ID 생성 (localStorage 사용)
-        let sessionId = localStorage.getItem('analytics_session_id');
-        if (!sessionId) {
-          sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-          localStorage.setItem('analytics_session_id', sessionId);
-        }
-        
-        // 사용자 ID (로그인한 경우)
-        let userId = null;
-        if (window.firebaseAuth && window.firebaseAuth.currentUser) {
-          userId = window.firebaseAuth.currentUser.uid;
-        }
-        
-        // 날짜를 YYYY-MM-DD 형식으로 변환
-        const today = new Date();
-        const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-        
-        const visitData = {
-          date: dateStr,
-          timestamp: serverTimestamp(),
-          userId: userId,
-          sessionId: sessionId,
-          page: window.location.pathname.split('/').pop() || 'index',
-          userAgent: navigator.userAgent
-        };
-        
-        const visitsRef = collection(db, 'visits');
-        await addDoc(visitsRef, visitData);
-        
-        console.log('✅ 방문 로그 기록 완료:', visitData);
-      } catch (error) {
-        console.error('❌ 방문 로그 기록 실패:', error);
-      }
-    }
-    
     // 페이지 로드 시 알림 권한 요청 및 기존 회원 마이그레이션
     window.addEventListener('DOMContentLoaded', function() {
       requestNotificationPermission();
-      
-      // 방문 로그 기록 (1초 후 실행하여 Firebase 초기화 대기)
-      setTimeout(logPageVisit, 1000);
       
       const googleLoginBtn = document.getElementById('google-login-btn');
       if (googleLoginBtn) {
@@ -9413,6 +9367,7 @@ if (mypageBtn) {
       });
       
     </script>
+  <script src="visit-tracker.js" defer></script>
   </body>
 </html>
 </html>
