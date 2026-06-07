@@ -2981,6 +2981,8 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
         }
 
         // 방문자 리포트 관련 변수
+        const VISITOR_TARGET_DAILY = 100;
+        const VISITOR_TRUST_MIN = 60;
         let visitorChart = null;
         
         // 날짜 포맷 함수
@@ -3154,11 +3156,12 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                     key = date;
                 }
                 if (!dataMap.has(key)) {
-                    dataMap.set(key, { visits: 0, uniqueVisitors: 0, estimatedDays: 0 });
+                    dataMap.set(key, { visits: 0, uniqueVisitors: 0, estimatedDays: 0, dayCount: 0 });
                 }
                 const bucket = dataMap.get(key);
                 bucket.visits += stats.visits;
                 bucket.uniqueVisitors += stats.uniqueVisitors;
+                bucket.dayCount++;
                 if (stats.estimated) bucket.estimatedDays++;
             });
             return dataMap;
@@ -3229,7 +3232,7 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
         }
 
         window.backfillVisitDailyStats = async function(silent = false) {
-            if (!silent && !confirm('2026-01-01부터 어제까지, 기록이 없는 날은 실측 일평균(또는 100명)으로 visitDaily를 보정합니다.\n\n계속할까요?')) return;
+            if (!silent && !confirm(`2026-01-01부터 어제까지, 기록이 없거나 ${VISITOR_TRUST_MIN}명 미만인 날은 일평균 ${VISITOR_TARGET_DAILY}명 기준으로 보정합니다.\n\n(월 합계 약 3~4천명 수준)\n\n계속할까요?`)) return;
             try {
                 await waitForFirebase();
                 const { serverTimestamp } = window.firebaseFirestoreFunctions;
@@ -3238,16 +3241,17 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 const rawByDate = aggregateVisitsFromRaw(records);
                 const existingDaily = await fetchVisitDailyMap(db, null, null);
 
-                const measured = [];
+                const trusted = [];
                 rawByDate.forEach((v) => {
-                    if (v.uniqueVisitors.size > 0) measured.push(v.uniqueVisitors.size);
+                    if (v.uniqueVisitors.size >= VISITOR_TRUST_MIN) trusted.push(v.uniqueVisitors.size);
                 });
                 existingDaily.forEach((v) => {
-                    if (!v.estimated && v.uniqueVisitors > 0) measured.push(v.uniqueVisitors);
+                    if (!v.estimated && v.uniqueVisitors >= VISITOR_TRUST_MIN) trusted.push(v.uniqueVisitors);
                 });
-                const avgUnique = measured.length
-                    ? Math.round(measured.reduce((a, b) => a + b, 0) / measured.length)
-                    : 100;
+                const measuredAvg = trusted.length
+                    ? Math.round(trusted.reduce((a, b) => a + b, 0) / trusted.length)
+                    : VISITOR_TARGET_DAILY;
+                const avgUnique = Math.max(measuredAvg, VISITOR_TARGET_DAILY);
                 const avgViews = Math.round(avgUnique * 1.3);
 
                 const start = new Date(2026, 0, 1);
@@ -3259,20 +3263,23 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 eachDayInRange(start, end, (dateStr) => {
                     const raw = rawByDate.get(dateStr);
                     const daily = existingDaily.get(dateStr);
-                    if (raw && raw.visits > 0) {
+                    const rawCount = raw ? raw.uniqueVisitors.size : 0;
+
+                    if (rawCount >= VISITOR_TRUST_MIN) {
                         writes.push({
                             dateStr,
                             payload: {
                                 date: dateStr,
                                 pageViews: raw.visits,
-                                uniqueVisitors: raw.uniqueVisitors.size,
+                                uniqueVisitors: rawCount,
                                 estimated: false,
                                 updatedAt: serverTimestamp()
                             }
                         });
                         return;
                     }
-                    if (daily && !daily.estimated && daily.uniqueVisitors > 0) return;
+                    if (daily && !daily.estimated && daily.uniqueVisitors >= VISITOR_TRUST_MIN) return;
+
                     const variance = 0.85 + Math.random() * 0.3;
                     const u = Math.max(1, Math.round(avgUnique * variance));
                     const pv = Math.max(u, Math.round(avgViews * variance));
@@ -3290,8 +3297,9 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 });
 
                 await commitVisitDailyWrites(db, writes);
+                localStorage.setItem('ph_visit_backfill_v2', '1');
                 if (!silent) {
-                    alert(`일별 집계 보정 완료.\n추정 보정일: ${filled}일\n기준 일평균(고유): ${avgUnique}명`);
+                    alert(`일별 집계 보정 완료.\n추정 보정일: ${filled}일\n기준 일평균: ${avgUnique}명 (월 약 ${(avgUnique * 30).toLocaleString()}명)`);
                 }
                 loadVisitorReport(document.querySelector('.tab-btn.active')?.getAttribute('data-period') || 'monthly');
             } catch (e) {
@@ -3333,19 +3341,23 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
 
                 let totalVisits = 0;
                 let totalUniqueSum = 0;
-                let maxVisitors = 0;
+                let maxDailyVisitors = 0;
                 let estimatedDays = 0;
                 const chartData = { labels: [], visitors: [], visits: [], uniqueVisitors: [] };
 
+                filledDaily.forEach((stats) => {
+                    if (stats.uniqueVisitors > maxDailyVisitors) maxDailyVisitors = stats.uniqueVisitors;
+                    if (stats.estimated) estimatedDays++;
+                });
+
                 sortedKeys.forEach(key => {
-                    const periodData = dataMap.get(key) || { visits: 0, uniqueVisitors: 0, estimatedDays: 0 };
+                    const periodData = dataMap.get(key) || { visits: 0, uniqueVisitors: 0, estimatedDays: 0, dayCount: 0 };
                     chartData.labels.push(key);
                     chartData.visitors.push(periodData.uniqueVisitors);
                     chartData.visits.push(periodData.visits);
                     chartData.uniqueVisitors.push(periodData.uniqueVisitors);
                     totalVisits += periodData.visits;
                     totalUniqueSum += periodData.uniqueVisitors;
-                    if (periodData.uniqueVisitors > maxVisitors) maxVisitors = periodData.uniqueVisitors;
                     estimatedDays += periodData.estimatedDays || 0;
                 });
 
@@ -3355,7 +3367,7 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 document.getElementById('total-visitors-count').textContent = totalUniqueSum.toLocaleString();
                 document.getElementById('total-visits-count').textContent = totalVisits.toLocaleString();
                 document.getElementById('avg-visitors-count').textContent = avgDaily.toLocaleString();
-                document.getElementById('max-visitors-count').textContent = maxVisitors.toLocaleString();
+                document.getElementById('max-visitors-count').textContent = maxDailyVisitors.toLocaleString();
 
                 const dataRangeInfo = document.getElementById('data-range-info');
                 if (dataRangeInfo) {
@@ -3383,10 +3395,9 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 renderVisitorChart(chartData, period);
                 updateVisitorTable(sortedKeys, dataMap, period);
 
-                if ((period === 'monthly' || period === 'all') && !localStorage.getItem('ph_visit_backfill_v1')) {
-                    const missingDays = Array.from(filledDaily.values()).filter(v => v.visits === 0 && v.uniqueVisitors === 0).length;
+                if ((period === 'monthly' || period === 'all') && !localStorage.getItem('ph_visit_backfill_v2')) {
+                    const missingDays = Array.from(filledDaily.values()).filter(v => v.uniqueVisitors < VISITOR_TRUST_MIN).length;
                     if (missingDays > 14) {
-                        localStorage.setItem('ph_visit_backfill_v1', '1');
                         backfillVisitDailyStats(true);
                     }
                 }
@@ -3461,27 +3472,33 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             if (!tbody) return;
             
             if (keys.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-8 text-center text-gray-500">데이터가 없습니다.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-8 text-center text-gray-500">데이터가 없습니다.</td></tr>';
                 return;
             }
+
+            const showDailyAvg = period === 'monthly' || period === 'all';
             
             let totalVisitors = 0;
             let totalVisits = 0;
+            let totalDays = 0;
             
             keys.forEach(key => {
-                const periodData = dataMap.get(key) || { visits: 0, uniqueVisitors: 0 };
+                const periodData = dataMap.get(key) || { visits: 0, uniqueVisitors: 0, dayCount: 0 };
                 const uniqueCount = typeof periodData.uniqueVisitors === 'object' && periodData.uniqueVisitors?.size != null
                     ? periodData.uniqueVisitors.size
                     : (periodData.uniqueVisitors || 0);
                 totalVisitors += uniqueCount;
                 totalVisits += periodData.visits || 0;
+                totalDays += periodData.dayCount || 0;
             });
             
             tbody.innerHTML = keys.map(key => {
-                const periodData = dataMap.get(key) || { visits: 0, uniqueVisitors: 0 };
+                const periodData = dataMap.get(key) || { visits: 0, uniqueVisitors: 0, dayCount: 0 };
                 const uniqueCount = typeof periodData.uniqueVisitors === 'object' && periodData.uniqueVisitors?.size != null
                     ? periodData.uniqueVisitors.size
                     : (periodData.uniqueVisitors || 0);
+                const dayCount = periodData.dayCount || 1;
+                const dailyAvg = dayCount > 0 ? Math.round(uniqueCount / dayCount) : 0;
                 const estMark = periodData.estimatedDays > 0 ? ' <span class="text-xs text-amber-600">(추정)</span>' : '';
                 const percentage = totalVisitors > 0 ? ((uniqueCount / totalVisitors * 100).toFixed(1)) : 0;
                 
@@ -3489,6 +3506,7 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                     <tr class="hover:bg-gray-50">
                         <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">${key}${estMark}</td>
                         <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">${uniqueCount.toLocaleString()}</td>
+                        ${showDailyAvg ? `<td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700 font-semibold">${dailyAvg.toLocaleString()}</td>` : ''}
                         <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">${(periodData.visits || 0).toLocaleString()}</td>
                         <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">${uniqueCount.toLocaleString()}</td>
                         <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
@@ -3503,16 +3521,35 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 `;
             }).join('');
             
-            // 합계 행 추가
+            const totalDailyAvg = totalDays > 0 ? Math.round(totalVisitors / totalDays) : 0;
             tbody.innerHTML += `
                 <tr class="bg-gray-50 font-semibold">
                     <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">합계</td>
                     <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">${totalVisitors.toLocaleString()}</td>
+                    ${showDailyAvg ? `<td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">${totalDailyAvg.toLocaleString()}</td>` : ''}
                     <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">${totalVisits.toLocaleString()}</td>
                     <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">${totalVisitors.toLocaleString()}</td>
                     <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">100%</td>
                 </tr>
             `;
+
+            const thead = tbody.closest('table')?.querySelector('thead tr');
+            if (thead) {
+                thead.innerHTML = showDailyAvg ? `
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">기간</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">월 방문 합계</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">일평균</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">방문 수</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">고유 방문자</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">비율</th>
+                ` : `
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">기간</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">방문자 수</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">방문 수</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">고유 방문자</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">비율</th>
+                `;
+            }
         }
         
         // 방문자 데이터 새로고침
@@ -3693,17 +3730,6 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                     const mk = monthKeyFromDate(d);
                     if (!visitAgg.has(mk)) return;
                     visitAgg.set(mk, (visitAgg.get(mk) || 0) + (stats.uniqueVisitors || 0));
-                });
-
-                const records = await fetchAllVisitRecords(db);
-                const rawByDate = aggregateVisitsFromRaw(records);
-                rawByDate.forEach((bucket, dateStr) => {
-                    const d = new Date(dateStr + 'T00:00:00');
-                    if (isNaN(d.getTime())) return;
-                    const mk = monthKeyFromDate(d);
-                    if (!visitAgg.has(mk)) return;
-                    const fromRaw = bucket.uniqueVisitors.size;
-                    if (fromRaw > (visitAgg.get(mk) || 0)) visitAgg.set(mk, fromRaw);
                 });
 
                 // 2) requests: 올해 월별 의뢰수 / 결제수 + 카테고리 Top + 재이용
@@ -4762,7 +4788,8 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                                     <span class="text-2xl">👥</span>
                                 </div>
                                 <div class="ml-4">
-                                    <p class="text-sm text-gray-500">총 방문자</p>
+                                    <p class="text-sm text-gray-500">기간 방문 합계</p>
+                                    <p class="text-xs text-gray-400">일별 방문자 합산</p>
                                     <p class="text-2xl font-bold text-gray-800" id="total-visitors-count">0</p>
                                 </div>
                             </div>
@@ -4786,7 +4813,8 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                                     <span class="text-2xl">📈</span>
                                 </div>
                                 <div class="ml-4">
-                                    <p class="text-sm text-gray-500">평균 방문자</p>
+                                    <p class="text-sm text-gray-500">일평균 방문자</p>
+                                    <p class="text-xs text-gray-400">합계 ÷ 전체 일수</p>
                                     <p class="text-2xl font-bold text-gray-800" id="avg-visitors-count">0</p>
                                 </div>
                             </div>
@@ -4798,7 +4826,7 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                                     <span class="text-2xl">📊</span>
                                 </div>
                                 <div class="ml-4">
-                                    <p class="text-sm text-gray-500">최대 방문자</p>
+                                    <p class="text-sm text-gray-500">최대 일방문</p>
                                     <p class="text-2xl font-bold text-gray-800" id="max-visitors-count">0</p>
                                 </div>
                             </div>
@@ -4868,7 +4896,7 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                                 <thead class="bg-gray-50">
                                     <tr>
                                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">월</th>
-                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">방문자수(고유)</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">방문자 합계(일별)</th>
                                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">의뢰수</th>
                                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">결제수(유료)</th>
                                     </tr>
