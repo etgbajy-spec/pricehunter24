@@ -100,6 +100,21 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
     
+    // 방문 로그 (페이지별 상세)
+    match /visits/{visitId} {
+      allow read: if true;
+      allow create: if true;
+      allow update, delete: if false;
+    }
+
+    // 일별 방문 집계 (visit-tracker + 관리자 보정)
+    match /visitDaily/{dateId} {
+      allow read: if true;
+      allow create: if true;
+      allow update: if true;
+      allow delete: if isAdmin();
+    }
+
     // 다른 모든 컬렉션에 대한 기본 규칙
     match /{document=**} {
       // 읽기: 모든 사용자 허용
