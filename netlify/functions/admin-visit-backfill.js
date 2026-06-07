@@ -1,5 +1,6 @@
 /**
- * Netlify Function: visitDaily 1~5월 보정 (Firebase Admin SDK)
+ * Netlify Function: visitDaily 우상향 추세 보정 (Firebase Admin SDK)
+ * 2026-01-01 ~ 오늘: 50명대 → 120명대 선형 상승
  */
 const admin = require('firebase-admin');
 
@@ -10,9 +11,9 @@ const headers = {
   'Content-Type': 'application/json'
 };
 
-const VISITOR_TARGET_DAILY = 100;
 const VISITOR_BACKFILL_START = '2026-01-01';
-const VISITOR_BACKFILL_END = '2026-05-31';
+const VISITOR_TREND_START = 50;
+const VISITOR_TREND_END = 120;
 const ADMIN_EMAILS = [
   'admin@pricehunter.com',
   'manager@pricehunter.com',
@@ -43,16 +44,35 @@ function initAdmin() {
   }
 }
 
+function formatDate(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function getBackfillEndStr() {
+  return formatDate(new Date());
+}
+
 function dailyVisitorVariance(dateStr) {
   let h = 0;
   for (let i = 0; i < dateStr.length; i++) {
     h = (h * 31 + dateStr.charCodeAt(i)) | 0;
   }
-  return 0.92 + (Math.abs(h) % 17) / 100;
+  return 0.94 + (Math.abs(h) % 13) / 100;
 }
 
-function formatDate(d) {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+function trendProgress(dateStr, startStr, endStr) {
+  const start = new Date(startStr + 'T00:00:00').getTime();
+  const end = new Date(endStr + 'T00:00:00').getTime();
+  const cur = new Date(dateStr + 'T00:00:00').getTime();
+  if (end <= start) return 1;
+  const t = Math.min(1, Math.max(0, (cur - start) / (end - start)));
+  return t * t * (3 - 2 * t);
+}
+
+function trendingUniqueVisitors(dateStr, startStr, endStr) {
+  const progress = trendProgress(dateStr, startStr, endStr);
+  const base = VISITOR_TREND_START + (VISITOR_TREND_END - VISITOR_TREND_START) * progress;
+  return Math.max(1, Math.round(base * dailyVisitorVariance(dateStr)));
 }
 
 function eachDayInRange(startDate, endDate, fn) {
@@ -91,18 +111,20 @@ async function verifyAdminAuth(event) {
   }
 }
 
-async function runJanMayBackfill(db) {
+async function runTrendBackfill(db) {
+  const endStr = getBackfillEndStr();
   const start = new Date(2026, 0, 1);
-  const end = new Date(2026, 4, 31);
+  const end = new Date(endStr + 'T00:00:00');
   const writes = [];
   const monthTotals = new Map();
+  const monthDays = new Map();
 
   eachDayInRange(start, end, (dateStr) => {
-    const variance = dailyVisitorVariance(dateStr);
-    const u = Math.round(VISITOR_TARGET_DAILY * variance);
-    const pv = Math.max(u, Math.round(u * 1.3));
+    const u = trendingUniqueVisitors(dateStr, VISITOR_BACKFILL_START, endStr);
+    const pv = Math.max(u, Math.round(u * 1.35));
     const mk = dateStr.slice(0, 7);
     monthTotals.set(mk, (monthTotals.get(mk) || 0) + u);
+    monthDays.set(mk, (monthDays.get(mk) || 0) + 1);
     writes.push({ dateStr, u, pv });
   });
 
@@ -110,8 +132,7 @@ async function runJanMayBackfill(db) {
   for (let i = 0; i < writes.length; i += chunkSize) {
     const batch = db.batch();
     writes.slice(i, i + chunkSize).forEach(({ dateStr, u, pv }) => {
-      const ref = db.collection('visitDaily').doc(dateStr);
-      batch.set(ref, {
+      batch.set(db.collection('visitDaily').doc(dateStr), {
         date: dateStr,
         pageViews: pv,
         uniqueVisitors: u,
@@ -125,12 +146,22 @@ async function runJanMayBackfill(db) {
   const months = Array.from(monthTotals.entries())
     .sort((a, b) => a[0].localeCompare(b[0]))
     .map(([mk, total]) => {
-      const [y, m] = mk.split('-').map(Number);
-      const days = new Date(y, m, 0).getDate();
-      return { month: mk, total, dailyAvg: Math.round(total / days) };
+      const days = monthDays.get(mk) || 1;
+      return { month: mk, total, dailyAvg: Math.round(total / days), days };
     });
 
-  return { filled: writes.length, months, targetDaily: VISITOR_TARGET_DAILY };
+  const lastDay = writes.length ? writes[writes.length - 1].u : VISITOR_TREND_END;
+  const firstDay = writes.length ? writes[0].u : VISITOR_TREND_START;
+
+  return {
+    filled: writes.length,
+    months,
+    range: `${VISITOR_BACKFILL_START} ~ ${endStr}`,
+    trendStart: VISITOR_TREND_START,
+    trendEnd: VISITOR_TREND_END,
+    firstDayVisitors: firstDay,
+    lastDayVisitors: lastDay
+  };
 }
 
 exports.handler = async (event) => {
@@ -150,16 +181,8 @@ exports.handler = async (event) => {
   }
 
   try {
-    const result = await runJanMayBackfill(admin.firestore());
-    return {
-      statusCode: 200,
-      headers,
-      body: JSON.stringify({
-        ok: true,
-        range: `${VISITOR_BACKFILL_START} ~ ${VISITOR_BACKFILL_END}`,
-        ...result
-      })
-    };
+    const result = await runTrendBackfill(admin.firestore());
+    return { statusCode: 200, headers, body: JSON.stringify({ ok: true, ...result }) };
   } catch (e) {
     console.error('admin-visit-backfill error:', e);
     return { statusCode: 500, headers, body: JSON.stringify({ error: e.message || '보정 실패' }) };
