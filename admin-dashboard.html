@@ -1747,6 +1747,164 @@
                 return null;
             }
         }
+
+        function normalizeReqNumKey(reqNum) {
+            return String(reqNum || '').replace(/^#+/g, '').trim().toUpperCase();
+        }
+
+        async function duplicateRequestWithMeta(sourceRequest, meta) {
+            const { collection, addDoc, serverTimestamp, Timestamp } = window.firebaseFirestoreFunctions;
+            const db = window.firebaseDb;
+            if (!sourceRequest || !sourceRequest.id) return null;
+
+            const clone = { ...sourceRequest };
+            delete clone.id;
+
+            const parsedDate = new Date(meta.dateStr + 'T12:00:00');
+            const reqNum = meta.reqNum.startsWith('#') ? meta.reqNum : `#${meta.reqNum}`;
+
+            clone.reqNum = reqNum;
+            clone.requestNumber = reqNum;
+            clone.userName = meta.userName;
+            clone.name = meta.userName;
+            delete clone.email;
+            delete clone.userEmail;
+            delete clone.uid;
+            delete clone.userId;
+
+            clone.date = parsedDate.getTime();
+            clone.reqDate = parsedDate.toISOString();
+            if (Timestamp) clone.createdAt = Timestamp.fromDate(parsedDate);
+            clone.clonedFrom = sourceRequest.id;
+            clone.clonedFromReqNum = sourceRequest.reqNum || sourceRequest.requestNumber || '';
+            clone.bulkSeeded = true;
+            clone.bulkSeedBatch = 'PH-20260505345-mayjun';
+            clone.lastUpdated = Date.now();
+            if (serverTimestamp) clone.updatedAt = serverTimestamp();
+
+            const docRef = await addDoc(collection(db, 'requests'), clone);
+            return docRef.id;
+        }
+
+        const BULK_REQUEST_SEED_SCHEDULE = [
+            { date: '2026-05-07', names: ['강유서', '윤지호'] },
+            { date: '2026-05-08', names: ['임수진'] },
+            { date: '2026-05-09', names: ['한지우'] },
+            { date: '2026-05-11', names: ['송서연', '최민우'] },
+            { date: '2026-05-12', names: ['오민석'] },
+            { date: '2026-05-13', names: ['조하빈'] },
+            { date: '2026-05-14', names: ['신유아', '장현재'] },
+            { date: '2026-05-16', names: ['노지윤'] },
+            { date: '2026-05-17', names: ['서유찬'] },
+            { date: '2026-05-18', names: ['유도준', '문서영', '김도준'] },
+            { date: '2026-05-20', names: ['이나림'] },
+            { date: '2026-05-21', names: ['박하율', '최도겸'] },
+            { date: '2026-05-22', names: ['정지후'] },
+            { date: '2026-05-23', names: ['강아린'] },
+            { date: '2026-05-25', names: ['윤시성', '임도하'] },
+            { date: '2026-05-26', names: ['한예준'] },
+            { date: '2026-05-27', names: ['송하빈'] },
+            { date: '2026-05-29', names: ['오유진', '조시원'] },
+            { date: '2026-05-30', names: ['신건우'] },
+            { date: '2026-05-31', names: ['장서희'] },
+            { date: '2026-06-01', names: ['노하솔', '이지현'] },
+            { date: '2026-06-03', names: ['서지민'] },
+            { date: '2026-06-04', names: ['유태현'] },
+            { date: '2026-06-05', names: ['문재준', '박서민'] },
+            { date: '2026-06-06', names: ['김도겸'] },
+            { date: '2026-06-07', names: ['최서린'] }
+        ];
+
+        function buildSeedReqNum(dateStr, daySeq) {
+            const d = dateStr.replace(/-/g, '');
+            return `PH-${d}${String(100 + daySeq).padStart(3, '0')}`;
+        }
+
+        window.bulkSeedRequestsFromPH20260505345 = async function() {
+            const SOURCE_REQ = 'PH-20260505345';
+            const totalNames = BULK_REQUEST_SEED_SCHEDULE.reduce((n, row) => n + row.names.length, 0);
+
+            if (!confirm(`#${SOURCE_REQ} 템플릿으로 의뢰 ${totalNames}건을 일괄 추가합니다.\n\n이름·날짜·의뢰번호 자동 설정\n(이미 같은 의뢰번호가 있으면 건너뜀)\n\n계속할까요?`)) {
+                return;
+            }
+
+            try {
+                await waitForFirebase();
+                let created = 0;
+                let skipped = 0;
+                let createdList = [];
+
+                try {
+                    const user = window.firebaseAuth?.currentUser;
+                    if (user) {
+                        const token = await user.getIdToken(true);
+                        const res = await fetch('/.netlify/functions/admin-bulk-seed-requests', {
+                            method: 'POST',
+                            headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
+                        });
+                        const data = await res.json().catch(() => ({}));
+                        if (res.ok && data.ok) {
+                            created = data.created || 0;
+                            skipped = data.skipped || 0;
+                            createdList = (data.items || []).map((i) => `${i.date} ${i.userName} → ${i.reqNum}`);
+                            alert(`일괄 추가 완료\n\n추가: ${created}건\n건너뜀: ${skipped}건\n\n${createdList.slice(0, 8).join('\n')}${createdList.length > 8 ? '\n...' : ''}`);
+                            await renderRequestList();
+                            return;
+                        }
+                    }
+                } catch (serverErr) {
+                    console.warn('서버 일괄 추가 실패, 클라이언트 시도:', serverErr.message);
+                }
+
+                const requests = await getRequestsFromFirebase();
+                const existingNums = new Set(
+                    requests.map((r) => normalizeReqNumKey(r.reqNum || r.requestNumber)).filter(Boolean)
+                );
+
+                const source = requests.find((r) => {
+                    const key = normalizeReqNumKey(r.reqNum || r.requestNumber);
+                    return key === SOURCE_REQ || key === 'PH-20260505345';
+                });
+
+                if (!source) {
+                    alert(`템플릿 의뢰 #${SOURCE_REQ}를 찾을 수 없습니다. Firebase에 해당 의뢰가 있는지 확인해주세요.`);
+                    return;
+                }
+
+                let created = 0;
+                let skipped = 0;
+                const createdList = [];
+
+                for (const row of BULK_REQUEST_SEED_SCHEDULE) {
+                    let daySeq = 0;
+                    for (const userName of row.names) {
+                        daySeq++;
+                        const reqNum = buildSeedReqNum(row.date, daySeq);
+                        const reqKey = normalizeReqNumKey(reqNum);
+                        if (existingNums.has(reqKey)) {
+                            skipped++;
+                            continue;
+                        }
+                        const newId = await duplicateRequestWithMeta(source, {
+                            userName,
+                            dateStr: row.date,
+                            reqNum
+                        });
+                        if (newId) {
+                            created++;
+                            existingNums.add(reqKey);
+                            createdList.push(`${row.date} ${userName} → #${reqNum}`);
+                        }
+                    }
+                }
+
+                alert(`일괄 추가 완료\n\n추가: ${created}건\n건너뜀: ${skipped}건\n\n${createdList.slice(0, 8).join('\n')}${createdList.length > 8 ? '\n...' : ''}`);
+                await renderRequestList();
+            } catch (error) {
+                console.error('일괄 의뢰 추가 실패:', error);
+                alert('일괄 추가 실패: ' + (error.message || error));
+            }
+        };
         
         // Firebase에서 문의 데이터 수정
         async function updateInquiryInFirebase(inquiryId, updateData) {
@@ -3239,7 +3397,7 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             for (let i = 0; i < dateStr.length; i++) {
                 h = (h * 31 + dateStr.charCodeAt(i)) | 0;
             }
-            return 0.92 + (Math.abs(h) % 17) / 100;
+            return 0.94 + (Math.abs(h) % 13) / 100;
         }
 
         function getVisitorBackfillEndStr() {
@@ -4372,6 +4530,9 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                     <div class="flex justify-between items-center mb-6">
                         <h2 class="text-2xl font-bold text-gray-800">📋 의뢰 관리</h2>
                         <div class="flex gap-2">
+                            <button onclick="bulkSeedRequestsFromPH20260505345()" class="px-4 py-2 bg-amber-600 text-white rounded-lg font-semibold hover:bg-amber-700 transition" title="PH-20260505345 복제 → 5/7~6/7 의뢰 36건 추가">
+                                📋 5~6월 의뢰 일괄 추가
+                            </button>
                             <button onclick="deleteSelectedRequests()" class="px-4 py-2 bg-red-500 text-white rounded-lg font-semibold hover:bg-red-600 transition">
                                 🗑️ 선택 삭제
                             </button>
