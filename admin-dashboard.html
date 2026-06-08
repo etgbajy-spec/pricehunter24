@@ -4879,24 +4879,12 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 <div id="members-section" class="section-content p-8 hidden">
                     <div class="flex justify-between items-center mb-6">
                         <h2 class="text-2xl font-bold text-gray-800">👥 회원 관리</h2>
-                        <div class="flex gap-2">
+                        <div class="flex gap-2 flex-wrap">
+                            <button type="button" onclick="subscribeToUsers()" class="px-4 py-2 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition">
+                                🔄 새로고침
+                            </button>
                             <button type="button" onclick="runBulkMemberSeedFromRequests()" class="px-4 py-2 bg-amber-600 text-white rounded-lg font-semibold hover:bg-amber-700 transition" title="의뢰관리 의뢰자 이름 기준 회원 생성 + 임의 40명">
                                 📋 회원 일괄 생성
-                            </button>
-                            <button onclick="cleanupDuplicateUsers().then(count => { alert(`중복 사용자 ${count}명이 정리되었습니다.`); setTimeout(() => subscribeToUsers(), 1000); })" class="px-4 py-2 bg-red-500 text-white rounded-lg font-semibold hover:bg-red-600 transition">
-                                🧹 중복 사용자 정리
-                            </button>
-                            <button onclick="deleteSpecificUser('email_etgbajy_gmail_com').then(() => recreateCorrectUser())" class="px-4 py-2 bg-purple-500 text-white rounded-lg font-semibold hover:bg-purple-600 transition">
-                                🗑️ 잘못된 문서 삭제 후 올바른 문서 생성
-                            </button>
-                            <button onclick="loadLocalStorageUsers()" class="px-4 py-2 bg-orange-500 text-white rounded-lg font-semibold hover:bg-orange-600 transition">
-                                🔄 localStorage 새로고침
-                            </button>
-                            <button onclick="goToPage('index.html')" class="px-4 py-2 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition">
-                                🏠 메인페이지로
-                            </button>
-                            <button onclick="goToPage('member-dashboard.html')" class="px-4 py-2 bg-green-500 text-white rounded-lg font-semibold hover:bg-green-600 transition">
-                                👤 회원대시보드로
                             </button>
                         </div>
                     </div>
