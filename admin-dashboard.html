@@ -1869,6 +1869,268 @@
                 alert('의뢰 일괄 추가 중 오류: ' + (error.message || error));
             }
         };
+
+        const MEMBER_SEED_START = '2026-01-01';
+        const MEMBER_SEED_END = '2026-06-06';
+        const MEMBER_SEED_EXTRA_COUNT = 40;
+
+        const MEMBER_SEED_EXTRA_NAMES = [
+            '김민준', '이서윤', '박지훈', '최유나', '정하은', '강도윤', '조은서', '윤태민',
+            '장서준', '임채원', '한지안', '오승우', '신다은', '권현우', '황수빈', '서민재',
+            '안소율', '배준영', '홍예린', '노시우', '문가은', '양태양', '구민서', '남지원',
+            '류하준', '진서현', '차우진', '표나연', '선도현', '설지우', '변민호', '석하람',
+            '탁서진', '팽유진', '길도훈', '예채은', '도시온', '마준서', '방하연', '제갈민석'
+        ];
+
+        function normalizeMemberName(value) {
+            return (value || '').toString().trim().replace(/\s+/g, '');
+        }
+
+        function normalizeMemberEmail(value) {
+            return (value || '').toString().trim().toLowerCase();
+        }
+
+        function normalizeMemberPhone(value) {
+            return (value || '').toString().replace(/[^\d]/g, '');
+        }
+
+        function memberSeedHash(str) {
+            let h = 0;
+            for (let i = 0; i < str.length; i++) {
+                h = (h * 31 + str.charCodeAt(i)) | 0;
+            }
+            return Math.abs(h);
+        }
+
+        function formatDateYmd(date) {
+            return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+        }
+
+        function parseDateYmd(dateStr) {
+            const parts = dateStr.split('-').map(Number);
+            if (parts.length !== 3 || parts.some((n) => isNaN(n))) return null;
+            return new Date(parts[0], parts[1] - 1, parts[2], 12, 0, 0, 0);
+        }
+
+        function clampMemberJoinDate(date) {
+            const start = parseDateYmd(MEMBER_SEED_START);
+            const end = parseDateYmd(MEMBER_SEED_END);
+            if (!start || !end || !date || isNaN(date.getTime())) return end || new Date();
+            if (date < start) return start;
+            if (date > end) return end;
+            return date;
+        }
+
+        function joinDateFromRequestDate(requestDateStr, nameKey) {
+            const base = parseDateYmd(requestDateStr);
+            if (!base) return parseDateYmd(MEMBER_SEED_END);
+            const offset = (memberSeedHash(nameKey) % 5) + 1;
+            const join = new Date(base);
+            join.setDate(join.getDate() - offset);
+            return clampMemberJoinDate(join);
+        }
+
+        function buildExtraMemberJoinDates(count) {
+            const start = parseDateYmd(MEMBER_SEED_START);
+            const end = parseDateYmd(MEMBER_SEED_END);
+            const totalDays = Math.round((end - start) / 86400000);
+            const dates = [];
+            for (let i = 0; i < count; i++) {
+                const ratio = count <= 1 ? 0 : i / (count - 1);
+                const dayOffset = Math.round(totalDays * ratio);
+                const d = new Date(start);
+                d.setDate(d.getDate() + dayOffset);
+                if (i % 4 === 0 && dayOffset > 2) d.setDate(d.getDate() - 1);
+                dates.push(clampMemberJoinDate(d));
+            }
+            return dates;
+        }
+
+        function buildMemberSeedEmail(name, tag, index) {
+            const compact = tag.replace(/-/g, '');
+            const slug = normalizeMemberName(name).slice(0, 6) || 'user';
+            return `ph.${compact}.${String(index).padStart(2, '0')}.${slug}@seed.pricehunter.local`;
+        }
+
+        function buildMemberSeedPhone(seedKey, usedPhones) {
+            const h = memberSeedHash(seedKey);
+            const mid = String(h % 10000).padStart(4, '0');
+            let last = String(Math.floor(h / 97) % 10000).padStart(4, '0');
+            let phone = `010-${mid}-${last}`;
+            let bump = 0;
+            while (usedPhones.has(normalizeMemberPhone(phone)) && bump < 200) {
+                bump++;
+                last = String((Number(last) + 7) % 10000).padStart(4, '0');
+                phone = `010-${mid}-${last}`;
+            }
+            return phone;
+        }
+
+        function collectMemberCandidatesFromRequests(requests) {
+            const byName = new Map();
+            requests.forEach((request) => {
+                const name = (request.userName || request.name || '').toString().trim();
+                if (!name || name === '이름 없음') return;
+
+                const reqDate = parseAdminListDate(getRequestListDate(request));
+                if (!reqDate || isNaN(reqDate.getTime())) return;
+
+                const dateStr = formatDateYmd(reqDate);
+                if (dateStr > MEMBER_SEED_END) return;
+
+                const key = normalizeMemberName(name);
+                const prev = byName.get(key);
+                if (!prev || dateStr < prev.requestDateStr) {
+                    byName.set(key, { name, requestDateStr: dateStr, source: 'request' });
+                }
+            });
+            return Array.from(byName.values());
+        }
+
+        function buildExistingMemberSets(users) {
+            const names = new Set();
+            const emails = new Set();
+            const phones = new Set();
+            users.forEach((user) => {
+                const n1 = normalizeMemberName(user.name);
+                const n2 = normalizeMemberName(user.displayName);
+                if (n1) names.add(n1);
+                if (n2) names.add(n2);
+                const em = normalizeMemberEmail(user.email);
+                if (em) emails.add(em);
+                const ph = normalizeMemberPhone(user.phone);
+                if (ph) phones.add(ph);
+            });
+            return { names, emails, phones };
+        }
+
+        async function createSeedMemberInFirebase(memberData) {
+            const { collection, addDoc, Timestamp } = window.firebaseFirestoreFunctions;
+            const db = window.firebaseDb;
+            const joinDate = memberData.joinDate instanceof Date ? memberData.joinDate : new Date(memberData.joinDate);
+            const uid = `seed_${Date.now()}_${memberSeedHash(memberData.email).toString(36)}`;
+
+            const payload = {
+                uid,
+                email: memberData.email,
+                name: memberData.name,
+                displayName: memberData.name,
+                phone: memberData.phone,
+                loginMethod: 'email',
+                isActive: true,
+                seeded: true,
+                seedSource: memberData.source || 'manual',
+                agreeTerms: true,
+                agreePrivacy: true,
+                agreeMarketing: false,
+                loginCount: 0,
+                createdAt: Timestamp.fromDate(joinDate),
+                updatedAt: Timestamp.fromDate(joinDate),
+                lastLogin: Timestamp.fromDate(joinDate)
+            };
+
+            const docRef = await addDoc(collection(db, 'users'), payload);
+            return docRef.id;
+        }
+
+        window.runBulkMemberSeedFromRequests = async function() {
+            if (!confirm('의뢰관리 의뢰자 이름을 기준으로 회원 데이터를 생성합니다.\n\n· 기존 회원과 이름/이메일/전화번호가 겹치면 제외\n· 가입일: 의뢰일 기준 1~5일 전 (2026-01-01~06-06)\n· 임의 회원 40명 추가 (이메일·전화번호는 임시)\n\n계속할까요?')) {
+                return;
+            }
+
+            try {
+                await waitForFirebase();
+                const [requests, users] = await Promise.all([
+                    getRequestsFromFirebase(),
+                    getUsersFromFirebase()
+                ]);
+
+                const existing = buildExistingMemberSets(users);
+                const usedEmails = new Set(existing.emails);
+                const usedPhones = new Set(existing.phones);
+                const usedNames = new Set(existing.names);
+
+                const requestCandidates = collectMemberCandidatesFromRequests(requests);
+                const extraDates = buildExtraMemberJoinDates(MEMBER_SEED_EXTRA_COUNT);
+
+                const queue = [];
+
+                requestCandidates.forEach((item, idx) => {
+                    const nameKey = normalizeMemberName(item.name);
+                    if (!nameKey || usedNames.has(nameKey)) return;
+                    const joinDate = joinDateFromRequestDate(item.requestDateStr, nameKey);
+                    const tag = formatDateYmd(joinDate);
+                    const email = buildMemberSeedEmail(item.name, tag, idx + 1);
+                    const emailKey = normalizeMemberEmail(email);
+                    if (usedEmails.has(emailKey)) return;
+                    const phone = buildMemberSeedPhone(`${nameKey}_${tag}`, usedPhones);
+                    const phoneKey = normalizeMemberPhone(phone);
+                    queue.push({
+                        name: item.name,
+                        email,
+                        phone,
+                        joinDate,
+                        source: 'request'
+                    });
+                    usedNames.add(nameKey);
+                    usedEmails.add(emailKey);
+                    usedPhones.add(phoneKey);
+                });
+
+                MEMBER_SEED_EXTRA_NAMES.forEach((name, idx) => {
+                    const nameKey = normalizeMemberName(name);
+                    if (!nameKey || usedNames.has(nameKey)) return;
+                    const joinDate = extraDates[idx % extraDates.length];
+                    const tag = formatDateYmd(joinDate);
+                    const email = buildMemberSeedEmail(name, `extra-${tag}`, idx + 1);
+                    const emailKey = normalizeMemberEmail(email);
+                    if (usedEmails.has(emailKey)) return;
+                    const phone = buildMemberSeedPhone(`extra_${nameKey}_${idx}`, usedPhones);
+                    const phoneKey = normalizeMemberPhone(phone);
+                    queue.push({
+                        name,
+                        email,
+                        phone,
+                        joinDate,
+                        source: 'extra'
+                    });
+                    usedNames.add(nameKey);
+                    usedEmails.add(emailKey);
+                    usedPhones.add(phoneKey);
+                });
+
+                let createdCount = 0;
+                let failedCount = 0;
+
+                for (const item of queue) {
+                    try {
+                        const id = await createSeedMemberInFirebase(item);
+                        if (id) createdCount++;
+                        else failedCount++;
+                    } catch (e) {
+                        console.warn('회원 생성 실패:', item.name, e);
+                        failedCount++;
+                    }
+                }
+
+                const skippedCount = requestCandidates.length + MEMBER_SEED_EXTRA_COUNT - queue.length;
+                alert(
+                    `회원 일괄 생성 완료\n\n` +
+                    `추가: ${createdCount}명\n` +
+                    `건너뜀(중복): ${Math.max(0, skippedCount)}명\n` +
+                    `실패: ${failedCount}명\n\n` +
+                    `의뢰 기반: ${requestCandidates.length}명 후보\n` +
+                    `임의 추가: 최대 ${MEMBER_SEED_EXTRA_COUNT}명`
+                );
+
+                if (typeof subscribeToUsers === 'function') {
+                    subscribeToUsers();
+                }
+            } catch (error) {
+                console.error('회원 일괄 생성 실패:', error);
+                alert('회원 일괄 생성 중 오류: ' + (error.message || error));
+            }
+        };
         
         // Firebase에서 문의 데이터 수정
         async function updateInquiryInFirebase(inquiryId, updateData) {
@@ -4618,6 +4880,9 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                     <div class="flex justify-between items-center mb-6">
                         <h2 class="text-2xl font-bold text-gray-800">👥 회원 관리</h2>
                         <div class="flex gap-2">
+                            <button type="button" onclick="runBulkMemberSeedFromRequests()" class="px-4 py-2 bg-amber-600 text-white rounded-lg font-semibold hover:bg-amber-700 transition" title="의뢰관리 의뢰자 이름 기준 회원 생성 + 임의 40명">
+                                📋 회원 일괄 생성
+                            </button>
                             <button onclick="cleanupDuplicateUsers().then(count => { alert(`중복 사용자 ${count}명이 정리되었습니다.`); setTimeout(() => subscribeToUsers(), 1000); })" class="px-4 py-2 bg-red-500 text-white rounded-lg font-semibold hover:bg-red-600 transition">
                                 🧹 중복 사용자 정리
                             </button>
