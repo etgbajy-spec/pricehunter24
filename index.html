@@ -839,6 +839,11 @@
         animation-delay: 0.2s;
         opacity: 1 !important;
         visibility: visible !important;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
       }
       
       .hero-stats-card-2 {
@@ -846,6 +851,68 @@
         animation-delay: 0.3s;
         opacity: 1 !important;
         visibility: visible !important;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+      }
+
+      .hero-stat-inner {
+        position: relative;
+        z-index: 10;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        text-align: center;
+      }
+
+      .hero-stat-value-row {
+        display: inline-flex;
+        flex-wrap: nowrap;
+        align-items: baseline;
+        justify-content: center;
+        white-space: nowrap;
+        max-width: 100%;
+        gap: 0.15em;
+        margin-bottom: 0.5rem;
+      }
+
+      .hero-stat-number {
+        font-family: 'Noto Sans KR', sans-serif;
+        font-weight: 900;
+        font-variant-numeric: tabular-nums;
+        letter-spacing: -0.02em;
+        line-height: 1.1;
+        font-size: clamp(1.5rem, 5vw, 3.5rem);
+        flex-shrink: 1;
+        min-width: 0;
+      }
+
+      .hero-stat-number--savings {
+        font-size: clamp(1.125rem, 4.2vw, 3.25rem);
+      }
+
+      .hero-stat-unit {
+        font-family: 'Noto Sans KR', sans-serif;
+        font-weight: 700;
+        line-height: 1;
+        flex-shrink: 0;
+        font-size: clamp(0.875rem, 2.2vw, 1.5rem);
+        opacity: 0.92;
+      }
+
+      .hero-stat-label {
+        font-family: 'Noto Sans KR', sans-serif;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        font-size: clamp(0.875rem, 2vw, 1.125rem);
+        color: #fff;
+        width: 100%;
+        text-align: center;
       }
       
       /* 통계 카드 내부 요소가 항상 보이도록 */
@@ -1766,6 +1833,18 @@
         .hero-stats-card-2 {
           padding: 1.5rem !important;
         }
+
+        .hero-stat-number {
+          font-size: clamp(1.125rem, 6vw, 2rem) !important;
+        }
+
+        .hero-stat-number--savings {
+          font-size: clamp(0.95rem, 5vw, 1.75rem) !important;
+        }
+
+        .hero-stat-unit {
+          font-size: clamp(0.75rem, 3.5vw, 1.125rem) !important;
+        }
         
         .hero-stats-card-1 .text-5xl,
         .hero-stats-card-2 .text-5xl {
@@ -2586,6 +2665,14 @@
         }
       }
 
+      if (!window.__heroStatFitResizeBound) {
+        window.__heroStatFitResizeBound = true;
+        window.addEventListener('resize', () => {
+          fitHeroStatNumber(document.getElementById('hero-total-savings'));
+          fitHeroStatNumber(document.getElementById('hero-total-requests'));
+        });
+      }
+
       // 최근 절약 사례 업데이트
       function updateHeroRecentSavings(recentSavings) {
         const cardsContainer = document.getElementById('hero-savings-cards');
@@ -2693,6 +2780,23 @@
         }).join('');
       }
 
+      // 숫자가 카드 폭을 넘으면 글자 크기 자동 축소
+      function fitHeroStatNumber(element) {
+        if (!element) return;
+        const row = element.closest('.hero-stat-value-row');
+        if (!row) return;
+        element.style.fontSize = '';
+        const computed = window.getComputedStyle(element);
+        let sizePx = parseFloat(computed.fontSize) || 24;
+        const minPx = element.classList.contains('hero-stat-number--savings') ? 11 : 14;
+        let guard = 0;
+        while (row.scrollWidth > row.clientWidth && sizePx > minPx && guard < 40) {
+          sizePx -= 1;
+          element.style.fontSize = sizePx + 'px';
+          guard++;
+        }
+      }
+
       // 숫자 카운트 애니메이션
       function animateNumber(element, start, end, duration, formattedValue = null) {
         const startTime = performance.now();
@@ -2726,6 +2830,7 @@
             } else {
               element.textContent = end.toLocaleString('ko-KR');
             }
+            fitHeroStatNumber(element);
             // 애니메이션 완료 후 클래스 제거 (다시 애니메이션 가능하도록)
             setTimeout(() => {
               element.classList.remove('hero-number-count');
@@ -3765,11 +3870,11 @@
           <!-- 누적 절약금액 - 강조 -->
           <div class="hero-stats-card-1 hero-stats-pulse-emerald group relative bg-white/12 backdrop-blur-xl rounded-2xl sm:rounded-3xl p-6 sm:p-8 md:p-10 lg:p-12 border-2 border-emerald-400/50 shadow-[0_12px_48px_0_rgba(16,185,129,0.4)] hover:bg-white/18 hover:border-emerald-400/70 hover:shadow-[0_20px_80px_0_rgba(16,185,129,0.5)] transition-all duration-500 hover:-translate-y-2" style="opacity: 1 !important; visibility: visible !important;">
             <div class="absolute inset-0 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-emerald-400/20 via-emerald-300/12 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-            <div class="relative z-10">
-              <div class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold mb-2 sm:mb-4 tracking-tight" style="font-family: 'Noto Sans KR', sans-serif; font-weight: 900; color: #10B981; visibility: visible !important;">
-                <span id="hero-total-savings" class="inline-block hero-number-count" style="display: inline-block; color: #10B981; visibility: visible !important; opacity: 1 !important;">0</span><span class="text-xl sm:text-2xl md:text-3xl" style="color: #10B981; opacity: 0.9; visibility: visible !important;">원</span>
+            <div class="hero-stat-inner">
+              <div class="hero-stat-value-row sm:mb-4">
+                <span id="hero-total-savings" class="hero-stat-number hero-stat-number--savings hero-number-count" style="color: #10B981;">0</span><span class="hero-stat-unit" style="color: #10B981;">원</span>
               </div>
-              <div class="text-sm sm:text-base md:text-lg text-white font-semibold tracking-wide" style="font-family: 'Noto Sans KR', sans-serif; font-weight: 600; letter-spacing: 0.05em; text-shadow: 0 2px 8px rgba(0,0,0,0.3);">
+              <div class="hero-stat-label">
                 누적 절약금액
               </div>
             </div>
@@ -3778,11 +3883,11 @@
           <!-- 누적 의뢰건수 - 강조 -->
           <div class="hero-stats-card-2 hero-stats-pulse-blue group relative bg-white/12 backdrop-blur-xl rounded-2xl sm:rounded-3xl p-6 sm:p-8 md:p-10 lg:p-12 border-2 border-blue-400/50 shadow-[0_12px_48px_0_rgba(59,130,246,0.4)] hover:bg-white/18 hover:border-blue-400/70 hover:shadow-[0_20px_80px_0_rgba(59,130,246,0.5)] transition-all duration-500 hover:-translate-y-2" style="opacity: 1 !important; visibility: visible !important;">
             <div class="absolute inset-0 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-blue-400/20 via-blue-300/12 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-            <div class="relative z-10">
-              <div class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold mb-2 sm:mb-4 tracking-tight" style="font-family: 'Noto Sans KR', sans-serif; font-weight: 900; color: #3B82F6; visibility: visible !important;">
-                <span id="hero-total-requests" class="inline-block hero-number-count" style="display: inline-block; color: #3B82F6; visibility: visible !important; opacity: 1 !important;">0</span><span class="text-xl sm:text-2xl md:text-3xl" style="color: #3B82F6; opacity: 0.9; visibility: visible !important;">건</span>
+            <div class="hero-stat-inner">
+              <div class="hero-stat-value-row sm:mb-4">
+                <span id="hero-total-requests" class="hero-stat-number hero-number-count" style="color: #3B82F6;">0</span><span class="hero-stat-unit" style="color: #3B82F6;">건</span>
               </div>
-              <div class="text-sm sm:text-base md:text-lg text-white font-semibold tracking-wide" style="font-family: 'Noto Sans KR', sans-serif; font-weight: 600; letter-spacing: 0.05em; text-shadow: 0 2px 8px rgba(0,0,0,0.3);">
+              <div class="hero-stat-label">
                 누적 의뢰건수
               </div>
             </div>
