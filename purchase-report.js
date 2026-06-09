@@ -219,9 +219,11 @@
   function getVerdictHeroCopy(verdict, savings, lowest, requested) {
     if (verdict === 'buy') {
       return {
-        headline: savings > 0 ? '지금 구매하시면 ' + savings.toLocaleString() + '원 절약 가능' : '지금 구매하셔도 좋습니다',
-        sub: 'PriceHunter 검증팀이 확인한 최저가입니다. 직접 비교하실 필요 없이 아래 링크로 구매하시면 됩니다.',
-        verdictIntro: 'PriceHunter 최종 판단'
+        headline: savings > 0
+          ? savings.toLocaleString() + '원 더 낮은 조건 확인'
+          : '구매 검토 가능한 조건이 확인되었습니다',
+        sub: 'PriceHunter 검증팀이 확인한 최저가입니다. 아래 리포트의 가격·제품·판매처 항목을 확인한 뒤 구매를 검토해 주세요.',
+        verdictIntro: 'PriceHunter 구매 조건 검토 결과'
       };
     }
     if (verdict === 'hold') {
@@ -231,20 +233,20 @@
         sub: samePrice
           ? '지금 시점의 최저가는 의뢰하신 가격과 같습니다. 추가 할인·프로모션이 나올 때까지 기다리시는 편이 유리할 수 있습니다.'
           : '가격 변동 가능성이 있어 당장 구매보다 관망이 유리합니다. PriceHunter가 시장을 계속 모니터링했습니다.',
-        verdictIntro: 'PriceHunter 타이밍 분석'
+        verdictIntro: 'PriceHunter 구매 조건 검토 결과'
       };
     }
     if (verdict === 'skip') {
       return {
         headline: '지금은 구매를 권장하지 않습니다',
-        sub: '가격 대비 만족도 또는 대안 제품 측면에서 더 나은 선택이 있을 수 있습니다.',
-        verdictIntro: 'PriceHunter 최종 판단'
+        sub: '가격 대비 만족도 또는 대안 제품 측면에서 더 나은 선택이 있을 수 있습니다. 아래 리포트에서 확인이 필요한 조건을 검토해 주세요.',
+        verdictIntro: 'PriceHunter 구매 조건 검토 결과'
       };
     }
     return {
       headline: lowest ? '검증팀이 확인한 최저가 ' + formatPrice(lowest) : '검증이 완료되었습니다',
-      sub: '아래 상세 리포트와 구매 방법을 확인해 주세요.',
-      verdictIntro: 'PriceHunter 검증 결과'
+      sub: '아래 리포트에서 가격·제품·판매처 조건을 확인한 뒤 구매 방법을 선택해 주세요.',
+      verdictIntro: 'PriceHunter 구매 조건 검토 결과'
     };
   }
 
@@ -307,24 +309,24 @@
 
     html += '<div class="ph-purchase-actions mt-8 pt-6 border-t border-gray-200">';
     html += '<h3 class="text-lg font-bold text-gray-900 text-center mb-1">다음 단계 — 구매 방법</h3>';
-    html += '<p class="text-sm text-gray-500 text-center mb-5">PriceHunter 검증 결과를 바탕으로 선택해 주세요</p>';
+    html += '<p class="text-sm text-gray-500 text-center mb-5">리포트 조건을 확인한 뒤 아래 방법 중 선택해 주세요</p>';
     html += '<div class="grid grid-cols-1 md:grid-cols-2 gap-4">';
 
     html += '<div class="rounded-2xl border-2 border-emerald-200 bg-gradient-to-br from-emerald-50 to-white p-5 flex flex-col h-full shadow-sm">';
     html += '<span class="text-xs font-bold text-emerald-700 mb-2">✨ 추천 · 가장 빠름</span>';
     html += '<div class="text-lg font-bold text-gray-900 mb-2">🛒 검증된 최저가로 구매</div>';
     html += '<ul class="text-sm text-gray-600 space-y-1.5 mb-4 flex-1 list-none pl-0">';
-    html += '<li>✓ PriceHunter가 찾은 판매처로 바로 이동</li>';
+    html += '<li>✓ PriceHunter가 확인한 판매처로 이동</li>';
     html += '<li>✓ 해당 쇼핑몰에서 직접 결제 (수수료 없음)</li>';
-    html += '<li>✓ 가장 빠르고 간단한 방법</li>';
+    html += '<li>✓ 조건 확인 후 가장 빠르게 구매하는 방법</li>';
     html += '</ul>';
     if (variant === 'search') {
       html += hasDirect
-        ? '<button type="button" id="buy-external-btn" onclick="goToExternalPurchase()" class="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow transition">검증 링크로 구매하기 →</button>'
+        ? '<button type="button" id="buy-external-btn" onclick="goToExternalPurchase()" class="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow transition">조건 확인 후 구매 링크 이동 →</button>'
         : '<button type="button" disabled class="w-full py-3 px-4 bg-gray-200 text-gray-500 font-bold rounded-xl cursor-not-allowed">구매 링크 준비 중</button>';
     } else {
       html += hasDirect
-        ? '<a id="btn-direct-buy" href="' + escapeHtml(directLink) + '" target="_blank" rel="noopener noreferrer" class="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow transition text-center block">검증 링크로 구매하기 →</a>'
+        ? '<a id="btn-direct-buy" href="' + escapeHtml(directLink) + '" target="_blank" rel="noopener noreferrer" class="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow transition text-center block">조건 확인 후 구매 링크 이동 →</a>'
         : '<span id="btn-direct-buy" class="w-full py-3 px-4 bg-gray-200 text-gray-500 font-bold rounded-xl text-center block opacity-50">구매 링크 없음</span>';
     }
     html += '</div>';
