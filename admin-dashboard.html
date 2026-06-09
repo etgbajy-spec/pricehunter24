@@ -4768,6 +4768,9 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                             <button onclick="goToPage('result-admin.html')" class="px-4 py-2 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition">
                                 🧠 구매판단 리포트 · AI분석
                             </button>
+                            <button type="button" onclick="cleanupAllRequestDisplayData()" class="px-4 py-2 bg-slate-600 text-white rounded-lg font-semibold hover:bg-slate-700 transition" title="참고 URL 제거 및 추가 정보 문구 통일">
+                                🧹 의뢰 데이터 정리
+                            </button>
                             <button type="button" onclick="runBulkRequestSeedMayJune()" class="px-4 py-2 bg-amber-600 text-white rounded-lg font-semibold hover:bg-amber-700 transition" title="PH-20260505345 템플릿으로 5/7~6/7 의뢰 일괄 추가">
                                 📋 5~6월 의뢰 일괄 추가
                             </button>
@@ -5501,7 +5504,6 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                                 <div><span class="font-semibold text-gray-700">카테고리:</span> <span id="admin-modal-category" class="text-green-600"></span></div>
                                 <div><span class="font-semibold text-gray-700">수량:</span> <span id="admin-modal-quantity" class="text-green-600"></span></div>
                                 <div class="md:col-span-2"><span class="font-semibold text-gray-700">제품 설명:</span> <span id="admin-modal-description" class="text-green-600"></span></div>
-                                <div class="md:col-span-2"><span class="font-semibold text-gray-700">참고 URL:</span> <span id="admin-modal-urls" class="text-green-600"></span></div>
                             </div>
                         </div>
                     </div>
@@ -5738,7 +5740,7 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                                 <!-- 추가 정보 -->
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">📝 추가 정보 및 추천사유</label>
-                                    <textarea id="response-additional-info" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="추가로 알려드릴 정보나 추천 사유를 입력해주세요..."></textarea>
+                                    <textarea id="response-additional-info" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="구매 조건 검토 안내 문구"></textarea>
                                 </div>
 
                                 <!-- 사진 첨부 섹션 -->
@@ -6038,13 +6040,7 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             document.getElementById('admin-modal-model').textContent = request.model || 'N/A';
             document.getElementById('admin-modal-category').textContent = request.category || 'N/A';
             document.getElementById('admin-modal-quantity').textContent = request.quantity || '1';
-            document.getElementById('admin-modal-description').textContent = request.description || request.productDescription || 'N/A';
-            
-            // 참고 URL
-            const urls = request.urls || [];
-            document.getElementById('admin-modal-urls').innerHTML = urls.map(url => 
-                `<a href="${url}" target="_blank" class="text-blue-600 hover:underline break-all">${url}</a>`
-            ).join('<br>') || 'N/A';
+            document.getElementById('admin-modal-description').textContent = stripReferenceUrlLines(request.description || request.productDescription || '') || 'N/A';
 
             // 첨부 이미지
             displayAdminModalImages(request.images || request.attachedImages || []);
@@ -6388,6 +6384,103 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
         let currentRequestId = null;
         let currentInquiryId = null;
 
+        const DEFAULT_RESPONSE_ADDITIONAL_INFO = 'PriceHunter 검증팀이 의뢰하신 제품의 가격과 구매 조건을 검토한 결과입니다.\n\n최저가·제품·배송·판매처·주의사항을 리포트에서 확인하신 뒤 구매를 검토해 주세요. 동일 제품·동일 조건 여부와 배송·구성품은 최종 구매 전 판매처 페이지에서 한 번 더 확인하시는 것을 권장합니다.';
+
+        function stripReferenceUrlLines(text) {
+            if (!text || typeof text !== 'string') return '';
+            return text
+                .split('\n')
+                .filter(function (line) { return !/^\s*참고\s*URL\s*:/i.test(line.trim()); })
+                .join('\n')
+                .replace(/\n{3,}/g, '\n\n')
+                .trim();
+        }
+
+        function buildRequestCleanupUpdates(data) {
+            const updates = {};
+            if (Array.isArray(data.urls) && data.urls.length > 0) updates.urls = [];
+            if (data.url) updates.url = '';
+
+            ['description', 'productDescription'].forEach(function (field) {
+                if (!data[field]) return;
+                const cleaned = stripReferenceUrlLines(data[field]);
+                if (cleaned !== data[field]) updates[field] = cleaned || '—';
+            });
+
+            if (data.adminResponse && typeof data.adminResponse === 'object') {
+                const next = Object.assign({}, data.adminResponse, { additionalInfo: DEFAULT_RESPONSE_ADDITIONAL_INFO });
+                if (JSON.stringify(next) !== JSON.stringify(data.adminResponse)) updates.adminResponse = next;
+            }
+
+            if (data.purchaseReport && typeof data.purchaseReport === 'object') {
+                const pr = Object.assign({}, data.purchaseReport);
+                let prChanged = false;
+                if (pr.evidenceNotes) {
+                    const cleanedNotes = stripReferenceUrlLines(pr.evidenceNotes);
+                    if (cleanedNotes !== pr.evidenceNotes) {
+                        pr.evidenceNotes = cleanedNotes;
+                        prChanged = true;
+                    }
+                }
+                if (prChanged) updates.purchaseReport = pr;
+            }
+
+            return updates;
+        }
+
+        async function cleanupAllRequestDisplayDataViaServer() {
+            const user = window.firebaseAuth?.currentUser;
+            if (!user) throw new Error('관리자 로그인이 필요합니다.');
+            const token = await user.getIdToken(true);
+            const res = await fetch('/.netlify/functions/admin-cleanup-requests', {
+                method: 'POST',
+                headers: {
+                    Authorization: 'Bearer ' + token,
+                    'Content-Type': 'application/json'
+                }
+            });
+            const data = await res.json().catch(function () { return {}; });
+            if (!res.ok) throw new Error(data.error || '서버 정리 실패 (' + res.status + ')');
+            return data;
+        }
+
+        async function cleanupAllRequestDisplayDataClient() {
+            const db = window.firebaseDb;
+            const fns = window.firebaseFirestoreFunctions;
+            const snap = await fns.getDocs(fns.collection(db, 'requests'));
+            let updated = 0;
+            for (const docSnap of snap.docs) {
+                const updates = buildRequestCleanupUpdates(docSnap.data());
+                if (!Object.keys(updates).length) continue;
+                await fns.updateDoc(fns.doc(db, 'requests', docSnap.id), updates);
+                updated += 1;
+            }
+            return { updated: updated, total: snap.size };
+        }
+
+        async function cleanupAllRequestDisplayData() {
+            if (!confirm('모든 의뢰에서 참고 URL을 제거하고, 추가 정보 및 추천사유 문구를 통일합니다.\n\n계속할까요?')) return;
+            const db = window.firebaseDb;
+            const fns = window.firebaseFirestoreFunctions;
+            if (!db || !fns || !fns.collection || !fns.getDocs || !fns.doc || !fns.updateDoc) {
+                alert('Firebase가 준비되지 않았습니다.');
+                return;
+            }
+            try {
+                let result;
+                try {
+                    result = await cleanupAllRequestDisplayDataViaServer();
+                } catch (serverErr) {
+                    console.warn('서버 정리 실패, 클라이언트로 재시도:', serverErr);
+                    result = await cleanupAllRequestDisplayDataClient();
+                }
+                alert('정리 완료: ' + result.updated + '건 업데이트 (전체 ' + result.total + '건)');
+            } catch (err) {
+                console.error('의뢰 데이터 정리 실패:', err);
+                alert('정리 실패: ' + (err.message || err));
+            }
+        }
+
         // 기존 답변을 폼에 채우기
         function loadExistingResponseToForm(request) {
             // 기존 답변이 있는지 확인
@@ -6401,7 +6494,7 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 document.getElementById('response-shipping-cost').value = response.shippingCost || '';
                 document.getElementById('response-shipping-time').value = response.shippingTime || '';
                 document.getElementById('response-total-cost').value = response.totalCost || '';
-                document.getElementById('response-additional-info').value = response.additionalInfo || '';
+                document.getElementById('response-additional-info').value = response.additionalInfo || DEFAULT_RESPONSE_ADDITIONAL_INFO;
                 
                 console.log('✅ 기존 답변 데이터를 폼에 로드했습니다:', response);
             } else {
@@ -6533,7 +6626,7 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             document.getElementById('response-shipping-cost').value = '';
             document.getElementById('response-shipping-time').value = '';
             document.getElementById('response-total-cost').value = '';
-            document.getElementById('response-additional-info').value = '';
+            document.getElementById('response-additional-info').value = DEFAULT_RESPONSE_ADDITIONAL_INFO;
             const imageInput = document.getElementById('response-images-input');
             if (imageInput) {
                 imageInput.value = '';
@@ -6615,7 +6708,7 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 shippingCost: document.getElementById('response-shipping-cost')?.value.trim() || '',
                 shippingTime: document.getElementById('response-shipping-time')?.value.trim() || '',
                 totalCost: document.getElementById('response-total-cost')?.value.trim() || '',
-                additionalInfo: document.getElementById('response-additional-info')?.value.trim() || ''
+                additionalInfo: document.getElementById('response-additional-info')?.value.trim() || DEFAULT_RESPONSE_ADDITIONAL_INFO
             };
             
             // answerImages가 있을 때만 추가 (undefined 방지)

@@ -113,7 +113,6 @@
       ctx.lowestPrice ? '확인된 최저가: ' + formatPriceKr(ctx.lowestPrice) : '',
       ctx.requestedPrice ? '의뢰가: ' + formatPriceKr(ctx.requestedPrice) : '',
       ctx.sellerName ? '추천 판매처: ' + ctx.sellerName.replace(/ \/ PriceHunter.*/, '') : '',
-      ctx.referenceUrl ? '참고 URL: ' + ctx.referenceUrl : '',
       ctx.priceSummary && !/^수집 요약:/.test(ctx.priceSummary) ? ctx.priceSummary : ''
     ].filter(Boolean);
     return lines.join('\n');

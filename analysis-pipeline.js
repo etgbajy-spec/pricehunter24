@@ -182,7 +182,7 @@ async function collectPrices(requestData) {
 function buildPriceCollectionSummary(ctx) {
   const parts = [];
   if (ctx.requestedPrice) parts.push(`의뢰가 ${formatPriceKr(ctx.requestedPrice)}`);
-  if (ctx.referencePrice) parts.push(`참고 URL 감지가 ${formatPriceKr(ctx.referencePrice)}`);
+  if (ctx.referencePrice) parts.push(`참고가 ${formatPriceKr(ctx.referencePrice)}`);
   if (ctx.lowest) parts.push(`수집 최저 ${formatPriceKr(ctx.lowest)}`);
   if (ctx.marketplace?.name) parts.push(`판매처 추정: ${ctx.marketplace.name}`);
   return parts.join(' · ') || '가격 데이터 수집됨 (수동 보완 필요)';

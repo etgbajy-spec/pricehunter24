@@ -3494,6 +3494,16 @@
 
   <!-- 의뢰 상세보기 모달 관련 함수들 -->
   <script>
+    function stripReferenceUrlLines(text) {
+      if (!text || typeof text !== 'string') return '';
+      return text
+        .split('\n')
+        .filter(function (line) { return !/^\s*참고\s*URL\s*:/i.test(line.trim()); })
+        .join('\n')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+    }
+
     // 의뢰 상세보기 모달 표시
     function showRequestDetailModal(request) {
       console.log('의뢰 상세보기 모달 표시:', request);
@@ -3580,7 +3590,7 @@
       document.getElementById('modal-model').textContent = request.model || 'N/A';
       document.getElementById('modal-category').textContent = request.category || 'N/A';
       document.getElementById('modal-quantity').textContent = request.quantity || '1';
-      document.getElementById('modal-description').textContent = request.description || request.productDescription || 'N/A';
+      document.getElementById('modal-description').textContent = stripReferenceUrlLines(request.description || request.productDescription || '') || 'N/A';
 
       // 첨부 이미지
       displayModalImages(request.images || request.attachedImages || []);
