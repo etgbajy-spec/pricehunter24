@@ -347,7 +347,7 @@
       <div class="flex items-center">
         <div class="flex flex-col items-center">
           <div class="w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center font-bold text-white stepper-dot stepper-dot-animate text-lg md:text-xl" id="step-1-dot">1</div>
-          <div class="text-sm mt-2 font-medium text-gray-700">제품 정보 & 참고자료</div>
+          <div class="text-sm mt-2 font-medium text-gray-700">상품 링크 & 정보</div>
         </div>
         <div class="w-24 md:w-32 h-1 bg-gradient-to-r from-blue-300 to-pink-300 mx-4"></div>
         <div class="flex flex-col items-center">
@@ -358,136 +358,129 @@
     </div>
     
     <form id="step-form">
-      <!-- Step 1: 제품정보 + 참고자료 통합 -->
+      <!-- Step 1: 간편 의뢰 -->
       <div class="step step-1-theme" id="step-1">
-        <!-- 헤더 섹션 -->
-        <div class="mb-6 p-4 rounded-xl bg-blue-50 border border-blue-200 text-blue-800 text-center shadow-sm">
-          <div class="text-lg font-bold mb-2">📝 제품 정보를 상세히 입력해주세요</div>
-          <div class="text-sm text-blue-700">
-            가격과 구매 조건을 함께 검토해 드립니다. 배송·구성품·판매처도 확인합니다.
-          </div>
-          <div class="mt-3">
-            <a href="support.html#faq" class="inline-block px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors">
-              📋 구매전필독사항 보기
+        <!-- 간편 의뢰 안내 -->
+        <div class="mb-6 p-5 sm:p-6 rounded-xl bg-gradient-to-br from-emerald-50 via-white to-blue-50 border border-emerald-200 shadow-sm">
+          <h3 class="text-lg sm:text-xl font-bold text-gray-800 mb-4 text-center leading-snug">
+            프라이스헌터 구매 검토는<br class="sm:hidden"> 어렵게 작성할 필요가 없습니다
+          </h3>
+          <ul class="space-y-2 text-sm text-gray-600 max-w-lg mx-auto">
+            <li class="flex items-start gap-2">
+              <span class="text-emerald-500 mt-0.5">✓</span>
+              <span>긴 상품 소개 대신, 꼭 필요한 조건만 짧게 적어주시면 됩니다</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <span class="text-emerald-500 mt-0.5">✓</span>
+              <span>비교할 상품을 여러 개 찾아오지 않아도 됩니다</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <span class="text-emerald-500 mt-0.5">✓</span>
+              <span>모델명이나 세부 스펙을 처음부터 완벽하게 정리하지 않아도 됩니다</span>
+            </li>
+          </ul>
+          <p class="mt-5 text-center text-base font-bold text-emerald-700">
+            가장 기본은 <span class="underline decoration-2 underline-offset-4">상품 링크 하나</span>입니다
+          </p>
+          <div class="mt-4 text-center">
+            <a href="support.html#faq" class="inline-block px-4 py-2 bg-white text-blue-700 text-sm rounded-lg border border-blue-200 hover:bg-blue-50 transition-colors">
+              구매전 필독사항 보기
             </a>
           </div>
         </div>
 
-        <!-- 제품 기본 정보 -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          <div class="space-y-4">
-            <div>
-              <label class="block text-gray-700 font-semibold mb-2" for="productName">
-                제품명 <span class="text-red-500">*</span>
-              </label>
-              <input type="text" id="productName" required 
-                     class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none transition input-animate" 
-                     placeholder="예: 캠핑용 접이식 의자, 책상, 옷장 등" />
-              <div class="text-xs text-gray-500 mt-1">
-                💡 구체적인 제품명을 입력하면 더 정확한 검증이 가능합니다
-              </div>
-            </div>
-            
-            <div>
-              <label class="block text-gray-700 font-semibold mb-2" for="productPrice">
-                의뢰하신 제품의 가격 <span class="text-red-500">*</span>
-              </label>
-              <input type="number" id="productPrice" min="1000" step="1" required
-                     class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none transition input-animate" 
-                     placeholder="예: 50000" />
-              <div class="text-xs text-gray-500 mt-1">
-                💡 최소 1,000원 이상 입력해주세요
-              </div>
-            </div>
-          </div>
-          
-          <div>
-            <label class="block text-gray-700 font-semibold mb-2" for="productDesc">
-              제품 상세 설명 <span class="text-red-500">*</span>
-            </label>
-            <textarea id="productDesc" required rows="6"
-                      class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none transition input-animate" 
-                      placeholder="예: 4인용, 방수천, 등받이 조절 가능, 접이식, 휴대용, 최대 하중 120kg, 색상: 네이비"></textarea>
-            <div class="text-xs text-gray-500 mt-1">
-              💡 크기, 재질, 색상, 기능 등 구체적인 특징을 입력해주세요
-            </div>
-          </div>
-        </div>
-
-        <!-- 브랜드 제품 안내 (고객 친화적) -->
-        <div class="bg-gradient-to-br from-purple-50 to-pink-50 p-5 rounded-xl mb-6 border-2 border-purple-200 shadow-sm">
-          <div class="flex items-start gap-3">
-            <div class="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center shadow-md">
-              <span class="text-xl">💝</span>
-            </div>
-            <div class="flex-1">
-              <div class="font-bold text-purple-800 mb-2 text-base">구매판단 리포트 서비스</div>
-              <div class="text-sm text-gray-700 leading-relaxed mb-2">
-                PriceHunter는 최저가 검증과 함께 <strong>구매판단 리포트</strong>를 제공합니다. 가격·제품·판매처를 종합 분석해 구매 여부를 판단해 드립니다.
-              </div>
-              <div class="bg-white/80 backdrop-blur-sm p-3 rounded-lg border border-purple-200 mt-3">
-                <div class="flex items-start gap-2">
-                  <svg class="w-4 h-4 text-purple-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                  </svg>
-                  <p class="text-xs text-purple-700 leading-relaxed">
-                    <span class="font-semibold">의뢰 가능:</span> 모든 카테고리 (생활용품, 가전, IT, 패션, 스포츠, 가구 등) · <span class="font-semibold text-pink-700">제외:</span> 명품백, 명품시계, 명품 주얼리 등 명품류
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 참고자료 섹션 -->
-        <div class="bg-emerald-50 p-4 rounded-lg mb-6 border border-emerald-200">
-          <div class="text-emerald-800 font-semibold mb-3">🔗 참고자료 (선택사항이지만 권장)</div>
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <div>
-              <label class="block text-gray-700 font-semibold mb-2" for="productUrl">
-                참고사이트 링크 <span class="text-red-500">*</span>
-              </label>
-              <input type="text" id="productUrl" required
-                     class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-emerald-400 focus:outline-none transition input-animate" 
-                     placeholder="예: https://example.com 또는 www.example.com" />
-              <div class="text-xs text-emerald-600 mt-1">
-                💡 공식 쇼핑몰, 가격비교 사이트, 블로그 등 어떤 링크든 도움됩니다
-              </div>
-            </div>
-            
-            <div>
-              <label class="block text-gray-700 font-semibold mb-2" for="productImage">
-                제품 이미지 (최대 5장)
-              </label>
-              <input type="file" id="productImage" accept="image/*" multiple 
-                     class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-emerald-400 focus:outline-none transition" />
-              <div id="imagePreview" class="mt-2 flex flex-wrap gap-2"></div>
-              <div class="text-xs text-emerald-600 mt-1">
-                💡 제품 사진, 캡처, 설명서 등 어떤 이미지든 도움이 됩니다
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 비교 옵션 -->
-        <div class="bg-gray-50 p-4 rounded-lg mb-6">
-          <h4 class="font-semibold text-gray-800 mb-3">🔍 비교 옵션 <span class="text-red-500">*</span></h4>
+        <!-- 비교 옵션 (먼저 선택) -->
+        <div class="bg-gray-50 p-4 sm:p-5 rounded-xl mb-6 border border-gray-200">
+          <h4 class="font-semibold text-gray-800 mb-1">어떤 기준으로 찾아드릴까요? <span class="text-red-500">*</span></h4>
+          <p class="text-xs text-gray-500 mb-3">기본은 <strong>완전 동일 제품</strong>입니다. 더 넓게 찾고 싶으시면 바꿔주세요.</p>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <label class="flex items-center p-3 bg-white rounded-lg border-2 border-blue-300 hover:border-blue-400 transition cursor-pointer">
-              <input type="radio" name="comparisonType" value="exact" required class="mr-3 text-blue-600 w-5 h-5">
+            <label class="flex items-start p-4 bg-white rounded-xl border-2 border-blue-300 hover:border-blue-400 transition cursor-pointer has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50/50">
+              <input type="radio" name="comparisonType" value="exact" required checked class="mt-1 mr-3 text-blue-600 w-5 h-5 flex-shrink-0">
               <div>
-                <div class="font-semibold text-gray-800 mb-1">완전 동일 제품만 비교</div>
-                <div class="text-xs text-gray-600">원하시는 제품과 정확히 동일한 제품만 찾아드립니다. 브랜드, 모델명, 색상, 디자인, 패키징까지 모두 동일해야 합니다.</div>
+                <div class="font-semibold text-gray-800 mb-1">완전 동일 제품만</div>
+                <div class="text-xs text-gray-600 leading-relaxed">브랜드, 모델명, 색상, 디자인, 패키징까지 모두 같은 제품만 찾아드립니다.</div>
               </div>
             </label>
-            <label class="flex items-center p-3 bg-white rounded-lg border-2 border-gray-200 hover:border-blue-300 transition cursor-pointer">
-              <input type="radio" name="comparisonType" value="flexible" required class="mr-3 text-blue-600 w-5 h-5">
+            <label class="flex items-start p-4 bg-white rounded-xl border-2 border-gray-200 hover:border-blue-300 transition cursor-pointer has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50/50">
+              <input type="radio" name="comparisonType" value="flexible" required class="mt-1 mr-3 text-blue-600 w-5 h-5 flex-shrink-0">
               <div>
                 <div class="font-semibold text-gray-800 mb-1">스펙만 같으면 OK</div>
-                <div class="text-xs text-gray-600">기능과 성능(스펙)이 같으면 브랜드, 디자인, 색상, 패키징이 달라도 괜찮습니다. 더 저렴한 대안을 찾을 수 있습니다.</div>
+                <div class="text-xs text-gray-600 leading-relaxed">기능·성능이 같으면 브랜드나 색상이 달라도 괜찮습니다. 더 저렴한 대안을 찾을 수 있어요.</div>
               </div>
             </label>
           </div>
+        </div>
+
+        <!-- 상품 링크 (필수 · 메인) -->
+        <div class="bg-emerald-50 p-5 sm:p-6 rounded-xl mb-6 border-2 border-emerald-300 shadow-sm">
+          <label class="block text-gray-800 font-bold text-lg mb-1" for="productUrl">
+            상품 링크 <span class="text-red-500">*</span>
+          </label>
+          <p class="text-sm text-emerald-800 mb-3">
+            쿠팡, 네이버, 공식몰 등 <strong>상품 페이지 링크 하나</strong>만 넣으셔도 검토를 시작합니다.
+          </p>
+          <input type="text" id="productUrl" required
+                 class="w-full px-4 py-3.5 rounded-lg border-2 border-emerald-300 bg-white focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400 focus:outline-none transition input-animate text-base"
+                 placeholder="https://... 또는 www.로 시작하는 주소" />
+          <div class="text-xs text-emerald-700 mt-2">
+            여러 링크를 비교할 필요 없어요. 보고 계신 그 상품 주소 하나면 충분합니다.
+          </div>
+        </div>
+
+        <!-- 제품 정보 -->
+        <div class="mb-6 p-5 sm:p-6 rounded-xl border border-gray-200 bg-white">
+          <h4 class="font-semibold text-gray-800 mb-4">제품 정보</h4>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
+            <div>
+              <label class="block text-gray-700 font-semibold mb-2" for="productName">제품명</label>
+              <input type="text" id="productName"
+                     class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none transition input-animate"
+                     placeholder="예: 무선 이어폰" />
+            </div>
+            <div>
+              <label class="block text-gray-700 font-semibold mb-2" for="productPrice">제품 가격</label>
+              <input type="number" id="productPrice" min="1000" step="1"
+                     class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none transition input-animate"
+                     placeholder="예: 89000" />
+              <div class="text-xs text-gray-500 mt-1">입력 시 1,000원 이상</div>
+            </div>
+            <div>
+              <label class="block text-gray-700 font-semibold mb-2" for="productOption">
+                옵션명 <span class="text-red-500">*</span>
+              </label>
+              <input type="text" id="productOption" required
+                     class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none transition input-animate"
+                     placeholder="예: 블랙 / 256GB / L사이즈" />
+              <div class="text-xs text-gray-500 mt-1">옵션이 없으면 <strong>단일옵션</strong>이라고 적어주세요</div>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-gray-700 font-semibold mb-2" for="productDesc">
+              꼭 필요한 추가 설명 <span class="text-red-500">*</span>
+            </label>
+            <p class="text-xs text-gray-500 mb-2">반드시 지켜야 할 조건, 구성품, 배송·구매 관련 요청 등을 적어주세요</p>
+            <textarea id="productDesc" required rows="8"
+                      class="w-full min-h-[200px] px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none transition input-animate resize-y"
+                      placeholder="예:&#10;- 반드시 이 색상(네이비)이어야 합니다&#10;- 충전기·케이스 포함 구성이어야 합니다&#10;- 해외 직구는 피하고 싶습니다&#10;- 국내 정품·AS 가능한 판매처만 원합니다"></textarea>
+          </div>
+        </div>
+
+        <!-- 이미지 (선택) -->
+        <div class="mb-6 p-5 rounded-xl border border-dashed border-gray-300 bg-gray-50/50">
+          <label class="block text-gray-700 font-semibold mb-2" for="productImage">
+            제품 이미지 <span class="text-sm font-normal text-gray-400">(선택 · 최대 5장)</span>
+          </label>
+          <input type="file" id="productImage" accept="image/*" multiple
+                 class="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white focus:ring-2 focus:ring-blue-400 focus:outline-none transition" />
+          <div id="imagePreview" class="mt-2 flex flex-wrap gap-2"></div>
+          <div class="text-xs text-gray-500 mt-1">스크린샷이나 제품 사진이 있으면 도움이 됩니다</div>
+        </div>
+
+        <div class="mb-6 p-3 rounded-lg bg-purple-50 border border-purple-100 text-xs text-purple-800 leading-relaxed">
+          <span class="font-semibold">의뢰 가능:</span> 생활용품, 가전, IT, 패션, 스포츠, 가구 등 대부분의 카테고리 ·
+          <span class="font-semibold text-pink-700">제외:</span> 명품백, 명품시계, 명품 주얼리 등 명품류
         </div>
 
         <!-- 동의 체크박스 -->
@@ -515,16 +508,6 @@
             <button type="button" onclick="showBrandPolicyPopup()" class="ml-3 px-3 py-1 bg-pink-600 text-white text-xs rounded-lg hover:bg-pink-700 transition-colors">
               안내사항 자세히보기
             </button>
-          </div>
-        </div>
-
-        <!-- 마이크로카피 -->
-        <div class="bg-blue-50 p-4 rounded-lg mb-6 border border-blue-200">
-          <div class="text-center">
-            <div class="text-blue-800 font-semibold text-lg mb-2">💡 최저가 검증 + 구매판단 리포트</div>
-            <div class="text-sm text-blue-700">
-              최저가를 확인하고, 가격·제품·배송·판매처·주의사항을 종합 분석한 구매판단 리포트를 제공해드립니다.
-            </div>
           </div>
         </div>
 
@@ -962,57 +945,62 @@
     
     showStep(1);
 
-    // Step 1 → Step 2 이동
-    document.getElementById('to-step-2').onclick = function() {
-      console.log('다음 버튼 클릭됨');
-      
-      // Step 1 유효성 검사
-      if (!document.getElementById('productName').value.trim()) {
-        alert('제품명을 입력해 주세요.');
-        document.getElementById('productName').focus();
-        return;
+    function validateStep1() {
+      const comparisonType = document.querySelector('input[name="comparisonType"]:checked');
+      if (!comparisonType) {
+        alert('비교 기준(완전 동일 / 스펙만 같으면 OK)을 선택해 주세요.');
+        return false;
       }
-      
-      if (!document.getElementById('productDesc').value.trim()) {
-        alert('제품 설명을 입력해 주세요.');
-        document.getElementById('productDesc').focus();
-        return;
-      }
-      
-      const price = Number(document.getElementById('productPrice').value);
-      if (isNaN(price) || price < 1000) {
-        alert('최소 의뢰 금액은 1,000원 이상입니다. 더 저렴한 제품은 의뢰가 어렵습니다.');
-        document.getElementById('productPrice').focus();
-        return;
-      }
-      
-      if (!document.getElementById('evidenceAgree').checked) {
-        alert('증거 수집 안내에 동의해 주세요.');
-        return;
-      }
-      
-      if (!document.getElementById('brandExcludeAgree').checked) {
-        alert('명품 제외 정책에 동의해 주세요.');
-        return;
-      }
-      
-      // 참고사이트 URL 필수 입력 및 유효성 검사
+
       const url = document.getElementById('productUrl').value.trim();
       if (!url) {
-        alert('참고사이트 링크를 입력해 주세요.');
+        alert('상품 링크를 입력해 주세요.');
         document.getElementById('productUrl').focus();
-        return;
+        return false;
       }
       const urlPattern = /^(https?:\/\/)?(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)$/;
       if (!urlPattern.test(url)) {
-        alert('참고사이트는 http://, https://, 또는 www.로 시작하는 올바른 링크를 입력해 주세요.');
+        alert('상품 링크는 http://, https://, 또는 www.로 시작하는 올바른 주소를 입력해 주세요.');
         document.getElementById('productUrl').focus();
-        return;
+        return false;
       }
-      
-      console.log('유효성 검사 통과, showStep(2) 호출');
-      showStep(2);
-    };
+
+      const productOption = document.getElementById('productOption').value.trim();
+      if (!productOption) {
+        alert('옵션명을 입력해 주세요. 옵션이 없으면 "단일옵션"이라고 적어주세요.');
+        document.getElementById('productOption').focus();
+        return false;
+      }
+
+      const productDesc = document.getElementById('productDesc').value.trim();
+      if (!productDesc) {
+        alert('꼭 필요한 추가 설명을 입력해 주세요.');
+        document.getElementById('productDesc').focus();
+        return false;
+      }
+
+      const priceInput = document.getElementById('productPrice').value.trim();
+      if (priceInput) {
+        const price = Number(priceInput);
+        if (isNaN(price) || price < 1000) {
+          alert('가격을 입력하신 경우 1,000원 이상이어야 합니다.');
+          document.getElementById('productPrice').focus();
+          return false;
+        }
+      }
+
+      if (!document.getElementById('evidenceAgree').checked) {
+        alert('증거 수집 안내에 동의해 주세요.');
+        return false;
+      }
+
+      if (!document.getElementById('brandExcludeAgree').checked) {
+        alert('명품 제외 정책에 동의해 주세요.');
+        return false;
+      }
+
+      return true;
+    }
 
     // Step 2 → Step 1 이동
     document.getElementById('back-step-1').onclick = function() { 
@@ -1065,34 +1053,41 @@
 
     // Step 2: 확인 요약 렌더링
     function renderConfirmSummary() {
-      const productName = document.getElementById('productName').value;
-      const productDesc = document.getElementById('productDesc').value;
+      const productName = document.getElementById('productName').value.trim();
+      const productOption = document.getElementById('productOption').value.trim();
+      const productDesc = document.getElementById('productDesc').value.trim();
       const productUrl = document.getElementById('productUrl').value.trim();
       const price = document.getElementById('productPrice').value;
       const comparisonType = document.querySelector('input[name="comparisonType"]:checked').value;
       
       const summary = `
         <div class="bg-white p-3 rounded-lg border border-gray-200">
-          <div class="font-semibold text-gray-800 mb-1">제품명</div>
-          <div class="text-gray-600">${productName}</div>
+          <div class="font-semibold text-gray-800 mb-1">비교 기준</div>
+          <div class="text-gray-600">${comparisonType === 'exact' ? '완전 동일 제품만' : '스펙만 같으면 OK'}</div>
         </div>
         <div class="bg-white p-3 rounded-lg border border-gray-200">
-          <div class="font-semibold text-gray-800 mb-1">의뢰하신 제품의 가격</div>
-          <div class="text-gray-600">${price ? price.toLocaleString() + '원' : '(미입력)'}</div>
-        </div>
-        <div class="bg-white p-3 rounded-lg border border-gray-200">
-          <div class="font-semibold text-gray-800 mb-1">참고사이트</div>
+          <div class="font-semibold text-gray-800 mb-1">상품 링크</div>
           <div class="text-gray-600">
-            ${productUrl ? 
-              (productUrl.startsWith('http') ? 
-                `<a href='${productUrl}' target='_blank' class='text-blue-600 underline break-all'>${productUrl}</a>` : 
-                `<span class='bg-gray-100 rounded px-2 py-1 break-all'>${productUrl}</span>`) : 
-              '<span class="text-gray-400">(없음)</span>'}
+            ${productUrl.startsWith('http') ?
+              `<a href='${productUrl}' target='_blank' class='text-blue-600 underline break-all'>${productUrl}</a>` :
+              `<span class='bg-gray-100 rounded px-2 py-1 break-all'>${productUrl}</span>`}
           </div>
         </div>
         <div class="bg-white p-3 rounded-lg border border-gray-200">
-          <div class="font-semibold text-gray-800 mb-1">비교 옵션</div>
-          <div class="text-gray-600">${comparisonType === 'exact' ? '완전 동일 제품만 비교' : '스펙만 같으면 OK'}</div>
+          <div class="font-semibold text-gray-800 mb-1">제품명</div>
+          <div class="text-gray-600">${productName || '<span class="text-gray-400">(미입력 · 링크로 확인)</span>'}</div>
+        </div>
+        <div class="bg-white p-3 rounded-lg border border-gray-200">
+          <div class="font-semibold text-gray-800 mb-1">제품 가격</div>
+          <div class="text-gray-600">${price ? Number(price).toLocaleString() + '원' : '<span class="text-gray-400">(미입력)</span>'}</div>
+        </div>
+        <div class="bg-white p-3 rounded-lg border border-gray-200">
+          <div class="font-semibold text-gray-800 mb-1">옵션명</div>
+          <div class="text-gray-600">${productOption}</div>
+        </div>
+        <div class="bg-white p-3 rounded-lg border border-gray-200">
+          <div class="font-semibold text-gray-800 mb-1">꼭 필요한 추가 설명</div>
+          <div class="text-gray-600 whitespace-pre-wrap">${productDesc}</div>
         </div>
         <div class="bg-white p-3 rounded-lg border border-gray-200">
           <div class="font-semibold text-gray-800 mb-1">이름</div>
@@ -1132,51 +1127,9 @@
       }
     }
     
-    // Step 2로 이동할 때 요약 렌더링
+    // Step 1 → Step 2 이동
     document.getElementById('to-step-2').onclick = function() {
-      // 기존 유효성 검사...
-      if (!document.getElementById('productName').value.trim()) {
-        alert('제품명을 입력해 주세요.');
-        document.getElementById('productName').focus();
-        return;
-      }
-      
-      if (!document.getElementById('productDesc').value.trim()) {
-        alert('제품 설명을 입력해 주세요.');
-        document.getElementById('productDesc').focus();
-        return;
-      }
-      
-      const price = Number(document.getElementById('productPrice').value);
-      if (isNaN(price) || price < 1000) {
-        alert('최소 의뢰 금액은 1,000원 이상입니다. 더 저렴한 제품은 의뢰가 어렵습니다.');
-        document.getElementById('productPrice').focus();
-        return;
-      }
-      
-      if (!document.getElementById('evidenceAgree').checked) {
-        alert('증거 수집 안내에 동의해 주세요.');
-        return;
-      }
-      
-      if (!document.getElementById('brandExcludeAgree').checked) {
-        alert('명품 제외 정책에 동의해 주세요.');
-        return;
-      }
-      
-      const url = document.getElementById('productUrl').value.trim();
-      if (!url) {
-        alert('참고사이트 링크를 입력해 주세요.');
-        document.getElementById('productUrl').focus();
-        return;
-      }
-      const urlPattern = /^(https?:\/\/)?(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)$/;
-      if (!urlPattern.test(url)) {
-        alert('참고사이트는 http://, https://, 또는 www.로 시작하는 올바른 링크를 입력해 주세요.');
-        document.getElementById('productUrl').focus();
-        return;
-      }
-      
+      if (!validateStep1()) return;
       renderConfirmSummary();
       showStep(2);
     };
@@ -1273,20 +1226,10 @@
         return;
       }
       
-      // 참고사이트 URL 필수 입력 및 유효성 검사
+      if (!validateStep1()) return;
+
       const url = document.getElementById('productUrl').value.trim();
-      if (!url) {
-        alert('참고사이트 링크를 입력해 주세요.');
-        document.getElementById('productUrl').focus();
-        return;
-      }
-      const urlPattern = /^(https?:\/\/)?(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)$/;
-      if (!urlPattern.test(url)) {
-        alert('참고사이트는 http://, https://, 또는 www.로 시작하는 올바른 링크를 입력해 주세요.');
-        document.getElementById('productUrl').focus();
-        return;
-      }
-      
+
       // 이미지 총 용량 체크 (5MB 제한)
       function getTotalImageSize(files) {
         return files.reduce((sum, file) => sum + file.size, 0);
@@ -1306,12 +1249,16 @@
       }
       
       // 입력값 수집
-      const name = document.getElementById('productName').value;
-      const desc = document.getElementById('productDesc').value;
-      const urls = url ? [url] : [];
+      const nameInput = document.getElementById('productName').value.trim();
+      const name = nameInput || '(링크로 확인 예정)';
+      const optionName = document.getElementById('productOption').value.trim();
+      const desc = document.getElementById('productDesc').value.trim();
+      const urls = [url];
       const email = document.getElementById('userEmail').value;
       const phone = document.getElementById('userPhone').value;
-      const price = Number(document.getElementById('productPrice').value);
+      const priceInput = document.getElementById('productPrice').value.trim();
+      const price = priceInput ? Number(priceInput) : null;
+      const comparisonTypeValue = comparisonType.value;
       
       // 고유 의뢰번호 생성
       function generateReqNum() {
@@ -1397,11 +1344,13 @@
         const reqData = {
           name, 
           desc, 
+          optionName,
           urls, 
           images: processedImages, 
           email, 
           phone, 
           price, 
+          comparisonType: comparisonTypeValue,
           userName, 
           date: Date.now(),
           reqNum: reqNum,
