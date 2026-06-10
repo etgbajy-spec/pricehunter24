@@ -762,16 +762,69 @@
       
       /* 통계 카드 내부 숫자 글로우 효과 */
       
-      /* CTA 버튼 강력한 펄스 */
+      /* CTA 버튼 강력한 펄스 — 글로우만 애니메이션 (테두리는 CSS border 사용) */
       @keyframes heroButtonPulse {
         0%, 100% {
           transform: scale(1);
-          box-shadow: 0 8px 32px 0 rgba(16,185,129,0.55), 0 0 0 2px rgba(255,255,255,0.95), 0 0 0 0 rgba(16,185,129,0.5);
+          box-shadow: 0 8px 32px rgba(16, 185, 129, 0.55);
         }
         50% {
-          transform: scale(1.05);
-          box-shadow: 0 16px 48px 0 rgba(16,185,129,0.75), 0 0 0 2px rgba(255,255,255,1), 0 0 0 16px rgba(16,185,129,0);
+          transform: scale(1.03);
+          box-shadow: 0 16px 48px rgba(16, 185, 129, 0.75), 0 0 0 12px rgba(16, 185, 129, 0.14);
         }
+      }
+
+      /* 히어로 CTA — preflight 비활성화 시 Tailwind border-2가 border-style 없이 적용되어
+         테두리가 안 보이고, 애니메이션 box-shadow 링만 남아 고스트 버튼처럼 보이는 문제 방지 */
+      .hero-cta-primary,
+      .hero-cta-secondary {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        border: 2px solid rgba(255, 255, 255, 0.95);
+        border-style: solid;
+        color: #fff;
+        text-decoration: none;
+        isolation: isolate;
+        transition: transform 0.5s ease, box-shadow 0.5s ease;
+      }
+
+      .hero-cta-primary {
+        background-color: #10B981;
+        box-shadow: 0 8px 32px rgba(16, 185, 129, 0.5);
+      }
+
+      .hero-cta-primary:hover {
+        box-shadow: 0 12px 48px rgba(16, 185, 129, 0.7);
+      }
+
+      .hero-cta-secondary {
+        background-color: #2563EB;
+        box-shadow: 0 8px 32px rgba(59, 130, 246, 0.45);
+      }
+
+      .hero-cta-secondary:hover {
+        box-shadow: 0 12px 48px rgba(59, 130, 246, 0.6);
+      }
+
+      .hero-cta-surface {
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        border-radius: inherit;
+        pointer-events: none;
+      }
+
+      .hero-cta-primary .hero-cta-surface {
+        background-color: #10B981;
+        background-image: linear-gradient(135deg, #34D399 0%, #10B981 45%, #059669 100%);
+      }
+
+      .hero-cta-secondary .hero-cta-surface {
+        background-color: #2563EB;
+        background-image: linear-gradient(135deg, #3B82F6 0%, #2563EB 55%, #1D4ED8 100%);
       }
       
       /* 절약 사례 카드 순차 등장 - 강화 */
@@ -3907,12 +3960,12 @@
             <a href="request-v2.html"
               data-requires-member="true"
               data-member-target="request-v2.html"
-              class="hero-button-pulse requires-member group relative inline-block px-6 sm:px-8 md:px-10 lg:px-14 py-4 sm:py-5 md:py-6 text-white text-base sm:text-lg md:text-xl lg:text-2xl font-bold rounded-xl sm:rounded-2xl border-2 border-white shadow-[0_8px_32px_0_rgba(16,185,129,0.5)] hover:shadow-[0_12px_48px_0_rgba(16,185,129,0.7)] transition-all duration-500 focus:outline-none focus:ring-4 focus:ring-emerald-300/60 text-center w-full sm:w-auto overflow-hidden min-h-[48px] sm:min-h-[56px] flex items-center justify-center"
-              style="font-family: 'Noto Sans KR', sans-serif; font-weight: 700; background: linear-gradient(135deg, #34D399 0%, #10B981 45%, #059669 100%); text-shadow: 0 1px 2px rgba(0,0,0,0.25);"
+              class="hero-button-pulse hero-cta-primary requires-member group px-6 sm:px-8 md:px-10 lg:px-14 py-4 sm:py-5 md:py-6 text-base sm:text-lg md:text-xl lg:text-2xl font-bold rounded-xl sm:rounded-2xl focus:outline-none focus:ring-4 focus:ring-emerald-300/60 text-center w-full sm:w-auto min-h-[48px] sm:min-h-[56px]"
+              style="font-family: 'Noto Sans KR', sans-serif; font-weight: 700; text-shadow: 0 1px 2px rgba(0,0,0,0.25);"
               aria-label="무료 최저가·구매 조건 검토 의뢰">
-              <!-- 버튼 배경 효과 -->
-              <div class="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
-              <span class="relative flex items-center justify-center gap-3">
+              <span class="hero-cta-surface" aria-hidden="true"></span>
+              <span class="absolute inset-0 z-[1] bg-gradient-to-r from-white/0 via-white/20 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 pointer-events-none"></span>
+              <span class="relative z-[2] flex items-center justify-center gap-3">
                 <span>최저가 · 구매 조건 검토받기</span>
                 <svg class="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
@@ -3923,10 +3976,11 @@
             <!-- 실제 후기 더보기 (동일 크기) -->
             <button type="button"
               id="hero-reviews-more-btn"
-              class="group relative inline-flex items-center justify-center px-6 sm:px-8 md:px-10 lg:px-14 py-4 sm:py-5 md:py-6 text-white text-base sm:text-lg md:text-xl lg:text-2xl font-bold rounded-xl sm:rounded-2xl shadow-[0_8px_32px_0_rgba(59,130,246,0.35)] hover:shadow-[0_12px_48px_0_rgba(59,130,246,0.55)] transition-all duration-500 focus:outline-none focus:ring-4 focus:ring-blue-300/50 text-center w-full sm:w-auto overflow-hidden min-h-[48px] sm:min-h-[56px] mt-2"
-              style="font-family: 'Noto Sans KR', sans-serif; font-weight: 700; background: linear-gradient(135deg, #3B82F6 0%, #2563EB 55%, #1D4ED8 100%);">
-              <div class="absolute inset-0 bg-gradient-to-r from-white/0 via-white/18 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
-              <span class="relative flex items-center justify-center gap-3">
+              class="hero-cta-secondary group px-6 sm:px-8 md:px-10 lg:px-14 py-4 sm:py-5 md:py-6 text-base sm:text-lg md:text-xl lg:text-2xl font-bold rounded-xl sm:rounded-2xl focus:outline-none focus:ring-4 focus:ring-blue-300/50 text-center w-full sm:w-auto min-h-[48px] sm:min-h-[56px] mt-2"
+              style="font-family: 'Noto Sans KR', sans-serif; font-weight: 700;">
+              <span class="hero-cta-surface" aria-hidden="true"></span>
+              <span class="absolute inset-0 z-[1] bg-gradient-to-r from-white/0 via-white/18 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 pointer-events-none"></span>
+              <span class="relative z-[2] flex items-center justify-center gap-3">
                 <span data-label>실제 후기 더보기</span>
                 <svg class="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
