@@ -1,11 +1,22 @@
 /**
- * more-reviews 제품 이미지 수집 (Unsplash · Wikimedia)
+ * more-reviews 제품 이미지 — 검증된 curated URL만 사용
+ * 실행: node scripts/download-review-product-images.js --force
  */
 'use strict';
 
 const fs = require('fs');
 const path = require('path');
-const crypto = require('crypto');
+const CURATED = require('./review-product-curated-urls');
+const OPENVERSE_TITLES = new Set([
+  'Beautyrest Heated Electric Mattress Pad',
+  'Portable ice maker on the kitchen counter',
+  'Handheld Vacuum, ONSON Hand Vacuum Cleaner Cordless with 14.8V Li-ion Battery, 7Kpa Powerful Rechargeable Wet Dry Vacuum for Cars, Furniture Stairs and Pet Hairs',
+  'What Is an Impulse Sealer?',
+  'Router table for Dewalt D26204-QS CNC and 3D print',
+  'blender with ingredients for spicy buffalo chicken nachos on a kitchen counter next to a bottle of wine and cooking utensils',
+  'VacMaster VP215 Chamber Vacuum Sealer',
+  '20130617-cut_drill_light',
+]);
 
 const OUT_DIR = path.join(__dirname, '..', 'assets', 'review-products');
 const MANIFEST_PATH = path.join(OUT_DIR, 'manifest.json');
@@ -18,161 +29,141 @@ const SKIP = new Set([
   '유니캐슬간이화장대', '회전 책장 거울 수납장',
 ]);
 
-/** 검증된 Unsplash photo-id */
-const U = {
-  kitchen1: '1556911220-bff31c812dba',
-  kitchen2: '1517668808822-9ebb02f2a0e6',
-  grill: '1465101046530-73398c7f28ca',
-  electronics1: '1498049794561-7780e7231661',
-  electronics2: '1519125323398-675f0ddb6308',
-  computer: '1591488320449-011701bb6704',
-  appliance: '1558618666-fcd25c85cd64',
-  furniture: '1555041469-a586c61ea9bc',
-  bag: '1548036328-c9fa89d128fa',
-  fitness: '1571019613454-1cb2f99b2d8b',
-  watch: '1503602642458-232111445657',
-  plant: '1416879595882-3373a0480b5b',
-  scale: '1523275335684-37898b6baf30',
-  kiosk: '1556742049-0cfed4f6a45d',
-  projector: '1593784991095-a205069470b6',
-};
-
-const WIKI_QUERY = {
-  '업소용 전기포트': 'electric kettle',
-  '가정용 로봇청소기': 'robot vacuum cleaner',
-  'RTX 5080 그래픽카드': 'graphics card',
-  'DDR5 16GB 램': 'DDR4 RAM',
-  '적외선 야외 수평기': 'laser level tool',
-  '적외선 야외 체크용 수평기': 'laser level',
-  '소형 레이저 각인기': 'laser engraving machine',
-  '전동 드라이버 세트': 'cordless drill',
-  '공업 용접 헬멧': 'welding helmet',
-  '농업용 방제 드론': 'agricultural drone',
-  '무선 CCTV 카메라': 'surveillance camera',
-  '고압 세척기': 'pressure washer',
-  '소형 CNC 조각기': 'CNC router',
-  '산업용 열화상 카메라': 'thermal camera',
-  '스마트 도어락': 'electronic door lock',
-  '블루투스 스피커': 'bluetooth speaker',
-  '가정용 런닝머신': 'treadmill',
-  '가정용 금고': 'safe box',
-  '미니 빔프로젝터': 'projector',
-};
-
-function hashIdx(str, len) {
-  const h = crypto.createHash('md5').update(str).digest();
-  return h[0] % len;
-}
-
-function categorize(name) {
-  if (/램|그래픽|CCTV|모니터|프로젝터|카메라|스피커|도어락|도어벨|키오스크|메뉴판|전자칠판|온습도|체중계|저울|바코드|프레젠터|교환기|마이크|파워뱅크|라벨/.test(name)) return 'electronics';
-  if (/전기포트|블렌더|찜기|제빙|진공포장|세척|분사|컵 워머|음식물|쌀통|주방|업소용/.test(name)) return 'kitchen';
-  if (/런닝|스텝퍼|마사지|해먹/.test(name)) return 'fitness';
-  if (/침대|테이블|의자|선반|커튼|책상|화장대|거실/.test(name)) return 'furniture';
-  if (/드라이버|용접|CNC|레이저|공구|타공|집진|세척기|송풍기|작업대|압축|드론|수평기/.test(name)) return 'tools';
-  if (/로봇청소|가습|서큘레이터|라디에이터|냉동|건조|제빙|온수|산소|공기/.test(name)) return 'appliance';
-  if (/화분|재배등|급식|반려|고양이/.test(name)) return 'plant';
-  return 'electronics';
-}
-
-function unsplashFor(product) {
-  const cat = categorize(product);
-  const pools = {
-    kitchen: [U.kitchen1, U.kitchen2, U.grill],
-    electronics: [U.electronics1, U.electronics2, U.computer, U.watch, U.kiosk],
-    fitness: [U.fitness, U.appliance],
-    furniture: [U.furniture, U.bag],
-    tools: [U.electronics1, U.appliance, U.kitchen2],
-    appliance: [U.appliance, U.kitchen1],
-    plant: [U.plant, U.furniture],
-  };
-  const pool = pools[cat] || pools.electronics;
-  return unsplashUrl(pool[hashIdx(product, pool.length)]);
-}
-
-function unsplashUrl(id) {
-  return `https://images.unsplash.com/photo-${id}?w=800&h=600&fit=crop&q=85&auto=format`;
-}
-
 function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-async function wikiImage(query) {
-  const api =
-    'https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*' +
-    '&prop=imageinfo&iiprop=url&iiurlwidth=800' +
-    '&generator=search&gsrsearch=' + encodeURIComponent(query) +
-    '&gsrnamespace=6&gsrlimit=8';
-  const res = await fetch(api, { headers: { 'User-Agent': 'PriceHunter/1.0' } });
-  const data = await res.json();
-  for (const p of Object.values(data.query?.pages || {})) {
-    const url = p.imageinfo?.[0]?.thumburl || p.imageinfo?.[0]?.url;
-    if (url && /\.(jpe?g|png|webp)(\?|$)/i.test(url)) return url;
+async function apiGet(url, retries = 4) {
+  for (let i = 0; i < retries; i++) {
+    const res = await fetch(url, { headers: { 'User-Agent': 'PriceHunter/1.0' } });
+    if (res.status === 429) {
+      await sleep(5000 * (i + 1));
+      continue;
+    }
+    if (!res.ok) return null;
+    return res.json();
   }
   return null;
 }
 
-async function download(url) {
-  const res = await fetch(url, { headers: { 'User-Agent': 'PriceHunter/1.0' }, redirect: 'follow' });
-  if (!res.ok) throw new Error('HTTP ' + res.status);
-  const buf = Buffer.from(await res.arrayBuffer());
-  if (buf.length < 1200) throw new Error('too small');
-  return buf;
+async function searchOpenverse(title) {
+  const api =
+    'https://api.openverse.org/v1/images/?q=' +
+    encodeURIComponent(title.slice(0, 80)) +
+    '&page_size=5&license_type=commercial,modification';
+  const data = await apiGet(api);
+  const hit = (data?.results || []).find((r) => (r.title || '').includes(title.slice(0, 30)));
+  return hit?.url || hit?.thumbnail || null;
 }
 
-async function resolveUrl(product) {
-  const q = WIKI_QUERY[product];
-  if (q) {
-    const w = await wikiImage(q);
-    if (w) return { url: w, via: 'wikimedia' };
-    await sleep(250);
+async function resolveUrl(product, fileOrTitle) {
+  if (/^https?:\/\//i.test(fileOrTitle)) {
+    return { url: fileOrTitle, title: fileOrTitle, via: 'direct' };
   }
-  return { url: unsplashFor(product), via: 'unsplash' };
+  if (OPENVERSE_TITLES.has(fileOrTitle)) {
+    const ov = await searchOpenverse(fileOrTitle);
+    if (ov) return { url: ov, title: fileOrTitle, via: 'openverse' };
+  }
+
+  const api =
+    'https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*' +
+    '&prop=imageinfo&iiprop=url|mime&iiurlwidth=900' +
+    '&titles=File:' + encodeURIComponent(fileOrTitle);
+  const data = await apiGet(api);
+  const page = Object.values(data?.query?.pages || {})[0];
+  if (page?.missing !== undefined) return null;
+  const info = page?.imageinfo?.[0];
+  if (!info?.thumburl && !info?.url) return null;
+  return {
+    url: info.thumburl || info.url,
+    title: fileOrTitle,
+    via: 'wikimedia',
+  };
+}
+
+function isImage(buf) {
+  if (buf.length < 2000) return false;
+  if (buf[0] === 0xff && buf[1] === 0xd8) return true;
+  if (buf[0] === 0x89 && buf[1] === 0x50) return true;
+  return false;
+}
+
+async function download(url) {
+  for (let i = 0; i < 5; i++) {
+    const res = await fetch(url, {
+      headers: { 'User-Agent': 'PriceHunter/1.0' },
+      redirect: 'follow',
+    });
+    if (res.status === 429) {
+      await sleep(4000 * (i + 1));
+      continue;
+    }
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const buf = Buffer.from(await res.arrayBuffer());
+    if (!isImage(buf)) throw new Error('invalid image');
+    return buf;
+  }
+  throw new Error('HTTP 429');
 }
 
 async function main() {
   const manifest = JSON.parse(fs.readFileSync(MANIFEST_PATH, 'utf8'));
-  const entries = Object.entries(manifest.files || {}).filter(([p]) => !SKIP.has(p));
-  const sources = {};
-
+  const only = process.argv.find((a) => a.startsWith('--only='))?.slice(7);
+  let entries = Object.entries(manifest.files || {}).filter(([p]) => !SKIP.has(p));
+  if (only) entries = entries.filter(([p]) => p.includes(only));
+  const force = process.argv.includes('--force');
+  const missingOnly = process.argv.includes('--missing-only');
+  const sourcesPath = path.join(OUT_DIR, 'IMAGE_SOURCES.json');
+  const sources = fs.existsSync(sourcesPath)
+    ? JSON.parse(fs.readFileSync(sourcesPath, 'utf8'))
+    : {};
   let ok = 0;
   let fail = 0;
+  let skip = 0;
 
   for (const [product, filename] of entries) {
     const out = path.join(OUT_DIR, filename);
-    const force = process.argv.includes('--force');
-    if (!force && fs.existsSync(out) && fs.statSync(out).size > 8000) {
+    const curated = CURATED[product];
+
+    if (!curated) {
+      if (fs.existsSync(out)) fs.unlinkSync(out);
+      console.log(product.slice(0, 22).padEnd(24), '⊘ curated 없음 (기존 이미지 삭제)');
+      skip++;
+      continue;
+    }
+
+    const hasValid = fs.existsSync(out) && fs.statSync(out).size > 8000;
+    if (missingOnly && hasValid) {
+      ok++;
+      continue;
+    }
+    if (!force && hasValid) {
       ok++;
       continue;
     }
 
-    process.stdout.write(product.slice(0, 20) + '… ');
+    process.stdout.write(product.slice(0, 22).padEnd(24));
     try {
-      const { url, via } = await resolveUrl(product);
-      const buf = await download(url);
+      const hit = await resolveUrl(product, curated);
+      if (!hit) throw new Error('파일 없음: ' + curated.slice(0, 40));
+      const buf = await download(hit.url);
       fs.writeFileSync(out, buf);
-      sources[product] = { via, url };
-      console.log('✓');
+      sources[product] = { ...hit, product, curated };
+      console.log(`✓ ${hit.via} | ${hit.title.slice(0, 50)}`);
       ok++;
     } catch (e) {
-      try {
-        const buf = await download(unsplashUrl(U.electronics1));
-        fs.writeFileSync(out, buf);
-        sources[product] = { via: 'unsplash-fallback', url: unsplashUrl(U.electronics1) };
-        console.log('✓ fb');
-        ok++;
-      } catch {
-        console.log('✗', e.message);
-        fail++;
-      }
+      console.log(`✗ ${e.message}`);
+      fail++;
     }
-    await sleep(180);
+    await sleep(4000);
   }
 
-  fs.writeFileSync(path.join(OUT_DIR, 'IMAGE_SOURCES.json'), JSON.stringify(sources, null, 2) + '\n');
-  const n = fs.readdirSync(OUT_DIR).filter((f) => /\.(jpg|jpeg|png|webp)$/i.test(f)).length;
-  console.log(`\n이미지 파일 ${n}개 / 대상 ${entries.length}개, 실패 ${fail}`);
+  fs.writeFileSync(sourcesPath, JSON.stringify(sources, null, 2) + '\n');
+  console.log(`\n완료: 성공 ${ok}, 실패 ${fail}, curated없음 ${skip}`);
+  if (fail > 0) process.exitCode = 1;
 }
 
-main().catch((e) => { console.error(e); process.exit(1); });
+main().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});
