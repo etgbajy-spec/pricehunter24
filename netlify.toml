@@ -71,16 +71,28 @@
   to = "/.netlify/functions/admin-semi-auto"
   status = 200
 
-# 후기 페이지: 과거 410 규칙/대시보드 리다이렉트가 남아 있어도 실제 콘텐츠로 연결
+# 구 후기 페이지 → more-reviews 로 통합
 [[redirects]]
   from = "/reviews.html"
-  to = "/reviews/index.html"
-  status = 200
+  to = "/more-reviews.html"
+  status = 301
   force = true
 
 [[redirects]]
   from = "/reviews"
-  to = "/reviews/"
+  to = "/more-reviews.html"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/reviews/"
+  to = "/more-reviews.html"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/reviews/*"
+  to = "/more-reviews.html"
   status = 301
   force = true
 

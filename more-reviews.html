@@ -76,9 +76,10 @@
       <div id="grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 hidden"></div>
     </main>
 
+    <script src="review-product-images.js"></script>
     <script type="module">
       import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
-      import { getFirestore, collection, query, where, orderBy, getDocs } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
+      import { getFirestore, collection, getDocs } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
 
       const firebaseConfig = {
         apiKey: "AIzaSyDBZxKyMS7eeBTbPnbZkj0WWOZQHNldoL4",
@@ -100,18 +101,16 @@
 
       let all = [];
 
-      function pickImage(d) {
-        if (Array.isArray(d.images) && d.images[0]) return d.images[0];
-        if (Array.isArray(d.photos) && d.photos[0]) return d.photos[0];
-        return d.image || d.productImage || d.itemImage || d.photo || '';
-      }
-
       function safeText(v, fallback = '') {
         return (typeof v === 'string' && v.trim()) ? v.trim() : fallback;
       }
 
       function escapeHtml(s) {
         return (s || '').replaceAll('&', '&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;');
+      }
+
+      function escapeAttr(s) {
+        return (s || '').replaceAll('&', '&amp;').replaceAll('"', '&quot;').replaceAll('<', '&lt;');
       }
 
       function parsePriceLike(v) {
@@ -226,20 +225,29 @@
           const product = safeText(r.product || r.productName || r.itemName, '제품');
           const name = safeText(r.name, '고객');
           const review = safeText(r.review, '후기 내용이 없습니다.');
-          const img = pickImage(r);
+          const imgInfo = r.__img || { src: '', fallbacks: [] };
+          const img = imgInfo.src || '';
           const c = r.__computed || {};
           const rate = c.rate || 0;
           const savings = c.savings || 0;
           const original = c.originalPrice || 0;
           const finalP = c.finalPrice || 0;
+          const fallbackAttr = escapeAttr(JSON.stringify(imgInfo.fallbacks || []));
 
           return `
             <article class="rounded-3xl bg-white/8 border border-white/10 overflow-hidden shadow-lg hover:bg-white/10 transition">
+              ${img ? `
+              <div class="h-44 bg-white/5 border-b border-white/10 overflow-hidden relative">
+                <img src="${escapeHtml(img)}" alt="${escapeHtml(product)}" class="w-full h-full object-cover"
+                  data-ph-fallbacks="${fallbackAttr}" onerror="window.__phReviewImgFallback&&window.__phReviewImgFallback(this)">
+                <span data-ph-img-placeholder class="hidden absolute inset-0 flex items-center justify-center text-white/30 text-sm">이미지 없음</span>
+              </div>` : ''}
               <div class="p-5">
                 <div class="flex items-center gap-4">
+                  ${img ? '' : `
                   <div class="w-16 h-16 rounded-2xl bg-white/10 border border-white/10 overflow-hidden flex items-center justify-center flex-shrink-0">
-                    ${img ? `<img src="${escapeHtml(img)}" alt="${escapeHtml(product)}" class="w-full h-full object-cover" onerror="this.remove()">` : `<span class="text-white/30 text-xs">no image</span>`}
-                  </div>
+                    <span class="text-white/30 text-xs">no image</span>
+                  </div>`}
                   <div class="min-w-0">
                     <div class="font-extrabold text-lg truncate">${escapeHtml(product)}</div>
                     <div class="text-white/60 text-sm">${escapeHtml(name)}님</div>
@@ -276,6 +284,10 @@
             </article>
           `;
         }).join('');
+
+        gridEl.querySelectorAll('img[data-ph-fallbacks]').forEach((img) => {
+          if (window.ReviewProductImages) window.ReviewProductImages.attachFallbackHandler(img);
+        });
       }
 
       function getSorted(list) {
@@ -321,16 +333,24 @@
           const app = initializeApp(firebaseConfig);
           const db = getFirestore(app);
 
-          const reviewsRef = collection(db, 'reviews');
-          let qs;
-          try {
-            qs = await getDocs(query(reviewsRef, where('approved', '==', true), orderBy('createdAt', 'desc')));
-          } catch (e) {
-            qs = await getDocs(query(reviewsRef, where('approved', '==', true)));
-          }
+          const manifest = window.ReviewProductImages
+            ? await window.ReviewProductImages.loadManifest()
+            : { files: {} };
+
+          // 관리자 대시보드와 동일: 컬렉션 전체 로드 후 클라이언트에서 승인 필터
+          // (approved + createdAt 복합 쿼리는 인덱스 없을 때 일부만 반환될 수 있음)
+          const snap = await getDocs(collection(db, 'reviews'));
 
           all = [];
-          qs.forEach((doc) => all.push(normalizeReview({ id: doc.id, ...doc.data() })));
+          snap.forEach((doc) => {
+            const data = doc.data();
+            if (data.approved !== true) return;
+            const row = normalizeReview({ id: doc.id, ...data });
+            row.__img = window.ReviewProductImages
+              ? window.ReviewProductImages.resolveImage(row, manifest)
+              : { src: '', fallbacks: [] };
+            all.push(row);
+          });
           applySearch();
         } catch (e) {
           console.error(e);

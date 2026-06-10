@@ -2454,19 +2454,9 @@
           const { collection, query, where, getDocs, orderBy, limit } = window.firebaseFirestoreFunctions;
           const db = window.firebaseDb;
 
-          // 승인된 후기만 가져오기
+          // 승인된 후기만 표시 (관리자와 동일: 전체 로드 후 클라이언트 필터)
           const reviewsRef = collection(db, 'reviews');
-          let querySnapshot;
-          try {
-            // createdAt 필드로 정렬 시도
-            const q = query(reviewsRef, where('approved', '==', true), orderBy('createdAt', 'desc'));
-            querySnapshot = await getDocs(q);
-          } catch (error) {
-            // createdAt 필드가 없으면 approved만 필터링
-            console.warn('⚠️ createdAt 필드가 없어 기본 정렬 사용:', error);
-            const q = query(reviewsRef, where('approved', '==', true));
-            querySnapshot = await getDocs(q);
-          }
+          const querySnapshot = await getDocs(reviewsRef);
 
           let totalRequests = 0;
           let totalSavings = 0;
@@ -2476,6 +2466,7 @@
 
           querySnapshot.forEach((doc) => {
             const data = doc.data();
+            if (data.approved !== true) return;
             totalRequests++;
 
             // 절약금액 계산 (문자열 형식: "1,000,000원" 또는 숫자)

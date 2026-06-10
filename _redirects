@@ -1,6 +1,8 @@
-# 후기 페이지: 예전 /reviews(.html) 410 규칙이 있어도 실제 콘텐츠로 연결
-/reviews.html   /reviews/index.html   200!
-/reviews        /reviews/             301!
+# 구 후기 페이지 → more-reviews 로 통합
+/reviews.html   /more-reviews.html   301!
+/reviews        /more-reviews.html   301!
+/reviews/       /more-reviews.html   301!
+/reviews/*      /more-reviews.html   301!
 
 # 루트 도메인 접속시 index.html을 기본 파일로 설정 (URL 변경 없음)
 /    /index.html   200
