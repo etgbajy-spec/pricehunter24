@@ -1005,10 +1005,490 @@
         width: 100%;
         text-align: center;
       }
+
+      .hero-gap-card {
+        animation: heroStatsCard3D 1.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        animation-delay: 0.2s;
+        opacity: 1 !important;
+        visibility: visible !important;
+      }
+
+      .hero-gap-header {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.625rem;
+        margin-bottom: 1.25rem;
+        padding-bottom: 1.25rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+        width: 100%;
+      }
+
+      .hero-gap-header-top {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 0.5rem 0.75rem;
+        width: 100%;
+      }
+
+      .hero-gap-title {
+        font-family: 'Noto Sans KR', sans-serif;
+        font-weight: 700;
+        font-size: clamp(0.9375rem, 2.2vw, 1.125rem);
+        color: rgba(255, 255, 255, 0.92);
+        letter-spacing: -0.01em;
+      }
+
+      .hero-gap-live-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        padding: 0.25rem 0.625rem;
+        border-radius: 9999px;
+        background: rgba(16, 185, 129, 0.18);
+        border: 1px solid rgba(52, 211, 153, 0.45);
+        font-family: 'Noto Sans KR', sans-serif;
+        font-size: clamp(0.6875rem, 1.6vw, 0.8125rem);
+        font-weight: 600;
+        color: #6EE7B7;
+        letter-spacing: 0.02em;
+      }
+
+      .hero-gap-live-dot {
+        width: 0.5rem;
+        height: 0.5rem;
+        border-radius: 50%;
+        background: #34D399;
+        box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.55);
+        animation: heroGapLivePulse 2s ease-in-out infinite;
+        flex-shrink: 0;
+      }
+
+      @keyframes heroGapLivePulse {
+        0%, 100% {
+          box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.55);
+          opacity: 1;
+        }
+        50% {
+          box-shadow: 0 0 0 6px rgba(52, 211, 153, 0);
+          opacity: 0.85;
+        }
+      }
+
+      .hero-gap-subtitle {
+        font-family: 'Noto Sans KR', sans-serif;
+        font-weight: 500;
+        font-size: clamp(0.8125rem, 1.9vw, 0.9375rem);
+        color: rgba(255, 255, 255, 0.62);
+        line-height: 1.5;
+        text-align: center;
+      }
+
+      .hero-gap-subtitle strong {
+        color: rgba(255, 255, 255, 0.88);
+        font-weight: 700;
+      }
+
+      .hero-gap-updated {
+        color: rgba(110, 231, 183, 0.9);
+        font-weight: 600;
+      }
+
+      .hero-gap-row {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.75rem 1.25rem;
+        width: 100%;
+      }
+
+      .hero-gap-col {
+        flex: 1 1 0;
+        min-width: 0;
+        text-align: center;
+      }
+
+      .hero-gap-col--final .hero-stat-number {
+        color: #10B981;
+      }
+
+      .hero-gap-col--final .hero-stat-unit {
+        color: #10B981;
+      }
+
+      .hero-gap-col--original .hero-stat-number {
+        color: #F8FAFC;
+      }
+
+      .hero-gap-col--original .hero-stat-unit {
+        color: rgba(248, 250, 252, 0.85);
+      }
+
+      .hero-gap-label {
+        font-family: 'Noto Sans KR', sans-serif;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        font-size: clamp(0.75rem, 1.8vw, 1rem);
+        color: rgba(255, 255, 255, 0.72);
+        margin-bottom: 0.5rem;
+      }
+
+      .hero-gap-col--animate {
+        animation: heroGapColIn 0.85s cubic-bezier(0.22, 1, 0.36, 1) both;
+      }
+
+      .hero-gap-col--original.hero-gap-col--animate {
+        animation-delay: 0.35s;
+      }
+
+      .hero-gap-col--final.hero-gap-col--animate {
+        animation-delay: 0.65s;
+      }
+
+      @keyframes heroGapColIn {
+        from {
+          opacity: 0;
+          transform: translateY(18px) scale(0.96);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+
+      .hero-gap-flow {
+        flex-shrink: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5rem;
+        animation: heroGapColIn 0.85s cubic-bezier(0.22, 1, 0.36, 1) 0.5s both;
+      }
+
+      .hero-gap-flow-track {
+        position: relative;
+        width: clamp(2.5rem, 9vw, 4.5rem);
+        height: 3px;
+        border-radius: 999px;
+        background: rgba(52, 211, 153, 0.2);
+        overflow: hidden;
+      }
+
+      .hero-gap-flow-track::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(90deg, transparent, rgba(52, 211, 153, 0.55), transparent);
+        animation: heroGapFlowSweep 2.2s ease-in-out infinite;
+      }
+
+      .hero-gap-flow-dot {
+        position: absolute;
+        top: 50%;
+        left: 0;
+        width: 7px;
+        height: 7px;
+        margin-top: -3.5px;
+        border-radius: 50%;
+        background: #6EE7B7;
+        box-shadow: 0 0 10px rgba(110, 231, 183, 0.9), 0 0 20px rgba(52, 211, 153, 0.5);
+        animation: heroGapFlowDot 2.2s ease-in-out infinite;
+      }
+
+      @keyframes heroGapFlowSweep {
+        0% { transform: translateX(-100%); }
+        100% { transform: translateX(100%); }
+      }
+
+      @keyframes heroGapFlowDot {
+        0%, 100% {
+          left: 0;
+          opacity: 0.55;
+          transform: scale(0.85);
+        }
+        50% {
+          left: calc(100% - 7px);
+          opacity: 1;
+          transform: scale(1.15);
+        }
+      }
+
+      .hero-gap-arrow {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #34D399;
+        padding: 0 0.25rem;
+        filter: drop-shadow(0 0 8px rgba(52, 211, 153, 0.45));
+      }
+
+      .hero-gap-arrow svg {
+        width: clamp(1.5rem, 4vw, 2.25rem);
+        height: clamp(1.5rem, 4vw, 2.25rem);
+        animation: heroGapArrowPulse 1.6s ease-in-out infinite;
+      }
+
+      @keyframes heroGapArrowPulse {
+        0%, 100% {
+          transform: translateX(0);
+          opacity: 0.8;
+        }
+        50% {
+          transform: translateX(5px);
+          opacity: 1;
+        }
+      }
+
+      .hero-gap-savings-hero {
+        position: relative;
+        overflow: hidden;
+        margin-top: 1.5rem;
+        padding: 1.25rem 1rem 1.125rem;
+        border-radius: 1.25rem;
+        text-align: center;
+        background: linear-gradient(180deg, rgba(16, 185, 129, 0.22) 0%, rgba(16, 185, 129, 0.08) 100%);
+        border: 2px solid rgba(52, 211, 153, 0.45);
+        box-shadow: 0 8px 32px rgba(16, 185, 129, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+        animation: heroGapSavingsIn 1s cubic-bezier(0.34, 1.56, 0.64, 1) 0.85s both,
+                   heroGapSavingsGlow 3.5s ease-in-out 1.85s infinite;
+      }
+
+      .hero-gap-savings-hero.is-counting {
+        border-color: rgba(110, 231, 183, 0.75);
+      }
+
+      .hero-gap-savings-hero.is-pop {
+        animation: heroGapSavingsPop 0.65s cubic-bezier(0.34, 1.56, 0.64, 1),
+                   heroGapSavingsGlow 3.5s ease-in-out infinite;
+      }
+
+      .hero-gap-savings-shimmer {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background: linear-gradient(
+          105deg,
+          transparent 38%,
+          rgba(255, 255, 255, 0.14) 50%,
+          transparent 62%
+        );
+        background-size: 220% 100%;
+        animation: heroGapShimmer 4.5s ease-in-out infinite;
+      }
+
+      .hero-gap-sparkles {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        overflow: hidden;
+      }
+
+      .hero-gap-sparkles span {
+        position: absolute;
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: radial-gradient(circle, #ECFDF5 0%, #6EE7B7 55%, transparent 100%);
+        opacity: 0;
+        animation: heroGapSparkle 3.2s ease-in-out infinite;
+      }
+
+      .hero-gap-sparkles span:nth-child(1) { top: 18%; left: 12%; animation-delay: 0s; }
+      .hero-gap-sparkles span:nth-child(2) { top: 72%; left: 22%; animation-delay: 0.8s; width: 4px; height: 4px; }
+      .hero-gap-sparkles span:nth-child(3) { top: 28%; right: 14%; animation-delay: 1.4s; }
+      .hero-gap-sparkles span:nth-child(4) { bottom: 20%; right: 20%; animation-delay: 2s; width: 3px; height: 3px; }
+      .hero-gap-sparkles span:nth-child(5) { top: 50%; left: 48%; animation-delay: 2.6s; width: 6px; height: 6px; }
+
+      @keyframes heroGapSavingsIn {
+        from {
+          opacity: 0;
+          transform: translateY(24px) scale(0.92);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+
+      @keyframes heroGapSavingsGlow {
+        0%, 100% {
+          box-shadow: 0 8px 32px rgba(16, 185, 129, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+          border-color: rgba(52, 211, 153, 0.45);
+        }
+        50% {
+          box-shadow: 0 12px 48px rgba(16, 185, 129, 0.42), 0 0 32px rgba(52, 211, 153, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+          border-color: rgba(110, 231, 183, 0.65);
+        }
+      }
+
+      @keyframes heroGapSavingsPop {
+        0% { transform: scale(1); }
+        35% { transform: scale(1.04); }
+        65% { transform: scale(0.98); }
+        100% { transform: scale(1); }
+      }
+
+      @keyframes heroGapShimmer {
+        0% { background-position: 220% 0; }
+        100% { background-position: -220% 0; }
+      }
+
+      @keyframes heroGapSparkle {
+        0%, 100% {
+          opacity: 0;
+          transform: scale(0.4) translateY(0);
+        }
+        45% {
+          opacity: 0.9;
+          transform: scale(1) translateY(-6px);
+        }
+        70% {
+          opacity: 0;
+          transform: scale(0.6) translateY(-12px);
+        }
+      }
+
+      .hero-stat-number--hero-savings.hero-number-count {
+        animation: heroGapSavingsNumberPulse 0.35s ease-in-out infinite alternate;
+      }
+
+      @keyframes heroGapSavingsNumberPulse {
+        from {
+          text-shadow: 0 0 24px rgba(52, 211, 153, 0.3), 0 2px 12px rgba(0, 0, 0, 0.25);
+        }
+        to {
+          text-shadow: 0 0 48px rgba(52, 211, 153, 0.55), 0 0 16px rgba(110, 231, 183, 0.35), 0 2px 12px rgba(0, 0, 0, 0.25);
+        }
+      }
+
+      .hero-gap-savings-label,
+      .hero-gap-savings-value-row,
+      .hero-gap-rate-meta {
+        position: relative;
+        z-index: 1;
+      }
+
+      .hero-gap-savings-label {
+        font-family: 'Noto Sans KR', sans-serif;
+        font-weight: 700;
+        font-size: clamp(0.875rem, 2vw, 1.0625rem);
+        color: #A7F3D0;
+        letter-spacing: 0.08em;
+        margin-bottom: 0.625rem;
+      }
+
+      .hero-gap-savings-value-row {
+        margin-bottom: 0.5rem;
+      }
+
+      .hero-stat-number--hero-savings {
+        font-size: clamp(2rem, 7vw, 4.25rem) !important;
+        color: #34D399 !important;
+        text-shadow: 0 0 40px rgba(52, 211, 153, 0.35), 0 2px 12px rgba(0, 0, 0, 0.25);
+      }
+
+      .hero-gap-savings-unit {
+        color: #6EE7B7 !important;
+        font-size: clamp(1rem, 3vw, 1.75rem) !important;
+        opacity: 1 !important;
+      }
+
+      .hero-gap-rate-meta {
+        font-family: 'Noto Sans KR', sans-serif;
+        font-weight: 600;
+        font-size: clamp(0.8125rem, 1.8vw, 0.9375rem);
+        color: rgba(255, 255, 255, 0.65);
+      }
+
+      .hero-gap-rate {
+        font-weight: 800;
+        color: #FBBF24;
+        font-size: clamp(0.9375rem, 2vw, 1.0625rem);
+      }
+
+      @media (max-width: 480px) {
+        .hero-gap-row {
+          flex-direction: column;
+          gap: 0.5rem;
+        }
+
+        .hero-gap-flow-track {
+          width: 3px;
+          height: clamp(2rem, 8vw, 3rem);
+        }
+
+        .hero-gap-flow-track::after {
+          background: linear-gradient(180deg, transparent, rgba(52, 211, 153, 0.55), transparent);
+          animation-name: heroGapFlowSweepVertical;
+        }
+
+        .hero-gap-flow-dot {
+          left: 50%;
+          margin-left: -3.5px;
+          margin-top: 0;
+          top: 0;
+          animation-name: heroGapFlowDotVertical;
+        }
+
+        @keyframes heroGapFlowSweepVertical {
+          0% { transform: translateY(-100%); }
+          100% { transform: translateY(100%); }
+        }
+
+        @keyframes heroGapFlowDotVertical {
+          0%, 100% {
+            top: 0;
+            opacity: 0.55;
+            transform: scale(0.85);
+          }
+          50% {
+            top: calc(100% - 7px);
+            opacity: 1;
+            transform: scale(1.15);
+          }
+        }
+
+        .hero-gap-arrow svg {
+          animation-name: heroGapArrowPulseVertical;
+        }
+
+        @keyframes heroGapArrowPulseVertical {
+          0%, 100% {
+            transform: rotate(90deg) translateY(0);
+            opacity: 0.8;
+          }
+          50% {
+            transform: rotate(90deg) translateY(5px);
+            opacity: 1;
+          }
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .hero-gap-col--animate,
+        .hero-gap-flow,
+        .hero-gap-savings-hero,
+        .hero-gap-arrow svg,
+        .hero-gap-flow-dot,
+        .hero-gap-flow-track::after,
+        .hero-gap-savings-shimmer,
+        .hero-gap-sparkles span,
+        .hero-stat-number--hero-savings.hero-number-count {
+          animation: none !important;
+        }
+
+        .hero-gap-savings-hero {
+          opacity: 1;
+          transform: none;
+        }
+      }
       
       /* 통계 카드 내부 요소가 항상 보이도록 */
       .hero-stats-card-1 *,
-      .hero-stats-card-2 * {
+      .hero-stats-card-2 *,
+      .hero-gap-card * {
         visibility: visible !important;
         opacity: 1 !important;
       }
@@ -2551,6 +3031,8 @@
 
           let totalRequests = 0;
           let totalSavings = 0;
+          let totalOriginalPrice = 0;
+          let totalFinalPrice = 0;
           let totalRate = 0;
           const recentSavings = [];
           const allReviews = [];
@@ -2581,18 +3063,40 @@
             } else if (data.ratePercent) {
               rate = parseFloat(data.ratePercent) || 0;
             }
-            // originalPrice와 finalPrice가 있으면 자동 계산
-            if (rate === 0 && data.originalPrice && data.finalPrice) {
-              const originalPriceNum = typeof data.originalPrice === 'string' 
-                ? parseInt(data.originalPrice.replace(/[^0-9]/g, '')) 
+
+            let originalPrice = 0;
+            let finalPrice = 0;
+            if (data.originalPrice) {
+              originalPrice = typeof data.originalPrice === 'string'
+                ? parseInt(data.originalPrice.replace(/[^0-9]/g, ''))
                 : data.originalPrice;
-              const finalPriceNum = typeof data.finalPrice === 'string'
+            }
+            if (data.finalPrice) {
+              finalPrice = typeof data.finalPrice === 'string'
                 ? parseInt(data.finalPrice.replace(/[^0-9]/g, ''))
                 : data.finalPrice;
-              if (originalPriceNum > 0) {
-                rate = Math.round(((originalPriceNum - finalPriceNum) / originalPriceNum) * 100);
-              }
             }
+
+            // originalPrice와 finalPrice가 있으면 절약률 자동 계산
+            if (rate === 0 && originalPrice > 0 && finalPrice > 0) {
+              rate = Math.round(((originalPrice - finalPrice) / originalPrice) * 100);
+            }
+
+            // originalPrice나 finalPrice가 없으면 savings로 역산
+            if (originalPrice === 0 && finalPrice === 0 && savingsAmount > 0 && rate > 0) {
+              originalPrice = Math.round(savingsAmount / (rate / 100));
+              finalPrice = originalPrice - savingsAmount;
+            } else if (originalPrice === 0 && finalPrice > 0) {
+              originalPrice = finalPrice + savingsAmount;
+            } else if (finalPrice === 0 && originalPrice > 0) {
+              finalPrice = originalPrice - savingsAmount;
+            }
+
+            if (originalPrice > 0 && finalPrice > 0) {
+              totalOriginalPrice += originalPrice;
+              totalFinalPrice += finalPrice;
+            }
+
             totalRate += rate;
 
             // 모든 후기 데이터 저장 (최근 절약 사례용)
@@ -2622,29 +3126,6 @@
               // 3. 기본 이미지
               else {
                 productImage = 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&w=600&q=80';
-              }
-              
-              // originalPrice와 finalPrice 추출
-              let originalPrice = 0;
-              let finalPrice = 0;
-              if (data.originalPrice) {
-                originalPrice = typeof data.originalPrice === 'string' 
-                  ? parseInt(data.originalPrice.replace(/[^0-9]/g, '')) 
-                  : data.originalPrice;
-              }
-              if (data.finalPrice) {
-                finalPrice = typeof data.finalPrice === 'string'
-                  ? parseInt(data.finalPrice.replace(/[^0-9]/g, ''))
-                  : data.finalPrice;
-              }
-              // originalPrice나 finalPrice가 없으면 savings로 역산
-              if (originalPrice === 0 && finalPrice === 0 && savingsAmount > 0 && rate > 0) {
-                originalPrice = Math.round(savingsAmount / (rate / 100));
-                finalPrice = originalPrice - savingsAmount;
-              } else if (originalPrice === 0 && finalPrice > 0) {
-                originalPrice = finalPrice + savingsAmount;
-              } else if (finalPrice === 0 && originalPrice > 0) {
-                finalPrice = originalPrice - savingsAmount;
               }
               
               allReviews.push({
@@ -2696,18 +3177,30 @@
           console.log('✅ 최근 절약 사례 데이터:', recentSavings.length, '개');
 
           const avgRate = totalRequests > 0 ? Math.round(totalRate / totalRequests) : 0;
-          const avgSavings = totalRequests > 0 ? Math.round(totalSavings / totalRequests) : 0;
+          const gapSavings = totalOriginalPrice > totalFinalPrice
+            ? totalOriginalPrice - totalFinalPrice
+            : totalSavings;
 
-          // 히어로 섹션 통계 업데이트 (누적 절약금액, 누적 의뢰건수만)
-          updateHeroStats(totalRequests, totalSavings);
+          updateHeroStats({
+            totalOriginal: totalOriginalPrice,
+            totalFinal: totalFinalPrice,
+            totalSavings: gapSavings,
+            avgRate,
+            totalRequests
+          });
           
           // 최근 절약 사례 표시
           updateHeroRecentSavings(recentSavings);
 
         } catch (error) {
           console.error('❌ 히어로 통계 로드 실패:', error);
-          // 오류 발생 시 기본값 표시
-          updateHeroStats(0, 0);
+          updateHeroStats({
+            totalOriginal: 0,
+            totalFinal: 0,
+            totalSavings: 0,
+            avgRate: 0,
+            totalRequests: 0
+          });
           updateHeroRecentSavings([]);
         }
       }
@@ -2732,26 +3225,72 @@
         }
       }
 
-      // 히어로 섹션 통계 업데이트 (누적 절약금액, 누적 의뢰건수만)
-      function updateHeroStats(requests, savings) {
-        const heroRequestsElement = document.getElementById('hero-total-requests');
-        const heroSavingsElement = document.getElementById('hero-total-savings');
+      function formatHeroGapUpdatedAt(date) {
+        return date.toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit', hour12: true }) + ' 업데이트';
+      }
 
-        if (heroRequestsElement) {
-          animateNumber(heroRequestsElement, 0, requests, 2000);
-        }
+      // 히어로 섹션 통계 업데이트 (전체 의뢰 누적 → 찾은가 갭)
+      function updateHeroStats(stats) {
+        const { totalOriginal, totalFinal, totalSavings, avgRate, totalRequests } = stats;
+        const prev = window.heroGapStats || {};
+        window.heroGapStats = stats;
 
-        if (heroSavingsElement) {
-          // 절약금액은 숫자로 직접 표시 (천 단위 구분)
-          animateNumber(heroSavingsElement, 0, savings, 2000);
+        const originalEl = document.getElementById('hero-total-original');
+        const finalEl = document.getElementById('hero-total-final');
+        const savingsEl = document.getElementById('hero-gap-savings');
+        const rateEl = document.getElementById('hero-gap-rate');
+        const countEl = document.getElementById('hero-gap-request-count');
+        const updatedEl = document.getElementById('hero-gap-updated');
+
+        if (originalEl) {
+          animateNumber(originalEl, prev.totalOriginal || 0, totalOriginal, 2000, formatSavings(totalOriginal));
         }
+        if (finalEl) {
+          animateNumber(finalEl, prev.totalFinal || 0, totalFinal, 2000, formatSavings(totalFinal));
+        }
+        const savingsHero = document.getElementById('hero-gap-savings-hero');
+        if (savingsHero) {
+          savingsHero.classList.add('is-counting');
+        }
+        if (savingsEl) {
+          animateNumber(
+            savingsEl,
+            prev.totalSavings || 0,
+            totalSavings,
+            2200,
+            formatSavings(totalSavings),
+            () => {
+              if (savingsHero) {
+                savingsHero.classList.remove('is-counting');
+                if (totalSavings > 0) {
+                  triggerHeroGapSavingsPop();
+                }
+              }
+            }
+          );
+        }
+        if (rateEl) {
+          animateNumber(rateEl, prev.avgRate || 0, avgRate, 2000);
+        }
+        if (countEl) {
+          animateNumber(countEl, prev.totalRequests || 0, totalRequests || 0, 1500);
+        }
+        if (updatedEl) {
+          updatedEl.textContent = formatHeroGapUpdatedAt(new Date());
+        }
+      }
+
+      if (!window.__heroStatsRefreshBound) {
+        window.__heroStatsRefreshBound = true;
+        setInterval(loadHeroStats, 3 * 60 * 1000);
       }
 
       if (!window.__heroStatFitResizeBound) {
         window.__heroStatFitResizeBound = true;
         window.addEventListener('resize', () => {
-          fitHeroStatNumber(document.getElementById('hero-total-savings'));
-          fitHeroStatNumber(document.getElementById('hero-total-requests'));
+          fitHeroStatNumber(document.getElementById('hero-total-original'));
+          fitHeroStatNumber(document.getElementById('hero-total-final'));
+          fitHeroStatNumber(document.getElementById('hero-gap-savings'));
         });
       }
 
@@ -2870,7 +3409,8 @@
         element.style.fontSize = '';
         const computed = window.getComputedStyle(element);
         let sizePx = parseFloat(computed.fontSize) || 24;
-        const minPx = element.classList.contains('hero-stat-number--savings') ? 11 : 14;
+        const minPx = element.classList.contains('hero-stat-number--hero-savings') ? 16
+          : element.classList.contains('hero-stat-number--savings') ? 11 : 14;
         let guard = 0;
         while (row.scrollWidth > row.clientWidth && sizePx > minPx && guard < 40) {
           sizePx -= 1;
@@ -2880,7 +3420,7 @@
       }
 
       // 숫자 카운트 애니메이션
-      function animateNumber(element, start, end, duration, formattedValue = null) {
+      function animateNumber(element, start, end, duration, formattedValue = null, onComplete = null) {
         const startTime = performance.now();
         const isSavings = formattedValue !== null;
         
@@ -2913,6 +3453,9 @@
               element.textContent = end.toLocaleString('ko-KR');
             }
             fitHeroStatNumber(element);
+            if (typeof onComplete === 'function') {
+              onComplete();
+            }
             // 애니메이션 완료 후 클래스 제거 (다시 애니메이션 가능하도록)
             setTimeout(() => {
               element.classList.remove('hero-number-count');
@@ -2921,6 +3464,15 @@
         }
 
         requestAnimationFrame(update);
+      }
+
+      function triggerHeroGapSavingsPop() {
+        const savingsHero = document.getElementById('hero-gap-savings-hero');
+        if (!savingsHero) return;
+        savingsHero.classList.remove('is-pop');
+        void savingsHero.offsetWidth;
+        savingsHero.classList.add('is-pop');
+        setTimeout(() => savingsHero.classList.remove('is-pop'), 700);
       }
 
       // 절약금액 포맷팅 (억, 천만 단위로 표시)
@@ -3841,30 +4393,61 @@
           </p>
         </div>
 
-        <!-- 실시간 통계 카드들 - 프리미엄 글래스모피즘 (2개만 강조) -->
-        <div id="hero-stats" class="hero-element grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 md:gap-8 mb-8 sm:mb-12 md:mb-16 w-full max-w-5xl mx-auto px-2 sm:px-4">
-          <!-- 누적 절약금액 - 강조 -->
-          <div class="hero-stats-card-1 hero-stats-pulse-emerald group relative bg-white/12 backdrop-blur-xl rounded-2xl sm:rounded-3xl p-6 sm:p-8 md:p-10 lg:p-12 border-2 border-emerald-400/50 shadow-[0_12px_48px_0_rgba(16,185,129,0.4)] hover:bg-white/18 hover:border-emerald-400/70 hover:shadow-[0_20px_80px_0_rgba(16,185,129,0.5)] transition-all duration-500 hover:-translate-y-2" style="opacity: 1 !important; visibility: visible !important;">
+        <!-- 가격 갭 통계 - 의뢰가 → 찾은가 -->
+        <div id="hero-stats" class="hero-element w-full max-w-5xl mx-auto px-2 sm:px-4 mb-8 sm:mb-12 md:mb-16">
+          <div class="hero-gap-card hero-stats-pulse-emerald group relative bg-white/12 backdrop-blur-xl rounded-2xl sm:rounded-3xl p-6 sm:p-8 md:p-10 lg:p-12 border-2 border-emerald-400/50 shadow-[0_12px_48px_0_rgba(16,185,129,0.4)] hover:bg-white/18 hover:border-emerald-400/70 hover:shadow-[0_20px_80px_0_rgba(16,185,129,0.5)] transition-all duration-500 hover:-translate-y-1" style="opacity: 1 !important; visibility: visible !important;">
             <div class="absolute inset-0 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-emerald-400/20 via-emerald-300/12 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-            <div class="hero-stat-inner">
-              <div class="hero-stat-value-row sm:mb-4">
-                <span id="hero-total-savings" class="hero-stat-number hero-stat-number--savings hero-number-count" style="color: #10B981;">0</span><span class="hero-stat-unit" style="color: #10B981;">원</span>
+            <div class="hero-stat-inner relative z-10 w-full">
+              <div class="hero-gap-header">
+                <div class="hero-gap-header-top">
+                  <span class="hero-gap-title">전체 고객 의뢰 누적 합계</span>
+                  <span class="hero-gap-live-badge" aria-live="polite">
+                    <span class="hero-gap-live-dot" aria-hidden="true"></span>
+                    실시간 반영 중
+                  </span>
+                </div>
+                <p class="hero-gap-subtitle">
+                  지금까지 <strong><span id="hero-gap-request-count">0</span>건</strong>의 검증 결과를 합산
+                  <span aria-hidden="true"> · </span>
+                  <span class="hero-gap-updated" id="hero-gap-updated">업데이트 대기 중</span>
+                </p>
               </div>
-              <div class="hero-stat-label">
-                누적 절약금액
+              <div class="hero-gap-row">
+                <div class="hero-gap-col hero-gap-col--original hero-gap-col--animate">
+                  <div class="hero-gap-label">누적 요청 가격</div>
+                  <div class="hero-stat-value-row">
+                    <span id="hero-total-original" class="hero-stat-number hero-stat-number--savings hero-number-count">0</span><span class="hero-stat-unit">원</span>
+                  </div>
+                </div>
+                <div class="hero-gap-flow" aria-hidden="true">
+                  <div class="hero-gap-flow-track">
+                    <span class="hero-gap-flow-dot"></span>
+                  </div>
+                  <div class="hero-gap-arrow">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+                    </svg>
+                  </div>
+                </div>
+                <div class="hero-gap-col hero-gap-col--final hero-gap-col--animate">
+                  <div class="hero-gap-label">누적 검증 가격</div>
+                  <div class="hero-stat-value-row">
+                    <span id="hero-total-final" class="hero-stat-number hero-stat-number--savings hero-number-count">0</span><span class="hero-stat-unit">원</span>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-          
-          <!-- 누적 의뢰건수 - 강조 -->
-          <div class="hero-stats-card-2 hero-stats-pulse-blue group relative bg-white/12 backdrop-blur-xl rounded-2xl sm:rounded-3xl p-6 sm:p-8 md:p-10 lg:p-12 border-2 border-blue-400/50 shadow-[0_12px_48px_0_rgba(59,130,246,0.4)] hover:bg-white/18 hover:border-blue-400/70 hover:shadow-[0_20px_80px_0_rgba(59,130,246,0.5)] transition-all duration-500 hover:-translate-y-2" style="opacity: 1 !important; visibility: visible !important;">
-            <div class="absolute inset-0 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-blue-400/20 via-blue-300/12 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-            <div class="hero-stat-inner">
-              <div class="hero-stat-value-row sm:mb-4">
-                <span id="hero-total-requests" class="hero-stat-number hero-number-count" style="color: #3B82F6;">0</span><span class="hero-stat-unit" style="color: #3B82F6;">건</span>
-              </div>
-              <div class="hero-stat-label">
-                누적 의뢰건수
+              <div class="hero-gap-savings-hero" id="hero-gap-savings-hero">
+                <div class="hero-gap-savings-shimmer" aria-hidden="true"></div>
+                <div class="hero-gap-sparkles" aria-hidden="true">
+                  <span></span><span></span><span></span><span></span><span></span>
+                </div>
+                <div class="hero-gap-savings-label">누적 절약금액</div>
+                <div class="hero-stat-value-row hero-gap-savings-value-row">
+                  <span id="hero-gap-savings" class="hero-stat-number hero-stat-number--hero-savings hero-number-count">0</span><span class="hero-stat-unit hero-gap-savings-unit">원</span>
+                </div>
+                <div class="hero-gap-rate-meta">
+                  평균 <span id="hero-gap-rate" class="hero-gap-rate">0</span>% 절약
+                </div>
               </div>
             </div>
           </div>
