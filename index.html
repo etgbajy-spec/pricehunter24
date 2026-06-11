@@ -1084,6 +1084,8 @@
         color: rgba(255, 255, 255, 0.62);
         line-height: 1.5;
         text-align: center;
+        max-width: 100%;
+        word-break: keep-all;
       }
 
       .hero-gap-subtitle strong {
@@ -1118,7 +1120,15 @@
       .hero-gap-col {
         flex: 1 1 0;
         min-width: 0;
+        max-width: 100%;
         text-align: center;
+      }
+
+      .hero-gap-col .hero-stat-value-row,
+      .hero-gap-savings-value-row {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
       }
 
       .hero-gap-col--final .hero-stat-number {
@@ -1361,8 +1371,21 @@
         }
       }
 
+      .hero-stat-number.hero-number-count {
+        display: inline-block;
+        transform-origin: center bottom;
+        animation: heroGapNumberTick 0.12s ease-out;
+      }
+
       .hero-stat-number--hero-savings.hero-number-count {
-        animation: heroGapSavingsNumberPulse 0.35s ease-in-out infinite alternate;
+        animation: heroGapSavingsNumberPulse 0.35s ease-in-out infinite alternate,
+                   heroGapNumberTick 0.12s ease-out;
+      }
+
+      @keyframes heroGapNumberTick {
+        0% { transform: scale(1); }
+        40% { transform: scale(1.06); }
+        100% { transform: scale(1); }
       }
 
       @keyframes heroGapSavingsNumberPulse {
@@ -1419,10 +1442,66 @@
         font-size: clamp(0.9375rem, 2vw, 1.0625rem);
       }
 
+      #hero-stats {
+        max-width: 100%;
+        overflow-x: hidden;
+      }
+
+      .hero-gap-card {
+        max-width: 100%;
+        overflow: hidden;
+      }
+
+      @media (max-width: 640px) {
+        .hero-gap-card.hero-stats-pulse-emerald {
+          padding: 1rem !important;
+        }
+
+        .hero-gap-header {
+          margin-bottom: 1rem;
+          padding-bottom: 1rem;
+        }
+
+        .hero-gap-subtitle .hero-gap-meta-sep {
+          display: none;
+        }
+
+        .hero-gap-updated {
+          display: block;
+          margin-top: 0.35rem;
+          font-size: 0.75rem;
+        }
+
+        .hero-gap-savings-hero {
+          padding: 1.125rem 0.75rem 1rem;
+        }
+
+        .hero-stat-number--hero-savings {
+          font-size: clamp(2rem, 9vw, 3.5rem) !important;
+        }
+
+        .hero-gap-savings-unit {
+          font-size: clamp(1rem, 3.5vw, 1.5rem) !important;
+        }
+      }
+
       @media (max-width: 480px) {
         .hero-gap-row {
           flex-direction: column;
           gap: 0.5rem;
+          padding: 0.5rem 0.625rem;
+        }
+
+        .hero-gap-col {
+          width: 100%;
+        }
+
+        .hero-gap-label {
+          font-size: 0.6875rem;
+        }
+
+        .hero-gap-row .hero-stat-number {
+          font-size: clamp(0.8125rem, 4.2vw, 1.25rem);
         }
 
         .hero-gap-flow-track {
@@ -1486,7 +1565,8 @@
         .hero-gap-flow-track::after,
         .hero-gap-savings-shimmer,
         .hero-gap-sparkles span,
-        .hero-stat-number--hero-savings.hero-number-count {
+        .hero-stat-number--hero-savings.hero-number-count,
+        .hero-stat-number.hero-number-count {
           animation: none !important;
         }
 
@@ -3192,27 +3272,28 @@
             ? totalOriginalPrice - totalFinalPrice
             : totalSavings;
 
-          updateHeroStats({
+          window.heroGapStatsPending = {
             totalOriginal: totalOriginalPrice,
             totalFinal: totalFinalPrice,
             totalSavings: gapSavings,
             avgRate,
             totalRequests
-          });
-          
-          // 최근 절약 사례 표시
+          };
+
           updateHeroRecentSavings(recentSavings);
+          tryPlayHeroStatsCountUp();
 
         } catch (error) {
           console.error('❌ 히어로 통계 로드 실패:', error);
-          updateHeroStats({
+          window.heroGapStatsPending = {
             totalOriginal: 0,
             totalFinal: 0,
             totalSavings: 0,
             avgRate: 0,
             totalRequests: 0
-          });
+          };
           updateHeroRecentSavings([]);
+          tryPlayHeroStatsCountUp();
         }
       }
 
@@ -3240,10 +3321,50 @@
         return date.toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit', hour12: true }) + ' 업데이트';
       }
 
+      window.__heroNumberAnimFrames = window.__heroNumberAnimFrames || {};
+
+      function cancelHeroNumberAnimation(element) {
+        if (!element || !element.id) return;
+        const frameId = window.__heroNumberAnimFrames[element.id];
+        if (frameId) {
+          cancelAnimationFrame(frameId);
+          delete window.__heroNumberAnimFrames[element.id];
+        }
+      }
+
+      function resetHeroStatNumbersToZero() {
+        ['hero-total-original', 'hero-total-final', 'hero-gap-savings', 'hero-gap-rate', 'hero-gap-request-count'].forEach((id) => {
+          const el = document.getElementById(id);
+          if (!el) return;
+          cancelHeroNumberAnimation(el);
+          el.textContent = '0';
+          el.style.fontSize = '';
+          el.classList.remove('hero-number-count');
+        });
+      }
+
+      function tryPlayHeroStatsCountUp() {
+        if (!window.heroGapStatsPending || !window.heroMainVisible) return;
+
+        const isFirstPlay = !window.heroGapStatsCountPlayed;
+        window.heroGapStatsCountPlayed = true;
+
+        if (isFirstPlay) {
+          resetHeroStatNumbersToZero();
+        }
+
+        updateHeroStats(window.heroGapStatsPending, {
+          fromZero: isFirstPlay,
+          stagger: isFirstPlay
+        });
+      }
+
       // 히어로 섹션 통계 업데이트 (전체 의뢰 누적 → 찾은가 갭)
-      function updateHeroStats(stats) {
+      function updateHeroStats(stats, options = {}) {
+        const { fromZero = false, stagger = false } = options;
         const { totalOriginal, totalFinal, totalSavings, avgRate, totalRequests } = stats;
-        const prev = window.heroGapStats || {};
+        const prev = fromZero ? {} : (window.heroGapStatsRendered || {});
+        window.heroGapStatsRendered = stats;
         window.heroGapStats = stats;
 
         const originalEl = document.getElementById('hero-total-original');
@@ -3252,23 +3373,61 @@
         const rateEl = document.getElementById('hero-gap-rate');
         const countEl = document.getElementById('hero-gap-request-count');
         const updatedEl = document.getElementById('hero-gap-updated');
+        const savingsHero = document.getElementById('hero-gap-savings-hero');
+
+        const priceDuration = 2800;
+        const savingsDuration = 3200;
+        const metaDuration = 2200;
+        const delayOriginal = stagger ? 200 : 0;
+        const delayFinal = stagger ? 450 : 0;
+        const delaySavings = stagger ? 750 : 0;
+        const delayRate = stagger ? 1100 : 0;
+        const delayCount = stagger ? 0 : 0;
+
+        if (countEl) {
+          animateNumber(
+            countEl,
+            fromZero ? 0 : (prev.totalRequests || 0),
+            totalRequests || 0,
+            metaDuration,
+            null,
+            null,
+            delayCount
+          );
+        }
 
         if (originalEl) {
-          animateNumber(originalEl, prev.totalOriginal || 0, totalOriginal, 2000, formatSavings(totalOriginal));
+          animateNumber(
+            originalEl,
+            fromZero ? 0 : (prev.totalOriginal || 0),
+            totalOriginal,
+            priceDuration,
+            formatSavings(totalOriginal),
+            null,
+            delayOriginal
+          );
         }
         if (finalEl) {
-          animateNumber(finalEl, prev.totalFinal || 0, totalFinal, 2000, formatSavings(totalFinal));
+          animateNumber(
+            finalEl,
+            fromZero ? 0 : (prev.totalFinal || 0),
+            totalFinal,
+            priceDuration,
+            formatSavings(totalFinal),
+            null,
+            delayFinal
+          );
         }
-        const savingsHero = document.getElementById('hero-gap-savings-hero');
+
         if (savingsHero) {
           savingsHero.classList.add('is-counting');
         }
         if (savingsEl) {
           animateNumber(
             savingsEl,
-            prev.totalSavings || 0,
+            fromZero ? 0 : (prev.totalSavings || 0),
             totalSavings,
-            2200,
+            savingsDuration,
             formatSavings(totalSavings),
             () => {
               if (savingsHero) {
@@ -3277,14 +3436,20 @@
                   triggerHeroGapSavingsPop();
                 }
               }
-            }
+            },
+            delaySavings
           );
         }
         if (rateEl) {
-          animateNumber(rateEl, prev.avgRate || 0, avgRate, 2000);
-        }
-        if (countEl) {
-          animateNumber(countEl, prev.totalRequests || 0, totalRequests || 0, 1500);
+          animateNumber(
+            rateEl,
+            fromZero ? 0 : (prev.avgRate || 0),
+            avgRate,
+            metaDuration,
+            null,
+            null,
+            delayRate
+          );
         }
         if (updatedEl) {
           updatedEl.textContent = formatHeroGapUpdatedAt(new Date());
@@ -3420,9 +3585,11 @@
         element.style.fontSize = '';
         const computed = window.getComputedStyle(element);
         let sizePx = parseFloat(computed.fontSize) || 24;
-        const minPx = element.classList.contains('hero-stat-number--hero-savings') ? 18
-          : element.closest('.hero-gap-row') ? 10
-          : element.classList.contains('hero-stat-number--savings') ? 11 : 14;
+        const isNarrow = window.matchMedia('(max-width: 640px)').matches;
+        const minPx = element.classList.contains('hero-stat-number--hero-savings')
+          ? (isNarrow ? 14 : 18)
+          : element.closest('.hero-gap-row') ? 9
+          : element.classList.contains('hero-stat-number--savings') ? 10 : 14;
         let guard = 0;
         while (row.scrollWidth > row.clientWidth && sizePx > minPx && guard < 40) {
           sizePx -= 1;
@@ -3431,51 +3598,71 @@
         }
       }
 
-      // 숫자 카운트 애니메이션
-      function animateNumber(element, start, end, duration, formattedValue = null, onComplete = null) {
-        const startTime = performance.now();
-        const isSavings = formattedValue !== null;
-        
-        // 애니메이션 클래스 추가
-        element.classList.add('hero-number-count');
+      // 숫자 카운트 애니메이션 (0 → 목표값, ease-out expo)
+      function animateNumber(element, start, end, duration, formattedValue = null, onComplete = null, delay = 0) {
+        if (!element) return;
+        cancelHeroNumberAnimation(element);
 
-        function update(currentTime) {
-          const elapsed = currentTime - startTime;
-          const progress = Math.min(elapsed / duration, 1);
-          
-          // easing 함수 (ease-out)
-          const easeOut = 1 - Math.pow(1 - progress, 3);
-          const current = Math.floor(start + (end - start) * easeOut);
+        const useCompactFinal = formattedValue !== null;
+        const run = () => {
+          const animStart = performance.now();
+          element.classList.remove('hero-number-count');
+          void element.offsetWidth;
+          element.classList.add('hero-number-count');
+          element.textContent = start.toLocaleString('ko-KR');
 
-          if (isSavings) {
-            // 절약금액은 포맷팅된 값으로 표시
-            const currentFormatted = formatSavings(current);
-            element.textContent = currentFormatted;
-          } else {
-            element.textContent = current.toLocaleString('ko-KR');
-          }
+          function update(currentTime) {
+            const elapsed = currentTime - animStart;
+            const progress = Math.min(elapsed / duration, 1);
+            const eased = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
+            const current = Math.floor(start + (end - start) * eased);
 
-          if (progress < 1) {
-            requestAnimationFrame(update);
-          } else {
-            // 최종 값 설정
-            if (isSavings) {
-              element.textContent = formattedValue;
+            if (useCompactFinal && current >= 10000) {
+              element.textContent = formatSavings(current);
             } else {
-              element.textContent = end.toLocaleString('ko-KR');
+              element.textContent = current.toLocaleString('ko-KR');
             }
-            fitHeroStatNumber(element);
-            if (typeof onComplete === 'function') {
-              onComplete();
-            }
-            // 애니메이션 완료 후 클래스 제거 (다시 애니메이션 가능하도록)
-            setTimeout(() => {
-              element.classList.remove('hero-number-count');
-            }, 600);
-          }
-        }
 
-        requestAnimationFrame(update);
+            if (progress < 1) {
+              if (useCompactFinal && current >= 10000) {
+                fitHeroStatNumber(element);
+              }
+              if (element.id) {
+                window.__heroNumberAnimFrames[element.id] = requestAnimationFrame(update);
+              } else {
+                requestAnimationFrame(update);
+              }
+            } else {
+              if (element.id) {
+                delete window.__heroNumberAnimFrames[element.id];
+              }
+              if (useCompactFinal) {
+                element.textContent = formattedValue;
+              } else {
+                element.textContent = end.toLocaleString('ko-KR');
+              }
+              fitHeroStatNumber(element);
+              if (typeof onComplete === 'function') {
+                onComplete();
+              }
+              setTimeout(() => {
+                element.classList.remove('hero-number-count');
+              }, 600);
+            }
+          }
+
+          if (element.id) {
+            window.__heroNumberAnimFrames[element.id] = requestAnimationFrame(update);
+          } else {
+            requestAnimationFrame(update);
+          }
+        };
+
+        if (delay > 0) {
+          setTimeout(run, delay);
+        } else {
+          run();
+        }
       }
 
       function triggerHeroGapSavingsPop() {
@@ -3706,6 +3893,8 @@
 
       // 메인 콘텐츠 표시 함수
       function showMainContent() {
+        window.heroMainVisible = true;
+
         const heroSection = document.getElementById('hero-section');
         if (heroSection) {
           // 초기 상태 확인 및 설정 - 스플래시가 완전히 끝날 때까지 숨김
@@ -3731,6 +3920,11 @@
               }, index * 120);
             });
           }, 300);
+
+          // 통계 카드가 보인 뒤 0원부터 카운트업 시작
+          setTimeout(() => {
+            tryPlayHeroStatsCountUp();
+          }, 900);
         }
       }
 
@@ -3742,11 +3936,6 @@
         // 회원 전용 버튼 가드 연결
         attachMemberOnlyGuards();
         
-        // 히어로 섹션 통계 로드 (Firebase 초기화 대기)
-        setTimeout(() => {
-          loadHeroStats();
-        }, 500);
-
         const popup = document.getElementById('savings-popup');
         const heroSection = document.getElementById('hero-section');
         const popupContinueBtn = document.getElementById('popup-continue-btn');
@@ -4420,7 +4609,7 @@
                 </div>
                 <p class="hero-gap-subtitle">
                   지금까지 <strong><span id="hero-gap-request-count">0</span>건</strong>의 검증 결과를 합산
-                  <span aria-hidden="true"> · </span>
+                  <span class="hero-gap-meta-sep" aria-hidden="true"> · </span>
                   <span class="hero-gap-updated" id="hero-gap-updated">업데이트 대기 중</span>
                 </p>
               </div>
