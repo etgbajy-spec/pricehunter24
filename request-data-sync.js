@@ -28,6 +28,9 @@
     if (!payload.url && payload.urls && payload.urls[0]) {
       payload.url = payload.urls[0];
     }
+    if (!payload.customerProductUrl && payload.url) {
+      payload.customerProductUrl = payload.url;
+    }
     if (!payload.description && payload.desc) {
       payload.description = payload.desc;
     }

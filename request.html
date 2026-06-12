@@ -228,14 +228,14 @@
         const reqData = {
           name, 
           desc, 
-          urls, 
+          urls,
+          url: urls[0] || '',
+          customerProductUrl: urls[0] || '',
           images: imgArr, 
           email, 
           phone, 
-   
-   
           price, 
-          userName: userNameInput, // 올바른 변수명 사용
+          userName: userNameInput,
           date: Date.now()
         };
         localStorage.setItem('request-' + reqNum, JSON.stringify(reqData));

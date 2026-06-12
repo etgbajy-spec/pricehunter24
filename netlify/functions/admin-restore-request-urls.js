@@ -1,8 +1,9 @@
 /**
- * 의뢰(requests) 관리자 답변 additionalInfo 통일 (관리자 전용)
- * 상품 링크(url/urls/customerProductUrl)는 삭제하지 않음
+ * 삭제·누락된 의뢰 상품 링크 복구 (관리자 전용)
+ * - desc·purchaseReport 등에서 URL 추출 후 url/urls/customerProductUrl 복원
  */
 const admin = require('firebase-admin');
+const RequestUrlUtils = require('../../request-url-utils');
 
 const headers = {
   'Access-Control-Allow-Origin': '*',
@@ -10,11 +11,6 @@ const headers = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Content-Type': 'application/json'
 };
-
-const UNIFIED_ADDITIONAL_INFO =
-  'PriceHunter 검증팀이 의뢰하신 제품의 가격과 구매 조건을 검토한 결과입니다.\n\n' +
-  '최저가·제품·배송·판매처·주의사항을 리포트에서 확인하신 뒤 구매를 검토해 주세요. ' +
-  '동일 제품·동일 조건 여부와 배송·구성품은 최종 구매 전 판매처 페이지에서 한 번 더 확인하시는 것을 권장합니다.';
 
 const ADMIN_EMAILS = [
   'admin@pricehunter.com',
@@ -44,46 +40,6 @@ function initAdmin() {
     console.error('Firebase Admin init failed:', e.message);
     return false;
   }
-}
-
-function stripReferenceUrlLines(text) {
-  if (!text || typeof text !== 'string') return '';
-  return text
-    .split('\n')
-    .filter((line) => !/^\s*참고\s*URL\s*:/i.test(line.trim()))
-    .join('\n')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
-}
-
-function buildUpdates(data) {
-  const updates = {};
-
-  ['description', 'productDescription'].forEach((field) => {
-    if (!data[field]) return;
-    const cleaned = stripReferenceUrlLines(data[field]);
-    if (cleaned !== data[field]) updates[field] = cleaned || '—';
-  });
-
-  if (data.adminResponse && typeof data.adminResponse === 'object') {
-    const next = { ...data.adminResponse, additionalInfo: UNIFIED_ADDITIONAL_INFO };
-    if (JSON.stringify(next) !== JSON.stringify(data.adminResponse)) updates.adminResponse = next;
-  }
-
-  if (data.purchaseReport && typeof data.purchaseReport === 'object') {
-    const pr = { ...data.purchaseReport };
-    let prChanged = false;
-    if (pr.evidenceNotes) {
-      const cleanedNotes = stripReferenceUrlLines(pr.evidenceNotes);
-      if (cleanedNotes !== pr.evidenceNotes) {
-        pr.evidenceNotes = cleanedNotes;
-        prChanged = true;
-      }
-    }
-    if (prChanged) updates.purchaseReport = pr;
-  }
-
-  return updates;
 }
 
 async function verifyAdminAuth(event) {
@@ -122,31 +78,54 @@ exports.handler = async (event) => {
   try {
     const db = admin.firestore();
     const snap = await db.collection('requests').get();
-    let updated = 0;
+    let restored = 0;
+    let skipped = 0;
+    let notFound = 0;
     let batch = db.batch();
     let batchCount = 0;
 
-    for (const docSnap of snap.docs) {
-      const updates = buildUpdates(docSnap.data());
-      if (!Object.keys(updates).length) continue;
-      batch.update(docSnap.ref, updates);
-      batchCount += 1;
-      updated += 1;
-      if (batchCount >= 400) {
-        await batch.commit();
-        batch = db.batch();
-        batchCount = 0;
-      }
+    async function commitBatch() {
+      if (batchCount === 0) return;
+      await batch.commit();
+      batch = db.batch();
+      batchCount = 0;
     }
-    if (batchCount) await batch.commit();
+
+    for (const docSnap of snap.docs) {
+      const data = docSnap.data() || {};
+      if (RequestUrlUtils.hasStoredRequestUrls(data)) {
+        skipped += 1;
+        continue;
+      }
+      const patch = RequestUrlUtils.buildUrlRestorePatch(data);
+      if (!patch) {
+        notFound += 1;
+        continue;
+      }
+      batch.update(docSnap.ref, Object.assign({}, patch, {
+        urlRestoredAt: admin.firestore.FieldValue.serverTimestamp(),
+        urlRestoredFrom: 'derived'
+      }));
+      batchCount += 1;
+      restored += 1;
+      if (batchCount >= 400) await commitBatch();
+    }
+
+    await commitBatch();
 
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify({ ok: true, updated, total: snap.size })
+      body: JSON.stringify({
+        ok: true,
+        restored,
+        skipped,
+        notFound,
+        total: snap.size
+      })
     };
   } catch (e) {
-    console.error('admin-cleanup-requests error:', e);
-    return { statusCode: 500, headers, body: JSON.stringify({ error: e.message || '정리 실패' }) };
+    console.error('admin-restore-request-urls error:', e);
+    return { statusCode: 500, headers, body: JSON.stringify({ error: e.message || '복구 실패' }) };
   }
 };

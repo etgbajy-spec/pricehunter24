@@ -1,8 +1,8 @@
 /**
  * 의뢰(requests) 데이터 정리:
- * - urls / url 필드 제거
  * - description·productDescription·evidenceNotes 에서 "참고 URL:" 줄 제거
  * - adminResponse.additionalInfo 통일
+ * - 상품 링크(url/urls/customerProductUrl)는 유지
  *
  * 실행: node scripts/cleanup-request-urls.js
  */
@@ -54,15 +54,6 @@ async function main() {
     const data = docSnap.data();
     const updates = {};
     let changed = false;
-
-    if (Array.isArray(data.urls) && data.urls.length > 0) {
-      updates.urls = [];
-      changed = true;
-    }
-    if (data.url) {
-      updates.url = admin.firestore.FieldValue.delete();
-      changed = true;
-    }
 
     ['description', 'productDescription'].forEach((field) => {
       if (!data[field]) return;
