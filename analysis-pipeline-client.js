@@ -12,22 +12,90 @@
     return global.location.origin;
   }
 
+  function getAdminApiKeyInputEl() {
+    return document.getElementById('admin-api-key-input');
+  }
+
   function getAdminApiKey() {
+    var input = getAdminApiKeyInputEl();
+    if (input && input.value.trim()) return input.value.trim();
     return sessionStorage.getItem('ph_admin_api_key') || localStorage.getItem('ph_admin_api_key') || '';
   }
 
   function setAdminApiKey(key) {
-    sessionStorage.setItem('ph_admin_api_key', key);
-    localStorage.setItem('ph_admin_api_key', key);
+    var trimmed = String(key || '').trim();
+    sessionStorage.setItem('ph_admin_api_key', trimmed);
+    localStorage.setItem('ph_admin_api_key', trimmed);
+    var input = getAdminApiKeyInputEl();
+    if (input) input.value = trimmed;
+    if (global.AdminRequestWorkspace && typeof global.AdminRequestWorkspace.refreshApiKeyUi === 'function') {
+      global.AdminRequestWorkspace.refreshApiKeyUi();
+    }
   }
 
-  function ensureAdminApiKey() {
+  function clearAdminApiKey() {
+    sessionStorage.removeItem('ph_admin_api_key');
+    localStorage.removeItem('ph_admin_api_key');
+    var input = getAdminApiKeyInputEl();
+    if (input) {
+      input.value = '';
+      input.classList.add('ring-2', 'ring-red-400', 'border-red-400');
+    }
+    if (global.AdminRequestWorkspace && typeof global.AdminRequestWorkspace.refreshApiKeyUi === 'function') {
+      global.AdminRequestWorkspace.refreshApiKeyUi(true);
+    }
+  }
+
+  function maskAdminApiKey(key) {
+    if (!key) return '미설정';
+    if (key.length <= 6) return '••••••';
+    return key.slice(0, 3) + '••••' + key.slice(-3);
+  }
+
+  function isAuthApiError(status, message) {
+    if (status === 401 || status === 403) return true;
+    var msg = String(message || '').toLowerCase();
+    return msg.indexOf('인증') !== -1 || msg.indexOf('권한') !== -1 || msg.indexOf('api key') !== -1;
+  }
+
+  function focusAdminApiKeyInput(message) {
+    var input = getAdminApiKeyInputEl();
+    if (input) {
+      input.classList.add('ring-2', 'ring-red-400', 'border-red-400');
+      input.focus();
+      input.select();
+    }
+    if (global.AdminRequestWorkspace && typeof global.AdminRequestWorkspace.switchWorkspaceTab === 'function') {
+      global.AdminRequestWorkspace.switchWorkspaceTab('ai');
+    }
+    if (message && global.dispatchEvent) {
+      global.dispatchEvent(new CustomEvent('ph-admin-api-key-invalid', { detail: { message: message } }));
+    }
+  }
+
+  function ensureAdminApiKey(options) {
+    options = options || {};
     var key = getAdminApiKey();
-    if (key) return key;
-    key = prompt('관리자 API 키를 입력하세요.\n(서버 ADMIN_API_SECRET과 동일, 로컬 기본값: pricehunter-dev-admin)');
+    if (key && !options.force) return key;
+
+    var input = getAdminApiKeyInputEl();
+    if (input) {
+      focusAdminApiKeyInput(options.message || '관리자 API 키를 입력한 뒤 「저장」을 눌러주세요.');
+      return null;
+    }
+
+    key = prompt(
+      (options.message ? options.message + '\n\n' : '') +
+      '관리자 API 키를 입력하세요.\n(서버 ADMIN_API_SECRET과 동일, 로컬 기본값: pricehunter-dev-admin)'
+    );
     if (!key) return null;
     setAdminApiKey(key.trim());
     return key.trim();
+  }
+
+  function changeAdminApiKey() {
+    clearAdminApiKey();
+    return ensureAdminApiKey({ force: true, message: '새 관리자 API 키를 입력하세요.' });
   }
 
   function jobKey(reqNum) {
@@ -80,9 +148,10 @@
     };
   }
 
-  async function callPipelineApi(endpoint, body) {
+  async function callPipelineApi(endpoint, body, attempt) {
+    attempt = attempt || 0;
     var apiKey = ensureAdminApiKey();
-    if (!apiKey) throw new Error('관리자 API 키가 필요합니다.');
+    if (!apiKey) throw new Error('관리자 API 키가 필요합니다. AI 분석 탭에서 키를 입력·저장해 주세요.');
 
     var res = await fetch(getApiBase() + endpoint, {
       method: 'POST',
@@ -95,8 +164,16 @@
 
     var data = await res.json().catch(function () { return {}; });
     if (!res.ok) {
-      throw new Error(data.error || ('API 오류 (' + res.status + ')'));
+      var errMsg = data.error || ('API 오류 (' + res.status + ')');
+      if (isAuthApiError(res.status, errMsg) && attempt < 1) {
+        clearAdminApiKey();
+        focusAdminApiKeyInput('API 키가 올바르지 않거나 만료되었습니다. 다시 입력해 주세요.');
+        throw new Error('관리자 API 키 오류: ' + errMsg + '\n\n아래 입력란에 올바른 키를 입력한 뒤 다시 실행하세요.');
+      }
+      throw new Error(errMsg);
     }
+    var input = getAdminApiKeyInputEl();
+    if (input) input.classList.remove('ring-2', 'ring-red-400', 'border-red-400');
     return data;
   }
 
@@ -195,7 +272,8 @@
     return fetchFirebaseRequests('pending');
   }
 
-  async function fetchFirebaseRequests(scope) {
+  async function fetchFirebaseRequests(scope, attempt) {
+    attempt = attempt || 0;
     var apiKey = ensureAdminApiKey();
     if (!apiKey) throw new Error('관리자 API 키가 필요합니다.');
     var qs = scope === 'all' ? '?scope=all' : '';
@@ -203,13 +281,25 @@
       headers: { 'x-admin-api-key': apiKey }
     });
     var data = await res.json().catch(function () { return {}; });
-    if (!res.ok) throw new Error(data.error || ('API 오류 (' + res.status + ')'));
+    if (!res.ok) {
+      var errMsg = data.error || ('API 오류 (' + res.status + ')');
+      if (isAuthApiError(res.status, errMsg) && attempt < 1) {
+        clearAdminApiKey();
+        focusAdminApiKeyInput('API 키가 올바르지 않습니다. 다시 입력해 주세요.');
+        throw new Error('관리자 API 키 오류: ' + errMsg);
+      }
+      throw new Error(errMsg);
+    }
     return data.items || [];
   }
 
   global.AnalysisPipelineClient = {
     getAdminApiKey: getAdminApiKey,
     setAdminApiKey: setAdminApiKey,
+    clearAdminApiKey: clearAdminApiKey,
+    maskAdminApiKey: maskAdminApiKey,
+    changeAdminApiKey: changeAdminApiKey,
+    focusAdminApiKeyInput: focusAdminApiKeyInput,
     ensureAdminApiKey: ensureAdminApiKey,
     runPipeline: runPipeline,
     collectPricesOnly: collectPricesOnly,

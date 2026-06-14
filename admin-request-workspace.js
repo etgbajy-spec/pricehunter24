@@ -231,6 +231,7 @@
 
   async function handleRunPipeline() {
     if (!currentRequest) return;
+    if (!ensureApiKeyBeforePipeline()) return;
     var btn = document.getElementById('admin-btn-run-pipeline');
     if (btn) btn.disabled = true;
     setPipelineStatus('실행 중…', 'bg-indigo-500 text-white');
@@ -243,9 +244,9 @@
       setPipelineMsg('✅ 파이프라인 완료. 초안을 검수한 뒤 「초안 폼에 적용」을 누르세요.', 'ok');
       showDraftPreview(result.draft, result.priceData, result.mode);
       switchWorkspaceTab('ai');
+      refreshApiKeyUi(false);
     } catch (e) {
-      setPipelineStatus('오류', 'bg-red-500 text-white');
-      setPipelineMsg('❌ ' + e.message, 'err');
+      handlePipelineError(e);
     } finally {
       if (btn) btn.disabled = false;
     }
@@ -253,6 +254,7 @@
 
   async function handleCollectPrices() {
     if (!currentRequest) return;
+    if (!ensureApiKeyBeforePipeline()) return;
     setPipelineStatus('수집 중…', 'bg-emerald-500 text-white');
     setPipelineMsg('참고 URL 및 의뢰가 분석 중…', 'info');
     try {
@@ -265,14 +267,15 @@
       }
       setPipelineStatus('수집 완료', 'bg-emerald-500 text-white');
       setPipelineMsg('✅ 가격 수집 완료. 「AI 초안만」으로 리포트 초안을 생성할 수 있습니다.', 'ok');
+      refreshApiKeyUi(false);
     } catch (e) {
-      setPipelineStatus('오류', 'bg-red-500 text-white');
-      setPipelineMsg('❌ ' + e.message, 'err');
+      handlePipelineError(e);
     }
   }
 
   async function handleGenerateDraft() {
     if (!currentRequest) return;
+    if (!ensureApiKeyBeforePipeline()) return;
     setPipelineStatus('생성 중…', 'bg-purple-500 text-white');
     setPipelineMsg('AI 초안 생성 중…', 'info');
     try {
@@ -284,9 +287,122 @@
       showDraftPreview(result.draft, lastPriceData, result.mode);
       var reqNum = getReqNum(currentRequest);
       AnalysisPipelineClient.saveDraft(reqNum, result.draft, { mode: result.mode, priceData: lastPriceData });
+      refreshApiKeyUi(false);
     } catch (e) {
-      setPipelineStatus('오류', 'bg-red-500 text-white');
-      setPipelineMsg('❌ ' + e.message, 'err');
+      handlePipelineError(e);
+    }
+  }
+
+  function refreshApiKeyUi(invalid) {
+    var input = document.getElementById('admin-api-key-input');
+    var statusEl = document.getElementById('admin-api-key-status');
+    var errorEl = document.getElementById('admin-api-key-error');
+    if (!input || !statusEl) return;
+
+    var stored = '';
+    if (global.AnalysisPipelineClient) {
+      stored = AnalysisPipelineClient.getAdminApiKey();
+      if (!input.value && stored) input.value = stored;
+    }
+
+    var key = input.value.trim() || stored;
+    if (invalid) {
+      statusEl.textContent = '키 오류 · 다시 입력';
+      statusEl.className = 'text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-bold';
+      input.classList.add('ring-2', 'ring-red-400', 'border-red-400');
+      if (errorEl) {
+        errorEl.textContent = 'API 키가 올바르지 않습니다. 수정 후 「저장」을 누르고 파이프라인을 다시 실행하세요.';
+        errorEl.classList.remove('hidden');
+      }
+    } else if (key) {
+      statusEl.textContent = '저장됨 · ' + (global.AnalysisPipelineClient ? AnalysisPipelineClient.maskAdminApiKey(key) : '••••••');
+      statusEl.className = 'text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700';
+      input.classList.remove('ring-2', 'ring-red-400', 'border-red-400', 'ring-amber-300', 'border-amber-300');
+      if (errorEl) errorEl.classList.add('hidden');
+    } else {
+      statusEl.textContent = '미설정 · 입력 필요';
+      statusEl.className = 'text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-bold';
+      input.classList.remove('ring-2', 'ring-red-400', 'border-red-400');
+      input.classList.add('ring-2', 'ring-amber-300', 'border-amber-300');
+      if (errorEl) errorEl.classList.add('hidden');
+    }
+  }
+
+  function saveAdminApiKeyFromUi() {
+    var input = document.getElementById('admin-api-key-input');
+    if (!input) return;
+    var key = input.value.trim();
+    if (!key) {
+      alert('API 키를 입력해 주세요.');
+      input.focus();
+      return;
+    }
+    if (global.AnalysisPipelineClient) AnalysisPipelineClient.setAdminApiKey(key);
+    refreshApiKeyUi(false);
+    setPipelineMsg('✅ API 키가 저장되었습니다. 이제 파이프라인을 실행할 수 있습니다.', 'ok');
+  }
+
+  function bindApiKeyEvents() {
+    document.getElementById('admin-api-key-save')?.addEventListener('click', saveAdminApiKeyFromUi);
+    document.getElementById('admin-api-key-change')?.addEventListener('click', function () {
+      var input = document.getElementById('admin-api-key-input');
+      if (input) {
+        input.value = '';
+        input.focus();
+      }
+      if (global.AnalysisPipelineClient) AnalysisPipelineClient.clearAdminApiKey();
+      refreshApiKeyUi(false);
+      setPipelineMsg('새 API 키를 입력한 뒤 「저장」을 눌러주세요.', 'info');
+    });
+    document.getElementById('admin-api-key-clear')?.addEventListener('click', function () {
+      if (!confirm('저장된 API 키를 삭제할까요?')) return;
+      if (global.AnalysisPipelineClient) AnalysisPipelineClient.clearAdminApiKey();
+      refreshApiKeyUi(false);
+      setPipelineMsg('API 키가 삭제되었습니다. 다시 입력해 주세요.', 'info');
+    });
+    document.getElementById('admin-api-key-toggle')?.addEventListener('click', function () {
+      var input = document.getElementById('admin-api-key-input');
+      if (!input) return;
+      if (input.type === 'password') {
+        input.type = 'text';
+        this.textContent = '숨기기';
+      } else {
+        input.type = 'password';
+        this.textContent = '보기';
+      }
+    });
+    document.getElementById('admin-api-key-input')?.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        saveAdminApiKeyFromUi();
+      }
+    });
+    document.addEventListener('ph-admin-api-key-invalid', function (e) {
+      refreshApiKeyUi(true);
+      if (e.detail && e.detail.message) {
+        setPipelineMsg('❌ ' + e.detail.message, 'err');
+      }
+    });
+  }
+
+  function ensureApiKeyBeforePipeline() {
+    var key = global.AnalysisPipelineClient ? AnalysisPipelineClient.getAdminApiKey() : '';
+    if (key) return true;
+    refreshApiKeyUi(false);
+    switchWorkspaceTab('ai');
+    setPipelineMsg('⚠️ 파이프라인 실행 전 API 키를 입력하고 「저장」해 주세요.', 'err');
+    var input = document.getElementById('admin-api-key-input');
+    if (input) input.focus();
+    return false;
+  }
+
+  function handlePipelineError(e) {
+    var msg = e && e.message ? e.message : String(e);
+    setPipelineStatus('오류', 'bg-red-500 text-white');
+    setPipelineMsg('❌ ' + msg.replace(/\n/g, '<br>'), 'err');
+    if (msg.indexOf('API 키') !== -1 || msg.indexOf('인증') !== -1) {
+      refreshApiKeyUi(true);
+      switchWorkspaceTab('ai');
     }
   }
 
@@ -307,11 +423,19 @@
     currentRequest = request;
     lastPriceData = null;
     lastPipelineDraft = null;
+    refreshApiKeyUi(false);
     loadReportForm(request);
     loadPipelineState(request);
     switchWorkspaceTab(
       global.RequestDataSync && RequestDataSync.requestNeedsPipeline(request) ? 'ai' : 'report'
     );
+
+    var hasKey = global.AnalysisPipelineClient && AnalysisPipelineClient.getAdminApiKey();
+    if (!hasKey) {
+      switchWorkspaceTab('ai');
+      setPipelineMsg('⚠️ AI 파이프라인 사용 전 API 키를 입력하고 「저장」해 주세요.', 'info');
+      return;
+    }
 
     if (global.RequestDataSync && RequestDataSync.requestNeedsPipeline(request)) {
       setTimeout(function () {
@@ -367,7 +491,9 @@
   }
 
   function init() {
+    bindApiKeyEvents();
     bindEvents();
+    refreshApiKeyUi(false);
   }
 
   global.AdminRequestWorkspace = {
@@ -376,6 +502,7 @@
     buildUnifiedFirebaseUpdate: buildUnifiedFirebaseUpdate,
     updateQaWarningsPanel: updateQaWarningsPanel,
     switchWorkspaceTab: switchWorkspaceTab,
+    refreshApiKeyUi: refreshApiKeyUi,
     getReqNum: getReqNum
   };
 
