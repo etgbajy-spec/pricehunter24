@@ -66,7 +66,7 @@
       input.select();
     }
     if (global.AdminRequestWorkspace && typeof global.AdminRequestWorkspace.switchWorkspaceTab === 'function') {
-      global.AdminRequestWorkspace.switchWorkspaceTab('ai');
+      global.AdminRequestWorkspace.switchWorkspaceTab('basics');
     }
     if (message && global.dispatchEvent) {
       global.dispatchEvent(new CustomEvent('ph-admin-api-key-invalid', { detail: { message: message } }));
@@ -214,6 +214,19 @@
     });
   }
 
+  async function generateDraftFromBasics(req, priceData) {
+    var enriched = Object.assign({}, priceData, {
+      referenceUrl: priceData.link || priceData.referenceUrl || req.url || '',
+      referencePrice: priceData.lowestPrice,
+      productName: req.name || req.productName || ''
+    });
+    return callPipelineApi('/api/analysis/generate-draft', {
+      request: requestToPayload(req),
+      priceData: enriched,
+      options: { skipCollect: true, adminProvided: true }
+    });
+  }
+
   async function generateDraftOnly(req, priceData) {
     return callPipelineApi('/api/analysis/generate-draft', {
       request: requestToPayload(req),
@@ -303,6 +316,7 @@
     ensureAdminApiKey: ensureAdminApiKey,
     runPipeline: runPipeline,
     collectPricesOnly: collectPricesOnly,
+    generateDraftFromBasics: generateDraftFromBasics,
     generateDraftOnly: generateDraftOnly,
     applyDraftToForm: applyDraftToForm,
     renderDraftPreview: renderDraftPreview,

@@ -5822,82 +5822,99 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                         </div>
                     </div>
 
-                    <!-- 통합 답변 워크스페이스: AI 분석 + 구매판단 리포트 + 고객 알림 -->
+                    <!-- 통합 답변 워크스페이스 -->
                     <div class="mb-6">
                         <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
                             <div>
                                 <h3 class="text-lg font-semibold text-gray-800">🧠 의뢰 답변 · AI리포트</h3>
-                                <p class="text-xs text-gray-500 mt-1">AI 분석 → 리포트 검수 → 고객 알림까지 한 화면에서 처리합니다.</p>
+                                <p class="text-xs text-gray-500 mt-1">① 검색 결과 입력 → ② AI 리포트 생성 → ③ 고객 알림 순서로 진행하세요.</p>
                             </div>
                             <div class="flex flex-wrap gap-2">
-                                <button type="button" id="admin-ws-tab-ai" class="px-3 py-1.5 rounded-lg text-sm font-bold border border-indigo-200 bg-indigo-600 text-white">🤖 AI 분석</button>
-                                <button type="button" id="admin-ws-tab-report" class="px-3 py-1.5 rounded-lg text-sm font-bold border border-indigo-200 bg-white text-indigo-700">📊 구매판단 리포트</button>
-                                <button type="button" id="admin-ws-tab-notify" class="px-3 py-1.5 rounded-lg text-sm font-bold border border-indigo-200 bg-white text-indigo-700">📬 고객 알림</button>
+                                <button type="button" id="admin-ws-tab-basics" class="px-3 py-1.5 rounded-lg text-sm font-bold border border-indigo-200 bg-indigo-600 text-white">① 검색 결과</button>
+                                <button type="button" id="admin-ws-tab-report" class="px-3 py-1.5 rounded-lg text-sm font-bold border border-indigo-200 bg-white text-indigo-700">② AI 리포트</button>
+                                <button type="button" id="admin-ws-tab-notify" class="px-3 py-1.5 rounded-lg text-sm font-bold border border-indigo-200 bg-white text-indigo-700">③ 고객 알림</button>
                             </div>
                         </div>
 
-                        <!-- AI 분석 탭 -->
-                        <div id="admin-ws-panel-ai" class="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl border border-indigo-200 p-5 mb-4">
-                            <!-- 관리자 API 키 (항상 표시 · 수정 가능) -->
-                            <div id="admin-api-key-bar" class="mb-4 p-3 bg-white rounded-lg border border-indigo-200">
-                                <div class="flex flex-wrap items-center gap-2 mb-2">
-                                    <span class="text-sm font-bold text-indigo-800">🔑 관리자 API 키</span>
-                                    <span id="admin-api-key-status" class="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">확인 중…</span>
-                                    <button type="button" id="admin-api-key-change" class="ml-auto px-2.5 py-1 text-xs font-semibold bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200 transition">키 변경</button>
-                                    <button type="button" id="admin-api-key-clear" class="px-2.5 py-1 text-xs font-semibold bg-red-50 text-red-600 rounded hover:bg-red-100 transition">삭제</button>
-                                </div>
-                                <div class="flex flex-wrap gap-2 items-center">
-                                    <input type="password" id="admin-api-key-input" autocomplete="off" spellcheck="false"
-                                        class="flex-1 min-w-[200px] px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none"
-                                        placeholder="ADMIN_API_SECRET 입력 (로컬 기본: pricehunter-dev-admin)" />
-                                    <button type="button" id="admin-api-key-toggle" class="px-3 py-2 text-xs font-semibold bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition">보기</button>
-                                    <button type="button" id="admin-api-key-save" class="px-4 py-2 text-sm font-bold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">저장</button>
-                                </div>
-                                <p id="admin-api-key-hint" class="text-xs text-gray-500 mt-2">파이프라인 실행 전 키를 저장하세요. 잘못 입력했으면 「키 변경」 또는 입력란을 수정한 뒤 다시 저장하세요.</p>
-                                <p id="admin-api-key-error" class="hidden text-xs text-red-600 font-semibold mt-1"></p>
+                        <!-- 관리자 API 키 -->
+                        <div id="admin-api-key-bar" class="mb-4 p-3 bg-white rounded-lg border border-indigo-200">
+                            <div class="flex flex-wrap items-center gap-2 mb-2">
+                                <span class="text-sm font-bold text-indigo-800">🔑 관리자 API 키</span>
+                                <span id="admin-api-key-status" class="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">확인 중…</span>
+                                <button type="button" id="admin-api-key-change" class="ml-auto px-2.5 py-1 text-xs font-semibold bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200 transition">키 변경</button>
+                                <button type="button" id="admin-api-key-clear" class="px-2.5 py-1 text-xs font-semibold bg-red-50 text-red-600 rounded hover:bg-red-100 transition">삭제</button>
                             </div>
-                            <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
-                                <div class="font-bold text-indigo-800">🤖 AI 분석 파이프라인</div>
+                            <div class="flex flex-wrap gap-2 items-center">
+                                <input type="password" id="admin-api-key-input" autocomplete="off" spellcheck="false"
+                                    class="flex-1 min-w-[200px] px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none"
+                                    placeholder="ADMIN_API_SECRET 입력 (로컬 기본: pricehunter-dev-admin)" />
+                                <button type="button" id="admin-api-key-toggle" class="px-3 py-2 text-xs font-semibold bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition">보기</button>
+                                <button type="button" id="admin-api-key-save" class="px-4 py-2 text-sm font-bold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">저장</button>
+                            </div>
+                            <p id="admin-api-key-hint" class="text-xs text-gray-500 mt-2">AI 리포트 생성 전 키를 저장하세요.</p>
+                            <p id="admin-api-key-error" class="hidden text-xs text-red-600 font-semibold mt-1"></p>
+                        </div>
+
+                        <!-- ① 검색 결과 (직접 입력) -->
+                        <div id="admin-ws-panel-basics" class="bg-emerald-50/80 rounded-xl border border-emerald-200 p-5 mb-4">
+                            <div class="font-bold text-emerald-900 mb-1">✏️ 검색 결과 — 먼저 직접 입력</div>
+                            <p class="text-xs text-emerald-800 mb-4">고객 의뢰와 별도로, 직접 확인한 최저가·링크를 입력하세요. AI 리포트는 이 정보를 바탕으로 생성됩니다.</p>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                                <div>
+                                    <label class="block text-gray-700 text-sm font-semibold mb-1" for="admin-requested-price-display">고객 의뢰가</label>
+                                    <input type="text" id="admin-requested-price-display" readonly class="w-full px-3 py-2 rounded-lg border border-gray-200 bg-gray-50 text-gray-700 text-sm" placeholder="의뢰에서 자동 표시" />
+                                </div>
+                                <div>
+                                    <label class="block text-gray-700 text-sm font-semibold mb-1" for="admin-price">확인한 최저가 <span class="text-red-500">*</span></label>
+                                    <input type="text" id="admin-price" class="w-full px-3 py-2 rounded-lg border border-emerald-300 focus:ring-2 focus:ring-emerald-400 focus:outline-none" placeholder="예: 89,000원" />
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+                                <div>
+                                    <label class="block text-gray-700 text-sm font-semibold mb-1" for="admin-origin">판매처 / 공급처</label>
+                                    <input type="text" id="admin-origin" class="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-emerald-400 focus:outline-none" placeholder="예: 쿠팡, 네이버 스마트스토어" />
+                                </div>
+                                <div>
+                                    <label class="block text-gray-700 text-sm font-semibold mb-1" for="admin-link">구매 링크 <span class="text-red-500">*</span></label>
+                                    <input type="url" id="admin-link" class="w-full px-3 py-2 rounded-lg border border-emerald-300 focus:ring-2 focus:ring-emerald-400 focus:outline-none" placeholder="https://..." />
+                                </div>
+                            </div>
+                            <input type="hidden" id="admin-requested-price" />
+                            <input type="hidden" id="admin-current-price" />
+                            <input type="hidden" id="admin-lowest-price" />
+                            <input type="hidden" id="admin-avg-price" />
+                            <input type="hidden" id="admin-price-trend" />
+                            <input type="hidden" id="admin-timing-score" />
+                            <input type="hidden" id="admin-timing-note" />
+                            <div class="flex flex-wrap gap-2 items-center">
+                                <button type="button" id="admin-btn-generate-report" class="px-5 py-2.5 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 transition text-sm">🧠 AI 리포트 생성</button>
+                                <span class="text-xs text-gray-500">최저가·링크 입력 후 클릭 → ② AI 리포트 탭에서 검수</span>
+                            </div>
+                            <div id="admin-ai-pipeline-msg" class="text-sm mt-3 text-blue-700"></div>
+                        </div>
+
+                        <!-- ② AI 리포트 -->
+                        <div id="admin-ws-panel-report" class="hidden">
+                            <div class="flex flex-wrap items-center justify-between gap-3 mb-3 p-4 bg-indigo-50 rounded-xl border border-indigo-200">
+                                <div>
+                                    <div class="font-bold text-indigo-900">🧠 AI 구매판단 리포트</div>
+                                    <p class="text-xs text-indigo-700 mt-1">①에서 입력한 검색 결과를 바탕으로 자동 작성됩니다. 필요하면 직접 수정하세요.</p>
+                                </div>
                                 <span id="admin-ai-pipeline-status" class="px-3 py-1 rounded-full text-xs font-bold bg-gray-200 text-gray-600">대기</span>
                             </div>
                             <div class="flex flex-wrap gap-2 mb-3">
-                                <button type="button" id="admin-btn-run-pipeline" class="px-4 py-2 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 transition text-sm">⚡ 전체 파이프라인 실행</button>
-                                <button type="button" id="admin-btn-collect-prices" class="px-4 py-2 bg-emerald-600 text-white rounded-lg font-bold hover:bg-emerald-700 transition text-sm">💰 가격 수집만</button>
-                                <button type="button" id="admin-btn-generate-draft" class="px-4 py-2 bg-purple-600 text-white rounded-lg font-bold hover:bg-purple-700 transition text-sm">🧠 AI 초안만</button>
-                                <button type="button" id="admin-btn-apply-draft" class="px-4 py-2 bg-pink-600 text-white rounded-lg font-bold hover:bg-pink-700 transition text-sm hidden">✅ 초안 폼에 적용</button>
+                                <button type="button" id="admin-btn-apply-draft" class="px-4 py-2 bg-pink-600 text-white rounded-lg font-bold hover:bg-pink-700 transition text-sm hidden">✅ AI 초안 폼에 적용</button>
+                                <button type="button" id="admin-btn-regenerate-report" class="px-4 py-2 bg-purple-600 text-white rounded-lg font-bold hover:bg-purple-700 transition text-sm">🔄 AI 다시 생성</button>
                             </div>
-                            <div id="admin-ai-pipeline-msg" class="text-sm mb-3 text-blue-700"></div>
                             <div id="admin-ai-collect-summary" class="hidden mb-3 p-3 bg-white rounded-lg border border-emerald-100 text-sm text-gray-700"></div>
-                            <div id="admin-ai-draft-preview" class="hidden p-4 bg-white rounded-xl border border-indigo-100 max-h-72 overflow-y-auto"></div>
-                        </div>
-
-                        <!-- 구매판단 리포트 탭 -->
-                        <div id="admin-ws-panel-report" class="hidden">
+                            <div id="admin-ai-draft-preview" class="hidden mb-4 p-4 bg-white rounded-xl border border-indigo-100 max-h-72 overflow-y-auto"></div>
                             <form id="admin-report-form" class="bg-gray-50 rounded-xl border border-gray-200 p-5 space-y-4">
-                                <div class="p-4 bg-white rounded-xl border border-pink-100">
-                                    <div class="font-bold text-pink-700 mb-3">📋 기본 결과</div>
-                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
-                                        <div>
-                                            <label class="block text-gray-700 text-sm font-semibold mb-1" for="admin-price">최저가</label>
-                                            <input type="text" id="admin-price" class="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-pink-400 focus:outline-none" />
-                                        </div>
-                                        <div>
-                                            <label class="block text-gray-700 text-sm font-semibold mb-1" for="admin-origin">원산지/공급처</label>
-                                            <input type="text" id="admin-origin" class="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-pink-400 focus:outline-none" />
-                                        </div>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label class="block text-gray-700 text-sm font-semibold mb-1" for="admin-summary">종합설명</label>
-                                        <textarea id="admin-summary" rows="4" class="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-pink-400 focus:outline-none"></textarea>
-                                    </div>
-                                    <div>
-                                        <label class="block text-gray-700 text-sm font-semibold mb-1" for="admin-link">구매링크</label>
-                                        <input type="url" id="admin-link" class="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-pink-400 focus:outline-none" placeholder="https://..." />
-                                    </div>
+                                <div class="p-4 bg-white rounded-xl border border-blue-100">
+                                    <div class="font-bold text-blue-800 mb-3">📝 종합 설명</div>
+                                    <textarea id="admin-summary" rows="4" class="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none" placeholder="AI 생성 또는 직접 입력"></textarea>
                                 </div>
-
                                 <div class="p-4 bg-gradient-to-br from-blue-50 to-emerald-50 rounded-xl border border-blue-200">
-                                    <div class="font-bold text-blue-800 mb-3">🎯 구매 판단 · 가격 · 제품 · 판매처</div>
+                                    <div class="font-bold text-blue-800 mb-3">🎯 구매 판단 · 제품 · 판매처</div>
                                     <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
                                         <div>
                                             <label class="block text-gray-600 text-sm mb-1" for="admin-verdict">판단 결과</label>
@@ -5917,39 +5934,6 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                                         <label class="block text-gray-600 text-sm mb-1" for="admin-decision-summary">한 줄 결론</label>
                                         <input type="text" id="admin-decision-summary" class="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none" />
                                     </div>
-                                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
-                                        <div>
-                                            <label class="block text-gray-600 text-xs mb-1" for="admin-current-price">현재가</label>
-                                            <input type="text" id="admin-current-price" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm" />
-                                        </div>
-                                        <div>
-                                            <label class="block text-gray-600 text-xs mb-1" for="admin-lowest-price">최저가</label>
-                                            <input type="text" id="admin-lowest-price" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm" />
-                                        </div>
-                                        <div>
-                                            <label class="block text-gray-600 text-xs mb-1" for="admin-avg-price">시장 평균</label>
-                                            <input type="text" id="admin-avg-price" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm" />
-                                        </div>
-                                        <div>
-                                            <label class="block text-gray-600 text-xs mb-1" for="admin-requested-price">의뢰가</label>
-                                            <input type="text" id="admin-requested-price" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm" />
-                                        </div>
-                                    </div>
-                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
-                                        <div>
-                                            <label class="block text-gray-600 text-xs mb-1" for="admin-price-trend">가격 추세</label>
-                                            <select id="admin-price-trend" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm">
-                                                <option value="">선택 안 함</option>
-                                                <option value="down">📉 하락</option>
-                                                <option value="stable">➡️ 횡보</option>
-                                                <option value="up">📈 상승</option>
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <label class="block text-gray-600 text-xs mb-1" for="admin-timing-score">구매 타이밍 점수</label>
-                                            <input type="number" id="admin-timing-score" min="0" max="100" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm" />
-                                        </div>
-                                    </div>
                                     <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
                                         <div>
                                             <label class="block text-gray-600 text-xs mb-1" for="admin-recommend-for">추천 대상</label>
@@ -5959,10 +5943,6 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                                             <label class="block text-gray-600 text-xs mb-1" for="admin-not-recommend-for">비추천 대상</label>
                                             <textarea id="admin-not-recommend-for" rows="2" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm"></textarea>
                                         </div>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label class="block text-gray-600 text-xs mb-1" for="admin-timing-note">타이밍 코멘트</label>
-                                        <textarea id="admin-timing-note" rows="2" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm"></textarea>
                                     </div>
                                     <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
                                         <div>
@@ -6026,10 +6006,10 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                             <button type="button" id="admin-btn-sync-from-report" class="mb-4 px-3 py-1.5 bg-white border border-indigo-200 text-indigo-700 rounded-lg text-sm font-semibold hover:bg-indigo-100">↻ 리포트에서 다시 불러오기</button>
                             <form id="admin-response-form" class="space-y-4">
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-2">💰 찾은 최저가</label>
-                                        <input type="text" id="response-lowest-price" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="예: 15,000원">
-                                    </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">💰 확인한 최저가</label>
+                                    <input type="text" id="response-lowest-price" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="예: 89,000원">
+                                </div>
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700 mb-2">🏪 판매업체</label>
                                         <input type="text" id="response-seller" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">

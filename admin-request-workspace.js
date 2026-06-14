@@ -7,7 +7,14 @@
   var currentRequest = null;
   var lastPriceData = null;
   var lastPipelineDraft = null;
-  var activeTab = 'ai';
+  var activeTab = 'basics';
+
+  function formatRequestedPriceDisplay(val) {
+    if (val == null || val === '') return '';
+    if (global.PurchaseReport && PurchaseReport.formatPrice) return PurchaseReport.formatPrice(val);
+    var n = parseInt(String(val).replace(/[^\d]/g, ''), 10);
+    return n ? n.toLocaleString('ko-KR') + '원' : String(val);
+  }
 
   function getReqNum(request) {
     if (!request) return '';
@@ -38,7 +45,7 @@
 
   function switchWorkspaceTab(tab) {
     activeTab = tab;
-    ['ai', 'report', 'notify'].forEach(function (name) {
+    ['basics', 'report', 'notify'].forEach(function (name) {
       var panel = document.getElementById('admin-ws-panel-' + name);
       var btn = document.getElementById('admin-ws-tab-' + name);
       if (panel) panel.classList.toggle('hidden', name !== tab);
@@ -112,14 +119,8 @@
       setPipelineStatus('오류', 'bg-red-500 text-white');
       setPipelineMsg('이전 실행 오류: ' + (job.error || '알 수 없음'), 'err');
     } else {
-      var needsAi = global.RequestDataSync && RequestDataSync.requestNeedsPipeline(request);
-      setPipelineStatus(needsAi ? 'AI 분석 대기' : '대기', needsAi ? 'bg-indigo-500 text-white' : 'bg-gray-200 text-gray-600');
-      setPipelineMsg(
-        needsAi
-          ? '신규 의뢰입니다. 「전체 파이프라인 실행」으로 AI 초안을 생성하세요.'
-          : '「전체 파이프라인 실행」으로 AI 초안을 생성할 수 있습니다.',
-        'info'
-      );
+      setPipelineStatus('대기', 'bg-gray-200 text-gray-600');
+      setPipelineMsg('① 검색 결과 탭에서 최저가·링크를 입력한 뒤 「AI 리포트 생성」을 눌러주세요.', 'info');
     }
   }
 
@@ -156,11 +157,107 @@
     return el ? el.value.trim() : '';
   }
 
+  function syncHiddenPriceFields() {
+    function set(id, val) {
+      var el = document.getElementById(id);
+      if (el) el.value = val != null ? val : '';
+    }
+    var requested = adminFormVal('admin-requested-price-display') || adminFormVal('admin-requested-price');
+    if (!requested && currentRequest) {
+      requested = currentRequest.originalPrice != null ? currentRequest.originalPrice : currentRequest.price;
+    }
+    var found = adminFormVal('admin-price');
+    set('admin-requested-price', requested);
+    set('admin-lowest-price', found);
+    set('admin-current-price', found);
+    set('admin-avg-price', '');
+  }
+
+  function setRequestedPriceDisplay(request) {
+    var displayEl = document.getElementById('admin-requested-price-display');
+    var hiddenEl = document.getElementById('admin-requested-price');
+    var priceVal = request && (request.originalPrice != null ? request.originalPrice : request.price);
+    var formatted = formatRequestedPriceDisplay(priceVal);
+    if (displayEl) displayEl.value = formatted || '';
+    if (hiddenEl) hiddenEl.value = priceVal != null && priceVal !== '' ? String(priceVal) : '';
+    syncHiddenPriceFields();
+  }
+
+  function validateAdminBasics() {
+    syncHiddenPriceFields();
+    var price = adminFormVal('admin-price');
+    var link = adminFormVal('admin-link');
+    if (!price) {
+      alert('확인한 최저가를 입력해 주세요.');
+      switchWorkspaceTab('basics');
+      document.getElementById('admin-price')?.focus();
+      return false;
+    }
+    if (!link) {
+      alert('구매 링크를 입력해 주세요.');
+      switchWorkspaceTab('basics');
+      document.getElementById('admin-link')?.focus();
+      return false;
+    }
+    return true;
+  }
+
+  function parsePriceNum(val) {
+    if (typeof val === 'number') return val;
+    return parseInt(String(val || '').replace(/[^\d]/g, ''), 10) || 0;
+  }
+
+  function buildAdminBasicsPriceData() {
+    syncHiddenPriceFields();
+    var found = adminFormVal('admin-price');
+    var requested = adminFormVal('admin-requested-price') || adminFormVal('admin-requested-price-display');
+    var origin = adminFormVal('admin-origin');
+    var link = adminFormVal('admin-link');
+    return {
+      lowestPrice: parsePriceNum(found) || found,
+      requestedPrice: parsePriceNum(requested) || requested,
+      referencePrice: parsePriceNum(found) || found,
+      referenceUrl: link,
+      link: link,
+      summary: '관리자 확인 · 최저가 ' + (found || '-') + ' · 의뢰가 ' + (formatRequestedPriceDisplay(requested) || '-'),
+      adminProvided: true,
+      sellerName: origin,
+      productName: currentRequest && (currentRequest.name || currentRequest.productName)
+    };
+  }
+
+  function getBasicsSnapshot() {
+    return {
+      price: adminFormVal('admin-price'),
+      origin: adminFormVal('admin-origin'),
+      link: adminFormVal('admin-link')
+    };
+  }
+
+  function applyDraftPreservingBasics(draft) {
+    var basics = getBasicsSnapshot();
+    if (global.AnalysisPipelineClient) {
+      AnalysisPipelineClient.applyDraftToForm(draft);
+    } else if (global.PurchaseReport) {
+      PurchaseReport.populateAdminForm(draft);
+    }
+    function set(id, val) {
+      var el = document.getElementById(id);
+      if (el && val != null) el.value = val;
+    }
+    set('admin-price', basics.price);
+    set('admin-origin', basics.origin);
+    set('admin-link', basics.link);
+    syncHiddenPriceFields();
+    syncReportToCustomerForm(global.PurchaseReport ? PurchaseReport.collectFromAdminForm() : draft);
+    updateQaWarningsPanel(global.PurchaseReport ? PurchaseReport.collectFromAdminForm() : draft);
+  }
+
   function getAdminPresetContext() {
     if (!global.ReportPresets) return {};
     return ReportPresets.buildAdminFormContextFromRequest(currentRequest, {
       lowestPrice: adminFormVal('admin-price') || adminFormVal('admin-lowest-price'),
-      requestedPrice: adminFormVal('admin-requested-price') || (currentRequest && currentRequest.price),
+      requestedPrice: adminFormVal('admin-requested-price') || adminFormVal('admin-requested-price-display') || (currentRequest && currentRequest.price),
       sellerName: adminFormVal('admin-origin'),
       link: adminFormVal('admin-link'),
       priceSummary: ''
@@ -181,11 +278,12 @@
       });
     }
     PurchaseReport.populateAdminForm(report || {});
-    var requestedEl = document.getElementById('admin-requested-price');
-    if (requestedEl && !requestedEl.value) {
-      var priceVal = request.originalPrice != null ? request.originalPrice : request.price;
-      if (priceVal != null && priceVal !== '') requestedEl.value = priceVal;
+    setRequestedPriceDisplay(request);
+    if (report && report.price && !adminFormVal('admin-price')) {
+      var priceEl = document.getElementById('admin-price');
+      if (priceEl) priceEl.value = report.price;
     }
+    syncHiddenPriceFields();
     updateQaWarningsPanel(report || PurchaseReport.collectFromAdminForm());
     syncReportToCustomerForm(report || PurchaseReport.collectFromAdminForm());
     if (request.adminResponse && typeof request.adminResponse === 'object') {
@@ -229,67 +327,42 @@
     return payload;
   }
 
-  async function handleRunPipeline() {
+  async function handleGenerateAiReport() {
     if (!currentRequest) return;
+    if (!validateAdminBasics()) return;
     if (!ensureApiKeyBeforePipeline()) return;
-    var btn = document.getElementById('admin-btn-run-pipeline');
+
+    var priceData = buildAdminBasicsPriceData();
+    lastPriceData = priceData;
+    var btn = document.getElementById('admin-btn-generate-report');
+    var btn2 = document.getElementById('admin-btn-regenerate-report');
     if (btn) btn.disabled = true;
-    setPipelineStatus('실행 중…', 'bg-indigo-500 text-white');
-    setPipelineMsg('가격 수집 및 AI 초안 생성 중… (10~30초)', 'info');
+    if (btn2) btn2.disabled = true;
+    setPipelineStatus('생성 중…', 'bg-indigo-500 text-white');
+    setPipelineMsg('입력하신 검색 결과를 바탕으로 AI 리포트를 작성 중… (10~30초)', 'info');
+
     try {
-      var result = await AnalysisPipelineClient.runPipeline(requestForPipeline(currentRequest));
+      var reqPayload = requestForPipeline(currentRequest);
+      reqPayload.url = priceData.link || reqPayload.url;
+      var result = await AnalysisPipelineClient.generateDraftFromBasics(reqPayload, priceData);
       lastPipelineDraft = result.draft;
-      lastPriceData = result.priceData;
+      if (result.priceData) lastPriceData = result.priceData;
+
+      applyDraftPreservingBasics(result.draft);
+
+      var reqNum = getReqNum(currentRequest);
+      AnalysisPipelineClient.saveDraft(reqNum, result.draft, { mode: result.mode, priceData: lastPriceData });
+
       setPipelineStatus('완료', 'bg-green-500 text-white');
-      setPipelineMsg('✅ 파이프라인 완료. 초안을 검수한 뒤 「초안 폼에 적용」을 누르세요.', 'ok');
-      showDraftPreview(result.draft, result.priceData, result.mode);
-      switchWorkspaceTab('ai');
+      setPipelineMsg('✅ AI 리포트가 생성되었습니다. ② AI 리포트 탭에서 검수 후 저장하세요.', 'ok');
+      showDraftPreview(result.draft, lastPriceData, result.mode);
+      switchWorkspaceTab('report');
       refreshApiKeyUi(false);
     } catch (e) {
       handlePipelineError(e);
     } finally {
       if (btn) btn.disabled = false;
-    }
-  }
-
-  async function handleCollectPrices() {
-    if (!currentRequest) return;
-    if (!ensureApiKeyBeforePipeline()) return;
-    setPipelineStatus('수집 중…', 'bg-emerald-500 text-white');
-    setPipelineMsg('참고 URL 및 의뢰가 분석 중…', 'info');
-    try {
-      var result = await AnalysisPipelineClient.collectPricesOnly(requestForPipeline(currentRequest));
-      lastPriceData = result.priceData;
-      var summaryEl = document.getElementById('admin-ai-collect-summary');
-      if (summaryEl) {
-        summaryEl.textContent = '💰 ' + (result.priceData.summary || '수집 완료');
-        summaryEl.classList.remove('hidden');
-      }
-      setPipelineStatus('수집 완료', 'bg-emerald-500 text-white');
-      setPipelineMsg('✅ 가격 수집 완료. 「AI 초안만」으로 리포트 초안을 생성할 수 있습니다.', 'ok');
-      refreshApiKeyUi(false);
-    } catch (e) {
-      handlePipelineError(e);
-    }
-  }
-
-  async function handleGenerateDraft() {
-    if (!currentRequest) return;
-    if (!ensureApiKeyBeforePipeline()) return;
-    setPipelineStatus('생성 중…', 'bg-purple-500 text-white');
-    setPipelineMsg('AI 초안 생성 중…', 'info');
-    try {
-      var result = await AnalysisPipelineClient.generateDraftOnly(requestForPipeline(currentRequest), lastPriceData);
-      lastPipelineDraft = result.draft;
-      if (result.priceData) lastPriceData = result.priceData;
-      setPipelineStatus('초안 준비', 'bg-purple-500 text-white');
-      setPipelineMsg('✅ AI 초안 생성. 검수 후 폼에 적용하세요.', 'ok');
-      showDraftPreview(result.draft, lastPriceData, result.mode);
-      var reqNum = getReqNum(currentRequest);
-      AnalysisPipelineClient.saveDraft(reqNum, result.draft, { mode: result.mode, priceData: lastPriceData });
-      refreshApiKeyUi(false);
-    } catch (e) {
-      handlePipelineError(e);
+      if (btn2) btn2.disabled = false;
     }
   }
 
@@ -339,7 +412,7 @@
     }
     if (global.AnalysisPipelineClient) AnalysisPipelineClient.setAdminApiKey(key);
     refreshApiKeyUi(false);
-    setPipelineMsg('✅ API 키가 저장되었습니다. 이제 파이프라인을 실행할 수 있습니다.', 'ok');
+    setPipelineMsg('✅ API 키가 저장되었습니다. 이제 AI 리포트를 생성할 수 있습니다.', 'ok');
   }
 
   function bindApiKeyEvents() {
@@ -389,8 +462,8 @@
     var key = global.AnalysisPipelineClient ? AnalysisPipelineClient.getAdminApiKey() : '';
     if (key) return true;
     refreshApiKeyUi(false);
-    switchWorkspaceTab('ai');
-    setPipelineMsg('⚠️ 파이프라인 실행 전 API 키를 입력하고 「저장」해 주세요.', 'err');
+    switchWorkspaceTab('basics');
+    setPipelineMsg('⚠️ AI 리포트 생성 전 API 키를 입력하고 「저장」해 주세요.', 'err');
     var input = document.getElementById('admin-api-key-input');
     if (input) input.focus();
     return false;
@@ -402,20 +475,18 @@
     setPipelineMsg('❌ ' + msg.replace(/\n/g, '<br>'), 'err');
     if (msg.indexOf('API 키') !== -1 || msg.indexOf('인증') !== -1) {
       refreshApiKeyUi(true);
-      switchWorkspaceTab('ai');
+      switchWorkspaceTab('basics');
     }
   }
 
   function handleApplyDraft() {
     if (!lastPipelineDraft) {
-      alert('적용할 초안이 없습니다. 먼저 파이프라인을 실행하세요.');
+      alert('적용할 AI 초안이 없습니다. 먼저 「AI 리포트 생성」을 실행하세요.');
       return;
     }
-    if (!confirm('AI 초안을 리포트 폼에 적용합니다.\n기존 입력 내용은 덮어씁니다. 계속할까요?')) return;
-    AnalysisPipelineClient.applyDraftToForm(lastPipelineDraft);
-    syncReportToCustomerForm(lastPipelineDraft);
-    updateQaWarningsPanel(lastPipelineDraft);
-    setPipelineMsg('✅ 초안이 적용되었습니다. 리포트 탭에서 검수 후 저장하세요.', 'ok');
+    if (!confirm('AI 초안을 리포트 폼에 적용합니다.\n검색 결과(최저가·링크)는 유지됩니다. 계속할까요?')) return;
+    applyDraftPreservingBasics(lastPipelineDraft);
+    setPipelineMsg('✅ AI 초안이 적용되었습니다. 검수 후 저장하세요.', 'ok');
     switchWorkspaceTab('report');
   }
 
@@ -426,45 +497,32 @@
     refreshApiKeyUi(false);
     loadReportForm(request);
     loadPipelineState(request);
-    switchWorkspaceTab(
-      global.RequestDataSync && RequestDataSync.requestNeedsPipeline(request) ? 'ai' : 'report'
-    );
+    switchWorkspaceTab('basics');
 
-    var hasKey = global.AnalysisPipelineClient && AnalysisPipelineClient.getAdminApiKey();
-    if (!hasKey) {
-      switchWorkspaceTab('ai');
-      setPipelineMsg('⚠️ AI 파이프라인 사용 전 API 키를 입력하고 「저장」해 주세요.', 'info');
+    if (!global.AnalysisPipelineClient || !AnalysisPipelineClient.getAdminApiKey()) {
+      setPipelineMsg('⚠️ API 키 저장 후, ① 검색 결과를 입력하고 AI 리포트를 생성하세요.', 'info');
       return;
     }
-
-    if (global.RequestDataSync && RequestDataSync.requestNeedsPipeline(request)) {
-      setTimeout(function () {
-        if (confirm('🤖 AI 분석 대기 중인 의뢰입니다.\n\n지금 「전체 파이프라인 실행」을 시작할까요?')) {
-          handleRunPipeline();
-        }
-      }, 500);
-    } else if (!request.purchaseReport && !request.adminResponse && !request.response) {
-      var st = String(request.status || '');
-      if (!['completed', '답변완료', '완료'].includes(st)) {
-        setTimeout(function () {
-          if (confirm('🤖 아직 답변이 없는 의뢰입니다.\n\nAI 파이프라인을 실행할까요?')) {
-            handleRunPipeline();
-          }
-        }, 500);
-      }
-    }
+    setPipelineMsg('① 고객 의뢰가를 확인하고, 확인한 최저가·구매 링크를 입력한 뒤 AI 리포트를 생성하세요.', 'info');
   }
 
   function bindEvents() {
-    document.getElementById('admin-ws-tab-ai')?.addEventListener('click', function () { switchWorkspaceTab('ai'); });
+    document.getElementById('admin-ws-tab-basics')?.addEventListener('click', function () { switchWorkspaceTab('basics'); });
     document.getElementById('admin-ws-tab-report')?.addEventListener('click', function () { switchWorkspaceTab('report'); });
     document.getElementById('admin-ws-tab-notify')?.addEventListener('click', function () { switchWorkspaceTab('notify'); });
-    document.getElementById('admin-btn-run-pipeline')?.addEventListener('click', handleRunPipeline);
-    document.getElementById('admin-btn-collect-prices')?.addEventListener('click', handleCollectPrices);
-    document.getElementById('admin-btn-generate-draft')?.addEventListener('click', handleGenerateDraft);
+    document.getElementById('admin-btn-generate-report')?.addEventListener('click', handleGenerateAiReport);
+    document.getElementById('admin-btn-regenerate-report')?.addEventListener('click', handleGenerateAiReport);
     document.getElementById('admin-btn-apply-draft')?.addEventListener('click', handleApplyDraft);
     document.getElementById('admin-btn-sync-from-report')?.addEventListener('click', function () {
+      syncHiddenPriceFields();
       if (global.PurchaseReport) syncReportToCustomerForm(PurchaseReport.collectFromAdminForm());
+    });
+
+    ['admin-price', 'admin-origin', 'admin-link'].forEach(function (id) {
+      document.getElementById(id)?.addEventListener('input', function () {
+        syncHiddenPriceFields();
+        syncReportToCustomerForm(global.PurchaseReport ? PurchaseReport.collectFromAdminForm() : {});
+      });
     });
 
     var reportForm = document.getElementById('admin-report-form');

@@ -197,6 +197,7 @@ function generateRuleBasedDraft(requestData, priceData) {
   const lowest = priceData.lowestPrice;
   const marketplace = priceData.marketplace || detectMarketplace(priceData.referenceUrl);
   const productName = priceData.productName || requestData.name || '해당 제품';
+  const adminProvided = !!priceData.adminProvided;
 
   let verdict = 'hold';
   if (lowest && requested && lowest < requested * 0.9) {
@@ -207,13 +208,19 @@ function generateRuleBasedDraft(requestData, priceData) {
 
   const trend = priceData.trend || (verdict === 'buy' ? 'down' : verdict === 'skip' ? 'up' : 'stable');
   const verifiedPrice = formatPriceKr(lowest || reference || requested || '');
+  const purchaseLink = adminProvided
+    ? (priceData.link || priceData.referenceUrl || requestData.url || '')
+    : (priceData.referenceUrl || requestData.url || '');
+  const sellerLabel = adminProvided && priceData.sellerName
+    ? priceData.sellerName
+    : (marketplace?.name ? `${marketplace.name} / PriceHunter 검증` : 'PriceHunter 검증');
 
   const base = normalizeDraft({
     reportVersion: 'v2',
     price: verifiedPrice,
-    origin: marketplace?.name ? `${marketplace.name} / PriceHunter 검증` : 'PriceHunter 검증',
+    origin: sellerLabel,
     summary: `<p><strong>${productName}</strong> — PriceHunter 검증팀이 ${verifiedPrice} 수준의 최저가를 확인했습니다.</p>`,
-    link: priceData.referenceUrl || requestData.url || '',
+    link: purchaseLink,
     decision: { verdict },
     priceAnalysis: {
       currentPrice: formatPriceKr(reference || requested || ''),
@@ -229,7 +236,7 @@ function generateRuleBasedDraft(requestData, priceData) {
     lowestPrice: lowest || reference || requested,
     requestedPrice: requested,
     sellerName: base.origin,
-    referenceUrl: priceData.referenceUrl || requestData.url || '',
+    referenceUrl: purchaseLink,
     description: requestData.description || requestData.desc || '',
     priceSummary: priceData.summary || ''
   });
