@@ -21,6 +21,10 @@
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
     <script src="request-url-utils.js"></script>
     <script src="request-data-sync.js"></script>
+    <script src="purchase-report.js"></script>
+    <script src="report-presets.js"></script>
+    <script src="analysis-pipeline-client.js"></script>
+    <script src="admin-request-workspace.js"></script>
     <!-- Firebase v9 SDK (모듈식) -->
     <script type="module">
       import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
@@ -356,6 +360,7 @@
                     statusOptions: [
                         { value: 'all', label: '전체' },
                         { value: 'pending', label: '접수/대기' },
+                        { value: 'ai-pending', label: '🤖 AI분석대기' },
                         { value: 'progress', label: '진행중' },
                         { value: 'done', label: '완료' }
                     ],
@@ -410,6 +415,15 @@
             console.log('- window.closeEditReviewModal:', typeof window.closeEditReviewModal);
             
             setupAdminListToolbars();
+
+            if (window.location.hash === '#requests' && typeof switchSection === 'function') {
+                setTimeout(function () { switchSection('requests'); }, 300);
+            }
+            window.addEventListener('hashchange', function () {
+                if (window.location.hash === '#requests' && typeof switchSection === 'function') {
+                    switchSection('requests');
+                }
+            });
             
             // Firebase 상태 모니터링 추가
             if (window.firebaseAuthFunctions && window.firebaseAuthFunctions.onAuthStateChanged) {
@@ -1376,24 +1390,39 @@
             return d && !isNaN(d.getTime()) ? d.toLocaleDateString('ko-KR') : '날짜 없음';
         }
 
-        function matchesRequestStatusFilter(status, filter) {
+        function matchesRequestStatusFilter(status, filter, request) {
             const s = (status || '').toString();
             if (filter === 'all') return true;
+            if (filter === 'ai-pending') {
+                return requestNeedsAiBadge(request);
+            }
             if (filter === 'pending') return ['pending', '접수됨', '대기'].includes(s) || !s;
             if (filter === 'progress') return ['처리중', 'processing', 'in_progress'].includes(s);
             if (filter === 'done') return ['completed', '답변완료', '완료'].includes(s);
             return true;
         }
 
+        function requestNeedsAiBadge(request) {
+            if (!request) return false;
+            const st = (request.status || '').toString();
+            if (['completed', '답변완료', '완료'].includes(st)) return false;
+            if (request.purchaseReport || request.adminResponse || request.response) return false;
+            if (window.RequestDataSync && RequestDataSync.requestNeedsPipeline(request)) return true;
+            return !request.analysisStatus || request.analysisStatus === 'pending';
+        }
+
         function buildRequestListItemHtml(request) {
             const createdAt = formatRequestListDate(request);
             const isDone = request.status === 'completed' || request.status === '답변완료';
+            const aiBadge = requestNeedsAiBadge(request)
+                ? '<span class="ml-1 px-1.5 py-0.5 text-[10px] rounded bg-indigo-100 text-indigo-700 font-bold">AI</span>'
+                : '';
             return `
                 <div class="col-span-1 flex items-center">
                     <input type="checkbox" class="request-checkbox" data-id="${request.id}">
                 </div>
                 <div class="col-span-2">
-                    <div class="font-semibold text-blue-600">${request.requestNumber || request.reqNum || '번호 없음'}</div>
+                    <div class="font-semibold text-blue-600">${request.requestNumber || request.reqNum || '번호 없음'}${aiBadge}</div>
                     <div class="text-sm text-gray-600">${request.userName || request.name || '이름 없음'}</div>
                 </div>
                 <div class="col-span-1 text-center text-sm">${createdAt}</div>
@@ -1437,7 +1466,7 @@
                 ].filter(Boolean).join(' ').toLowerCase();
                 const matchSearch = !search || hay.includes(search);
                 const matchMonth = requestsListView.month === 'all' || getAdminMonthKey(getRequestListDate(request)) === requestsListView.month;
-                const matchStatus = matchesRequestStatusFilter(request.status, requestsListView.status);
+                const matchStatus = matchesRequestStatusFilter(request.status, requestsListView.status, request);
                 return matchSearch && matchMonth && matchStatus;
             });
 
@@ -4669,10 +4698,7 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                             📊 대시보드
                         </button>
                         <button class="sidebar-item w-full text-left px-4 py-3 rounded-lg font-semibold hover:bg-pink-50 transition" data-section="requests" onclick="switchSection('requests')">
-                            📋 의뢰 관리
-                        </button>
-                        <button type="button" class="w-full text-left px-4 py-3 rounded-lg font-semibold hover:bg-indigo-50 transition text-indigo-700 border border-indigo-100" onclick="goToPage('result-admin.html')">
-                            🧠 구매판단 리포트 · AI분석
+                            📋 의뢰 · AI리포트
                         </button>
                         <button class="sidebar-item w-full text-left px-4 py-3 rounded-lg font-semibold hover:bg-pink-50 transition" data-section="inquiries" onclick="switchSection('inquiries')">
                             💬 1:1 문의
@@ -4715,8 +4741,8 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                             <button onclick="goToPage('member-dashboard.html')" class="px-4 py-2 bg-green-500 text-white rounded-lg font-semibold hover:bg-green-600 transition">
                                 👤 회원대시보드로
                             </button>
-                            <button onclick="goToPage('result-admin.html')" class="px-4 py-2 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition">
-                                🧠 구매판단 리포트 (AI분석)
+                            <button onclick="switchSection('requests')" class="px-4 py-2 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition">
+                                📋 의뢰 · AI리포트
                             </button>
                             <button onclick="testFirebaseConnection()" class="px-4 py-2 bg-purple-500 text-white rounded-lg font-semibold hover:bg-purple-600 transition">
                                 🔥 Firebase 연결 테스트
@@ -4820,8 +4846,8 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 <!-- 의뢰 관리 섹션 -->
                 <div id="requests-section" class="section-content p-8 hidden">
                     <div class="flex justify-between items-center mb-6">
-                        <h2 class="text-2xl font-bold text-gray-800">📋 의뢰 관리</h2>
-                        <div class="flex gap-2">
+                        <h2 class="text-2xl font-bold text-gray-800">📋 의뢰 · AI리포트</h2>
+                        <div class="flex gap-2 flex-wrap">
                             <button onclick="deleteSelectedRequests()" class="px-4 py-2 bg-red-500 text-white rounded-lg font-semibold hover:bg-red-600 transition">
                                 🗑️ 선택 삭제
                             </button>
@@ -4830,9 +4856,6 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                             </button>
                             <button onclick="goToPage('request-v2.html')" class="px-4 py-2 bg-green-500 text-white rounded-lg font-semibold hover:bg-green-600 transition">
                                 📝 의뢰페이지로
-                            </button>
-                            <button onclick="goToPage('result-admin.html')" class="px-4 py-2 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition">
-                                🧠 구매판단 리포트 · AI분석
                             </button>
                             <button type="button" onclick="restoreAllRequestUrls()" class="px-4 py-2 bg-teal-600 text-white rounded-lg font-semibold hover:bg-teal-700 transition" title="삭제·누락된 상품 링크를 설명·리포트에서 복구">
                                 🔗 링크 복구
@@ -5539,7 +5562,7 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                     <div class="flex justify-between items-start gap-4">
                         <div>
                             <h2 class="text-xl sm:text-2xl font-bold text-gray-900">의뢰 상세 (관리자)</h2>
-                            <p class="text-sm text-gray-500 mt-1">고객이 제출한 내용을 먼저 확인한 뒤 답변·상태를 수정하세요.</p>
+                            <p class="text-sm text-gray-500 mt-1">고객 제출 내용 확인 → AI 분석 → 리포트 검수 → 저장 & 알림까지 한 화면에서 처리하세요.</p>
                         </div>
                         <button id="close-admin-request-modal" type="button" class="text-gray-400 hover:text-gray-700 text-3xl font-bold leading-none shrink-0" aria-label="닫기">&times;</button>
                     </div>
@@ -5799,14 +5822,191 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                         </div>
                     </div>
 
-                    <!-- 관리자 답변 작성 -->
+                    <!-- 통합 답변 워크스페이스: AI 분석 + 구매판단 리포트 + 고객 알림 -->
                     <div class="mb-6">
-                        <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                            💬 관리자 답변 작성
-                        </h3>
-                        <div class="bg-indigo-50 rounded-lg p-6 border-l-4 border-indigo-500">
+                        <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+                            <div>
+                                <h3 class="text-lg font-semibold text-gray-800">🧠 의뢰 답변 · AI리포트</h3>
+                                <p class="text-xs text-gray-500 mt-1">AI 분석 → 리포트 검수 → 고객 알림까지 한 화면에서 처리합니다.</p>
+                            </div>
+                            <div class="flex flex-wrap gap-2">
+                                <button type="button" id="admin-ws-tab-ai" class="px-3 py-1.5 rounded-lg text-sm font-bold border border-indigo-200 bg-indigo-600 text-white">🤖 AI 분석</button>
+                                <button type="button" id="admin-ws-tab-report" class="px-3 py-1.5 rounded-lg text-sm font-bold border border-indigo-200 bg-white text-indigo-700">📊 구매판단 리포트</button>
+                                <button type="button" id="admin-ws-tab-notify" class="px-3 py-1.5 rounded-lg text-sm font-bold border border-indigo-200 bg-white text-indigo-700">📬 고객 알림</button>
+                            </div>
+                        </div>
+
+                        <!-- AI 분석 탭 -->
+                        <div id="admin-ws-panel-ai" class="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl border border-indigo-200 p-5 mb-4">
+                            <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+                                <div class="font-bold text-indigo-800">🤖 AI 분석 파이프라인</div>
+                                <span id="admin-ai-pipeline-status" class="px-3 py-1 rounded-full text-xs font-bold bg-gray-200 text-gray-600">대기</span>
+                            </div>
+                            <div class="flex flex-wrap gap-2 mb-3">
+                                <button type="button" id="admin-btn-run-pipeline" class="px-4 py-2 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 transition text-sm">⚡ 전체 파이프라인 실행</button>
+                                <button type="button" id="admin-btn-collect-prices" class="px-4 py-2 bg-emerald-600 text-white rounded-lg font-bold hover:bg-emerald-700 transition text-sm">💰 가격 수집만</button>
+                                <button type="button" id="admin-btn-generate-draft" class="px-4 py-2 bg-purple-600 text-white rounded-lg font-bold hover:bg-purple-700 transition text-sm">🧠 AI 초안만</button>
+                                <button type="button" id="admin-btn-apply-draft" class="px-4 py-2 bg-pink-600 text-white rounded-lg font-bold hover:bg-pink-700 transition text-sm hidden">✅ 초안 폼에 적용</button>
+                            </div>
+                            <div id="admin-ai-pipeline-msg" class="text-sm mb-3 text-blue-700"></div>
+                            <div id="admin-ai-collect-summary" class="hidden mb-3 p-3 bg-white rounded-lg border border-emerald-100 text-sm text-gray-700"></div>
+                            <div id="admin-ai-draft-preview" class="hidden p-4 bg-white rounded-xl border border-indigo-100 max-h-72 overflow-y-auto"></div>
+                        </div>
+
+                        <!-- 구매판단 리포트 탭 -->
+                        <div id="admin-ws-panel-report" class="hidden">
+                            <form id="admin-report-form" class="bg-gray-50 rounded-xl border border-gray-200 p-5 space-y-4">
+                                <div class="p-4 bg-white rounded-xl border border-pink-100">
+                                    <div class="font-bold text-pink-700 mb-3">📋 기본 결과</div>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                                        <div>
+                                            <label class="block text-gray-700 text-sm font-semibold mb-1" for="admin-price">최저가</label>
+                                            <input type="text" id="admin-price" class="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-pink-400 focus:outline-none" />
+                                        </div>
+                                        <div>
+                                            <label class="block text-gray-700 text-sm font-semibold mb-1" for="admin-origin">원산지/공급처</label>
+                                            <input type="text" id="admin-origin" class="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-pink-400 focus:outline-none" />
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="block text-gray-700 text-sm font-semibold mb-1" for="admin-summary">종합설명</label>
+                                        <textarea id="admin-summary" rows="4" class="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-pink-400 focus:outline-none"></textarea>
+                                    </div>
+                                    <div>
+                                        <label class="block text-gray-700 text-sm font-semibold mb-1" for="admin-link">구매링크</label>
+                                        <input type="url" id="admin-link" class="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-pink-400 focus:outline-none" placeholder="https://..." />
+                                    </div>
+                                </div>
+
+                                <div class="p-4 bg-gradient-to-br from-blue-50 to-emerald-50 rounded-xl border border-blue-200">
+                                    <div class="font-bold text-blue-800 mb-3">🎯 구매 판단 · 가격 · 제품 · 판매처</div>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                                        <div>
+                                            <label class="block text-gray-600 text-sm mb-1" for="admin-verdict">판단 결과</label>
+                                            <select id="admin-verdict" class="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none">
+                                                <option value="">선택 안 함</option>
+                                                <option value="buy">✅ 구매 추천</option>
+                                                <option value="hold">⏸️ 보류 (관망)</option>
+                                                <option value="skip">❌ 구매 비추천</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="block text-gray-600 text-sm mb-1" for="admin-confidence">신뢰도 (0~100)</label>
+                                            <input type="number" id="admin-confidence" min="0" max="100" class="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none" />
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="block text-gray-600 text-sm mb-1" for="admin-decision-summary">한 줄 결론</label>
+                                        <input type="text" id="admin-decision-summary" class="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none" />
+                                    </div>
+                                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+                                        <div>
+                                            <label class="block text-gray-600 text-xs mb-1" for="admin-current-price">현재가</label>
+                                            <input type="text" id="admin-current-price" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm" />
+                                        </div>
+                                        <div>
+                                            <label class="block text-gray-600 text-xs mb-1" for="admin-lowest-price">최저가</label>
+                                            <input type="text" id="admin-lowest-price" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm" />
+                                        </div>
+                                        <div>
+                                            <label class="block text-gray-600 text-xs mb-1" for="admin-avg-price">시장 평균</label>
+                                            <input type="text" id="admin-avg-price" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm" />
+                                        </div>
+                                        <div>
+                                            <label class="block text-gray-600 text-xs mb-1" for="admin-requested-price">의뢰가</label>
+                                            <input type="text" id="admin-requested-price" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm" />
+                                        </div>
+                                    </div>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                                        <div>
+                                            <label class="block text-gray-600 text-xs mb-1" for="admin-price-trend">가격 추세</label>
+                                            <select id="admin-price-trend" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm">
+                                                <option value="">선택 안 함</option>
+                                                <option value="down">📉 하락</option>
+                                                <option value="stable">➡️ 횡보</option>
+                                                <option value="up">📈 상승</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="block text-gray-600 text-xs mb-1" for="admin-timing-score">구매 타이밍 점수</label>
+                                            <input type="number" id="admin-timing-score" min="0" max="100" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm" />
+                                        </div>
+                                    </div>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                                        <div>
+                                            <label class="block text-gray-600 text-xs mb-1" for="admin-recommend-for">추천 대상</label>
+                                            <textarea id="admin-recommend-for" rows="2" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm"></textarea>
+                                        </div>
+                                        <div>
+                                            <label class="block text-gray-600 text-xs mb-1" for="admin-not-recommend-for">비추천 대상</label>
+                                            <textarea id="admin-not-recommend-for" rows="2" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm"></textarea>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="block text-gray-600 text-xs mb-1" for="admin-timing-note">타이밍 코멘트</label>
+                                        <textarea id="admin-timing-note" rows="2" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm"></textarea>
+                                    </div>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                                        <div>
+                                            <label class="block text-gray-600 text-xs mb-1" for="admin-value-score">가성비 점수</label>
+                                            <input type="number" id="admin-value-score" min="0" max="100" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm" />
+                                        </div>
+                                        <div>
+                                            <label class="block text-gray-600 text-xs mb-1" for="admin-trust-score">판매처 신뢰도</label>
+                                            <input type="number" id="admin-trust-score" min="0" max="100" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm" />
+                                        </div>
+                                    </div>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                                        <div>
+                                            <label class="block text-gray-600 text-xs mb-1" for="admin-pros">장점</label>
+                                            <textarea id="admin-pros" rows="2" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm"></textarea>
+                                        </div>
+                                        <div>
+                                            <label class="block text-gray-600 text-xs mb-1" for="admin-cons">단점</label>
+                                            <textarea id="admin-cons" rows="2" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm"></textarea>
+                                        </div>
+                                    </div>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                                        <div>
+                                            <label class="block text-gray-600 text-xs mb-1" for="admin-review-summary">리뷰 요약</label>
+                                            <textarea id="admin-review-summary" rows="2" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm"></textarea>
+                                        </div>
+                                        <div>
+                                            <label class="block text-gray-600 text-xs mb-1" for="admin-seller-name">판매처명</label>
+                                            <input type="text" id="admin-seller-name" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm" />
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="block text-gray-600 text-xs mb-1" for="admin-alternatives">대안 제품</label>
+                                        <textarea id="admin-alternatives" rows="2" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm"></textarea>
+                                    </div>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                                        <div>
+                                            <label class="block text-gray-600 text-xs mb-1" for="admin-seller-risks">주의사항</label>
+                                            <textarea id="admin-seller-risks" rows="2" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm"></textarea>
+                                        </div>
+                                        <div>
+                                            <label class="block text-gray-600 text-xs mb-1" for="admin-domestic-import">국내 vs 직구</label>
+                                            <textarea id="admin-domestic-import" rows="2" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm"></textarea>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label class="block text-gray-600 text-xs mb-1" for="admin-evidence-notes">판단 근거</label>
+                                        <textarea id="admin-evidence-notes" rows="3" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm"></textarea>
+                                    </div>
+                                </div>
+                                <div id="admin-qa-warnings-panel" class="hidden p-4 bg-amber-50 border border-amber-200 rounded-xl">
+                                    <div class="font-bold text-amber-800 mb-2">⚠️ 저장 전 검수 체크</div>
+                                    <ul id="admin-qa-warnings-list" class="text-sm text-amber-900 list-disc list-inside space-y-1"></ul>
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- 고객 알림 탭 -->
+                        <div id="admin-ws-panel-notify" class="hidden bg-indigo-50 rounded-xl border border-indigo-200 p-5">
+                            <p class="text-xs text-gray-500 mb-4">리포트 내용이 자동 반영됩니다. 배송·이미지 등 추가 정보만 입력하세요.</p>
+                            <button type="button" id="admin-btn-sync-from-report" class="mb-4 px-3 py-1.5 bg-white border border-indigo-200 text-indigo-700 rounded-lg text-sm font-semibold hover:bg-indigo-100">↻ 리포트에서 다시 불러오기</button>
                             <form id="admin-response-form" class="space-y-4">
-                                <!-- 가격 정보 -->
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700 mb-2">💰 찾은 최저가</label>
@@ -5814,79 +6014,48 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                                     </div>
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700 mb-2">🏪 판매업체</label>
-                                        <input type="text" id="response-seller" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="예: 쿠팡, 네이버쇼핑">
+                                        <input type="text" id="response-seller" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                                     </div>
                                 </div>
-
-                                <!-- 링크 정보 -->
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">🔗 판매 링크</label>
-                                    <input type="url" id="response-seller-link" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="https://...">
+                                    <input type="url" id="response-seller-link" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                                 </div>
-
-                                <!-- 배송 정보 -->
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700 mb-2">🚚 배송비</label>
-                                        <input type="text" id="response-shipping-cost" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="예: 2,500원 (무료배송)">
+                                        <input type="text" id="response-shipping-cost" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                                     </div>
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700 mb-2">⏰ 배송기간</label>
-                                        <input type="text" id="response-shipping-time" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="예: 1-2일">
+                                        <input type="text" id="response-shipping-time" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                                     </div>
                                 </div>
-
-                                <!-- 총 비용 -->
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">💳 총 구매비용</label>
-                                    <input type="text" id="response-total-cost" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="예: 17,500원">
+                                    <input type="text" id="response-total-cost" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                                 </div>
-
-                                <!-- 추가 정보 -->
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">📝 추가 정보 및 추천사유</label>
-                                    <textarea id="response-additional-info" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="구매 조건 검토 안내 문구"></textarea>
+                                    <textarea id="response-additional-info" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none"></textarea>
                                 </div>
-
-                                <!-- 사진 첨부 섹션 -->
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">📷 사진 첨부 (최대 5개)</label>
-                                    <input 
-                                        type="file" 
-                                        id="response-images-input"
-                                        accept="image/*"
-                                        multiple
-                                        class="hidden"
-                                        onchange="handleResponseImageSelect()"
-                                    >
+                                    <input type="file" id="response-images-input" accept="image/*" multiple class="hidden" onchange="handleResponseImageSelect()">
                                     <div class="flex items-center space-x-2 mb-2">
-                                        <button 
-                                            type="button"
-                                            onclick="document.getElementById('response-images-input').click()"
-                                            class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition text-sm font-medium"
-                                        >
-                                            사진 선택
-                                        </button>
-                                        <span class="text-sm text-gray-600">이미지 파일만 선택 가능</span>
+                                        <button type="button" onclick="document.getElementById('response-images-input').click()" class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition text-sm font-medium">사진 선택</button>
                                     </div>
-                                    <div id="response-images-preview" class="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2">
-                                        <!-- 이미지 미리보기가 여기에 표시됩니다 -->
-                                    </div>
-                                </div>
-
-                                <!-- 버튼들 -->
-                                <div class="flex gap-3 pt-4">
-                                    <button type="submit" class="px-6 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition font-medium">
-                                        답변 저장
-                                    </button>
-                                    <button type="button" onclick="clearResponseForm()" class="px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition font-medium">
-                                        내용 지우기
-                                    </button>
-                                    <button type="button" onclick="previewResponse()" class="px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition font-medium">
-                                        미리보기
-                                    </button>
+                                    <div id="response-images-preview" class="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2"></div>
                                 </div>
                             </form>
+                        </div>
+
+                        <!-- 통합 저장 버튼 -->
+                        <div class="sticky bottom-0 z-10 mt-4 p-4 bg-white border border-gray-200 rounded-xl shadow-lg flex flex-wrap gap-3 items-center">
+                            <button type="button" id="admin-btn-unified-save" class="px-6 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition font-bold">💾 답변 저장 & 고객 알림</button>
+                            <button type="button" onclick="clearResponseForm()" class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition font-medium">내용 지우기</button>
+                            <button type="button" onclick="previewResponse()" class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition font-medium">미리보기</button>
+                            <span class="text-xs text-gray-500">리포트 + 고객 알림 정보가 함께 저장됩니다.</span>
                         </div>
                     </div>
 
@@ -6351,8 +6520,12 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
 
             fillAdminRequestEditForm(request);
 
-            // 기존 답변을 폼에 채우기
-            loadExistingResponseToForm(request);
+            // 통합 워크스페이스 (AI + 리포트 + 고객 알림)
+            if (window.AdminRequestWorkspace) {
+                AdminRequestWorkspace.onModalOpen(request);
+            } else {
+                loadExistingResponseToForm(request);
+            }
 
             // 관리자 답변 (있는 경우)
             if (request.adminResponse || request.response) {
@@ -6978,6 +7151,11 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             if (preview) {
                 preview.innerHTML = '';
             }
+            if (window.PurchaseReport) {
+                PurchaseReport.populateAdminForm({});
+            }
+            const qaPanel = document.getElementById('admin-qa-warnings-panel');
+            if (qaPanel) qaPanel.classList.add('hidden');
         }
 
         // 답변 미리보기
@@ -7141,26 +7319,37 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             }
         }
 
-        // 답변 저장
+        // 답변 저장 (구매판단 리포트 + 고객 알림 통합)
         async function saveResponse() {
             try {
-                // 의뢰 ID 확인
                 if (!currentRequestId) {
                     alert('의뢰 ID를 찾을 수 없습니다. 페이지를 새로고침하고 다시 시도해주세요.');
                     return;
                 }
 
-                // 이미지 처리 포함하여 폼 데이터 가져오기
-                const formData = await getResponseFormData();
-                
-                if (!formData.lowestPrice && !formData.seller && !formData.additionalInfo && (!formData.answerImages || formData.answerImages.length === 0)) {
-                    alert('최소한 하나의 정보는 입력해주세요.');
+                const customerFormData = await getResponseFormData();
+                let reportData = null;
+                if (window.PurchaseReport) {
+                    reportData = PurchaseReport.collectFromAdminForm();
+                    if (window.AdminRequestWorkspace) {
+                        AdminRequestWorkspace.updateQaWarningsPanel(reportData);
+                        const warnings = PurchaseReport.getQaWarnings(reportData);
+                        if (warnings.length && !confirm('검수 경고가 ' + warnings.length + '건 있습니다.\n\n' + warnings.join('\n') + '\n\n그래도 저장할까요?')) {
+                            return;
+                        }
+                    }
+                }
+
+                const hasReport = reportData && (reportData.price || reportData.summary || reportData.link || (reportData.decision && reportData.decision.verdict));
+                const hasCustomer = customerFormData.lowestPrice || customerFormData.seller || customerFormData.additionalInfo || (customerFormData.answerImages && customerFormData.answerImages.length);
+
+                if (!hasReport && !hasCustomer) {
+                    alert('최소한 리포트 또는 고객 답변 정보를 입력해주세요.');
                     return;
                 }
 
                 await waitForFirebase();
-                
-                // 현재 사용자 확인 및 토큰 강제 갱신 (Firestore 규칙 인식용)
+
                 if (window.firebaseAuth && window.firebaseAuth.currentUser) {
                     try {
                         await window.firebaseAuth.currentUser.getIdToken(true);
@@ -7168,24 +7357,28 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                         console.warn('⚠️ 토큰 갱신 실패:', tokenError);
                     }
                 }
-                
-                const { collection, doc, updateDoc, serverTimestamp } = window.firebaseFirestoreFunctions;
-                
-                // undefined 값 제거 (Firestore는 undefined를 허용하지 않음)
-                const cleanFormData = Object.fromEntries(
-                    Object.entries(formData).filter(([_, value]) => value !== undefined)
-                );
-                
-                // Firebase에서 의뢰 문서 업데이트
-                const requestRef = doc(collection(window.firebaseDb, 'requests'), currentRequestId);
-                await updateDoc(requestRef, {
-                    adminResponse: cleanFormData,
-                    responseDate: serverTimestamp(),
-                    status: '답변완료',
-                    lastUpdated: serverTimestamp()
-                });
 
-                console.log('✅ 의뢰 답변 저장 완료');
+                const { collection, doc, updateDoc, serverTimestamp } = window.firebaseFirestoreFunctions;
+
+                let updatePayload;
+                if (window.AdminRequestWorkspace && hasReport) {
+                    updatePayload = AdminRequestWorkspace.buildUnifiedFirebaseUpdate(reportData, customerFormData);
+                } else {
+                    const cleanFormData = Object.fromEntries(
+                        Object.entries(customerFormData).filter(([_, value]) => value !== undefined)
+                    );
+                    updatePayload = { adminResponse: cleanFormData, status: '답변완료' };
+                }
+
+                const requestRef = doc(collection(window.firebaseDb, 'requests'), currentRequestId);
+                await updateDoc(requestRef, Object.assign({}, updatePayload, {
+                    responseDate: serverTimestamp(),
+                    lastUpdated: serverTimestamp()
+                }));
+
+                console.log('✅ 의뢰 답변 저장 완료 (통합)');
+
+                const formData = updatePayload.adminResponse || customerFormData;
                 
                 // 의뢰 완료 알림 이메일 발송 (고객에게 결과 안내) 후 결과 확인
                 const emailResult = await sendRequestCompleteNotification(currentRequestId);
@@ -7259,9 +7452,6 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                     statusElement.textContent = '답변완료';
                     statusElement.className = 'px-2 py-1 rounded-full text-xs font-bold text-white ' + getAdminStatusClass('답변완료');
                 }
-                
-                // 폼 초기화
-                clearResponseForm();
                 
                 // 의뢰 목록 새로고침
                 renderRequestList();
@@ -7462,8 +7652,13 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 }
             });
 
-            // 답변 폼 제출 이벤트 리스너
-            document.getElementById('admin-response-form').addEventListener('submit', function(e) {
+            // 통합 저장 버튼
+            document.getElementById('admin-btn-unified-save')?.addEventListener('click', function(e) {
+                e.preventDefault();
+                saveResponse();
+            });
+
+            document.getElementById('admin-response-form')?.addEventListener('submit', function(e) {
                 e.preventDefault();
                 saveResponse();
             });
