@@ -3333,7 +3333,7 @@
       }
 
       function resetHeroStatNumbersToZero() {
-        ['hero-total-original', 'hero-total-final', 'hero-gap-savings', 'hero-gap-rate', 'hero-gap-request-count'].forEach((id) => {
+        ['hero-total-original', 'hero-total-final', 'hero-gap-savings', 'hero-gap-rate'].forEach((id) => {
           const el = document.getElementById(id);
           if (!el) return;
           cancelHeroNumberAnimation(el);
@@ -3362,7 +3362,7 @@
       // 히어로 섹션 통계 업데이트 (전체 의뢰 누적 → 찾은가 갭)
       function updateHeroStats(stats, options = {}) {
         const { fromZero = false, stagger = false } = options;
-        const { totalOriginal, totalFinal, totalSavings, avgRate, totalRequests } = stats;
+        const { totalOriginal, totalFinal, totalSavings, avgRate } = stats;
         const prev = fromZero ? {} : (window.heroGapStatsRendered || {});
         window.heroGapStatsRendered = stats;
         window.heroGapStats = stats;
@@ -3371,30 +3371,15 @@
         const finalEl = document.getElementById('hero-total-final');
         const savingsEl = document.getElementById('hero-gap-savings');
         const rateEl = document.getElementById('hero-gap-rate');
-        const countEl = document.getElementById('hero-gap-request-count');
         const updatedEl = document.getElementById('hero-gap-updated');
         const savingsHero = document.getElementById('hero-gap-savings-hero');
 
         const priceDuration = 2800;
         const savingsDuration = 3200;
-        const metaDuration = 2200;
         const delayOriginal = stagger ? 200 : 0;
         const delayFinal = stagger ? 450 : 0;
         const delaySavings = stagger ? 750 : 0;
         const delayRate = stagger ? 1100 : 0;
-        const delayCount = stagger ? 0 : 0;
-
-        if (countEl) {
-          animateNumber(
-            countEl,
-            fromZero ? 0 : (prev.totalRequests || 0),
-            totalRequests || 0,
-            metaDuration,
-            null,
-            null,
-            delayCount
-          );
-        }
 
         if (originalEl) {
           animateNumber(
@@ -4608,8 +4593,6 @@
                   </span>
                 </div>
                 <p class="hero-gap-subtitle">
-                  지금까지 <strong><span id="hero-gap-request-count">0</span>건</strong>의 검증 결과를 합산
-                  <span class="hero-gap-meta-sep" aria-hidden="true"> · </span>
                   <span class="hero-gap-updated" id="hero-gap-updated">업데이트 대기 중</span>
                 </p>
               </div>
