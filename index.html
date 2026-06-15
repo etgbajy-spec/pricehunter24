@@ -779,22 +779,18 @@
       @keyframes heroStatsPulse {
         0%, 100% {
           box-shadow: 0 12px 48px 0 rgba(16,185,129,0.4), 0 0 0 0 rgba(16,185,129,0.5);
-          transform: scale(1);
         }
         50% {
           box-shadow: 0 20px 80px 0 rgba(16,185,129,0.6), 0 0 0 15px rgba(16,185,129,0);
-          transform: scale(1.02);
         }
       }
       
       @keyframes heroStatsPulseBlue {
         0%, 100% {
           box-shadow: 0 12px 48px 0 rgba(59,130,246,0.4), 0 0 0 0 rgba(59,130,246,0.5);
-          transform: scale(1);
         }
         50% {
           box-shadow: 0 20px 80px 0 rgba(59,130,246,0.6), 0 0 0 15px rgba(59,130,246,0);
-          transform: scale(1.02);
         }
       }
       
@@ -958,6 +954,7 @@
         justify-content: center;
         width: 100%;
         text-align: center;
+        overflow: hidden;
       }
 
       .hero-stat-value-row {
@@ -969,6 +966,7 @@
         max-width: 100%;
         gap: 0.15em;
         margin-bottom: 0.5rem;
+        overflow: hidden;
       }
 
       .hero-stat-number {
@@ -1011,6 +1009,8 @@
         animation-delay: 0.2s;
         opacity: 1 !important;
         visibility: visible !important;
+        max-width: 100%;
+        overflow: hidden;
       }
 
       .hero-gap-header {
@@ -1345,10 +1345,10 @@
       }
 
       @keyframes heroGapSavingsPop {
-        0% { transform: scale(1); }
-        35% { transform: scale(1.04); }
-        65% { transform: scale(0.98); }
-        100% { transform: scale(1); }
+        0% { opacity: 1; }
+        35% { opacity: 0.92; }
+        65% { opacity: 0.96; }
+        100% { opacity: 1; }
       }
 
       @keyframes heroGapShimmer {
@@ -1383,9 +1383,9 @@
       }
 
       @keyframes heroGapNumberTick {
-        0% { transform: scale(1); }
-        40% { transform: scale(1.06); }
-        100% { transform: scale(1); }
+        0% { opacity: 0.88; }
+        40% { opacity: 1; }
+        100% { opacity: 1; }
       }
 
       @keyframes heroGapSavingsNumberPulse {
@@ -1444,7 +1444,7 @@
 
       #hero-stats {
         max-width: 100%;
-        overflow-x: hidden;
+        overflow: hidden;
       }
 
       .hero-gap-card {
@@ -3610,9 +3610,6 @@
             }
 
             if (progress < 1) {
-              if (useCompactFinal && current >= 10000) {
-                fitHeroStatNumber(element);
-              }
               if (element.id) {
                 window.__heroNumberAnimFrames[element.id] = requestAnimationFrame(update);
               } else {
@@ -4582,7 +4579,7 @@
 
         <!-- 가격 갭 통계 - 의뢰가 → 찾은가 -->
         <div id="hero-stats" class="hero-element w-full max-w-5xl mx-auto px-2 sm:px-4 mb-8 sm:mb-12 md:mb-16">
-          <div class="hero-gap-card hero-stats-pulse-emerald group relative bg-white/12 backdrop-blur-xl rounded-2xl sm:rounded-3xl p-6 sm:p-8 md:p-10 lg:p-12 border-2 border-emerald-400/50 shadow-[0_12px_48px_0_rgba(16,185,129,0.4)] hover:bg-white/18 hover:border-emerald-400/70 hover:shadow-[0_20px_80px_0_rgba(16,185,129,0.5)] transition-all duration-500 hover:-translate-y-1" style="opacity: 1 !important; visibility: visible !important;">
+          <div class="hero-gap-card hero-stats-pulse-emerald group relative overflow-hidden bg-white/12 backdrop-blur-xl rounded-2xl sm:rounded-3xl p-6 sm:p-8 md:p-10 lg:p-12 border-2 border-emerald-400/50 shadow-[0_12px_48px_0_rgba(16,185,129,0.4)] hover:bg-white/18 hover:border-emerald-400/70 hover:shadow-[0_20px_80px_0_rgba(16,185,129,0.5)] transition-all duration-500 hover:-translate-y-1" style="opacity: 1 !important; visibility: visible !important;">
             <div class="absolute inset-0 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-emerald-400/20 via-emerald-300/12 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
             <div class="hero-stat-inner relative z-10 w-full">
               <div class="hero-gap-header">
