@@ -3376,6 +3376,7 @@
 
         const priceDuration = 2800;
         const savingsDuration = 3200;
+        const rateDuration = 2200;
         const delayOriginal = stagger ? 200 : 0;
         const delayFinal = stagger ? 450 : 0;
         const delaySavings = stagger ? 750 : 0;
@@ -3430,7 +3431,7 @@
             rateEl,
             fromZero ? 0 : (prev.avgRate || 0),
             avgRate,
-            metaDuration,
+            rateDuration,
             null,
             null,
             delayRate
