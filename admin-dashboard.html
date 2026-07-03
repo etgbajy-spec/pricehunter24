@@ -1291,8 +1291,8 @@
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${lastUpdate}</td>
                         <td class="px-6 py-4 whitespace-nowrap"><span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Firebase</span></td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <button onclick="viewUserDetails('${user.email || user.id}')" class="text-indigo-600 hover:text-indigo-900 mr-3">상세보기</button>
-                            <button onclick="deleteUser('${user.email || user.id}')" class="text-red-600 hover:text-red-900">삭제</button>
+                            <button onclick="viewUserDetails(${JSON.stringify(user.id)})" class="text-indigo-600 hover:text-indigo-900 mr-3">상세보기</button>
+                            <button onclick="deleteUser(${JSON.stringify(user.id)}, ${JSON.stringify(userName)})" class="text-red-600 hover:text-red-900">삭제</button>
                         </td>`;
                     tbody.appendChild(row);
                 });
@@ -3066,33 +3066,41 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
         // 사용자 상세보기 함수
         async function viewUserDetails(userId) {
             console.log('👤 사용자 상세보기:', userId);
-            
+
+            // 목록 캐시에서 먼저 찾기 (이메일 중복 시 화면과 동일한 문서)
+            let user = allMembersCache.find((u) => u.id === userId) || null;
+
             // Firebase에서 사용자 검색
-            let user = null;
-            try {
-                await waitForFirebase();
-                const { collection, query, where, getDocs, doc, getDoc } = window.firebaseFirestoreFunctions;
-                const db = window.firebaseDb;
-                
-                // 먼저 ID로 직접 검색
+            if (!user) {
                 try {
-                    const userDoc = await getDoc(doc(db, 'users', userId));
-                    if (userDoc.exists()) {
-                        user = { id: userDoc.id, ...userDoc.data() };
+                    await waitForFirebase();
+                    const { collection, query, where, getDocs, doc, getDoc } = window.firebaseFirestoreFunctions;
+                    const db = window.firebaseDb;
+
+                    // 문서 ID로 직접 검색 (우선)
+                    try {
+                        const userDoc = await getDoc(doc(db, 'users', userId));
+                        if (userDoc.exists()) {
+                            user = { id: userDoc.id, ...userDoc.data() };
+                        }
+                    } catch (error) {
+                        console.warn('ID로 사용자 검색 실패:', error);
+                    }
+
+                    // 이메일로 검색 (하위 호환)
+                    if (!user && userId.includes('@')) {
+                        const usersRef = collection(db, 'users');
+                        const q = query(usersRef, where('email', '==', userId));
+                        const querySnapshot = await getDocs(q);
+
+                        if (!querySnapshot.empty) {
+                            const userDoc = querySnapshot.docs[0];
+                            user = { id: userDoc.id, ...userDoc.data() };
+                        }
                     }
                 } catch (error) {
-                    // ID로 찾지 못하면 이메일로 검색
-                    const usersRef = collection(db, 'users');
-                    const q = query(usersRef, where('email', '==', userId));
-                    const querySnapshot = await getDocs(q);
-                    
-                    if (!querySnapshot.empty) {
-                        const userDoc = querySnapshot.docs[0];
-                        user = { id: userDoc.id, ...userDoc.data() };
-                    }
+                    console.error('사용자 검색 실패:', error);
                 }
-            } catch (error) {
-                console.error('사용자 검색 실패:', error);
             }
             
             // Firebase에서도 검색 시도
@@ -3269,8 +3277,9 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             
             // 삭제 버튼
             document.getElementById('delete-user-btn').onclick = function() {
-                if (confirm(`정말로 ${user.name || user.displayName}님의 계정을 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.`)) {
-                    deleteUser(userId);
+                const displayName = user.displayName || user.name || user.email || '회원';
+                if (confirm(`정말로 ${displayName}님의 계정을 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.`)) {
+                    deleteUser(user.id || userId, displayName);
                     closeUserDetailModal();
                 }
             };
@@ -3283,35 +3292,35 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
         }
 
         // 사용자 삭제 함수 (Firebase 자동 연동)
-        async function deleteUser(userId) {
+        // confirmedDisplayName: 목록에서 클릭한 행의 이름 (이메일 중복 시 확인창 불일치 방지)
+        async function deleteUser(userId, confirmedDisplayName) {
             console.log('🗑️ 사용자 삭제 시작:', userId);
             
-            // Firebase에서 사용자 정보 먼저 찾기
-            let user = null;
-            let firebaseUser = null;
+            // 목록 캐시에서 먼저 찾기
+            let user = allMembersCache.find((u) => u.id === userId) || null;
+            let firebaseUser = user;
             
             try {
-                if (window.firebaseDb) {
-                    const { collection, getDocs, query, where } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js');
-                    const usersRef = collection(window.firebaseDb, 'users');
+                if (!firebaseUser && window.firebaseDb) {
+                    const { collection, getDocs, query, where, doc, getDoc } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js');
                     
-                    // 이메일로 검색 시도
-                    if (userId.includes('@')) {
-                        const q = query(usersRef, where('email', '==', userId));
-                        const snapshot = await getDocs(q);
-                        if (!snapshot.empty) {
-                            const doc = snapshot.docs[0];
-                            firebaseUser = { id: doc.id, ...doc.data() };
-                        }
-                    }
-                    
-                    // ID로 직접 검색 시도
-                    if (!firebaseUser) {
-                        const { doc, getDoc } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js');
+                    // 문서 ID로 직접 검색 (우선 — 이메일 중복 시에도 정확)
+                    if (userId && !userId.includes('@')) {
                         const userDocRef = doc(window.firebaseDb, 'users', userId);
                         const userDoc = await getDoc(userDocRef);
                         if (userDoc.exists()) {
                             firebaseUser = { id: userDoc.id, ...userDoc.data() };
+                        }
+                    }
+                    
+                    // 이메일로 검색 (하위 호환)
+                    if (!firebaseUser && userId.includes('@')) {
+                        const usersRef = collection(window.firebaseDb, 'users');
+                        const q = query(usersRef, where('email', '==', userId));
+                        const snapshot = await getDocs(q);
+                        if (!snapshot.empty) {
+                            const matched = snapshot.docs[0];
+                            firebaseUser = { id: matched.id, ...matched.data() };
                         }
                     }
                 }
@@ -3319,7 +3328,6 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 console.warn('⚠️ Firebase에서 사용자 검색 실패:', error);
             }
             
-            // Firebase에서만 사용자 검색 (로컬스토리지 제거)
             user = firebaseUser;
             
             if (!user) {
@@ -3329,7 +3337,7 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 return;
             }
             
-            const userName = user.name || user.displayName || user.email;
+            const userName = confirmedDisplayName || user.displayName || user.name || user.email;
             
             // 관리자 계정 보호
             if (user.email === 'admin@pricehunter.com') {
