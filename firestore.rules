@@ -4,14 +4,15 @@ service cloud.firestore {
     // 관리자 권한 확인 함수
     function isAdmin() {
       return request.auth != null && (
-        // 화이트리스트 확인 (이메일이 존재하는 경우)
         (request.auth.token.email != null && 
          (request.auth.token.email == 'admin@pricehunter.com' || 
           request.auth.token.email == 'manager@pricehunter.com' || 
           request.auth.token.email == 'staff@pricehunter.com' || 
-          request.auth.token.email == 'q886654@naver.com')) ||
-        // Custom Claims 확인
-        request.auth.token.role == 'admin'
+          request.auth.token.email == 'q886654@naver.com' ||
+          request.auth.token.email == 'pricehunter.service@gmail.com')) ||
+        request.auth.token.role == 'admin' ||
+        (exists(/databases/$(database)/documents/admins/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.role == 'admin')
       );
     }
     
@@ -22,7 +23,13 @@ service cloud.firestore {
       // 쓰기: 회원가입과 로그인 시에만 허용
       allow create: if true;
       allow update: if true;
-      allow delete: if false; // 사용자 삭제는 허용하지 않음
+      allow delete: if isAdmin();
+    }
+    
+    // admins 컬렉션 (관리자 계정)
+    match /admins/{adminId} {
+      allow read: if isAdmin();
+      allow write: if isAdmin();
     }
     
     // inquiries 컬렉션에 대한 규칙 (문의 데이터)

@@ -3344,8 +3344,38 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             
             try {
                 console.log('🗑️ 사용자 삭제 진행 중...');
-                
-                // 1. Firebase에서 삭제 (우선)
+
+                const apiKey = sessionStorage.getItem('ph_admin_api_key') || localStorage.getItem('ph_admin_api_key') || '';
+                if (apiKey) {
+                    const apiRes = await fetch('/api/admin/delete-user', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'x-admin-api-key': apiKey
+                        },
+                        body: JSON.stringify({ userId: user.id, email: user.email })
+                    });
+                    const apiData = await apiRes.json().catch(() => ({}));
+                    if (apiRes.ok && apiData.success) {
+                        let msg = `✅ "${userName}"님의 계정이 삭제되었습니다.\n\n- Firestore: 삭제 완료`;
+                        if (apiData.authDeleted) msg += '\n- Firebase Auth: 삭제 완료';
+                        else if (apiData.authDeleteError) msg += '\n- Firebase Auth: ' + apiData.authDeleteError;
+                        alert(msg);
+                        if (typeof subscribeToUsers === 'function') subscribeToUsers();
+                        return;
+                    }
+                    if (apiRes.status === 401) {
+                        alert('❌ 관리자 API 키가 올바르지 않습니다.\n\nAI 탭에서 ADMIN_API_SECRET을 저장한 뒤 다시 시도해 주세요.');
+                        return;
+                    }
+                    if (apiRes.status === 503) {
+                        alert('❌ 서버 설정이 완료되지 않았습니다.\n\nNetlify에 ADMIN_API_SECRET·Firebase Admin 환경변수를 확인해 주세요.');
+                        return;
+                    }
+                    throw new Error(apiData.error || 'API 삭제 실패 (' + apiRes.status + ')');
+                }
+
+                // API 키 없을 때: 로그인된 관리자 계정으로 Firestore 직접 삭제 (규칙 배포 필요)
                 if (window.firebaseDb && user.id) {
                     try {
                         const { doc, deleteDoc } = await import('https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js');
@@ -3358,7 +3388,8 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                         return;
                     }
                 } else {
-                    console.warn('⚠️ Firebase 연결이 없거나 사용자 ID가 없습니다.');
+                    alert('❌ 관리자 API 키가 없습니다.\n\nAI 탭 → API 키에 ADMIN_API_SECRET을 저장한 뒤 삭제해 주세요.');
+                    return;
                 }
                 
                 // 2. localStorage에서 삭제 (사용자 이메일 기준으로 삭제)

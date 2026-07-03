@@ -1232,6 +1232,31 @@ app.post('/api/notify-admin-new-request', paymentLimiter, validateInput, async (
   }
 });
 
+// 관리자 회원 삭제 (Admin SDK — Firestore 규칙 우회)
+const { deleteUserByAdmin } = (() => {
+  try { return require('./admin-delete-user-core'); } catch (e) { return {}; }
+})();
+
+app.post('/api/admin/delete-user', paymentLimiter, validateInput, requireAdminOrApiKey, async (req, res) => {
+  if (!adminInitialized || !deleteUserByAdmin) {
+    return res.status(503).json({ error: 'Firebase Admin SDK가 준비되지 않았습니다.' });
+  }
+  const body = req.body || {};
+  if (!body.userId && !body.email) {
+    return res.status(400).json({ error: 'userId 또는 email이 필요합니다.' });
+  }
+  try {
+    const result = await deleteUserByAdmin(admin, {
+      userId: body.userId || body.uid || '',
+      email: body.email || ''
+    });
+    return res.json(result);
+  } catch (error) {
+    const status = error.status || 500;
+    return res.status(status).json({ error: error.message || '사용자 삭제 실패' });
+  }
+});
+
 // 게스트 1회 체험 의뢰 접수
 app.post('/api/guest-request', paymentLimiter, validateInput, async (req, res) => {
   if (!adminInitialized) {
