@@ -932,7 +932,8 @@
           price: item.price,
           date: item.createdAt ? new Date(item.createdAt).getTime() : Date.now(),
           firebaseDocId: item.id,
-          source: 'firebase',
+          source: item.source || 'firebase',
+          isGuest: item.isGuest === true || item.source === 'guest_trial',
           status: item.status || ''
         });
         var report = window.PurchaseReport ? PurchaseReport.reportFromFirebaseItem(item) : null;
@@ -1098,12 +1099,9 @@
           const reqNum = reqKey.replace('request-', '');
           const req = JSON.parse(localStorage.getItem(reqKey) || '{}');
           if (!localStorage.getItem('result-' + reqNum)) { fail++; continue; }
-          const emailResult = await CustomerNotification.sendRequestCompleteEmail({
-            toEmail: req.email,
-            userName: req.name || req.userName,
-            requestNumber: '#PH-' + reqNum.replace(/^PH-/, ''),
-            productName: req.name || req.productName || '의뢰 상품'
-          });
+          const emailResult = await CustomerNotification.sendRequestCompleteEmail(
+            buildEmailParamsForRequest(reqNum, req)
+          );
           if (emailResult.success) {
             CustomerNotification.markNotifySent(reqNum, 'email');
             ok++;
@@ -1303,6 +1301,24 @@
       });
       
       // 고객 이메일 알림 (admin-dashboard와 동일 EmailJS)
+      function buildEmailParamsForRequest(reqNum, req) {
+        req = req || {};
+        var resultRaw = null;
+        try {
+          resultRaw = JSON.parse(localStorage.getItem('result-' + reqNum) || 'null');
+        } catch (e) { resultRaw = null; }
+        return {
+          toEmail: req.email,
+          userName: (req.name && req.name !== '(링크로 확인 예정)') ? (req.userName || req.name) : (req.userName || '고객'),
+          requestNumber: '#PH-' + String(reqNum).replace(/^PH-/, ''),
+          productName: req.name || req.productName || '의뢰 상품',
+          productOption: req.optionName || req.productOption || '',
+          isGuest: req.isGuest === true || req.source === 'guest_trial',
+          source: req.source || '',
+          resultData: resultRaw
+        };
+      }
+
       async function sendManualNotification() {
         if (!currentReqKey) {
           alert('의뢰를 선택한 뒤 저장해 주세요.');
@@ -1318,12 +1334,9 @@
           alert('먼저 결과를 저장해 주세요.');
           return;
         }
-        const emailResult = await CustomerNotification.sendRequestCompleteEmail({
-          toEmail: req.email,
-          userName: req.name || req.userName,
-          requestNumber: '#PH-' + reqNum.replace(/^PH-/, ''),
-          productName: req.name || req.productName || '의뢰 상품'
-        });
+        const emailResult = await CustomerNotification.sendRequestCompleteEmail(
+          buildEmailParamsForRequest(reqNum, req)
+        );
         const adminMsg = document.getElementById('admin-msg');
         if (emailResult.success) {
           CustomerNotification.markNotifySent(reqNum, 'email');

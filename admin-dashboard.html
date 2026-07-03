@@ -19,6 +19,7 @@
     
     <!-- EmailJS (의뢰 완료 시 고객 알림 이메일 발송) -->
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+    <script src="customer-notification.js"></script>
     <script src="request-url-utils.js"></script>
     <script src="request-data-sync.js"></script>
     <script src="purchase-report.js"></script>
@@ -7290,13 +7291,24 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                     console.warn('의뢰·회원 정보에 유효한 이메일이 없어 알림을 보내지 않습니다.');
                     return { success: false, errorMessage: '의뢰 또는 회원 정보에 이메일이 없거나 형식이 올바르지 않습니다.' };
                 }
+                if (window.CustomerNotification && CustomerNotification.sendRequestCompleteEmail) {
+                    return CustomerNotification.sendRequestCompleteEmail(
+                        CustomerNotification.buildParamsFromFirestoreRequest(data, { toEmail: toEmail })
+                    );
+                }
                 emailjs.init(EMAILJS_PUBLIC_KEY);
                 const EMAILJS_SITE_URL = 'https://pricehunt24.com';
                 const templateParams = {
                     to_email: toEmail,
-                    user_name: data.userName || data.name || '고객',
+                    name: 'PriceHunter',
+                    from_name: 'PriceHunter',
+                    user_name: (data.userName || (data.name && data.name !== '(링크로 확인 예정)' ? data.name : '고객')),
+                    subject: '[PriceHunter] 의뢰 답변이 완료되었습니다',
+                    email_subject: '[PriceHunter] 의뢰 답변이 완료되었습니다',
+                    headline: (data.userName || data.name || '고객') + '님, 요청하신 의뢰에 대한 답변이 완료되었습니다.',
                     request_number: data.requestNumber || data.reqNum || requestId,
                     product_name: (data.name || data.productName || '의뢰 상품').replace(/</g, '&lt;').replace(/>/g, '&gt;').slice(0, 200),
+                    footer_message: '사이트에서 로그인 후 의뢰 내역과 답변 내용을 확인해 주세요.',
                     check_url: EMAILJS_SITE_URL + '/member-dashboard.html'
                 };
                 await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_REQUEST_COMPLETE_TEMPLATE_ID, templateParams);

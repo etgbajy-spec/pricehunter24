@@ -23,6 +23,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <script src="purchase-report.js"></script>
   <script src="request-data-sync.js"></script>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+  <script src="customer-notification.js"></script>
   
   <!-- Firebase v9 SDK (모듈식) -->
   <script type="module">
@@ -64,6 +66,47 @@
     };
 
     console.log('✅ Firebase v9 초기화 완료 (request-v2.html)');
+  </script>
+
+  <script>
+    (function () {
+      function isLoggedIn() {
+        if (localStorage.getItem('loggedIn') === 'true') return true;
+        if (localStorage.getItem('loggedInEmail')) return true;
+        if (localStorage.getItem('currentUser')) return true;
+        try {
+          if (window.firebaseAuth && window.firebaseAuth.currentUser) return true;
+        } catch (e) { /* ignore */ }
+        return false;
+      }
+
+      function redirectToRegister() {
+        var next = encodeURIComponent('request-v2.html');
+        window.location.replace('register.html?next=' + next + '&reason=member_request');
+      }
+
+      function guardMemberPage() {
+        if (isLoggedIn()) return;
+        var waited = 0;
+        var timer = setInterval(function () {
+          waited += 100;
+          if (isLoggedIn()) {
+            clearInterval(timer);
+            return;
+          }
+          if (waited >= 2500) {
+            clearInterval(timer);
+            redirectToRegister();
+          }
+        }, 100);
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', guardMemberPage);
+      } else {
+        guardMemberPage();
+      }
+    })();
   </script>
   
   <style>
@@ -1366,6 +1409,20 @@
         
         try {
           const firebaseDocId = await saveRequestToFirebase(reqData, reqNum);
+
+          if (window.CustomerNotification && CustomerNotification.sendAdminNewRequestEmail) {
+            CustomerNotification.sendAdminNewRequestEmail({
+              requestNumber: reqNum,
+              requestType: '회원 의뢰',
+              customerEmail: email,
+              productUrl: urls[0] || '',
+              productName: name,
+              productOption: optionName,
+              productPrice: price
+            }).catch(function (err) {
+              console.warn('운영자 알림 발송 실패:', err);
+            });
+          }
 
           // localStorage 동기화 + AI 분석 Job 생성 (반자동 모드)
           if (window.RequestDataSync) {

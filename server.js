@@ -5,6 +5,10 @@ const admin = require('firebase-admin');
 const rateLimit = require('express-rate-limit');
 const session = require('express-session');
 const csrf = require('csrf');
+const { validateProductLinkUrl } = require('./url-safety');
+const adminNotifyEmail = (() => {
+  try { return require('./admin-notify-email'); } catch (e) { return null; }
+})();
 const app = express();
 const port = process.env.PORT || 1000;
 
@@ -1113,6 +1117,8 @@ if (adminInitialized) {
           requestNumber: d.requestNumber || d.reqNum || doc.id,
           name: d.name || d.productName || '',
           email: d.email || d.userEmail || '',
+          isGuest: d.isGuest === true || d.source === 'guest_trial',
+          source: d.source || '',
           price: d.price || '',
           url: (d.urls && d.urls[0]) || d.url || '',
           urls: d.urls || [],
@@ -1180,6 +1186,213 @@ if (adminInitialized) {
   });
   console.log('✅ 반자동 Firebase 동기화 API 등록 완료');
 }
+
+// 게스트 1회 제한 (이메일·IP) — 테스트 완료 후 GUEST_TRIAL_STRICT_LIMITS=true 로 설정
+const GUEST_TRIAL_STRICT_LIMITS = process.env.GUEST_TRIAL_STRICT_LIMITS === 'true';
+
+function getClientIp(req) {
+  const forwarded = req.headers['x-forwarded-for'];
+  if (forwarded) return String(forwarded).split(',')[0].trim();
+  return req.ip || req.socket?.remoteAddress || '';
+}
+
+// 게스트 체험 설정 (클라이언트 동기화용)
+app.get('/api/guest-trial-config', (req, res) => {
+  res.json({
+    strictLimits: GUEST_TRIAL_STRICT_LIMITS,
+    emailLimit: GUEST_TRIAL_STRICT_LIMITS,
+    ipLimit: GUEST_TRIAL_STRICT_LIMITS
+  });
+});
+
+// 운영자 신규 의뢰 알림 (서버 → EmailJS, 회원·게스트 공통)
+app.post('/api/notify-admin-new-request', paymentLimiter, validateInput, async (req, res) => {
+  if (!adminNotifyEmail) {
+    return res.status(503).json({ success: false, error: '알림 모듈을 사용할 수 없습니다.' });
+  }
+  const body = req.body || {};
+  if (!body.requestNumber) {
+    return res.status(400).json({ success: false, error: 'requestNumber가 필요합니다.' });
+  }
+  try {
+    const result = await adminNotifyEmail.sendAdminNewRequestEmail({
+      requestNumber: body.requestNumber,
+      requestType: body.requestType || '의뢰',
+      customerEmail: body.customerEmail || '',
+      productUrl: body.productUrl || '',
+      productName: body.productName || '',
+      productOption: body.productOption || '',
+      productPrice: body.productPrice
+    });
+    console.log('✅ 운영자 신규 의뢰 알림 발송:', body.requestNumber);
+    return res.json(result);
+  } catch (error) {
+    console.error('❌ 운영자 알림 발송 실패:', error.message || error);
+    return res.status(500).json({ success: false, error: error.message || '알림 발송 실패' });
+  }
+});
+
+// 게스트 1회 체험 의뢰 접수
+app.post('/api/guest-request', paymentLimiter, validateInput, async (req, res) => {
+  if (!adminInitialized) {
+    return res.status(503).json({ error: '서버가 준비되지 않았습니다. 잠시 후 다시 시도해주세요.' });
+  }
+
+  const emailRaw = String(req.body.email || '').trim().toLowerCase();
+  const url = String(req.body.url || '').trim();
+  const priceRaw = req.body.price;
+  const productName = String(req.body.productName || '').trim();
+  const optionName = String(req.body.optionName || req.body.option || '').trim();
+  const privacyAgree = req.body.privacyAgree === true || req.body.privacyAgree === 'true';
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(emailRaw)) {
+    return res.status(400).json({ error: '유효한 이메일 주소를 입력해주세요.' });
+  }
+  if (!url || url.length < 10) {
+    return res.status(400).json({ error: '쇼핑몰 상품 링크를 입력해주세요.' });
+  }
+
+  const urlCheck = validateProductLinkUrl(url);
+  if (!urlCheck.ok) {
+    return res.status(400).json({ error: urlCheck.error });
+  }
+  const safeUrl = urlCheck.normalized;
+
+  if (!privacyAgree) {
+    return res.status(400).json({ error: '개인정보 수집·이용에 동의해주세요.' });
+  }
+  if (!optionName) {
+    return res.status(400).json({ error: '옵션을 입력해주세요. 옵션이 없으면 "단일옵션"이라고 적어주세요.' });
+  }
+
+  let price = null;
+  if (priceRaw != null && priceRaw !== '') {
+    price = Number(priceRaw);
+    if (!Number.isFinite(price) || price < 0) {
+      return res.status(400).json({ error: '요청가 형식이 올바르지 않습니다.' });
+    }
+  }
+
+  try {
+    const db = admin.firestore();
+
+    if (GUEST_TRIAL_STRICT_LIMITS) {
+      const clientIp = getClientIp(req);
+      const existingSnap = await db.collection('requests')
+        .where('email', '==', emailRaw)
+        .limit(20)
+        .get();
+
+      const alreadyUsedGuest = existingSnap.docs.some((doc) => {
+        const d = doc.data() || {};
+        return d.source === 'guest_trial' || d.isGuest === true;
+      });
+
+      if (alreadyUsedGuest) {
+        return res.status(409).json({
+          error: '이미 무료 체험 1회를 사용하셨습니다. 회원가입 후 추가 의뢰가 가능합니다.',
+          code: 'GUEST_TRIAL_USED'
+        });
+      }
+
+      if (clientIp) {
+        const ipSnap = await db.collection('requests')
+          .where('clientIp', '==', clientIp)
+          .limit(20)
+          .get();
+        const ipAlreadyUsed = ipSnap.docs.some((doc) => {
+          const d = doc.data() || {};
+          return d.isGuest === true || d.source === 'guest_trial';
+        });
+        if (ipAlreadyUsed) {
+          return res.status(409).json({
+            error: '이 IP에서는 무료 체험을 이미 사용하셨습니다. 회원가입 후 추가 의뢰가 가능합니다.',
+            code: 'GUEST_TRIAL_IP_USED'
+          });
+        }
+      }
+    }
+
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    const rand = String(Math.floor(Math.random() * 900) + 100);
+    const reqNum = `#PH-${y}${m}${d}${rand}`;
+
+    const requestData = {
+      email: emailRaw,
+      url: safeUrl,
+      urls: [safeUrl],
+      customerProductUrl: safeUrl,
+      name: productName || '(링크로 확인 예정)',
+      optionName,
+      price,
+      clientIp: getClientIp(req) || null,
+      urlSafety: {
+        flagged: urlCheck.flagged === true,
+        flags: urlCheck.flags || [],
+        hostname: urlCheck.hostname || ''
+      },
+      requestNumber: reqNum,
+      reqNum,
+      source: 'guest_trial',
+      isGuest: true,
+      status: 'pending',
+      statusDetail: '게스트 체험 의뢰가 접수되었습니다. 검토 후 이메일로 결과를 보내드립니다.',
+      progress: 10,
+      estimatedTime: '24~48시간 내 이메일 발송',
+      comparisonType: 'exact',
+      reviewBoardAgree: false,
+      date: Date.now(),
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      lastUpdated: Date.now()
+    };
+
+    const docRef = await db.collection('requests').add(requestData);
+
+    await writeAuditLog('guest_request_created', emailRaw, reqNum, {
+      firebaseDocId: docRef.id,
+      url: safeUrl.slice(0, 200),
+      urlFlagged: urlCheck.flagged === true
+    });
+
+    console.log('✅ 게스트 체험 의뢰 접수:', reqNum, emailRaw);
+
+    let adminNotifySent = false;
+    let adminNotifyError = null;
+    if (adminNotifyEmail) {
+      try {
+        await adminNotifyEmail.sendAdminNewRequestEmail({
+          requestNumber: reqNum,
+          requestType: '게스트 체험 (1회)',
+          customerEmail: emailRaw,
+          productUrl: safeUrl,
+          productOption: optionName,
+          productPrice: price
+        });
+        adminNotifySent = true;
+        console.log('✅ 게스트 의뢰 운영자 알림 발송:', reqNum);
+      } catch (err) {
+        adminNotifyError = err.message || String(err);
+        console.warn('⚠️ 게스트 의뢰 운영자 알림(서버) 실패 — 브라우저에서 재시도 필요:', adminNotifyError);
+      }
+    }
+
+    res.status(201).json({
+      success: true,
+      requestNumber: reqNum,
+      firebaseDocId: docRef.id,
+      adminNotifySent,
+      adminNotifyError,
+      message: '의뢰가 접수되었습니다. 결과는 이메일로 보내드립니다.'
+    });
+  } catch (error) {
+    console.error('❌ 게스트 의뢰 접수 실패:', error);
+    res.status(500).json({ error: '의뢰 접수 중 오류가 발생했습니다.' });
+  }
+});
 
 // 카카오 액세스 토큰을 Firebase 커스텀 토큰으로 교환
 app.post('/api/kakao-to-firebase-token', generateCSRFToken, verifyCSRF, validateInput, async (req, res) => {
