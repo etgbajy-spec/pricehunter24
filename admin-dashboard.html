@@ -1289,11 +1289,22 @@
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${userPhone}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${joinDate}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${lastUpdate}</td>
-                        <td class="px-6 py-4 whitespace-nowrap"><span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Firebase</span></td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <button onclick="viewUserDetails(${JSON.stringify(user.id)})" class="text-indigo-600 hover:text-indigo-900 mr-3">상세보기</button>
-                            <button onclick="deleteUser(${JSON.stringify(user.id)}, ${JSON.stringify(userName)})" class="text-red-600 hover:text-red-900">삭제</button>
-                        </td>`;
+                        <td class="px-6 py-4 whitespace-nowrap"><span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Firebase</span></td>`;
+                    const actionsTd = document.createElement('td');
+                    actionsTd.className = 'px-6 py-4 whitespace-nowrap text-sm font-medium';
+                    const viewBtn = document.createElement('button');
+                    viewBtn.type = 'button';
+                    viewBtn.className = 'text-indigo-600 hover:text-indigo-900 mr-3';
+                    viewBtn.textContent = '상세보기';
+                    viewBtn.addEventListener('click', () => viewUserDetails(user.id));
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.type = 'button';
+                    deleteBtn.className = 'text-red-600 hover:text-red-900';
+                    deleteBtn.textContent = '삭제';
+                    deleteBtn.addEventListener('click', () => deleteUser(user.id, userName));
+                    actionsTd.appendChild(viewBtn);
+                    actionsTd.appendChild(deleteBtn);
+                    row.appendChild(actionsTd);
                     tbody.appendChild(row);
                 });
             }
