@@ -3270,185 +3270,45 @@
       }
 
 
-      // 히어로 섹션 통계 로드
-      async function loadHeroStats() {
+      const HERO_STATS_CACHE_KEY = 'ph_hero_stats_cache_v2';
+      const HERO_STATS_CACHE_TTL = 30 * 60 * 1000;
+
+      // 히어로 섹션 통계 로드 (승인 후기 최대 200건 + 30분 캐시)
+      async function loadHeroStats(forceRefresh = false) {
         try {
-          // Firebase가 초기화되었는지 확인
           if (!window.firebaseDb || !window.firebaseFirestoreFunctions) {
             console.warn('⚠️ Firebase가 아직 초기화되지 않았습니다. 통계 로드를 건너뜁니다.');
             return;
           }
 
-          const { collection, query, where, getDocs, orderBy, limit } = window.firebaseFirestoreFunctions;
-          const db = window.firebaseDb;
-
-          // 승인된 후기만 표시 (관리자와 동일: 전체 로드 후 클라이언트 필터)
-          const reviewsRef = collection(db, 'reviews');
-          const querySnapshot = await getDocs(reviewsRef);
-
-          let totalRequests = 0;
-          let totalSavings = 0;
-          let totalOriginalPrice = 0;
-          let totalFinalPrice = 0;
-          let totalRate = 0;
-          const recentSavings = [];
-          const allReviews = [];
-
-          querySnapshot.forEach((doc) => {
-            const data = doc.data();
-            if (data.approved !== true) return;
-            totalRequests++;
-
-            // 절약금액 계산 (문자열 형식: "1,000,000원" 또는 숫자)
-            let savingsAmount = 0;
-            if (data.savings) {
-              if (typeof data.savings === 'string') {
-                const numericValue = data.savings.replace(/[^0-9]/g, '');
-                savingsAmount = parseInt(numericValue) || 0;
-              } else if (typeof data.savings === 'number') {
-                savingsAmount = data.savings;
-              }
-              totalSavings += savingsAmount;
-            }
-
-            // 절약률 계산 (여러 필드에서 확인)
-            let rate = 0;
-            if (data.rate) {
-              rate = parseFloat(data.rate) || 0;
-            } else if (data.savingsPercent) {
-              rate = parseFloat(data.savingsPercent) || 0;
-            } else if (data.ratePercent) {
-              rate = parseFloat(data.ratePercent) || 0;
-            }
-
-            let originalPrice = 0;
-            let finalPrice = 0;
-            if (data.originalPrice) {
-              originalPrice = typeof data.originalPrice === 'string'
-                ? parseInt(data.originalPrice.replace(/[^0-9]/g, ''))
-                : data.originalPrice;
-            }
-            if (data.finalPrice) {
-              finalPrice = typeof data.finalPrice === 'string'
-                ? parseInt(data.finalPrice.replace(/[^0-9]/g, ''))
-                : data.finalPrice;
-            }
-
-            // originalPrice와 finalPrice가 있으면 절약률 자동 계산
-            if (rate === 0 && originalPrice > 0 && finalPrice > 0) {
-              rate = Math.round(((originalPrice - finalPrice) / originalPrice) * 100);
-            }
-
-            // originalPrice나 finalPrice가 없으면 savings로 역산
-            if (originalPrice === 0 && finalPrice === 0 && savingsAmount > 0 && rate > 0) {
-              originalPrice = Math.round(savingsAmount / (rate / 100));
-              finalPrice = originalPrice - savingsAmount;
-            } else if (originalPrice === 0 && finalPrice > 0) {
-              originalPrice = finalPrice + savingsAmount;
-            } else if (finalPrice === 0 && originalPrice > 0) {
-              finalPrice = originalPrice - savingsAmount;
-            }
-
-            if (originalPrice > 0 && finalPrice > 0) {
-              totalOriginalPrice += originalPrice;
-              totalFinalPrice += finalPrice;
-            }
-
-            totalRate += rate;
-
-            // 모든 후기 데이터 저장 (최근 절약 사례용)
-            if (savingsAmount > 0) {
-              // 제품명 여러 필드에서 확인
-              const productName = data.product || data.productName || data.itemName || '제품';
-              
-              // 이미지 여러 필드에서 확인 (배열 우선, 단일 이미지 다음)
-              let productImage = '';
-              
-              // 1. 배열 필드 확인 (images, photos)
-              if (data.images && Array.isArray(data.images) && data.images.length > 0) {
-                productImage = data.images[0];
-              } else if (data.photos && Array.isArray(data.photos) && data.photos.length > 0) {
-                productImage = data.photos[0];
-              }
-              // 2. 단일 이미지 필드 확인
-              else if (data.image) {
-                productImage = data.image;
-              } else if (data.productImage) {
-                productImage = data.productImage;
-              } else if (data.itemImage) {
-                productImage = data.itemImage;
-              } else if (data.photo) {
-                productImage = data.photo;
-              }
-              // 3. 기본 이미지
-              else {
-                productImage = 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&w=600&q=80';
-              }
-              
-              allReviews.push({
-                name: data.name || '고객',
-                product: productName,
-                savings: savingsAmount,
-                rate: rate,
-                image: productImage,
-                originalPrice: originalPrice,
-                finalPrice: finalPrice,
-                createdAt: data.createdAt || data.timestamp || new Date(),
-                featured: data.featured === true
-              });
-            }
-          });
-
-          function compareHeroReviews(a, b) {
-            const aFeatured = a.featured === true ? 1 : 0;
-            const bFeatured = b.featured === true ? 1 : 0;
-            if (aFeatured !== bFeatured) return bFeatured - aFeatured;
-
+          if (!forceRefresh) {
             try {
-              if (a.createdAt && b.createdAt) {
-                if (a.createdAt.toMillis && b.createdAt.toMillis) {
-                  return b.createdAt.toMillis() - a.createdAt.toMillis();
+              const raw = sessionStorage.getItem(HERO_STATS_CACHE_KEY);
+              if (raw) {
+                const parsed = JSON.parse(raw);
+                if (Date.now() - parsed.ts < HERO_STATS_CACHE_TTL && Array.isArray(parsed.reviews)) {
+                  window.__applyHeroStatsFromCache(parsed.reviews);
+                  return;
                 }
-                if (a.createdAt instanceof Date && b.createdAt instanceof Date) {
-                  return b.createdAt.getTime() - a.createdAt.getTime();
-                }
-                const aMs = new Date(a.createdAt).getTime();
-                const bMs = new Date(b.createdAt).getTime();
-                if (!isNaN(aMs) && !isNaN(bMs)) return bMs - aMs;
               }
-            } catch (e) {
-              console.warn('⚠️ 날짜 정렬 오류:', e);
-            }
-            return b.savings - a.savings;
+            } catch (e) { /* ignore */ }
           }
 
-          // 추천 후기(featured) 우선 → 그다음 최신순(또는 절약액)
-          const sortedReviews = allReviews.sort(compareHeroReviews);
-          
-          // "더보기"를 위해 전체 목록을 전역으로 보관
-          window.heroAllSavingsReviews = sortedReviews;
+          const { collection, query, where, getDocs, orderBy, limit } = window.firebaseFirestoreFunctions;
+          const db = window.firebaseDb;
+          const reviewsRef = collection(db, 'reviews');
+          let querySnapshot;
+          try {
+            querySnapshot = await getDocs(query(reviewsRef, where('approved', '==', true), orderBy('createdAt', 'desc'), limit(200)));
+          } catch (indexErr) {
+            console.warn('⚠️ 후기 인덱스 없음, limit-only 쿼리:', indexErr.message);
+            querySnapshot = await getDocs(query(reviewsRef, where('approved', '==', true), limit(200)));
+          }
 
-          // 메인에는 최대 3개만 선택
-          recentSavings.push(...sortedReviews.slice(0, 3));
-          
-          console.log('✅ 최근 절약 사례 데이터:', recentSavings.length, '개');
-
-          const avgRate = totalRequests > 0 ? Math.round(totalRate / totalRequests) : 0;
-          const gapSavings = totalOriginalPrice > totalFinalPrice
-            ? totalOriginalPrice - totalFinalPrice
-            : totalSavings;
-
-          window.heroGapStatsPending = {
-            totalOriginal: totalOriginalPrice,
-            totalFinal: totalFinalPrice,
-            totalSavings: gapSavings,
-            avgRate,
-            totalRequests
-          };
-
-          updateHeroRecentSavings(recentSavings);
-          tryPlayHeroStatsCountUp();
-
+          const cachedReviews = [];
+          querySnapshot.forEach((docSnap) => cachedReviews.push(docSnap.data()));
+          sessionStorage.setItem(HERO_STATS_CACHE_KEY, JSON.stringify({ ts: Date.now(), reviews: cachedReviews }));
+          window.__applyHeroStatsFromCache(cachedReviews);
         } catch (error) {
           console.error('❌ 히어로 통계 로드 실패:', error);
           window.heroGapStatsPending = {
@@ -3462,6 +3322,120 @@
           tryPlayHeroStatsCountUp();
         }
       }
+
+      window.__applyHeroStatsFromCache = function applyHeroStatsFromRawReviews(rawReviews) {
+        let totalRequests = 0;
+        let totalSavings = 0;
+        let totalOriginalPrice = 0;
+        let totalFinalPrice = 0;
+        let totalRate = 0;
+        const recentSavings = [];
+        const allReviews = [];
+
+        rawReviews.forEach((data) => {
+          totalRequests++;
+          let savingsAmount = 0;
+          if (data.savings) {
+            if (typeof data.savings === 'string') {
+              savingsAmount = parseInt(data.savings.replace(/[^0-9]/g, ''), 10) || 0;
+            } else if (typeof data.savings === 'number') {
+              savingsAmount = data.savings;
+            }
+            totalSavings += savingsAmount;
+          }
+          let rate = parseFloat(data.rate || data.savingsPercent || data.ratePercent || 0) || 0;
+          let originalPrice = 0;
+          let finalPrice = 0;
+          if (data.originalPrice) {
+            originalPrice = typeof data.originalPrice === 'string'
+              ? parseInt(data.originalPrice.replace(/[^0-9]/g, ''), 10)
+              : data.originalPrice;
+          }
+          if (data.finalPrice) {
+            finalPrice = typeof data.finalPrice === 'string'
+              ? parseInt(data.finalPrice.replace(/[^0-9]/g, ''), 10)
+              : data.finalPrice;
+          }
+          if (rate === 0 && originalPrice > 0 && finalPrice > 0) {
+            rate = Math.round(((originalPrice - finalPrice) / originalPrice) * 100);
+          }
+          if (originalPrice === 0 && finalPrice === 0 && savingsAmount > 0 && rate > 0) {
+            originalPrice = Math.round(savingsAmount / (rate / 100));
+            finalPrice = originalPrice - savingsAmount;
+          } else if (originalPrice === 0 && finalPrice > 0) {
+            originalPrice = finalPrice + savingsAmount;
+          } else if (finalPrice === 0 && originalPrice > 0) {
+            finalPrice = originalPrice - savingsAmount;
+          }
+          if (originalPrice > 0 && finalPrice > 0) {
+            totalOriginalPrice += originalPrice;
+            totalFinalPrice += finalPrice;
+          }
+          totalRate += rate;
+          if (savingsAmount > 0) {
+            const productName = data.product || data.productName || data.itemName || '제품';
+            let productImage = '';
+            if (data.images && Array.isArray(data.images) && data.images.length > 0) {
+              productImage = data.images[0];
+            } else if (data.photos && Array.isArray(data.photos) && data.photos.length > 0) {
+              productImage = data.photos[0];
+            } else if (data.image) {
+              productImage = data.image;
+            } else if (data.productImage) {
+              productImage = data.productImage;
+            } else if (data.itemImage) {
+              productImage = data.itemImage;
+            } else if (data.photo) {
+              productImage = data.photo;
+            } else {
+              productImage = 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&w=600&q=80';
+            }
+            allReviews.push({
+              name: data.name || '고객',
+              product: productName,
+              savings: savingsAmount,
+              rate,
+              image: productImage,
+              originalPrice,
+              finalPrice,
+              createdAt: data.createdAt || data.timestamp || new Date(),
+              featured: data.featured === true
+            });
+          }
+        });
+
+        function compareHeroReviews(a, b) {
+          const aFeatured = a.featured === true ? 1 : 0;
+          const bFeatured = b.featured === true ? 1 : 0;
+          if (aFeatured !== bFeatured) return bFeatured - aFeatured;
+          try {
+            if (a.createdAt && b.createdAt) {
+              if (a.createdAt.toMillis && b.createdAt.toMillis) {
+                return b.createdAt.toMillis() - a.createdAt.toMillis();
+              }
+              const aMs = new Date(a.createdAt).getTime();
+              const bMs = new Date(b.createdAt).getTime();
+              if (!isNaN(aMs) && !isNaN(bMs)) return bMs - aMs;
+            }
+          } catch (e) { /* ignore */ }
+          return b.savings - a.savings;
+        }
+
+        const sortedReviews = allReviews.sort(compareHeroReviews);
+        window.heroAllSavingsReviews = sortedReviews;
+        recentSavings.push(...sortedReviews.slice(0, 3));
+        const avgRate = totalRequests > 0 ? Math.round(totalRate / totalRequests) : 0;
+        const gapSavings = totalOriginalPrice > totalFinalPrice ? totalOriginalPrice - totalFinalPrice : totalSavings;
+        window.heroGapStatsPending = {
+          totalOriginal: totalOriginalPrice,
+          totalFinal: totalFinalPrice,
+          totalSavings: gapSavings,
+          avgRate,
+          totalRequests
+        };
+        updateHeroRecentSavings(recentSavings);
+        tryPlayHeroStatsCountUp();
+      };
 
       function scrollToHeroReviews() {
         const section = document.getElementById('hero-recent-savings');
@@ -3610,7 +3584,7 @@
 
       if (!window.__heroStatsRefreshBound) {
         window.__heroStatsRefreshBound = true;
-        setInterval(loadHeroStats, 3 * 60 * 1000);
+        setInterval(() => loadHeroStats(true), 30 * 60 * 1000);
       }
 
       if (!window.__heroStatFitResizeBound) {
@@ -8676,11 +8650,8 @@
           const name = sanitizeInput(document.getElementById('find-id-name').value.trim());
           const phone = sanitizeInput(document.getElementById('find-id-phone').value.trim());
           
-          // Firebase에서 사용자 데이터 검색
-          const allUsers = await getUsersFromFirebase();
-          const foundUser = allUsers.find(user => 
-            user.name === name && user.phone === phone
-          );
+          // Firebase에서 사용자 검색 (이메일·전화번호 단건 쿼리)
+          const foundUser = await findUserByNameAndPhone(name, phone);
           
           const resultDiv = document.getElementById('find-id-result');
           const resultP = resultDiv.querySelector('p');
@@ -8703,25 +8674,21 @@
           const email = sanitizeInput(document.getElementById('find-password-email').value.trim());
           const name = sanitizeInput(document.getElementById('find-password-name').value.trim());
           
-          // Firebase에서 사용자 데이터 검색
-          const allUsers = await getUsersFromFirebase();
-          const foundUser = allUsers.find(user => 
-            user.email === email && user.name === name
+          // Firebase에서 사용자 검색 (이메일 단건 쿼리)
+          const foundUser = await findUserByEmail(email);
+          const nameMatches = foundUser && (
+            (foundUser.name || foundUser.displayName || '') === name
           );
           
           const resultDiv = document.getElementById('find-password-result');
           const resultP = resultDiv.querySelector('p');
           
-          if (foundUser) {
+          if (foundUser && nameMatches) {
             try {
               await waitForFirebase();
-              
-              // Firebase Auth의 sendPasswordResetEmail 사용
               const { sendPasswordResetEmail } = window.firebaseAuthFunctions;
-              
               if (window.firebaseAuth && sendPasswordResetEmail) {
                 await sendPasswordResetEmail(window.firebaseAuth, email);
-                
                 resultP.innerHTML = `
                   <div class="text-green-600">
                     <p class="font-bold">비밀번호 재설정 이메일을 발송했습니다.</p>
@@ -8731,15 +8698,12 @@
                   </div>
                 `;
               } else {
-                // Firebase Auth가 없는 경우 대체 방법 (임시 비밀번호 표시)
                 const tempPassword = Math.random().toString(36).slice(-8) + 'A1!';
-                
                 resultP.innerHTML = `
                   <div class="text-yellow-600">
                     <p class="font-bold">⚠️ 임시 비밀번호가 발급되었습니다.</p>
                     <p class="mt-2">임시 비밀번호: <span class="font-mono bg-gray-200 px-2 py-1 rounded">${tempPassword}</span></p>
                     <p class="text-sm mt-2 text-gray-600">로그인 후 반드시 비밀번호를 변경해주세요.</p>
-                    <p class="text-xs mt-2 text-red-600">※ 보안을 위해 이메일로 비밀번호 재설정 링크를 받는 것을 권장합니다.</p>
                   </div>
                 `;
               }
@@ -8761,7 +8725,39 @@
           resultDiv.classList.remove('hidden');
         };
 
-        // 사용자 데이터 동기화 함수
+        async function findUserByEmail(email) {
+          if (!email || !window.firebaseDb) return null;
+          const { collection, query, where, getDocs, limit } = window.firebaseFirestoreFunctions;
+          const normalized = email.trim().toLowerCase();
+          const snap = await getDocs(query(
+            collection(window.firebaseDb, 'users'),
+            where('email', '==', normalized),
+            limit(5)
+          ));
+          if (snap.empty) return null;
+          const docSnap = snap.docs[0];
+          return { id: docSnap.id, ...docSnap.data() };
+        }
+
+        async function findUserByNameAndPhone(name, phone) {
+          if (!phone || !window.firebaseDb) return null;
+          const { collection, query, where, getDocs, limit } = window.firebaseFirestoreFunctions;
+          const snap = await getDocs(query(
+            collection(window.firebaseDb, 'users'),
+            where('phone', '==', phone.trim()),
+            limit(10)
+          ));
+          for (const docSnap of snap.docs) {
+            const data = docSnap.data();
+            const userName = data.name || data.displayName || '';
+            if (userName === name.trim()) {
+              return { id: docSnap.id, ...data };
+            }
+          }
+          return null;
+        }
+
+        // (레거시) 전체 users 조회 — 사용 지양, findUserBy* 사용
         async function getUsersFromFirebase() {
           try {
             console.log('🔄 사용자 데이터 동기화 시작...');

@@ -1,7 +1,7 @@
 /**
  * PriceHunter 공통 방문 로그 (모든 고객-facing 페이지에서 로드)
- * - visits 컬렉션: 상세 로그
- * - visitDaily 컬렉션: 일별 pageViews / uniqueVisitors 집계
+ * - visitDaily 컬렉션: 일별 pageViews / uniqueVisitors 집계 (리포트용)
+ * - visits 상세 로그는 쓰지 않음 (Firestore 읽기·쓰기 절약)
  */
 (function () {
   'use strict';
@@ -37,23 +37,9 @@
         localStorage.setItem('analytics_session_id', sessionId);
       }
 
-      let userId = null;
-      if (window.firebaseAuth && window.firebaseAuth.currentUser) {
-        userId = window.firebaseAuth.currentUser.uid;
-      }
-
       const fns = window.firebaseFirestoreFunctions;
       const db = window.firebaseDb;
-      const { collection, addDoc, doc, setDoc, getDoc, serverTimestamp } = fns;
-
-      await addDoc(collection(db, 'visits'), {
-        date: dateStr,
-        timestamp: serverTimestamp(),
-        userId,
-        sessionId,
-        page,
-        userAgent: (navigator.userAgent || '').substring(0, 200)
-      });
+      const { doc, setDoc, getDoc, serverTimestamp } = fns;
 
       const dailyRef = doc(db, 'visitDaily', dateStr);
       const snap = await getDoc(dailyRef);
