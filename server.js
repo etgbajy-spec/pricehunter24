@@ -9,6 +9,12 @@ const { validateProductLinkUrl } = require('./url-safety');
 const adminNotifyEmail = (() => {
   try { return require('./admin-notify-email'); } catch (e) { return null; }
 })();
+const notificationDispatch = (() => {
+  try { return require('./notification-dispatch'); } catch (e) { return null; }
+})();
+const notificationRequestLoader = (() => {
+  try { return require('./notification-request-loader'); } catch (e) { return null; }
+})();
 const app = express();
 const port = process.env.PORT || 1000;
 
@@ -144,6 +150,12 @@ app.use('/api/', (req, res, next) => {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-csrf-token, Authorization');
   if (req.method === 'OPTIONS') return res.sendStatus(200);
   next();
+});
+
+// favicon.ico → SVG (브라우저 기본 요청 404 방지)
+app.get('/favicon.ico', (req, res) => {
+  res.type('image/svg+xml');
+  res.sendFile(path.join(__dirname, 'favicon.svg'));
 });
 
 // 정적 파일 제공
@@ -1092,6 +1104,45 @@ if (analysisPipeline) {
   console.warn('⚠️ analysis-pipeline.js 로드 실패 — AI API 비활성');
 }
 
+// ===== Tier 0 Quick Scan (공개) =====
+const quickScanLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  message: { error: '스캔 요청이 너무 많습니다. 잠시 후 다시 시도해주세요.' },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+if (analysisPipeline && typeof analysisPipeline.quickScan === 'function') {
+  app.post('/api/quick-scan', quickScanLimiter, validateInput, async (req, res) => {
+    try {
+      const url = String(req.body?.url || '').trim();
+      const priceRaw = req.body?.price;
+      if (!url || url.length < 10) {
+        return res.status(400).json({ error: '쇼핑몰 상품 링크를 입력해주세요.' });
+      }
+      const urlCheck = validateProductLinkUrl(url);
+      if (!urlCheck.ok) {
+        return res.status(400).json({ error: urlCheck.error });
+      }
+      const result = await analysisPipeline.quickScan({
+        url: urlCheck.normalized,
+        price: priceRaw,
+        productName: String(req.body?.productName || '').trim(),
+        urlMeta: { flagged: urlCheck.flagged }
+      });
+      if (!result.ok) {
+        return res.status(400).json({ error: result.error || '스캔에 실패했습니다.' });
+      }
+      return res.json(result);
+    } catch (e) {
+      console.error('quick-scan error:', e);
+      return res.status(500).json({ error: e.message || 'Quick Scan 오류' });
+    }
+  });
+  console.log('✅ Tier 0 Quick Scan API 등록 완료');
+}
+
 // ===== 반자동 모드: Firebase 리포트 동기화 =====
 if (adminInitialized) {
   app.get('/api/admin/pending-requests', analysisLimiter, requireAdminOrApiKey, async (req, res) => {
@@ -1228,6 +1279,42 @@ app.post('/api/notify-admin-new-request', paymentLimiter, validateInput, async (
     return res.json(result);
   } catch (error) {
     console.error('❌ 운영자 알림 발송 실패:', error.message || error);
+    return res.status(500).json({ success: false, error: error.message || '알림 발송 실패' });
+  }
+});
+
+// 알림 채널 설정 조회 (이메일·알림톡)
+app.get('/api/notification-config', (req, res) => {
+  if (!notificationDispatch) {
+    return res.json({ email: { configured: false }, alimtalk: { configured: false } });
+  }
+  return res.json(notificationDispatch.getNotificationConfig());
+});
+
+// 고객 리포트 완료 알림 (관리자 → 서버 EmailJS + 알림톡)
+app.post('/api/notify-customer-report-complete', paymentLimiter, validateInput, requireAdmin, async (req, res) => {
+  if (!notificationDispatch || !notificationRequestLoader) {
+    return res.status(503).json({ success: false, error: '알림 모듈을 사용할 수 없습니다.' });
+  }
+  const body = req.body || {};
+  const requestId = body.requestId || body.id;
+  if (!requestId) {
+    return res.status(400).json({ success: false, error: 'requestId가 필요합니다.' });
+  }
+  try {
+    const db = admin.firestore();
+    let notifyParams = await notificationRequestLoader.buildNotifyParamsFromRequestId(db, requestId);
+    if (!notifyParams && body.toEmail) {
+      notifyParams = Object.assign({}, body, { toEmail: body.toEmail });
+    }
+    if (!notifyParams || !notifyParams.toEmail) {
+      return res.status(400).json({ success: false, error: '의뢰 또는 회원 정보에 유효한 이메일이 없습니다.' });
+    }
+    const result = await notificationDispatch.notifyCustomerReportComplete(notifyParams);
+    console.log('✅ 고객 리포트 완료 알림:', requestId, result.success ? '성공' : '일부 실패');
+    return res.json(Object.assign({ success: result.success }, result));
+  } catch (error) {
+    console.error('❌ 고객 리포트 완료 알림 실패:', error.message || error);
     return res.status(500).json({ success: false, error: error.message || '알림 발송 실패' });
   }
 });
@@ -1405,12 +1492,42 @@ app.post('/api/guest-request', paymentLimiter, validateInput, async (req, res) =
       }
     }
 
+    let customerNotifySent = false;
+    let customerNotifyError = null;
+    if (notificationDispatch) {
+      try {
+        const customerResult = await notificationDispatch.notifyCustomerRequestReceived({
+          toEmail: emailRaw,
+          userName: '고객',
+          requestNumber: reqNum,
+          productOption: optionName,
+          isGuest: true,
+          source: 'guest_trial',
+          requestType: '게스트 체험 (1회)'
+        });
+        customerNotifySent = customerResult.success;
+        if (!customerResult.success) {
+          customerNotifyError = (customerResult.email && customerResult.email.errorMessage) ||
+            (customerResult.alimtalk && customerResult.alimtalk.errorMessage) ||
+            '알림 발송 실패';
+        }
+        if (customerNotifySent) {
+          console.log('✅ 게스트 의뢰 접수 확인 메일 발송:', emailRaw);
+        }
+      } catch (err) {
+        customerNotifyError = err.message || String(err);
+        console.warn('⚠️ 게스트 의뢰 접수 확인 알림 실패:', customerNotifyError);
+      }
+    }
+
     res.status(201).json({
       success: true,
       requestNumber: reqNum,
       firebaseDocId: docRef.id,
       adminNotifySent,
       adminNotifyError,
+      customerNotifySent,
+      customerNotifyError,
       message: '의뢰가 접수되었습니다. 결과는 이메일로 보내드립니다.'
     });
   } catch (error) {

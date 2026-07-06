@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ko">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>프라이스헌터(PriceHunter) - AI 최저가 검증 · 구매 조건 검토</title>
+    <title>프라이스헌터(PriceHunter) - 구매판단 리포트 · 24시간 검증</title>
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
@@ -14,19 +14,19 @@
     
     <!-- SEO 메타 태그 -->
     <meta name="robots" content="index, follow" />
-    <meta name="description" content="AI와 빅데이터로 검증된 최저가 정보를 무료로 제공합니다. 가격만이 아니라 배송·구성품·판매처까지 함께 확인하는 구매 조건 검토 서비스입니다." />
-    <meta name="keywords" content="최저가, 가격비교, 쇼핑, 할인, 절약, PriceHunter, 프라이스헌터, 무료최저가정보, AI가격분석" />
+    <meta name="description" content="링크와 옵션만 보내면 24시간 이내 구매판단 리포트. 배송·옵션·판매처까지 검증하는 구매 전 세컨드 오피니언 서비스입니다." />
+    <meta name="keywords" content="구매판단, 구매검토, 최저가, 가격비교, 쇼핑, PriceHunter, 프라이스헌터, 구매리포트, 구매조건검토" />
     <meta name="author" content="PriceHunter" />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://pricehunt24.com/" />
-    <meta property="og:title" content="프라이스헌터(PriceHunter) - AI 최저가 검증 · 구매 조건 검토" />
-    <meta property="og:description" content="AI와 빅데이터로 검증된 최저가 정보를 무료로 제공합니다. 가격만이 아니라 배송·구성품·판매처까지 함께 확인하는 구매 조건 검토 서비스입니다." />
+    <meta property="og:title" content="프라이스헌터(PriceHunter) - 구매판단 리포트 · 24시간 검증" />
+    <meta property="og:description" content="24시간 이내 구매판단 리포트. 배송·옵션·판매처까지 검증합니다." />
     <meta property="og:image" content="https://pricehunt24.com/og-image.jpg" />
     <meta property="og:site_name" content="프라이스헌터" />
     <meta property="og:locale" content="ko_KR" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="프라이스헌터(PriceHunter) - AI 최저가 검증 · 구매 조건 검토" />
-    <meta name="twitter:description" content="AI와 빅데이터로 검증된 최저가 정보를 무료로 제공합니다. 가격만이 아니라 배송·구성품·판매처까지 함께 확인하는 구매 조건 검토 서비스입니다." />
+    <meta name="twitter:title" content="프라이스헌터(PriceHunter) - 구매판단 리포트 · 24시간 검증" />
+    <meta name="twitter:description" content="24시간 이내 구매판단 리포트. 배송·옵션·판매처까지 검증합니다." />
     <meta name="twitter:image" content="https://pricehunt24.com/og-image.jpg" />
     <meta name="twitter:domain" content="프라이스헌터" />
     <link rel="canonical" href="https://pricehunt24.com/" />
@@ -40,7 +40,7 @@
       "alternateName": "프라이스헌터",
       "url": "https://pricehunt24.com",
       "logo": "https://pricehunt24.com/og-image.jpg",
-      "description": "AI와 빅데이터로 검증된 최저가 정보를 무료로 제공하며, 배송·구성품·판매처까지 함께 확인하는 구매 조건 검토 서비스",
+      "description": "24시간 이내 구매판단 리포트. 배송·옵션·판매처까지 검증하는 구매 전 세컨드 오피니언 서비스",
       "contactPoint": {
         "@type": "ContactPoint",
         "email": "pricehunter.service@gmail.com",
@@ -72,7 +72,7 @@
     {
       "@context": "https://schema.org",
       "@type": "Service",
-      "serviceType": "가격 비교 서비스",
+      "serviceType": "구매판단 리포트 서비스",
       "provider": {
         "@type": "Organization",
         "name": "PriceHunter",
@@ -82,7 +82,7 @@
         "@type": "Country",
         "name": "대한민국"
       },
-      "description": "AI와 빅데이터를 활용한 최저가 검증 서비스. 배송비·관세·수수료를 포함한 실제 구매가 비교와 구매 조건 검토를 함께 제공합니다.",
+      "description": "24시간 이내 구매판단 리포트. 배송비·관세·옵션·판매처를 포함한 실구매가 검증 서비스",
       "offers": {
         "@type": "Offer",
         "price": "0",
@@ -96,29 +96,35 @@
     <meta http-equiv="Content-Security-Policy" content="frame-src 'self' https://www.google.com https://accounts.google.com https://recaptcha.google.com https://kauth.kakao.com https://pricehunter-99a1b.firebaseapp.com https://*.firebaseapp.com https://*.googleapis.com https://apis.google.com https://*.gstatic.com; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://developers.kakao.com https://kapi.kakao.com https://kauth.kakao.com https://*.firebaseapp.com https://*.cloudfunctions.net https://api.emailjs.com https://www.gstatic.com https://*.gstatic.com https://accounts.google.com https://oauth2.googleapis.com https://apis.google.com https://www.google-analytics.com https://*.google-analytics.com https://analytics.google.com https://*.googletagmanager.com https://firebase.googleapis.com https://firebaseinstallations.googleapis.com https://cdn.jsdelivr.net; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://www.gstatic.com https://*.gstatic.com https://apis.google.com https://www.googletagmanager.com https://*.googleapis.com https://*.google.com; script-src-elem 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://www.gstatic.com https://*.gstatic.com https://apis.google.com https://www.googletagmanager.com https://*.googletagmanager.com https://*.googleapis.com https://*.google.com; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://fonts.googleapis.com; img-src 'self' data: https: http: blob: https://www.google-analytics.com https://*.google-analytics.com;" />
     
     <!-- Favicon -->
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🔍%3C/text%3E%3C/svg%3E">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%233b82f6'/%3E%3Cpath d='M30 35h40v8H30zm0 18h28v8H30zm0 18h20v8H30z' fill='%23fff'/%3E%3C/svg%3E">
     
-    <!-- Tailwind CSS CDN (프로덕션 경고는 무시) -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CDN 경고 억제 후 로드 -->
     <script>
-      // Tailwind CDN 프로덕션 경고 무시
       if (typeof window !== 'undefined') {
+        const suppressTailwindProdMsg = (args) => args.join(' ').includes('cdn.tailwindcss.com should not be used in production');
         const originalWarn = console.warn;
+        const originalError = console.error;
         console.warn = function(...args) {
-          const message = args.join(' ');
-          if (message.includes('cdn.tailwindcss.com should not be used in production')) {
-            return; // 경고 무시
-          }
+          if (suppressTailwindProdMsg(args)) return;
           originalWarn.apply(console, args);
         };
+        console.error = function(...args) {
+          if (suppressTailwindProdMsg(args)) return;
+          originalError.apply(console, args);
+        };
       }
-      
-      // 스플래시 스크린 플래시 방지 - 페이지 로드 전에 즉시 실행
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      // 스플래시 스크린 — 세션당 1회 표시 (탭/브라우저 재시작 시 다시 표시)
       (function() {
         try {
-          const hasSeenSplash = localStorage.getItem('ph_splash_seen');
+          const hasSeenSplash = sessionStorage.getItem('ph_splash_seen');
           if (hasSeenSplash) {
-            // 이미 본 경우 즉시 스플래시를 숨김
             document.addEventListener('DOMContentLoaded', function() {
               const splashScreen = document.getElementById('splash-screen');
               if (splashScreen) {
@@ -128,13 +134,14 @@
             });
           }
         } catch(e) {
-          // localStorage 접근 실패 시 무시
+          // sessionStorage 접근 실패 시 무시
         }
       })();
     </script>
     
     <!-- 모바일 여백 제거 CSS -->
     <link rel="stylesheet" href="mobile-fix.css">
+    <link rel="stylesheet" href="styles/home.css">
     
     <!-- 스크롤 애니메이션 CSS -->
     <style>
@@ -993,20 +1000,22 @@
 
       .hero-cta-primary {
         background-color: #10B981;
-        box-shadow: 0 8px 32px rgba(16, 185, 129, 0.5);
+        box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25);
       }
 
       .hero-cta-primary:hover {
-        box-shadow: 0 12px 48px rgba(16, 185, 129, 0.7);
+        box-shadow: 0 4px 16px rgba(16, 185, 129, 0.35);
       }
 
       .hero-cta-secondary {
-        background-color: #2563EB;
-        box-shadow: 0 8px 32px rgba(59, 130, 246, 0.45);
+        background-color: transparent;
+        border-color: rgba(255, 255, 255, 0.2);
+        box-shadow: none;
       }
 
       .hero-cta-secondary:hover {
-        box-shadow: 0 12px 48px rgba(59, 130, 246, 0.6);
+        background-color: rgba(255, 255, 255, 0.04);
+        box-shadow: none;
       }
 
       .hero-cta-surface {
@@ -1023,8 +1032,8 @@
       }
 
       .hero-cta-secondary .hero-cta-surface {
-        background-color: #2563EB;
-        background-image: linear-gradient(135deg, #3B82F6 0%, #2563EB 55%, #1D4ED8 100%);
+        background-color: transparent;
+        background-image: none;
       }
       
       /* 절약 사례 카드 순차 등장 - 강화 */
@@ -2929,74 +2938,6 @@
         }
       }
       
-      /* 프로세스 섹션 모바일 최적화 */
-      @media (max-width: 768px) {
-        #process-section {
-          padding: 3rem 1rem !important;
-          margin-left: 0 !important;
-          margin-right: 0 !important;
-        }
-        
-        #process-section .relative.z-10.max-w-6xl {
-          margin-left: auto !important;
-          margin-right: auto !important;
-          padding-left: 1rem !important;
-          padding-right: 1rem !important;
-          width: 100% !important;
-          box-sizing: border-box !important;
-        }
-        
-        #process-section h2 {
-          font-size: 2rem !important;
-          margin-bottom: 2rem !important;
-        }
-        
-        .process-step-card {
-          padding: 1.25rem !important;
-        }
-        
-        .process-step-card .lg\\:pl-20 {
-          padding-left: 1.25rem !important;
-        }
-        
-        .process-step-card .w-20 {
-          width: 3.5rem !important;
-          height: 3.5rem !important;
-        }
-        
-        .process-step-card h3 {
-          font-size: 1.25rem !important;
-          margin-bottom: 0.75rem !important;
-        }
-        
-        .process-step-card p {
-          font-size: 0.875rem !important;
-        }
-      }
-      
-      @media (max-width: 640px) {
-        #process-section {
-          padding: 2rem 0.75rem !important;
-        }
-        
-        #process-section h2 {
-          font-size: 1.75rem !important;
-        }
-        
-        .process-step-card {
-          padding: 1rem !important;
-        }
-        
-        .process-step-card .w-20 {
-          width: 3rem !important;
-          height: 3rem !important;
-        }
-        
-        .process-step-card h3 {
-          font-size: 1.125rem !important;
-        }
-      }
-      
       /* FAQ 모바일 최적화 */
       @media (max-width: 768px) {
         #faq-section {
@@ -3255,23 +3196,102 @@
       // FAQ 아코디언 토글 함수
       function toggleFAQ(button) {
         const faqItem = button.parentElement;
-        const answer = faqItem.querySelector('div:last-child');
+        const answer = faqItem.querySelector('.ph-faq-answer, div:last-child');
         const icon = button.querySelector('svg');
         
-        // 닫혀있으면 열기
         if (answer.classList.contains('hidden')) {
           answer.classList.remove('hidden');
-          icon.style.transform = 'rotate(180deg)';
+          faqItem.classList.add('is-open');
+          if (icon) icon.style.transform = 'rotate(180deg)';
         } else {
-          // 열려있으면 닫기
           answer.classList.add('hidden');
-          icon.style.transform = 'rotate(0deg)';
+          faqItem.classList.remove('is-open');
+          if (icon) icon.style.transform = 'rotate(0deg)';
         }
       }
 
+      (function initPhHeader() {
+        const header = document.getElementById('ph-site-header');
+        if (!header) return;
+        const onScroll = () => {
+          header.classList.toggle('is-scrolled', window.scrollY > 16);
+        };
+        onScroll();
+        window.addEventListener('scroll', onScroll, { passive: true });
+      })();
 
-      const HERO_STATS_CACHE_KEY = 'ph_hero_stats_cache_v2';
+
+      const HERO_STATS_CACHE_KEY = 'ph_hero_stats_cache_v7';
       const HERO_STATS_CACHE_TTL = 30 * 60 * 1000;
+
+      function pickReviewImage(data) {
+        if (data.images && Array.isArray(data.images) && data.images.length > 0) return data.images[0];
+        if (data.photos && Array.isArray(data.photos) && data.photos.length > 0) return data.photos[0];
+        if (data.image) return data.image;
+        if (data.productImage) return data.productImage;
+        if (data.itemImage) return data.itemImage;
+        if (data.photo) return data.photo;
+        return '';
+      }
+
+      function toSlimReviewData(data) {
+        const img = pickReviewImage(data);
+        return {
+          name: data.name,
+          product: data.product || data.productName || data.itemName,
+          savings: data.savings,
+          rate: data.rate || data.savingsPercent || data.ratePercent,
+          originalPrice: data.originalPrice,
+          finalPrice: data.finalPrice,
+          featured: data.featured === true,
+          createdAtMs: data.createdAt?.toMillis?.() ?? (data.timestamp?.toMillis?.() ?? 0),
+          image: img && !String(img).startsWith('data:') ? img : ''
+        };
+      }
+
+      function fromSlimReviewData(slim) {
+        return {
+          name: slim.name,
+          product: slim.product,
+          savings: slim.savings,
+          rate: slim.rate,
+          originalPrice: slim.originalPrice,
+          finalPrice: slim.finalPrice,
+          featured: slim.featured,
+          image: slim.image || '',
+          createdAt: slim.createdAtMs ? { toMillis: () => slim.createdAtMs } : null
+        };
+      }
+
+      function saveHeroStatsCache(reviews) {
+        try {
+          sessionStorage.removeItem('ph_hero_stats_cache_v2');
+          const slim = reviews.map(toSlimReviewData);
+          sessionStorage.setItem(HERO_STATS_CACHE_KEY, JSON.stringify({ ts: Date.now(), reviews: slim }));
+        } catch (e) {
+          try { sessionStorage.removeItem(HERO_STATS_CACHE_KEY); } catch (_) { /* ignore */ }
+        }
+      }
+
+      async function fetchApprovedReviewsSnapshot(db, firestoreFns) {
+        const { collection, query, where, getDocs, limit: firestoreLimit } = firestoreFns;
+        const reviewsRef = collection(db, 'reviews');
+        try {
+          return await getDocs(query(reviewsRef, where('approved', '==', true), firestoreLimit(200)));
+        } catch (_) {
+          const allSnap = await getDocs(reviewsRef);
+          const filtered = [];
+          allSnap.forEach((docSnap) => {
+            if (docSnap.data().approved === true) filtered.push(docSnap);
+          });
+          filtered.sort((a, b) => {
+            const aT = a.data().createdAt?.toMillis?.() ?? 0;
+            const bT = b.data().createdAt?.toMillis?.() ?? 0;
+            return bT - aT;
+          });
+          return { forEach: (fn) => filtered.slice(0, 200).forEach(fn) };
+        }
+      }
 
       // 히어로 섹션 통계 로드 (승인 후기 최대 200건 + 30분 캐시)
       async function loadHeroStats(forceRefresh = false) {
@@ -3287,27 +3307,18 @@
               if (raw) {
                 const parsed = JSON.parse(raw);
                 if (Date.now() - parsed.ts < HERO_STATS_CACHE_TTL && Array.isArray(parsed.reviews)) {
-                  window.__applyHeroStatsFromCache(parsed.reviews);
+                  const restored = parsed.reviews.map(fromSlimReviewData);
+                  window.__applyHeroStatsFromCache(restored);
                   return;
                 }
               }
             } catch (e) { /* ignore */ }
           }
 
-          const { collection, query, where, getDocs, orderBy, limit } = window.firebaseFirestoreFunctions;
-          const db = window.firebaseDb;
-          const reviewsRef = collection(db, 'reviews');
-          let querySnapshot;
-          try {
-            querySnapshot = await getDocs(query(reviewsRef, where('approved', '==', true), orderBy('createdAt', 'desc'), limit(200)));
-          } catch (indexErr) {
-            console.warn('⚠️ 후기 인덱스 없음, limit-only 쿼리:', indexErr.message);
-            querySnapshot = await getDocs(query(reviewsRef, where('approved', '==', true), limit(200)));
-          }
-
+          const querySnapshot = await fetchApprovedReviewsSnapshot(window.firebaseDb, window.firebaseFirestoreFunctions);
           const cachedReviews = [];
           querySnapshot.forEach((docSnap) => cachedReviews.push(docSnap.data()));
-          sessionStorage.setItem(HERO_STATS_CACHE_KEY, JSON.stringify({ ts: Date.now(), reviews: cachedReviews }));
+          saveHeroStatsCache(cachedReviews);
           window.__applyHeroStatsFromCache(cachedReviews);
         } catch (error) {
           console.error('❌ 히어로 통계 로드 실패:', error);
@@ -3387,8 +3398,6 @@
               productImage = data.itemImage;
             } else if (data.photo) {
               productImage = data.photo;
-            } else {
-              productImage = 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&w=600&q=80';
             }
             allReviews.push({
               name: data.name || '고객',
@@ -3396,6 +3405,9 @@
               savings: savingsAmount,
               rate,
               image: productImage,
+              images: data.images,
+              photos: data.photos,
+              imageFallbacks: [],
               originalPrice,
               finalPrice,
               createdAt: data.createdAt || data.timestamp || new Date(),
@@ -3422,6 +3434,31 @@
         }
 
         const sortedReviews = allReviews.sort(compareHeroReviews);
+
+        function enrichHeroReviewImages(reviews) {
+          if (!window.ReviewProductImages) return Promise.resolve(reviews);
+          return ReviewProductImages.loadManifest().then(function (manifest) {
+            reviews.forEach(function (item) {
+              const resolved = ReviewProductImages.resolveImage(
+                {
+                  product: item.product,
+                  productName: item.product,
+                  image: item.image,
+                  images: item.images,
+                  photos: item.photos,
+                  requestId: item.requestId,
+                  requestNumber: item.requestNumber
+                },
+                manifest
+              );
+              item.image = resolved.src || '';
+              item.imageFallbacks = resolved.fallbacks || [];
+            });
+            return reviews;
+          });
+        }
+
+        enrichHeroReviewImages(sortedReviews).then(function () {
         window.heroAllSavingsReviews = sortedReviews;
         recentSavings.push(...sortedReviews.slice(0, 3));
         const avgRate = totalRequests > 0 ? Math.round(totalRate / totalRequests) : 0;
@@ -3435,10 +3472,11 @@
         };
         updateHeroRecentSavings(recentSavings);
         tryPlayHeroStatsCountUp();
+        });
       };
 
       function scrollToHeroReviews() {
-        const section = document.getElementById('hero-recent-savings');
+        const section = document.getElementById('reviews-section') || document.getElementById('hero-recent-savings');
         if (section) {
           section.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
@@ -3624,6 +3662,19 @@
           const finalPrice = item.finalPrice || (originalPrice - item.savings);
           const displayOriginalPrice = originalPrice > 0 ? originalPrice : (finalPrice + item.savings);
           const displayFinalPrice = finalPrice > 0 ? finalPrice : (displayOriginalPrice - item.savings);
+          const imgFallbacks = JSON.stringify(item.imageFallbacks || []);
+          const safeProduct = String(item.product || '').replace(/"/g, '&quot;');
+          const imgSrc = item.image
+            ? (window.ReviewProductImages && ReviewProductImages.toPublicUrl
+              ? ReviewProductImages.toPublicUrl(item.image)
+              : item.image)
+            : '';
+          const productThumb = imgSrc
+            ? `<div class="relative w-24 h-24 lg:w-28 lg:h-28 flex-shrink-0">
+                <img src="${imgSrc}" alt="${safeProduct}" data-ph-fallbacks="${imgFallbacks.replace(/"/g, '&quot;')}" class="w-full h-full rounded-2xl object-cover border border-white/10 shadow-lg">
+                <div data-ph-img-placeholder class="hidden absolute inset-0 rounded-2xl border border-white/10 bg-white/10 flex items-center justify-center text-3xl" aria-hidden="true">📦</div>
+              </div>`
+            : `<div class="w-24 h-24 lg:w-28 lg:h-28 rounded-2xl border border-white/10 shadow-lg bg-white/10 flex items-center justify-center text-3xl flex-shrink-0" aria-hidden="true">📦</div>`;
           
           return `
           <div class="hero-savings-card group relative bg-white/8 backdrop-blur-xl rounded-3xl p-8 lg:p-10 border border-white/20 shadow-[0_8px_32px_0_rgba(0,0,0,0.25)] hover:bg-white/12 hover:border-white/30 hover:shadow-[0_12px_48px_0_rgba(0,0,0,0.35)] transition-all duration-500 hover:-translate-y-1 overflow-hidden">
@@ -3634,7 +3685,7 @@
               <!-- 제품 정보 -->
               <div class="flex items-center gap-4 mb-8">
                 <div class="relative flex-shrink-0">
-                  <img src="${item.image}" alt="${item.product}" class="w-24 h-24 lg:w-28 lg:h-28 rounded-2xl object-cover border border-white/10 shadow-lg" onerror="this.src='https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&w=600&q=80'">
+                  ${productThumb}
                 </div>
                 <div class="flex-1 text-left min-w-0">
                   <h3 class="text-xl lg:text-2xl font-bold text-white mb-1 truncate tracking-tight" style="font-family: 'Noto Sans KR', sans-serif; font-weight: 700; letter-spacing: -0.01em;">
@@ -3701,6 +3752,10 @@
           </div>
         `;
         }).join('');
+
+        cardsContainer.querySelectorAll('img[data-ph-fallbacks]').forEach(function (img) {
+          if (window.ReviewProductImages) ReviewProductImages.attachFallbackHandler(img);
+        });
       }
 
       // 숫자가 카드 폭을 넘으면 글자 크기 자동 축소
@@ -3914,6 +3969,7 @@
         const splashScreen = document.getElementById('splash-screen');
         if (!splashScreen) return;
         clearSplashAdTimers();
+        try { sessionStorage.setItem('ph_splash_seen', 'true'); } catch (e) { /* ignore */ }
         splashScreen.classList.add('hiding');
         splashScreen.setAttribute('aria-hidden', 'true');
         setTimeout(() => {
@@ -3930,7 +3986,6 @@
       }
 
       function skipSplashScreen() {
-        localStorage.setItem('ph_splash_seen', 'true');
         finishSplashScreen(300);
       }
 
@@ -3941,38 +3996,45 @@
         activateSplashScene('hook1');
 
         const sweep = document.getElementById('splash-ad-sweep');
+        const progressBar = document.getElementById('splash-ad-progress-bar');
+        const totalMs = 14800;
 
+        function setSplashProgress(ratio) {
+          if (progressBar) progressBar.style.width = Math.min(100, Math.max(0, ratio * 100)) + '%';
+        }
+
+        setSplashProgress(0);
         scheduleSplashAd(3200, () => {
           activateSplashScene('transition');
+          setSplashProgress(0.22);
           if (sweep) {
             sweep.classList.remove('is-playing');
             void sweep.offsetWidth;
             sweep.classList.add('is-playing');
           }
         });
-        scheduleSplashAd(4400, () => {
-          splashScreen.classList.add('splash-ad-emerald');
-          splashScreen.classList.add('phase-3');
-        });
         scheduleSplashAd(5200, () => {
           activateSplashScene('demo');
+          setSplashProgress(0.45);
           startSplashUrlTyping();
         });
         scheduleSplashAd(7400, () => {
           const loader = document.getElementById('splash-ad-loader');
           if (loader) loader.classList.add('is-visible');
+          setSplashProgress(0.62);
         });
         scheduleSplashAd(9200, () => {
           const loader = document.getElementById('splash-ad-loader');
           const report = document.getElementById('splash-ad-report');
           if (loader) loader.classList.remove('is-visible');
           if (report) report.classList.add('is-visible');
+          setSplashProgress(0.78);
         });
         scheduleSplashAd(11800, () => {
           activateSplashScene('brand');
-          createParticles(splashScreen);
+          setSplashProgress(0.95);
         });
-        scheduleSplashAd(14800, () => finishSplashScreen(900));
+        scheduleSplashAd(totalMs, () => finishSplashScreen(900));
       }
 
       function scrollToGuestTrial() {
@@ -3986,10 +4048,9 @@
 
       function goToGuestTrial(url) {
         const trimmed = (url || '').trim();
-        const target = trimmed
-          ? 'request-lite.html?url=' + encodeURIComponent(trimmed)
-          : 'request-lite.html';
-        window.location.href = target;
+        const params = new URLSearchParams();
+        if (trimmed) params.set('url', trimmed);
+        window.location.href = 'request-lite.html' + (params.toString() ? '?' + params.toString() : '');
       }
 
       function bindGuestTrialUi() {
@@ -3999,7 +4060,7 @@
           splashTrialBtn.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
-            localStorage.setItem('ph_splash_seen', 'true');
+            sessionStorage.setItem('ph_splash_seen', 'true');
             finishSplashScreen(300);
             setTimeout(scrollToGuestTrial, 500);
           });
@@ -4026,7 +4087,8 @@
 
       function initSplashScreen() {
         const splashScreen = document.getElementById('splash-screen');
-        const hasSeenSplash = localStorage.getItem('ph_splash_seen');
+        let hasSeenSplash = false;
+        try { hasSeenSplash = !!sessionStorage.getItem('ph_splash_seen'); } catch (e) { /* ignore */ }
         if (hasSeenSplash) {
           if (splashScreen) splashScreen.style.display = 'none';
           showMainContent();
@@ -4049,7 +4111,6 @@
           heroSection.style.position = 'relative';
           heroSection.style.zIndex = '1';
         }
-        localStorage.setItem('ph_splash_seen', 'true');
 
         const skipBtn = document.getElementById('splash-skip-btn');
         if (skipBtn && !skipBtn.dataset.bound) {
@@ -4192,12 +4253,13 @@
     
     <!-- 캐싱 유틸리티 (Firestore 읽기 횟수 감소) -->
     <script src="cache-utils.js"></script>
+    <script src="review-product-images.js"></script>
     
     <!-- Firebase v9 SDK (모듈식) -->
     <script type="module">
       import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
       import { getAuth, signInWithCustomToken, onAuthStateChanged, signOut, sendPasswordResetEmail, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, getAdditionalUserInfo, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
-      import { getFirestore, doc, setDoc, getDoc, collection, query, orderBy, onSnapshot, getDocs, where, serverTimestamp, addDoc } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
+      import { getFirestore, doc, setDoc, getDoc, collection, query, orderBy, onSnapshot, getDocs, where, serverTimestamp, addDoc, limit } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
       import { getAnalytics, logEvent } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-analytics.js';
       
       // Firebase 설정
@@ -4238,7 +4300,7 @@
         window.firebaseAuth = auth;
         window.firebaseDb = db;
         window.firebaseAuthFunctions = { signInWithCustomToken, onAuthStateChanged, signOut, sendPasswordResetEmail, signInWithPopup, signInWithRedirect, getRedirectResult, getAdditionalUserInfo, signInWithEmailAndPassword, createUserWithEmailAndPassword };
-        window.firebaseFirestoreFunctions = { doc, setDoc, getDoc, collection, query, orderBy, onSnapshot, getDocs, where, serverTimestamp, addDoc };
+        window.firebaseFirestoreFunctions = { doc, setDoc, getDoc, collection, query, orderBy, onSnapshot, getDocs, where, serverTimestamp, addDoc, limit };
         const googleProvider = new GoogleAuthProvider();
         googleProvider.setCustomParameters({ prompt: 'select_account' });
         window.firebaseGoogleProvider = googleProvider;
@@ -4570,7 +4632,7 @@
     </script>
 
   </head>
-  <body class="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-700 min-h-screen">
+  <body class="ph-home min-h-screen">
     <!-- 강력한 애니메이션 팝업 -->
     <div id="savings-popup" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/80 backdrop-blur-sm" role="dialog" aria-modal="true" aria-hidden="true">
       <div class="popup-container relative max-w-4xl mx-auto px-4">
@@ -4591,8 +4653,8 @@
           
           <!-- 메인 메시지 -->
           <div class="text-center text-white">
-            <h2 class="text-lg sm:text-2xl md:text-4xl font-bold mb-4 animate-pulse leading-tight">
-              <span class="block sm:inline">🎉 이번 주 절약왕 등장! 🎉</span>
+            <h2 class="text-lg sm:text-2xl md:text-4xl font-bold mb-4 leading-tight">
+              <span class="block sm:inline">이번 주 절약왕 등장</span>
             </h2>
             
             <!-- 상품 썸네일 -->
@@ -4632,7 +4694,7 @@
             <!-- 추가 효과 -->
             <div class="celebration-effects">
               <div class="text-base sm:text-lg md:text-xl font-semibold mb-4 text-yellow-200">
-                <span class="block sm:inline">💰 총 절약금액:</span>
+                <span class="block sm:inline">총 절약금액:</span>
                 <span class="text-xl sm:text-2xl font-bold text-white" id="popup-total-amount">₩80,000</span>
               </div>
               <div class="text-sm sm:text-base md:text-lg text-yellow-100">
@@ -4665,87 +4727,101 @@
     </div>
 
     <!-- 상단 고정 헤더 -->
-    <header class="fixed top-0 left-0 right-0 z-50 bg-transparent backdrop-blur-sm">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex items-center justify-between h-16 md:h-20">
-          <!-- 좌측 로고 -->
-          <div class="flex items-center">
-            <a href="index.html" class="flex items-center gap-2">
-              <svg class="w-6 h-6 md:w-8 md:h-8 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
-              </svg>
-              <span class="text-xl md:text-2xl font-bold text-white" style="font-family: 'Noto Sans KR', sans-serif;">프라이스헌터</span>
-            </a>
-          </div>
-          
-          <!-- 우측 메뉴 -->
-          <nav class="hidden md:flex items-center gap-6 lg:gap-8">
-            <a href="about.html" class="text-white hover:text-blue-200 transition-colors duration-200 text-sm lg:text-base font-medium" style="font-family: 'Noto Sans KR', sans-serif;">브랜드</a>
-            <a href="support.html" class="text-white hover:text-blue-200 transition-colors duration-200 text-sm lg:text-base font-medium" style="font-family: 'Noto Sans KR', sans-serif;">서비스</a>
-            <a href="support.html" class="text-white hover:text-blue-200 transition-colors duration-200 text-sm lg:text-base font-medium" style="font-family: 'Noto Sans KR', sans-serif;">고객지원</a>
-            <!-- 로그인/회원가입/내 정보 버튼 -->
-            <button id="header-login-btn" class="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-full text-sm lg:text-base font-medium transition-all duration-200 border border-white/30" style="font-family: 'Noto Sans KR', sans-serif;">로그인</button>
-            <a href="register.html" id="header-signup-btn" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-full text-sm lg:text-base font-medium transition-all duration-200 border border-blue-400" style="font-family: 'Noto Sans KR', sans-serif;">회원가입</a>
-            <a href="member-dashboard.html" id="header-mypage-btn" class="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-full text-sm lg:text-base font-medium transition-all duration-200 border border-white/30 hidden" style="font-family: 'Noto Sans KR', sans-serif;">내 정보</a>
-          </nav>
+    <header id="ph-site-header" class="ph-site-header">
+      <div class="ph-header-inner">
+        <a href="index.html" class="ph-logo">
+          <span class="ph-logo-mark" aria-hidden="true">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z"/></svg>
+          </span>
+          <span class="ph-logo-text">프라이스헌터</span>
+        </a>
+
+        <nav class="ph-nav" aria-label="주요 메뉴">
+          <a href="#reviews-section">후기</a>
+          <a href="#features-section">기능</a>
+          <a href="#how-it-works-section">이용 방법</a>
+          <a href="#faq-section">FAQ</a>
+          <a href="about.html">브랜드</a>
+        </nav>
+
+        <div class="ph-header-actions">
+          <button id="header-login-btn" class="ph-btn-ghost" type="button">로그인</button>
+          <a href="register.html" id="header-signup-btn" class="ph-btn-primary">시작하기</a>
+          <a href="member-dashboard.html" id="header-mypage-btn" class="ph-btn-ghost hidden">내 정보</a>
         </div>
       </div>
     </header>
 
-    <!-- 스플래시 랜딩 화면 (광고형 시네마) -->
-    <div id="splash-screen" class="splash-screen" style="display: none;" aria-hidden="true">
+    <!-- 스플래시 랜딩 화면 -->
+    <div id="splash-screen" class="splash-screen splash-premium" style="display: none;" aria-hidden="true">
       <button id="splash-skip-btn" class="splash-skip-btn" type="button" aria-label="건너뛰기" title="건너뛰기">건너뛰기</button>
       <div class="splash-ad-stage">
         <div class="splash-ad-bg" id="splash-ad-bg"></div>
+        <div class="splash-ad-vignette" aria-hidden="true"></div>
         <div class="splash-ad-sweep" id="splash-ad-sweep"></div>
+        <div class="splash-ad-progress" aria-hidden="true"><span id="splash-ad-progress-bar"></span></div>
 
         <div class="splash-ad-scene is-active" data-scene="hook1">
-          <div class="splash-ad-visual-icon" aria-hidden="true">💸</div>
-          <p class="splash-ad-hook-line">이 가격,<br>진짜 최저가일까요?</p>
-          <p class="splash-ad-hook-sub">광고 가격 ≠ 실제 최저가</p>
+          <span class="splash-ad-eyebrow">구매판단 리포트 · 24h 검증</span>
+          <p class="splash-ad-hook-line">이 가격,<br><span class="splash-ad-accent-text">진짜 최저가</span>일까요?</p>
+          <p class="splash-ad-hook-sub">광고가 보여주는 가격과 실제 결제 금액은 다릅니다</p>
         </div>
+
         <div class="splash-ad-scene" data-scene="transition">
-          <div class="splash-ad-visual-icon" aria-hidden="true">🔗</div>
+          <span class="splash-ad-step">STEP 01</span>
           <p class="splash-ad-transition-line">쇼핑몰 링크만<br>보내주세요</p>
-          <p class="splash-ad-transition-sub">복사·붙여넣기 한 번이면 끝</p>
+          <p class="splash-ad-transition-sub">복사 · 붙여넣기 한 번이면 충분합니다</p>
         </div>
 
         <div class="splash-ad-scene" data-scene="demo">
           <div class="splash-ad-demo-wrap">
-            <p class="splash-ad-demo-label">① 링크 입력 → ② 검토 → ③ 결과 메일</p>
+            <div class="splash-ad-steps-row" aria-hidden="true">
+              <span class="is-active">링크 의뢰</span>
+              <span class="splash-ad-steps-dot"></span>
+              <span>24h 검증</span>
+              <span class="splash-ad-steps-dot"></span>
+              <span>리포트 발송</span>
+            </div>
             <div class="splash-ad-url-bar" id="splash-ad-url-bar">
-              <span class="splash-ad-url-icon" aria-hidden="true">🔗</span>
+              <span class="splash-ad-url-icon" aria-hidden="true">
+                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+              </span>
               <span class="splash-ad-url-text" id="splash-ad-url-text"></span>
               <span class="splash-ad-cursor" id="splash-ad-cursor" aria-hidden="true">|</span>
             </div>
             <div class="splash-ad-loader" id="splash-ad-loader">
-              <span>가격·배송·구성품 확인 중</span>
-              <span class="splash-ad-loader-dots" aria-hidden="true"><span></span><span></span><span></span></span>
+              <span class="splash-ad-loader-ring" aria-hidden="true"></span>
+              <span>가격 · 배송 · 구성품 확인 중</span>
             </div>
             <div class="splash-ad-report" id="splash-ad-report">
               <div class="splash-ad-report-head">
-                <div class="splash-ad-report-thumb" aria-hidden="true">🎧</div>
+                <div class="splash-ad-report-thumb">
+                  <img src="/assets/review-products/박스 손잡이 타공기계.jpg" alt="박스 손잡이 타공기계" width="72" height="72" loading="eager" decoding="async">
+                </div>
                 <div class="splash-ad-report-meta">
-                  <span class="splash-ad-report-badge">구매판단 리포트</span>
-                  <p class="splash-ad-report-title">무선 이어폰 Pro</p>
+                  <span class="splash-ad-report-badge">실제 검증 사례</span>
+                  <p class="splash-ad-report-title">박스 손잡이 타공기계</p>
+                  <p class="splash-ad-report-user">임OO · 30대 직장인</p>
                 </div>
               </div>
               <div class="splash-ad-price-compare">
                 <div class="splash-ad-price-box splash-ad-price-box--before">
                   <span class="label">요청가</span>
-                  <span class="value">129,000원</span>
+                  <span class="value">1,850,000원</span>
                 </div>
-                <div class="splash-ad-price-arrow" aria-hidden="true">→</div>
+                <div class="splash-ad-price-arrow" aria-hidden="true">
+                  <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+                </div>
                 <div class="splash-ad-price-box splash-ad-price-box--after">
                   <span class="label">최저가</span>
-                  <span class="value">89,000원</span>
+                  <span class="value">1,290,000원</span>
                 </div>
               </div>
-              <p class="splash-ad-report-subline">배송비·관세 포함 실제 결제 금액 기준</p>
-              <span class="splash-ad-report-savings">💰 절약 40,000원 · 31%</span>
+              <p class="splash-ad-report-subline">배송비 · 관세 포함 실제 결제 금액 기준</p>
+              <span class="splash-ad-report-savings">절약 560,000원 · 30%</span>
               <ul class="splash-ad-report-checks">
-                <li>배송비·관세 포함 비교</li>
-                <li>구성품·판매처 확인</li>
+                <li>배송비 · 관세 포함 비교</li>
+                <li>구성품 · 판매처 확인</li>
                 <li>구매 조건 검토 완료</li>
               </ul>
             </div>
@@ -4753,41 +4829,42 @@
         </div>
 
         <div class="splash-ad-scene" data-scene="brand">
-          <p class="splash-ad-brand-logo" aria-hidden="true">🔍</p>
-          <p class="splash-ad-brand-cta">프라이스헌터</p>
-          <p class="splash-ad-brand-sub">무료 1회 체험 · 결과는 이메일로</p>
-          <button type="button" id="splash-trial-btn" class="splash-ad-trial-btn">무료로 1회 체험하기</button>
+          <div class="splash-ad-brand-lockup">
+            <span class="ph-logo-mark" aria-hidden="true">
+              <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z"/></svg>
+            </span>
+            <span class="splash-ad-brand-name">프라이스헌터</span>
+          </div>
+          <p class="splash-ad-brand-sub">24시간 구매판단 리포트 · 배송 · 옵션 · 판매처 검증</p>
+          <button type="button" id="splash-trial-btn" class="splash-ad-trial-btn">무료 리포트 의뢰하기</button>
         </div>
       </div>
     </div>
 
-    <!-- 히어로 섹션 v4.0 - 프리미엄 스플래시 랜딩 스타일 -->
-    <section id="hero-section" class="relative w-full min-h-screen flex flex-col items-center justify-center text-center px-4 pt-20 pb-20 overflow-hidden" style="opacity: 0; visibility: hidden; transform: translateY(50px); background: linear-gradient(145deg, #0a1628 0%, #0F1E3A 18%, #132742 35%, #1A2F4F 55%, #1e3a5c 72%, #234a6f 88%, #2A4A6F 100%);">
-      <!-- 고급 배경 효과 - 프리미엄 다크 블루/틸 톤 -->
-      <div class="absolute inset-0 pointer-events-none z-0">
-        <!-- 메인 그라데이션 (깊이감·브랜드 톤 강화) -->
-        <div class="absolute inset-0" style="background: linear-gradient(145deg, #0a1628 0%, #0F1E3A 18%, #132742 35%, #1A2F4F 55%, #1e3a5c 72%, #234a6f 88%, #2A4A6F 100%);"></div>
-        <!-- 보조 그라데이션: 하단 에메랄드 톤 (브랜드 포인트) -->
-        <div class="absolute inset-0 opacity-40" style="background: radial-gradient(ellipse 120% 80% at 70% 95%, rgba(16,185,129,0.12) 0%, transparent 55%);"></div>
-        <!-- 미묘한 도트 패턴 -->
-        <div class="absolute inset-0 opacity-[0.04]" style="background-image: radial-gradient(circle at 2px 2px, rgba(255,255,255,0.2) 1px, transparent 0); background-size: 32px 32px;"></div>
-        <!-- 상단 중앙 빛 (소프트 글로우) -->
-        <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[700px] bg-gradient-to-b from-white/8 via-white/3 to-transparent rounded-full blur-3xl"></div>
-        <!-- 하단 중앙 보조 글로우 -->
-        <div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-gradient-to-t from-emerald-500/10 via-transparent to-transparent rounded-full blur-3xl"></div>
-      </div>
+    <!-- 히어로 섹션 -->
+    <section id="hero-section" class="relative w-full flex flex-col items-center justify-center text-center px-4 overflow-hidden" style="opacity: 0; visibility: hidden; transform: translateY(50px);">
+      <div class="ph-hero-glow absolute inset-0 pointer-events-none z-0"></div>
       
       <!-- Hero 콘텐츠 -->
-      <div class="relative z-10 max-w-7xl mx-auto flex flex-col items-center justify-center w-full text-center min-h-screen py-16">
-        <!-- 메인 타이틀 - 짧고 임팩트 있는 메시지 -->
-        <div id="hero-title" class="hero-element text-center mb-8 sm:mb-12 md:mb-16 hero-title-animate">
-          <h1 class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold text-white mb-6 sm:mb-8 leading-[1.2] tracking-tight px-2" style="font-family: 'Noto Sans KR', sans-serif; font-weight: 800; text-shadow: 0 4px 20px rgba(0,0,0,0.3);">
-            <span class="block bg-gradient-to-r from-emerald-200 via-cyan-200 to-blue-200 bg-clip-text text-transparent">데이터로 증명하는 최저가 검증 서비스</span>
-            <span class="block mt-2 bg-gradient-to-r from-emerald-200 via-cyan-200 to-blue-200 bg-clip-text text-transparent hero-brand-name"><span style="white-space: nowrap;">프라이스헌<span id="admin-hero-teo-trigger" style="cursor: default; user-select: none; display: inline; background: linear-gradient(to right, rgb(167, 243, 208), rgb(165, 243, 252), rgb(191, 219, 254)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">터</span></span></span>
+      <div class="relative z-10 max-w-7xl mx-auto flex flex-col items-center justify-center w-full text-center py-8">
+        <!-- 메인 타이틀 -->
+        <div id="hero-title" class="hero-element text-center mb-8 sm:mb-10 hero-title-animate">
+          <div class="ph-hero-badge">
+            <span class="ph-hero-badge-dot"></span>
+            구매판단 리포트 · 24h 검증
+          </div>
+          <h1 class="mb-5 leading-tight tracking-tight px-2">
+            <span class="block ph-hero-gradient">사도 될까?</span>
+            <span class="block mt-2 ph-hero-brand hero-brand-name">프라이스헌<span id="admin-hero-teo-trigger" style="cursor: default; user-select: none; display: inline;">터</span>가 검증합니다</span>
           </h1>
-          <p class="mt-4 text-base sm:text-lg md:text-xl text-white/85 max-w-2xl mx-auto leading-relaxed px-2" style="font-family: 'Noto Sans KR', sans-serif; font-weight: 500; text-shadow: 0 2px 8px rgba(0,0,0,0.25);">
-            가격만이 아니라, <span class="text-emerald-200 font-semibold">배송·구성품·판매처</span>까지 함께 확인합니다
+          <p class="mt-2 text-base sm:text-lg md:text-xl max-w-2xl mx-auto leading-relaxed px-2">
+            <span class="text-emerald-400 font-semibold">24시간 이내</span> 배송·옵션·판매처까지 확인한 구매판단 리포트
           </p>
+          <div class="ph-trust-pills">
+            <span class="ph-trust-pill">쿠팡 · 네이버</span>
+            <span class="ph-trust-pill">해외 직구</span>
+            <span class="ph-trust-pill">가전 · IT · 생활</span>
+          </div>
         </div>
 
         <!-- 가격 갭 통계 - 의뢰가 → 찾은가 -->
@@ -4848,542 +4925,219 @@
           </div>
         </div>
 
-        <!-- 최근 절약 사례들 -->
-        <div id="hero-recent-savings" class="hero-element w-full max-w-6xl mx-auto mb-16 px-4" style="animation: fadeIn 0.8s ease-out 0.8s both; opacity: 0;">
-          <div class="flex flex-col items-center mb-10">
-            <h2 class="text-2xl sm:text-3xl md:text-4xl font-bold text-white tracking-tight text-center" style="font-family: 'Noto Sans KR', sans-serif; font-weight: 700; letter-spacing: -0.02em; text-shadow: 0 2px 10px rgba(0,0,0,0.3);">
-              최근 절약 사례
-            </h2>
-          </div>
-          <div id="hero-savings-cards" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
-            <!-- 동적으로 생성됨 -->
-          </div>
-        </div>
-
         <!-- 메인 CTA 버튼 -->
-        <div class="hero-parent-container flex flex-col items-center justify-center w-full max-w-2xl mx-auto px-4">
+        <div class="hero-parent-container flex flex-col items-center justify-center w-full max-w-2xl mx-auto px-4 mt-8">
           <div id="hero-buttons-container" class="hero-element flex flex-col items-center justify-center w-full gap-4" style="animation: fadeIn 0.8s ease-out 1.6s both; opacity: 0;">
-            <!-- 메인 CTA 버튼 - 프리미엄 스타일 -->
             <a href="request-v2.html"
               data-requires-member="true"
               data-member-target="request-v2.html"
               class="hero-button-pulse hero-cta-primary requires-member group px-6 sm:px-8 md:px-10 lg:px-14 py-4 sm:py-5 md:py-6 text-base sm:text-lg md:text-xl lg:text-2xl font-bold rounded-xl sm:rounded-2xl focus:outline-none focus:ring-4 focus:ring-emerald-300/60 text-center w-full sm:w-auto min-h-[48px] sm:min-h-[56px]"
-              style="font-family: 'Noto Sans KR', sans-serif; font-weight: 700; text-shadow: 0 1px 2px rgba(0,0,0,0.25);"
-              aria-label="무료 최저가·구매 조건 검토 의뢰">
+              style="font-family: 'Noto Sans KR', sans-serif; font-weight: 700;"
+              aria-label="구매판단 리포트 의뢰">
               <span class="hero-cta-surface" aria-hidden="true"></span>
-              <span class="absolute inset-0 z-[1] bg-gradient-to-r from-white/0 via-white/20 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 pointer-events-none"></span>
               <span class="relative z-[2] flex items-center justify-center gap-3">
-                <span>최저가 · 구매 조건 검토받기</span>
+                <span>구매판단 리포트 의뢰하기</span>
                 <svg class="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
                 </svg>
               </span>
             </a>
-
-            <!-- 실제 후기 더보기 (동일 크기) -->
-            <button type="button"
-              id="hero-reviews-more-btn"
-              class="hero-cta-secondary group px-6 sm:px-8 md:px-10 lg:px-14 py-4 sm:py-5 md:py-6 text-base sm:text-lg md:text-xl lg:text-2xl font-bold rounded-xl sm:rounded-2xl focus:outline-none focus:ring-4 focus:ring-blue-300/50 text-center w-full sm:w-auto min-h-[48px] sm:min-h-[56px] mt-2"
+            <a href="#reviews-section"
+              class="hero-cta-secondary group px-6 sm:px-8 md:px-10 lg:px-14 py-4 sm:py-5 md:py-6 text-base sm:text-lg md:text-xl lg:text-2xl font-bold rounded-xl sm:rounded-2xl focus:outline-none text-center w-full sm:w-auto min-h-[48px] sm:min-h-[56px]"
               style="font-family: 'Noto Sans KR', sans-serif; font-weight: 700;">
-              <span class="hero-cta-surface" aria-hidden="true"></span>
-              <span class="absolute inset-0 z-[1] bg-gradient-to-r from-white/0 via-white/18 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 pointer-events-none"></span>
               <span class="relative z-[2] flex items-center justify-center gap-3">
-                <span data-label>실제 후기 더보기</span>
-                <svg class="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+                <span>실제 후기 사례 보기</span>
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                 </svg>
               </span>
-            </button>
+            </a>
           </div>
 
-          <!-- 게스트 1회 체험 -->
+          <!-- 게스트 무료 의뢰 -->
           <div id="guest-trial-section" class="hero-element w-full max-w-2xl mx-auto mt-8 px-0" style="animation: fadeIn 0.8s ease-out 1.8s both; opacity: 0;">
             <div class="guest-trial-bar text-left">
-              <p class="text-white/90 text-sm sm:text-base text-center mb-3 font-medium" style="font-family: 'Noto Sans KR', sans-serif;">
-                가입 없이 <span class="text-emerald-300 font-bold">1회 무료</span> · 결과는 이메일로
+              <p class="text-sm sm:text-base text-center mb-3 font-medium" style="color: var(--ph-text-muted);">
+                가입 없이 <span class="text-emerald-400 font-semibold">1회 무료</span> · 24시간 구매판단 리포트
               </p>
               <div class="flex flex-col sm:flex-row gap-2 sm:gap-3">
-                <div class="flex flex-1 items-center gap-2 rounded-xl bg-white/95 px-3 py-2.5 min-w-0">
-                  <span class="text-lg flex-shrink-0" aria-hidden="true">🔗</span>
+                <div class="ph-input-wrap flex-1">
+                  <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
                   <input type="url" id="hero-guest-url" placeholder="쇼핑몰 링크 붙여넣기..."
-                    class="flex-1 bg-transparent border-0 outline-none text-gray-800 text-sm sm:text-base min-w-0"
+                    class="flex-1 bg-transparent border-0 outline-none text-sm sm:text-base min-w-0"
                     aria-label="쇼핑몰 상품 링크" />
                 </div>
                 <button type="button" id="hero-guest-start-btn"
                   class="flex-shrink-0 px-5 sm:px-6 py-2.5 sm:py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white font-bold text-sm sm:text-base transition shadow-lg whitespace-nowrap">
-                  1회 체험 시작
+                  무료 의뢰하기
                 </button>
               </div>
-              <p class="text-white/50 text-xs text-center mt-2.5">쿠팡·네이버·해외몰 링크 가능 · 이메일당 1회</p>
+              <p class="text-sm text-center mt-2.5" style="color: var(--ph-text-muted);">쿠팡·네이버·11번가 · 이메일당 1회 무료</p>
             </div>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- 최저가 검증 섹션 -->
-    <section id="price-verification-section" class="relative w-full py-24 sm:py-32 px-4 overflow-hidden" style="background: linear-gradient(180deg, #2A4A6F 0%, #2F58CD 30%, #1A3B9A 50%, #1F3A5F 100%);">
-      <!-- 배경 효과 -->
-      <div class="absolute inset-0 pointer-events-none z-0">
-        <!-- 미묘한 패턴 -->
-        <div class="absolute inset-0 opacity-[0.03]" style="background-image: radial-gradient(circle at 2px 2px, rgba(255,255,255,0.15) 1px, transparent 0); background-size: 40px 40px;"></div>
-        <!-- 빛 효과 -->
-        <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-gradient-to-b from-white/5 to-transparent rounded-full blur-3xl"></div>
-      </div>
-      
-      <!-- 콘텐츠 -->
-      <div class="relative z-10 max-w-6xl mx-auto text-center">
-        <!-- 메인 헤드라인 -->
-        <h2 id="question-title" class="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-12 leading-[1.2] tracking-tight" style="font-family: 'Noto Sans KR', sans-serif; font-weight: 800; text-shadow: 0 4px 20px rgba(0,0,0,0.3);">
-          <span class="block question-line-1" style="opacity: 0; transform: translateY(30px); transition: opacity 0.8s ease-out, transform 0.8s ease-out;">우리가 아는 최저가는</span>
-          <span class="block mt-2 question-line-2" style="opacity: 0; transform: translateY(30px); transition: opacity 0.8s ease-out, transform 0.8s ease-out;">진짜 최저가 일까요?</span>
-        </h2>
-        
-        <!-- 연결 화살표 -->
-        <div id="connection-arrow" class="mt-16 mb-8 flex justify-center" style="opacity: 0; transform: translateY(20px); transition: opacity 1s ease-out, transform 1s ease-out;">
-          <div class="flex flex-col items-center gap-2">
-            <svg class="w-8 h-8 md:w-10 md:h-10 text-white/60 animate-bounce-slow" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3"/>
+    <!-- 실제 후기 사례 섹션 -->
+    <section id="reviews-section" class="ph-section" style="background: var(--ph-bg-elevated); padding-top: 2rem;">
+      <div class="ph-section-inner">
+        <div class="text-center mb-10">
+          <span class="ph-section-label">Reviews</span>
+          <h2 class="ph-section-title">실제 후기 사례</h2>
+          <p class="ph-section-desc">승인된 고객 후기를 바탕으로 검증된 절약 실적입니다.</p>
+        </div>
+        <div id="hero-recent-savings" class="hero-element w-full max-w-6xl mx-auto mb-8 px-4">
+          <div id="hero-savings-cards" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+            <!-- 동적으로 생성됨 -->
+          </div>
+        </div>
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
+          <button type="button"
+            id="hero-reviews-more-btn"
+            class="hero-cta-secondary group px-8 py-3.5 text-base font-bold rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-300/50 text-center min-h-[48px]"
+            style="font-family: 'Noto Sans KR', sans-serif; font-weight: 700;">
+            <span class="relative z-[2] flex items-center justify-center gap-2">
+              <span data-label>실제 후기 더보기</span>
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+              </svg>
+            </span>
+          </button>
+          <a href="more-reviews.html"
+            class="ph-btn-ghost px-8 py-3.5 text-base font-semibold rounded-xl"
+            style="display: inline-flex; align-items: center; gap: 0.5rem;">
+            전체 후기 보기
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
             </svg>
-            <div class="w-px h-16 bg-gradient-to-b from-white/40 to-transparent"></div>
-          </div>
+          </a>
         </div>
       </div>
     </section>
 
-    <!-- ELP 섹션 -->
-    <section id="elp-section" class="relative w-full pt-20 sm:pt-24 pb-12 sm:pb-16 px-4 overflow-hidden" style="background: linear-gradient(180deg, #1F3A5F 0%, #2A4A6F 50%, #1F3A5F 100%); margin-top: -1px;">
-      <!-- 배경 효과 -->
-      <div class="absolute inset-0 pointer-events-none z-0">
-        <div class="absolute inset-0 opacity-[0.03]" style="background-image: radial-gradient(circle at 2px 2px, rgba(255,255,255,0.15) 1px, transparent 0); background-size: 40px 40px;"></div>
-        <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-gradient-to-b from-white/5 to-transparent rounded-full blur-3xl"></div>
-      </div>
-      
-      <!-- 상단 연결 그라데이션 오버레이 -->
-      <div class="absolute top-0 left-0 right-0 h-32 pointer-events-none" style="z-index: 5; background: linear-gradient(180deg, rgba(26, 59, 154, 0.3) 0%, transparent 100%);"></div>
-      
-      <!-- 하단 연결 그라데이션 오버레이 - 다음 섹션으로 자연스럽게 -->
-      <div class="absolute bottom-0 left-0 right-0 h-40 pointer-events-none" style="z-index: 5; background: linear-gradient(180deg, transparent 0%, rgba(31, 58, 95, 0.8) 70%, rgba(31, 58, 95, 1) 100%);"></div>
-      
-      <!-- 콘텐츠 -->
-      <div class="relative z-10 max-w-7xl mx-auto">
-        <!-- 섹션 타이틀 -->
-        <div class="text-center mb-12 sm:mb-16">
-          <h2 id="answer-title" class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 leading-[1.2] tracking-tight" style="font-family: 'Noto Sans KR', sans-serif; font-weight: 800; text-shadow: 0 4px 20px rgba(0,0,0,0.3);">
-            <span class="block answer-line-1" style="opacity: 0; transform: translateY(30px); transition: opacity 0.8s ease-out, transform 0.8s ease-out;">진짜 최저가?</span>
-            <span class="block mt-2 answer-line-2 bg-gradient-to-r from-emerald-300 via-cyan-300 to-blue-300 bg-clip-text text-transparent" style="opacity: 0; transform: translateY(30px); transition: opacity 0.8s ease-out, transform 0.8s ease-out;">ELP (Effective Lowest Price) 란?</span>
-          </h2>
-          
-          <!-- 답변 연결 텍스트 -->
-          <p id="answer-subtitle" class="text-base sm:text-lg md:text-xl text-white/70 mt-6" style="font-family: 'Noto Sans KR', sans-serif; font-weight: 300; opacity: 0; transform: translateY(20px); letter-spacing: 0.05em; transition: opacity 1s ease-out, transform 1s ease-out;">
-            실제 결제 금액을 고려한 진짜 최저가를 찾는 방법
-          </p>
-        </div>
-
-        <!-- ELP 카드 그리드 - 일렬 배치 -->
-        <div id="elp-cards-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 mb-12 sm:mb-16">
-          <!-- 배송비 카드 -->
-          <div class="elp-card elp-card-stagger group relative bg-white/12 backdrop-blur-xl rounded-2xl sm:rounded-3xl p-6 sm:p-8 border border-white/20 shadow-lg hover:bg-white/18 hover:border-white/30 hover:shadow-xl transition-all duration-500">
-            <div class="absolute inset-0 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-emerald-400/20 via-emerald-300/12 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-            <div class="relative z-10">
-              <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-emerald-500/20 flex items-center justify-center mb-4 sm:mb-6 mx-auto group-hover:bg-emerald-500/30 transition-colors duration-300">
-                <svg class="w-8 h-8 sm:w-10 sm:h-10 text-emerald-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                </svg>
-              </div>
-              <h3 class="text-xl sm:text-2xl font-bold text-white mb-3 text-center" style="font-family: 'Noto Sans KR', sans-serif; font-weight: 700;">
-                배송비
-              </h3>
-              <p class="text-base sm:text-lg text-white/90 text-center leading-relaxed" style="font-family: 'Noto Sans KR', sans-serif; font-weight: 400;">
-                표면적인 가격에 <span style="white-space: nowrap;">배송비가 추가되면</span><br class="hidden sm:block">실제 결제 금액이 달라질 수 있습니다
-              </p>
-            </div>
-          </div>
-
-          <!-- 반품/분쟁 리스크 카드 -->
-          <div class="elp-card elp-card-stagger group relative bg-white/12 backdrop-blur-xl rounded-2xl sm:rounded-3xl p-6 sm:p-8 border border-white/20 shadow-lg hover:bg-white/18 hover:border-white/30 hover:shadow-xl transition-all duration-500">
-            <div class="absolute inset-0 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-red-400/20 via-red-300/12 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-            <div class="relative z-10">
-              <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-red-500/20 flex items-center justify-center mb-4 sm:mb-6 mx-auto group-hover:bg-red-500/30 transition-colors duration-300">
-                <svg class="w-8 h-8 sm:w-10 sm:h-10 text-red-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-              </div>
-              <h3 class="text-xl sm:text-2xl font-bold text-white mb-3 text-center" style="font-family: 'Noto Sans KR', sans-serif; font-weight: 700;">
-                반품 / 분쟁 리스크
-              </h3>
-              <p class="text-base sm:text-lg text-white/90 text-center leading-relaxed" style="font-family: 'Noto Sans KR', sans-serif; font-weight: 400;">
-                제품 문제 발생 시 반품이나<br class="hidden sm:block">분쟁 해결에 추가 비용이 발생할 수 있습니다
-              </p>
-            </div>
-          </div>
-
-          <!-- 관부가세 카드 -->
-          <div class="elp-card elp-card-stagger group relative bg-white/12 backdrop-blur-xl rounded-2xl sm:rounded-3xl p-6 sm:p-8 border border-white/20 shadow-lg hover:bg-white/18 hover:border-white/30 hover:shadow-xl transition-all duration-500">
-            <div class="absolute inset-0 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-blue-400/20 via-blue-300/12 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-            <div class="relative z-10">
-              <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-blue-500/20 flex items-center justify-center mb-4 sm:mb-6 mx-auto group-hover:bg-blue-500/30 transition-colors duration-300">
-                <svg class="w-8 h-8 sm:w-10 sm:h-10 text-blue-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-              </div>
-              <h3 class="text-xl sm:text-2xl font-bold text-white mb-3 text-center" style="font-family: 'Noto Sans KR', sans-serif; font-weight: 700;">
-                관부가세
-              </h3>
-              <p class="text-base sm:text-lg text-white/90 text-center leading-relaxed" style="font-family: 'Noto Sans KR', sans-serif; font-weight: 400;">
-                해외 직구 시 통관 과정에서<br class="hidden sm:block">관세와 부가세가 추가로 부과될 수 있습니다
-              </p>
-            </div>
-          </div>
-
-          <!-- 결제 수수료 카드 -->
-          <div class="elp-card elp-card-stagger group relative bg-white/12 backdrop-blur-xl rounded-2xl sm:rounded-3xl p-6 sm:p-8 border border-white/20 shadow-lg hover:bg-white/18 hover:border-white/30 hover:shadow-xl transition-all duration-500">
-            <div class="absolute inset-0 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-orange-400/20 via-orange-300/12 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-            <div class="relative z-10">
-              <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-orange-500/20 flex items-center justify-center mb-4 sm:mb-6 mx-auto group-hover:bg-orange-500/30 transition-colors duration-300">
-                <svg class="w-8 h-8 sm:w-10 sm:h-10 text-orange-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
-              </div>
-              <h3 class="text-xl sm:text-2xl font-bold text-white mb-3 text-center" style="font-family: 'Noto Sans KR', sans-serif; font-weight: 700;">
-                결제 수수료
-              </h3>
-              <p class="text-base sm:text-lg text-white/90 text-center leading-relaxed" style="font-family: 'Noto Sans KR', sans-serif; font-weight: 400;">
-                환율 변동과 <span style="white-space: nowrap;">결제 수수료로 인해</span><br class="hidden sm:block">예상했던 금액과 차이가 발생할 수 있습니다
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <!-- ELP 결론 -->
-        <div class="text-center animate-fadein-up mb-16 sm:mb-20" style="animation-delay: 0.5s;">
-          <div class="inline-block bg-white/10 backdrop-blur-xl rounded-2xl sm:rounded-3xl px-6 sm:px-8 md:px-12 py-6 sm:py-8 border border-white/20 shadow-lg">
-            <p class="text-lg sm:text-xl md:text-2xl font-bold text-white leading-relaxed" style="font-family: 'Noto Sans KR', sans-serif; font-weight: 700; text-shadow: 0 2px 10px rgba(0,0,0,0.3);">
-              <span class="block sm:inline">ELP는 광고가 만든 최저가가 아니라,</span>
-              <span class="block sm:inline mt-2 sm:mt-0"><span class="bg-gradient-to-r from-emerald-300 via-cyan-300 to-blue-300 bg-clip-text text-transparent">데이터가 증명한 진짜 최저가</span>입니다.</span>
-            </p>
-          </div>
+    <!-- 기능 소개 -->
+    <section id="features-section" class="ph-section" style="background: var(--ph-bg-elevated);">
+      <div class="ph-section-inner text-center">
+        <span class="ph-section-label">Features</span>
+        <h2 class="ph-section-title">구매 전, 이렇게 검증합니다</h2>
+        <p class="ph-section-desc">즉시 AI 비교가 아닌, 사람이 확인한 구매판단 리포트를 제공합니다.</p>
+        <div class="ph-features-grid">
+          <article class="ph-feature-card">
+            <div class="ph-feature-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg></div>
+            <h3>링크만으로 의뢰</h3>
+            <p>쇼핑몰 URL과 옵션만 보내면 24시간 이내 검증 리포트를 받습니다.</p>
+          </article>
+          <article class="ph-feature-card">
+            <div class="ph-feature-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg></div>
+            <h3>24h 구매판단 리포트</h3>
+            <p>배송·옵션·구성품·판매처를 종합 검증한 정밀 리포트를 이메일로 받습니다.</p>
+          </article>
+          <article class="ph-feature-card">
+            <div class="ph-feature-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg></div>
+            <h3>실구매가 비교</h3>
+            <p>배송비·관세·카드할인까지 포함한 실제 결제 금액을 비교합니다.</p>
+          </article>
+          <article class="ph-feature-card">
+            <div class="ph-feature-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></div>
+            <h3>판매처·옵션 검증</h3>
+            <p>스마트스토어 신뢰도, 옵션 동일성, 구성품 차이까지 확인합니다.</p>
+          </article>
+          <article class="ph-feature-card">
+            <div class="ph-feature-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
+            <h3>가입 없이 1회 무료</h3>
+            <p>이메일만으로 구매판단 리포트 1회를 무료로 체험할 수 있습니다.</p>
+          </article>
+          <article class="ph-feature-card">
+            <div class="ph-feature-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
+            <h3>해외 직구 지원</h3>
+            <p>관세, 환율, 배송비까지 포함한 해외 구매 비교가 가능합니다.</p>
+          </article>
         </div>
       </div>
     </section>
 
-    <!-- 비교 불필요 섹션 - 감정 중심 전시물 스타일 -->
-    <section id="no-compare-section" class="relative w-full py-32 sm:py-40 px-4 sm:px-6 lg:px-8 overflow-hidden" style="background: linear-gradient(180deg, #1F3A5F 0%, #1F3A5F 10%, #2A3E52 35%, #23384D 65%, #1E3449 90%, #1E3449 100%); margin-top: -1px;">
-      <!-- 배경 효과 -->
-      <div class="absolute inset-0 pointer-events-none z-0">
-        <div class="absolute inset-0 opacity-[0.03]" style="background-image: radial-gradient(circle at 2px 2px, rgba(255,255,255,0.15) 1px, transparent 0); background-size: 40px 40px;"></div>
-        <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-gradient-to-b from-white/5 to-transparent rounded-full blur-3xl"></div>
-      </div>
-      
-      <!-- 콘텐츠 -->
-      <div class="relative z-10 max-w-7xl mx-auto">
-        <!-- 중앙 상단 타이틀 -->
-        <div class="text-center mb-20 sm:mb-24 md:mb-28">
-          <h2 class="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold no-compare-main-title" style="font-family: 'Noto Sans KR', sans-serif; font-weight: 900; letter-spacing: -0.03em; color: rgba(240, 245, 250, 0.95); text-shadow: 0 4px 20px rgba(0,0,0,0.3);">
-            <span class="no-compare-title-line">비교할 필요 없습니다</span>
-          </h2>
-        </div>
-
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-stretch mt-8 sm:mt-12">
-          <!-- 좌측: 큰 세로형 이미지 (프레임 느낌) - 모바일에서는 위에 -->
-          <div class="no-compare-image-container relative lg:order-1 lg:pt-8" style="opacity: 0.92;">
-            <div class="relative w-full" style="padding-top: 120%;">
-              <img 
-                src="https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&w=800&q=80" 
-                alt="편안한 쇼핑 경험" 
-                class="absolute inset-0 w-full h-full object-cover"
-                style="border-radius: 0;"
-              />
-            </div>
-          </div>
-
-          <!-- 우측: 리스트 - 모바일에서는 아래에 -->
-          <div class="no-compare-content space-y-8 sm:space-y-10 lg:order-2 lg:pt-8">
-            <!-- 이런 분들께 필요해요 섹션 -->
-            <div class="no-compare-list">
-              <div class="text-xl sm:text-2xl md:text-3xl font-bold mb-8 sm:mb-10 no-compare-list-title" style="font-family: 'Noto Sans KR', sans-serif; font-weight: 700; letter-spacing: -0.02em; color: rgba(235, 240, 245, 0.92);">
-                이런 분들께 필요해요
-              </div>
-              <ul class="space-y-6 sm:space-y-8 md:space-y-10 lg:space-y-12">
-                <li class="no-compare-list-item text-lg sm:text-xl md:text-2xl leading-relaxed px-6 py-5 rounded-lg" style="font-family: 'Noto Sans KR', sans-serif; font-weight: 400; line-height: 1.75; color: rgba(230, 235, 240, 0.88); background-color: rgba(255, 255, 255, 0.06); border-left: 3px solid rgba(220, 230, 240, 0.4);">
-                  브랜드보다 스펙과 가격이 중요한 분
-                </li>
-                <li class="no-compare-list-item text-lg sm:text-xl md:text-2xl leading-relaxed px-6 py-5 rounded-lg" style="font-family: 'Noto Sans KR', sans-serif; font-weight: 400; line-height: 1.75; color: rgba(230, 235, 240, 0.88); background-color: rgba(255, 255, 255, 0.08); border-left: 3px solid rgba(220, 230, 240, 0.45);">
-                  비싸게 살까봐 걱정되는 분
-                </li>
-                <li class="no-compare-list-item text-lg sm:text-xl md:text-2xl leading-relaxed px-6 py-5 rounded-lg" style="font-family: 'Noto Sans KR', sans-serif; font-weight: 400; line-height: 1.75; color: rgba(230, 235, 240, 0.88); background-color: rgba(255, 255, 255, 0.06); border-left: 3px solid rgba(220, 230, 240, 0.4);">
-                  해외 직구가 늘 불안한 분
-                </li>
-                <li class="no-compare-list-item text-lg sm:text-xl md:text-2xl leading-relaxed px-6 py-5 rounded-lg" style="font-family: 'Noto Sans KR', sans-serif; font-weight: 400; line-height: 1.75; color: rgba(230, 235, 240, 0.88); background-color: rgba(255, 255, 255, 0.08); border-left: 3px solid rgba(220, 230, 240, 0.45);">
-                  소싱 실패가 무서운 소상공인 및 셀러
-                </li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- 단계별 서비스 과정 섹션 - 고급스러운 디자인 -->
-    <section id="process-section" class="relative w-full py-24 sm:py-32 px-4 sm:px-6 lg:px-8 overflow-hidden" style="background: linear-gradient(180deg, #1E3449 0%, #1A2F42 30%, #162839 70%, #152535 100%); margin-top: -1px;">
-      <!-- 배경 효과 -->
-      <div class="absolute inset-0 pointer-events-none z-0">
-        <div class="absolute inset-0 opacity-[0.03]" style="background-image: radial-gradient(circle at 2px 2px, rgba(255,255,255,0.15) 1px, transparent 0); background-size: 40px 40px;"></div>
-        <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-gradient-to-b from-white/5 to-transparent rounded-full blur-3xl"></div>
-        <!-- 동적 배경 요소 -->
-        <div class="absolute top-20 right-20 w-32 h-32 bg-blue-400/10 rounded-full blur-2xl animate-pulse"></div>
-        <div class="absolute bottom-20 left-20 w-40 h-40 bg-purple-400/10 rounded-full blur-2xl animate-pulse" style="animation-delay: 1s;"></div>
-      </div>
-
-      <!-- 콘텐츠 -->
-      <div class="relative z-10 max-w-6xl mx-auto">
-        <!-- 섹션 헤더 -->
-        <div class="text-center mb-16 sm:mb-20">
-          <div class="inline-block px-5 py-2 mb-5 rounded-full bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-pink-500/20 backdrop-blur-sm border border-white/20 shadow-lg animate-fadein-up">
-            <span class="text-sm sm:text-base font-semibold text-white/90" style="font-family: 'Noto Sans KR', sans-serif;">단계별 서비스 과정</span>
-          </div>
-          <h2 class="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-4 animate-fadein-up" style="animation-delay: 0.1s; font-family: 'Noto Sans KR', sans-serif; font-weight: 900; color: rgba(240, 245, 250, 0.95); text-shadow: 0 4px 20px rgba(0,0,0,0.3);">
-            검증 프로세스
-          </h2>
-        </div>
-
-        <!-- 5단계 프로세스 - 고급스러운 디자인 -->
-        <div class="relative">
-          <!-- 연결선 (데스크톱) -->
-          <div class="hidden lg:block absolute left-12 top-0 bottom-0 w-0.5 bg-gradient-to-b from-blue-400/40 via-emerald-400/40 via-teal-400/40 via-purple-400/40 to-pink-400/40" style="top: 2rem; bottom: 2rem;"></div>
-
-          <div class="space-y-8 sm:space-y-10">
-            <!-- 1단계 -->
-            <div class="process-step-card group relative opacity-0 transform translate-y-8">
-              <div class="relative bg-gradient-to-br from-white/12 via-white/8 to-white/5 backdrop-blur-xl rounded-3xl p-6 sm:p-8 lg:pl-20 border border-white/20 hover:border-white/40 hover:bg-white/15 transition-all duration-500 shadow-xl hover:shadow-2xl hover:-translate-y-2">
-                <!-- 글로우 효과 -->
-                <div class="absolute inset-0 rounded-3xl bg-gradient-to-br from-blue-400/20 via-blue-300/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                
-                <div class="relative flex items-start gap-6 sm:gap-8">
-                  <!-- 번호 배지 -->
-                  <div class="flex-shrink-0 relative">
-                    <div class="absolute inset-0 bg-blue-400/30 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-500"></div>
-                    <div class="relative w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center font-bold text-white text-2xl sm:text-3xl shadow-2xl group-hover:scale-110 transition-transform duration-300">
-                      1
-                    </div>
-                    <!-- 아이콘 -->
-                    <div class="absolute -bottom-2 -right-2 w-8 h-8 bg-white/20 rounded-lg backdrop-blur-sm flex items-center justify-center">
-                      <svg class="w-5 h-5 text-blue-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                      </svg>
-                    </div>
-                  </div>
-                  
-                  <!-- 콘텐츠 -->
-                  <div class="flex-1 pt-2">
-                    <h3 class="text-2xl sm:text-3xl font-bold text-white mb-3 group-hover:text-blue-200 transition-colors duration-300" style="font-family: 'Noto Sans KR', sans-serif; font-weight: 700;">
-                      의뢰 접수 및 분석
-                    </h3>
-                    <p class="text-base sm:text-lg text-white/75 leading-relaxed" style="font-family: 'Noto Sans KR', sans-serif;">
-                      제품명, 요청가격, 참고링크를 입력하시면 전문 검증팀이 최저가와 구매 조건 검토를 시작합니다.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- 2단계 -->
-            <div class="process-step-card group relative opacity-0 transform translate-y-8" style="animation-delay: 0.1s;">
-              <div class="relative bg-gradient-to-br from-white/12 via-white/8 to-white/5 backdrop-blur-xl rounded-3xl p-6 sm:p-8 lg:pl-20 border border-white/20 hover:border-white/40 hover:bg-white/15 transition-all duration-500 shadow-xl hover:shadow-2xl hover:-translate-y-2">
-                <div class="absolute inset-0 rounded-3xl bg-gradient-to-br from-emerald-400/20 via-emerald-300/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                
-                <div class="relative flex items-start gap-6 sm:gap-8">
-                  <div class="flex-shrink-0 relative">
-                    <div class="absolute inset-0 bg-emerald-400/30 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-500"></div>
-                    <div class="relative w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center font-bold text-white text-2xl sm:text-3xl shadow-2xl group-hover:scale-110 transition-transform duration-300">
-                      2
-                    </div>
-                    <div class="absolute -bottom-2 -right-2 w-8 h-8 bg-white/20 rounded-lg backdrop-blur-sm flex items-center justify-center">
-                      <svg class="w-5 h-5 text-emerald-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                      </svg>
-                    </div>
-                  </div>
-                  
-                  <div class="flex-1 pt-2">
-                    <h3 class="text-2xl sm:text-3xl font-bold text-white mb-3 group-hover:text-emerald-200 transition-colors duration-300" style="font-family: 'Noto Sans KR', sans-serif; font-weight: 700;">
-                      실시간 검증 진행
-                    </h3>
-                    <p class="text-base sm:text-lg text-white/75 leading-relaxed" style="font-family: 'Noto Sans KR', sans-serif;">
-                      도매처 연동, 공장 직거래, 특별 경로 등 다양한 경로를 통해 최저가와 구매 조건을 함께 검토합니다.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- 3단계 -->
-            <div class="process-step-card group relative opacity-0 transform translate-y-8" style="animation-delay: 0.2s;">
-              <div class="relative bg-gradient-to-br from-white/12 via-white/8 to-white/5 backdrop-blur-xl rounded-3xl p-6 sm:p-8 lg:pl-20 border border-white/20 hover:border-white/40 hover:bg-white/15 transition-all duration-500 shadow-xl hover:shadow-2xl hover:-translate-y-2">
-                <div class="absolute inset-0 rounded-3xl bg-gradient-to-br from-teal-400/20 via-teal-300/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                
-                <div class="relative flex items-start gap-6 sm:gap-8">
-                  <div class="flex-shrink-0 relative">
-                    <div class="absolute inset-0 bg-teal-400/30 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-500"></div>
-                    <div class="relative w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center font-bold text-white text-2xl sm:text-3xl shadow-2xl group-hover:scale-110 transition-transform duration-300">
-                      3
-                    </div>
-                    <div class="absolute -bottom-2 -right-2 w-8 h-8 bg-white/20 rounded-lg backdrop-blur-sm flex items-center justify-center">
-                      <svg class="w-5 h-5 text-teal-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                      </svg>
-                    </div>
-                  </div>
-                  
-                  <div class="flex-1 pt-2">
-                    <h3 class="text-2xl sm:text-3xl font-bold text-white mb-3 group-hover:text-teal-200 transition-colors duration-300" style="font-family: 'Noto Sans KR', sans-serif; font-weight: 700;">
-                      종합 가격 분석
-                    </h3>
-                    <p class="text-base sm:text-lg text-white/75 leading-relaxed" style="font-family: 'Noto Sans KR', sans-serif;">
-                      배송비, 관세, 수수료를 모두 포함하여 정확히 비교 분석합니다.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- 4단계 -->
-            <div class="process-step-card group relative opacity-0 transform translate-y-8" style="animation-delay: 0.3s;">
-              <div class="relative bg-gradient-to-br from-white/12 via-white/8 to-white/5 backdrop-blur-xl rounded-3xl p-6 sm:p-8 lg:pl-20 border border-white/20 hover:border-white/40 hover:bg-white/15 transition-all duration-500 shadow-xl hover:shadow-2xl hover:-translate-y-2">
-                <div class="absolute inset-0 rounded-3xl bg-gradient-to-br from-purple-400/20 via-purple-300/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                
-                <div class="relative flex items-start gap-6 sm:gap-8">
-                  <div class="flex-shrink-0 relative">
-                    <div class="absolute inset-0 bg-purple-400/30 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-500"></div>
-                    <div class="relative w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center font-bold text-white text-2xl sm:text-3xl shadow-2xl group-hover:scale-110 transition-transform duration-300">
-                      4
-                    </div>
-                    <div class="absolute -bottom-2 -right-2 w-8 h-8 bg-white/20 rounded-lg backdrop-blur-sm flex items-center justify-center">
-                      <svg class="w-5 h-5 text-purple-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                      </svg>
-                    </div>
-                  </div>
-                  
-                  <div class="flex-1 pt-2">
-                    <h3 class="text-2xl sm:text-3xl font-bold text-white mb-3 group-hover:text-purple-200 transition-colors duration-300" style="font-family: 'Noto Sans KR', sans-serif; font-weight: 700;">
-                      검증 증거 수집
-                    </h3>
-                    <p class="text-base sm:text-lg text-white/75 leading-relaxed" style="font-family: 'Noto Sans KR', sans-serif;">
-                      실시간 스크린샷, 가격 확인 링크, 검증 시점을 모두 기록하여 객관적인 증거를 확보합니다.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- 5단계 -->
-            <div class="process-step-card group relative opacity-0 transform translate-y-8" style="animation-delay: 0.4s;">
-              <div class="relative bg-gradient-to-br from-white/12 via-white/8 to-white/5 backdrop-blur-xl rounded-3xl p-6 sm:p-8 lg:pl-20 border border-white/20 hover:border-white/40 hover:bg-white/15 transition-all duration-500 shadow-xl hover:shadow-2xl hover:-translate-y-2">
-                <div class="absolute inset-0 rounded-3xl bg-gradient-to-br from-pink-400/20 via-pink-300/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                
-                <div class="relative flex items-start gap-6 sm:gap-8">
-                  <div class="flex-shrink-0 relative">
-                    <div class="absolute inset-0 bg-pink-400/30 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-500"></div>
-                    <div class="relative w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-gradient-to-br from-pink-400 to-pink-600 flex items-center justify-center font-bold text-white text-2xl sm:text-3xl shadow-2xl group-hover:scale-110 transition-transform duration-300">
-                      5
-                    </div>
-                    <div class="absolute -bottom-2 -right-2 w-8 h-8 bg-white/20 rounded-lg backdrop-blur-sm flex items-center justify-center">
-                      <svg class="w-5 h-5 text-pink-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                      </svg>
-                    </div>
-                  </div>
-                  
-                  <div class="flex-1 pt-2">
-                    <h3 class="text-2xl sm:text-3xl font-bold text-white mb-3 group-hover:text-pink-200 transition-colors duration-300" style="font-family: 'Noto Sans KR', sans-serif; font-weight: 700;">
-                      상세 결과 제공
-                    </h3>
-                    <p class="text-base sm:text-lg text-white/75 leading-relaxed" style="font-family: 'Noto Sans KR', sans-serif;">
-                      최저가, 가격 확인 링크, 절약금액, 상세 분석을 포함한 종합적인 결과를 제공합니다.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+    <!-- 4단계 이용 방법 -->
+    <section id="how-it-works-section" class="ph-section">
+      <div class="ph-section-inner text-center">
+        <span class="ph-section-label">How it works</span>
+        <h2 class="ph-section-title">3단계로 완성되는 검증</h2>
+        <p class="ph-section-desc">링크와 옵션만 보내주세요. 24시간 이내 구매판단 리포트를 받아보세요.</p>
+        <div class="ph-steps-grid">
+          <article class="ph-step-card">
+            <div class="ph-step-num">1</div>
+            <h3>링크·옵션 의뢰</h3>
+            <p>쇼핑몰 링크, 옵션, 이메일을 입력하고 의뢰합니다.</p>
+          </article>
+          <article class="ph-step-card">
+            <div class="ph-step-num">2</div>
+            <h3>24h 전문 검증</h3>
+            <p>가격·배송·구성품·판매처를 종합 검토합니다.</p>
+          </article>
+          <article class="ph-step-card">
+            <div class="ph-step-num">3</div>
+            <h3>리포트 수령</h3>
+            <p>구매판단 리포트와 절약 금액을 이메일로 받아보세요.</p>
+          </article>
         </div>
       </div>
     </section>
 
     <!-- FAQ 섹션 -->
-    <section id="faq-section" class="w-full py-20 px-4" style="background-color: #F4F1EC;">
-      <div class="max-w-4xl mx-auto">
-        <!-- 섹션 제목 -->
-        <div class="text-center mb-12">
-          <h2 class="text-3xl sm:text-4xl md:text-5xl font-bold mb-4" style="font-family: 'Noto Sans KR', sans-serif; font-weight: 700; color: #2A2A2A;">
-            자주 묻는 질문
-          </h2>
+    <section id="faq-section" class="ph-section">
+      <div class="max-w-3xl mx-auto">
+        <div class="text-center mb-10">
+          <span class="ph-section-label">FAQ</span>
+          <h2 class="ph-section-title">자주 묻는 질문</h2>
         </div>
 
-        <!-- FAQ 아코디언 -->
-        <div class="space-y-4">
-          <!-- FAQ 항목 1 -->
-          <div class="bg-white rounded-lg shadow-md overflow-hidden">
-            <button class="w-full px-6 py-4 text-left flex items-center justify-between hover:bg-gray-50 transition-colors" onclick="toggleFAQ(this)" style="font-family: 'Noto Sans KR', sans-serif;">
-              <span class="text-lg font-medium" style="font-weight: 500; color: #2A2A2A;">정말 무료인가요?</span>
-              <svg class="w-5 h-5 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-              </svg>
+        <div class="ph-faq-list">
+          <div class="ph-faq-item">
+            <button type="button" onclick="toggleFAQ(this)">
+              <span>정말 무료인가요?</span>
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
             </button>
-            <div class="hidden px-6 py-4 text-gray-600" style="font-family: 'Noto Sans KR', sans-serif; font-weight: 400;">
+            <div class="ph-faq-answer hidden">
               <p>네, 최저가 · 구매 조건 검토 의뢰는 완전 무료입니다. 구매판단 리포트 제공만으로도 충분히 도움이 됩니다.</p>
             </div>
           </div>
 
-          <!-- FAQ 항목 2 -->
-          <div class="bg-white rounded-lg shadow-md overflow-hidden">
-            <button class="w-full px-6 py-4 text-left flex items-center justify-between hover:bg-gray-50 transition-colors" onclick="toggleFAQ(this)" style="font-family: 'Noto Sans KR', sans-serif;">
-              <span class="text-lg font-medium" style="font-weight: 500; color: #2A2A2A;">쿠팡/네이버보다 비쌀 수도 있나요?</span>
-              <svg class="w-5 h-5 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-              </svg>
+          <div class="ph-faq-item">
+            <button type="button" onclick="toggleFAQ(this)">
+              <span>쿠팡/네이버보다 비쌀 수도 있나요?</span>
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
             </button>
-            <div class="hidden px-6 py-4 text-gray-600" style="font-family: 'Noto Sans KR', sans-serif; font-weight: 400;">
+            <div class="ph-faq-answer hidden">
               <p>가능합니다. 우리는 "최저가를 보장"하는 것이 아니라 "가격과 구매 조건을 함께 검토해 드리는" 서비스입니다. 때로는 기존 쇼핑몰이 더 저렴할 수 있으며, 그런 경우도 정직하게 알려드립니다.</p>
             </div>
           </div>
 
-          <!-- FAQ 항목 3 -->
-          <div class="bg-white rounded-lg shadow-md overflow-hidden">
-            <button class="w-full px-6 py-4 text-left flex items-center justify-between hover:bg-gray-50 transition-colors" onclick="toggleFAQ(this)" style="font-family: 'Noto Sans KR', sans-serif;">
-              <span class="text-lg font-medium" style="font-weight: 500; color: #2A2A2A;">해외 직구도 포함되나요?</span>
-              <svg class="w-5 h-5 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-              </svg>
+          <div class="ph-faq-item">
+            <button type="button" onclick="toggleFAQ(this)">
+              <span>해외 직구도 포함되나요?</span>
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
             </button>
-            <div class="hidden px-6 py-4 text-gray-600" style="font-family: 'Noto Sans KR', sans-serif; font-weight: 400;">
+            <div class="ph-faq-answer hidden">
               <p>네, 해외 직구도 포함됩니다. 관세, 배송비, 환율까지 모두 계산하여 실제 가격을 비교해드립니다.</p>
             </div>
           </div>
 
-          <!-- FAQ 항목 4 -->
-          <div class="bg-white rounded-lg shadow-md overflow-hidden">
-            <button class="w-full px-6 py-4 text-left flex items-center justify-between hover:bg-gray-50 transition-colors" onclick="toggleFAQ(this)" style="font-family: 'Noto Sans KR', sans-serif;">
-              <span class="text-lg font-medium" style="font-weight: 500; color: #2A2A2A;">수수료는 언제 발생하나요?</span>
-              <svg class="w-5 h-5 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-              </svg>
+          <div class="ph-faq-item">
+            <button type="button" onclick="toggleFAQ(this)">
+              <span>수수료는 언제 발생하나요?</span>
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
             </button>
-            <div class="hidden px-6 py-4 text-gray-600" style="font-family: 'Noto Sans KR', sans-serif; font-weight: 400;">
+            <div class="ph-faq-answer hidden">
               <p>최저가 · 구매 조건 검토 의뢰는 완전 무료입니다. 구매판단 리포트 조회에 추가 비용은 발생하지 않습니다.</p>
             </div>
           </div>
 
-          <!-- FAQ 항목 5 -->
-          <div class="bg-white rounded-lg shadow-md overflow-hidden">
-            <button class="w-full px-6 py-4 text-left flex items-center justify-between hover:bg-gray-50 transition-colors" onclick="toggleFAQ(this)" style="font-family: 'Noto Sans KR', sans-serif;">
-              <span class="text-lg font-medium" style="font-weight: 500; color: #2A2A2A;">셀러도 사용할 수 있나요?</span>
-              <svg class="w-5 h-5 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-              </svg>
+          <div class="ph-faq-item">
+            <button type="button" onclick="toggleFAQ(this)">
+              <span>셀러도 사용할 수 있나요?</span>
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
             </button>
-            <div class="hidden px-6 py-4 text-gray-600" style="font-family: 'Noto Sans KR', sans-serif; font-weight: 400;">
+            <div class="ph-faq-answer hidden">
               <p>네, 소상공인 및 셀러분들도 사용 가능합니다. 대량 의뢰나 도매가 확인이 필요하신 경우, 의뢰 시 특별 요청사항에 기재해주시면 더 정확한 가격 정보를 제공해드립니다.</p>
             </div>
           </div>
@@ -5400,7 +5154,7 @@
         </h2>
         <p class="text-lg sm:text-xl text-white/90 mb-8 max-w-2xl mx-auto" style="font-family: 'Noto Sans KR', sans-serif; font-weight: 400;">
           투명하고 체계적인 최저가 · 구매 조건 검토 서비스<br class="sm:hidden">
-          5단계 상세 프로세스로 가격과 구매 조건을 함께 확인합니다.<br class="hidden sm:block">
+          가격과 구매 조건을 함께 확인합니다.<br class="hidden sm:block">
           배송·구성품·판매처까지 객관적인 증거와 함께 결과를 제공합니다.
         </p>
         <div class="flex flex-col sm:flex-row gap-4 justify-center">
@@ -6982,11 +6736,16 @@
           }, { passive: false });
         }
 
-        // "실제 후기 더보기" 버튼: 고객 후기 전용 페이지로 이동
+        // "실제 후기 더보기" 버튼: 페이지 내 확장/접기
         const reviewsMoreBtn = document.getElementById('hero-reviews-more-btn');
-        if (reviewsMoreBtn) {
+        if (reviewsMoreBtn && !reviewsMoreBtn.dataset.bound) {
+          reviewsMoreBtn.dataset.bound = 'true';
           reviewsMoreBtn.addEventListener('click', () => {
-            window.location.href = 'more-reviews.html';
+            const expanded = reviewsMoreBtn.dataset.expanded === 'true';
+            setHeroReviewsExpanded(!expanded);
+            if (!expanded) {
+              scrollToHeroReviews();
+            }
           });
         }
 
@@ -9113,318 +8872,6 @@
 
     <script>
 // ... existing code ...
-// 질문-답변 섹션 연결 애니메이션
-function initQuestionAnswerAnimation() {
-  const questionSection = document.getElementById('price-verification-section');
-  const answerSection = document.getElementById('elp-section');
-  const questionLine1 = document.querySelector('.question-line-1');
-  const questionLine2 = document.querySelector('.question-line-2');
-  const connectionArrow = document.getElementById('connection-arrow');
-  const answerLine1 = document.querySelector('.answer-line-1');
-  const answerLine2 = document.querySelector('.answer-line-2');
-  const answerSubtitle = document.getElementById('answer-subtitle');
-  
-  if (!questionSection || !answerSection) {
-    console.warn('질문-답변 섹션을 찾을 수 없습니다.');
-    return;
-  }
-  
-  let questionAnimated = false;
-  let answerAnimated = false;
-  
-  // 질문 섹션 애니메이션
-  const questionObserver = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting && !questionAnimated) {
-        questionAnimated = true;
-        
-        // 첫 번째 줄 애니메이션
-        setTimeout(() => {
-          if (questionLine1) {
-            questionLine1.style.opacity = '1';
-            questionLine1.style.transform = 'translateY(0)';
-          }
-        }, 200);
-        
-        // 두 번째 줄 애니메이션
-        setTimeout(() => {
-          if (questionLine2) {
-            questionLine2.style.opacity = '1';
-            questionLine2.style.transform = 'translateY(0)';
-          }
-        }, 600);
-        
-        // 연결 화살표 애니메이션
-        setTimeout(() => {
-          if (connectionArrow) {
-            connectionArrow.style.opacity = '1';
-            connectionArrow.style.transform = 'translateY(0)';
-          }
-        }, 1200);
-      }
-    });
-  }, {
-    threshold: 0.1,
-    rootMargin: '50px'
-  });
-  
-  // 답변 섹션 애니메이션
-  const answerObserver = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting && !answerAnimated) {
-        answerAnimated = true;
-        
-        // 첫 번째 줄 애니메이션
-        setTimeout(() => {
-          if (answerLine1) {
-            answerLine1.style.opacity = '1';
-            answerLine1.style.transform = 'translateY(0)';
-          }
-        }, 200);
-        
-        // 두 번째 줄 애니메이션
-        setTimeout(() => {
-          if (answerLine2) {
-            answerLine2.style.opacity = '1';
-            answerLine2.style.transform = 'translateY(0)';
-          }
-        }, 600);
-        
-        // 서브타이틀 애니메이션
-        setTimeout(() => {
-          if (answerSubtitle) {
-            answerSubtitle.style.opacity = '1';
-            answerSubtitle.style.transform = 'translateY(0)';
-          }
-        }, 1000);
-      }
-    });
-  }, {
-    threshold: 0.1,
-    rootMargin: '50px'
-  });
-  
-  questionObserver.observe(questionSection);
-  answerObserver.observe(answerSection);
-  
-  // 페이지 로드 시 이미 보이는 경우 즉시 실행
-  setTimeout(() => {
-    const questionRect = questionSection.getBoundingClientRect();
-    const answerRect = answerSection.getBoundingClientRect();
-    const windowHeight = window.innerHeight;
-    
-    if (questionRect.top < windowHeight && questionRect.bottom > 0 && !questionAnimated) {
-      questionAnimated = true;
-      if (questionLine1) {
-        questionLine1.style.opacity = '1';
-        questionLine1.style.transform = 'translateY(0)';
-      }
-      setTimeout(() => {
-        if (questionLine2) {
-          questionLine2.style.opacity = '1';
-          questionLine2.style.transform = 'translateY(0)';
-        }
-      }, 400);
-      setTimeout(() => {
-        if (connectionArrow) {
-          connectionArrow.style.opacity = '1';
-          connectionArrow.style.transform = 'translateY(0)';
-        }
-      }, 800);
-    }
-    
-    if (answerRect.top < windowHeight && answerRect.bottom > 0 && !answerAnimated) {
-      answerAnimated = true;
-      if (answerLine1) {
-        answerLine1.style.opacity = '1';
-        answerLine1.style.transform = 'translateY(0)';
-      }
-      setTimeout(() => {
-        if (answerLine2) {
-          answerLine2.style.opacity = '1';
-          answerLine2.style.transform = 'translateY(0)';
-        }
-      }, 400);
-      setTimeout(() => {
-        if (answerSubtitle) {
-          answerSubtitle.style.opacity = '1';
-          answerSubtitle.style.transform = 'translateY(0)';
-        }
-      }, 800);
-    }
-  }, 100);
-}
-
-document.addEventListener('DOMContentLoaded', initQuestionAnswerAnimation);
-// DOM이 이미 로드된 경우를 대비
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initQuestionAnswerAnimation);
-} else {
-  initQuestionAnswerAnimation();
-}
-
-// ELP 카드 스태거 등장 애니메이션 (Intersection Observer with 재진입 지원)
-document.addEventListener('DOMContentLoaded', function() {
-  const elpSection = document.getElementById('elp-section');
-  const elpCards = document.querySelectorAll('.elp-card.elp-card-stagger');
-  
-  if (!elpSection || elpCards.length === 0) return;
-  
-  // 옵션 선택: 'stop' 또는 'float' (기본값: 'stop')
-  // 'stop': 등장 후 정지 (옵션A)
-  // 'float': 등장 후 약한 플로팅 (옵션B)
-  const ELP_ANIMATION_OPTION = 'stop'; // 'stop' 또는 'float'로 변경 가능
-  
-  // 히스테리시스 적용: enter/leave 기준을 다르게 설정
-  const ENTER_THRESHOLD = 0.35; // 섹션이 35% 보일 때 애니메이션 시작
-  const LEAVE_THRESHOLD = 0.1;  // 섹션이 10% 이하로 떨어지면 리셋 (더 낮은 기준)
-  
-  // 현재 애니메이션 상태 추적
-  let isAnimating = false;
-  let animationTimeouts = []; // 진행 중인 애니메이션 타이머들
-  
-  // 카드들을 초기 상태로 리셋하는 함수
-  function resetCards() {
-    // 모든 진행 중인 타이머 취소
-    animationTimeouts.forEach(timeout => clearTimeout(timeout));
-    animationTimeouts = [];
-    
-    // 모든 카드에서 애니메이션 클래스 제거
-    elpCards.forEach((card) => {
-      card.classList.remove('is-visible', 'has-float');
-      // 애니메이션을 강제로 리셋하기 위해 스타일 재설정
-      card.style.animation = 'none';
-      // 리플로우 강제 (브라우저가 초기 상태를 인식하도록)
-      void card.offsetWidth;
-      card.style.animation = '';
-    });
-    
-    isAnimating = false;
-  }
-  
-  // 카드 애니메이션 시작 함수
-  function startAnimation() {
-    if (isAnimating) return; // 이미 애니메이션 중이면 중복 실행 방지
-    isAnimating = true;
-    
-    // 각 카드에 순차적으로 is-visible 클래스 추가
-    elpCards.forEach((card, index) => {
-      const timeout = setTimeout(() => {
-        card.classList.add('is-visible');
-        
-        // 옵션B 선택 시 약한 플로팅 추가
-        if (ELP_ANIMATION_OPTION === 'float') {
-          const floatTimeout = setTimeout(() => {
-            card.classList.add('has-float');
-          }, 1200); // 등장 애니메이션 완료 후 플로팅 시작
-          animationTimeouts.push(floatTimeout);
-        }
-      }, index * 600); // 각 카드마다 600ms 간격으로 순차 등장 (1장씩 확실히 보이게)
-      
-      animationTimeouts.push(timeout);
-    });
-  }
-  
-  const observerOptions = {
-    root: null,
-    rootMargin: '0px',
-    threshold: [LEAVE_THRESHOLD, ENTER_THRESHOLD] // 두 기준점 모두 관찰
-  };
-  
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach((entry) => {
-      const intersectionRatio = entry.intersectionRatio;
-      
-      // Enter 조건: 섹션이 충분히 들어왔을 때 (히스테리시스 상단)
-      if (intersectionRatio >= ENTER_THRESHOLD && !isAnimating) {
-        startAnimation();
-      }
-      // Leave 조건: 섹션이 거의 사라졌을 때 (히스테리시스 하단)
-      else if (intersectionRatio <= LEAVE_THRESHOLD && isAnimating) {
-        resetCards();
-      }
-    });
-  }, observerOptions);
-  
-  // 섹션 관찰 시작 (계속 관찰하여 재진입 시에도 동작)
-  observer.observe(elpSection);
-});
-
-// 비교 불필요 섹션 - 3단계 상태 전환 (진입 전 → 중앙 → 지나감)
-document.addEventListener('DOMContentLoaded', function() {
-  const noCompareSection = document.getElementById('no-compare-section');
-  
-  if (!noCompareSection) return;
-  
-  // 상태 A: 진입 전 (섹션이 10% 이하로 보임)
-  // 상태 B: 섹션 중앙 근처 (섹션이 40% 이상 보임)
-  // 상태 C: 지나감 (섹션이 10% 이하로 떨어짐)
-  
-  const STATE_A_THRESHOLD = 0.1;  // 진입 전
-  const STATE_B_THRESHOLD = 0.4;  // 중앙 근처
-  const STATE_C_THRESHOLD = 0.1;  // 지나감 (히스테리시스)
-  
-  let currentState = 'a';
-  
-  // 초기 상태 설정
-  noCompareSection.classList.add('state-a');
-  
-  const observerOptions = {
-    root: null,
-    rootMargin: '0px',
-    threshold: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0] // 세밀한 관찰
-  };
-  
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach((entry) => {
-      const intersectionRatio = entry.intersectionRatio;
-      
-      // 상태 B: 섹션이 중앙 근처로 오면 (40% 이상)
-      if (intersectionRatio >= STATE_B_THRESHOLD && currentState !== 'b') {
-        noCompareSection.classList.remove('state-a', 'state-c');
-        noCompareSection.classList.add('state-b');
-        currentState = 'b';
-      }
-      // 상태 A: 섹션이 막 진입하거나 (10% 이하) 중앙에서 벗어나면
-      else if (intersectionRatio <= STATE_C_THRESHOLD && currentState !== 'a') {
-        // 중앙에서 아래로 지나간 경우 상태 C, 그 외는 상태 A
-        const rect = entry.boundingClientRect;
-        const viewportHeight = window.innerHeight;
-        
-        // 섹션이 화면 아래로 지나갔는지 확인 (위쪽이 viewport 아래에 있음)
-        if (rect.top > viewportHeight) {
-          // 상태 C: 지나감
-          noCompareSection.classList.remove('state-a', 'state-b');
-          noCompareSection.classList.add('state-c');
-          currentState = 'c';
-        } else {
-          // 상태 A: 진입 전
-          noCompareSection.classList.remove('state-b', 'state-c');
-          noCompareSection.classList.add('state-a');
-          currentState = 'a';
-        }
-      }
-      // 상태 C: 중앙에서 지나갔지만 아직 화면에 일부 남아있음 (10% ~ 40% 사이, 위쪽이 viewport 아래)
-      else if (intersectionRatio > STATE_C_THRESHOLD && 
-               intersectionRatio < STATE_B_THRESHOLD && 
-               currentState === 'b') {
-        const rect = entry.boundingClientRect;
-        const viewportHeight = window.innerHeight;
-        
-        if (rect.top > viewportHeight * 0.5) {
-          // 섹션이 화면 중앙 아래로 지나가고 있음
-          noCompareSection.classList.remove('state-a', 'state-b');
-          noCompareSection.classList.add('state-c');
-          currentState = 'c';
-        }
-      }
-    });
-  }, observerOptions);
-  
-  // 섹션 관찰 시작
-  observer.observe(noCompareSection);
-});
-// ... existing code ...
     </script>
     <script>
 // ... existing code ...
@@ -9726,56 +9173,9 @@ if (mypageBtn) {
         
       }
     </script>
-
-    <!-- 프로세스 애니메이션 스크립트 -->
-    <script>
-      window.addEventListener('DOMContentLoaded', function() {
-        // 프로세스 카드들을 순서대로 애니메이션
-        const processSteps = Array.from(document.querySelectorAll('.process-step'));
-        let idx = 0;
-        function showNext() {
-          if (idx < processSteps.length) {
-            processSteps[idx].classList.add('visible');
-            idx++;
-            setTimeout(showNext, 600); // 0.6초 간격
-          }
-        }
-        // 페이지 로드 후 1초 뒤에 시작
-        setTimeout(showNext, 1000);
-
-        // process-step-card 애니메이션 (IntersectionObserver 사용)
-        const processStepCards = document.querySelectorAll('.process-step-card');
-        
-        if (processStepCards.length > 0) {
-          const observerOptions = {
-            root: null,
-            rootMargin: '0px 0px -100px 0px',
-            threshold: 0.1
-          };
-
-          const observer = new IntersectionObserver((entries) => {
-            entries.forEach((entry, index) => {
-              if (entry.isIntersecting) {
-                const delay = parseFloat(entry.target.style.animationDelay || '0') * 1000 || index * 150;
-                setTimeout(() => {
-                  entry.target.style.opacity = '1';
-                  entry.target.style.transform = 'translateY(0)';
-                  entry.target.style.transition = 'opacity 0.8s ease-out, transform 0.8s ease-out';
-                }, delay);
-                observer.unobserve(entry.target);
-              }
-            });
-          }, observerOptions);
-
-          processStepCards.forEach(card => {
-            observer.observe(card);
-          });
-        }
-      });
-    </script>
     
     <!-- 페이스북 스타일 푸터 -->
-    <footer class="bg-gray-900 text-white mt-0">
+    <footer class="ph-site-footer text-white mt-0">
       <div class="max-w-6xl mx-auto px-4 py-12">
         <!-- 메인 푸터 콘텐츠 -->
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 mb-8">

@@ -4,6 +4,7 @@
 const { admin, initAdmin } = require('./_firebase-admin');
 const { validateProductLinkUrl } = require('../../url-safety');
 const { sendAdminNewRequestEmail } = require('../../admin-notify-email');
+const { notifyCustomerRequestReceived } = require('../../notification-dispatch');
 
 const GUEST_TRIAL_STRICT_LIMITS = process.env.GUEST_TRIAL_STRICT_LIMITS === 'true';
 
@@ -173,12 +174,37 @@ exports.handler = async (event) => {
       console.warn('Guest admin notify failed:', adminNotifyError);
     }
 
+    let customerNotifySent = false;
+    let customerNotifyError = null;
+    try {
+      const customerResult = await notifyCustomerRequestReceived({
+        toEmail: emailRaw,
+        userName: '고객',
+        requestNumber: reqNum,
+        productOption: optionName,
+        isGuest: true,
+        source: 'guest_trial',
+        requestType: '게스트 체험 (1회)'
+      });
+      customerNotifySent = customerResult.success;
+      if (!customerResult.success) {
+        customerNotifyError = (customerResult.email && customerResult.email.errorMessage) ||
+          (customerResult.alimtalk && customerResult.alimtalk.errorMessage) ||
+          '알림 발송 실패';
+      }
+    } catch (err) {
+      customerNotifyError = err.message || String(err);
+      console.warn('Guest customer notify failed:', customerNotifyError);
+    }
+
     return json(201, {
       success: true,
       requestNumber: reqNum,
       firebaseDocId: docRef.id,
       adminNotifySent,
       adminNotifyError,
+      customerNotifySent,
+      customerNotifyError,
       message: '의뢰가 접수되었습니다. 결과는 이메일로 보내드립니다.'
     });
   } catch (error) {

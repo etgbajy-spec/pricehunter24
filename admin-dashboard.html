@@ -7328,18 +7328,10 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
         // 대시보드에 없는 기본값이면 API 호출하지 않음 (400 방지)
         const EMAILJS_TEMPLATE_IS_CONFIGURED = EMAILJS_REQUEST_COMPLETE_TEMPLATE_ID && EMAILJS_REQUEST_COMPLETE_TEMPLATE_ID !== 'template_request_complete';
 
-        // 의뢰 완료 알림 메일 발송 후 결과 반환 (관리자 확인용)
+        // 의뢰 완료 알림 (서버 API → 브라우저 EmailJS fallback)
         async function sendRequestCompleteNotification(requestId) {
             if (!requestId || !window.firebaseDb || !window.firebaseFirestoreFunctions) {
                 return { success: false, errorMessage: '요청 정보를 찾을 수 없습니다.' };
-            }
-            if (!EMAILJS_TEMPLATE_IS_CONFIGURED) {
-                console.warn('EmailJS 의뢰 완료 템플릿이 설정되지 않았습니다. 대시보드에서 템플릿을 만든 후 Template ID를 코드에 넣어주세요.');
-                return { success: false, errorMessage: 'EmailJS 템플릿 미설정. 대시보드(https://dashboard.emailjs.com/admin/templates)에서 템플릿을 만들고, admin-dashboard.html에서 EMAILJS_REQUEST_COMPLETE_TEMPLATE_ID를 해당 Template ID로 바꿔주세요.' };
-            }
-            if (typeof emailjs === 'undefined') {
-                console.warn('EmailJS가 로드되지 않았습니다. 의뢰 완료 알림 이메일을 건너뜁니다.');
-                return { success: false, errorMessage: 'EmailJS가 로드되지 않았습니다.' };
             }
             try {
                 const { doc, getDoc } = window.firebaseFirestoreFunctions;
@@ -7350,7 +7342,6 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 }
                 const data = requestSnap.data();
                 let toEmail = data.email || data.userEmail;
-                // 의뢰에 이메일이 없으면 회원(users)에서 uid로 조회
                 if ((!toEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(toEmail)) && (data.uid || data.userId)) {
                     const uid = data.uid || data.userId;
                     const userSnap = await getDoc(doc(db, 'users', uid));
@@ -7360,12 +7351,11 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                     }
                 }
                 if (!toEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(toEmail)) {
-                    console.warn('의뢰·회원 정보에 유효한 이메일이 없어 알림을 보내지 않습니다.');
                     return { success: false, errorMessage: '의뢰 또는 회원 정보에 이메일이 없거나 형식이 올바르지 않습니다.' };
                 }
                 if (window.CustomerNotification && CustomerNotification.sendRequestCompleteEmail) {
                     return CustomerNotification.sendRequestCompleteEmail(
-                        CustomerNotification.buildParamsFromFirestoreRequest(data, { toEmail: toEmail })
+                        CustomerNotification.buildParamsFromFirestoreRequest(data, { toEmail: toEmail, requestId: requestId })
                     );
                 }
                 emailjs.init(EMAILJS_PUBLIC_KEY);
@@ -7478,7 +7468,13 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 
                 let alertMsg = '답변이 성공적으로 저장되었습니다.';
                 if (emailResult.success) {
-                    alertMsg += '\n\n📧 고객 알림 메일: 발송됨 (' + emailResult.toEmail + ')';
+                    alertMsg += '\n\n📧 고객 알림: 발송됨 (' + emailResult.toEmail + ')';
+                    if (emailResult.via === 'server' || emailResult.via === 'server+alimtalk') {
+                        alertMsg += ' [서버]';
+                    }
+                    if (emailResult.alimtalk && emailResult.alimtalk.success) {
+                        alertMsg += '\n💬 알림톡: 발송됨';
+                    }
                 } else {
                     alertMsg += '\n\n📧 고객 알림 메일: 발송 실패 - ' + (emailResult.errorMessage || '원인 불명');
                 }

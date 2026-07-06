@@ -1,12 +1,9 @@
 /**
- * more-reviews 로컬 제품 이미지
- * - assets/review-products/ 폴더 + manifest.json
- * - Firestore에 이미지가 있으면 그대로 사용 (실제 의뢰 사진 3건 등)
- * - 이미지가 없는 후기만 로컬 폴더에서 제품명으로 조회
+ * 후기 제품 이미지 — assets/review-products/ + manifest.json
+ * Firestore 등록 이미지 우선, 실패 시 manifest 로컬 fallback
  */
 (function (global) {
-  const BASE = 'assets/review-products/';
-  const EXTENSIONS = ['webp', 'jpg', 'jpeg', 'png'];
+  const BASE = '/assets/review-products/';
 
   let manifestCache = null;
   let manifestPromise = null;
@@ -32,14 +29,30 @@
     return !pickDataImage(review);
   }
 
-  function slugify(name) {
-    return name
-      .trim()
-      .toLowerCase()
-      .replace(/\s+/g, '-')
-      .replace(/[^a-z0-9\u3131-\uD79D.-]+/g, '')
-      .replace(/-+/g, '-')
-      .replace(/^-|-$/g, '');
+  function toPublicUrl(relativePath) {
+    if (!relativePath) return '';
+    const text = String(relativePath).trim().replace(/\\/g, '/');
+    if (/^https?:\/\//i.test(text) || /^data:/i.test(text)) return text;
+    if (text.startsWith('/')) return text;
+    return text.startsWith('assets/') ? '/' + text : BASE + text.replace(/^\//, '');
+  }
+
+  function findManifestFilename(productName, files) {
+    if (!productName || !files) return '';
+    if (files[productName]) return files[productName];
+    const normalized = productName.replace(/\s+/g, ' ').trim();
+    if (files[normalized]) return files[normalized];
+
+    const keys = Object.keys(files);
+    const exactCi = keys.find(function (k) {
+      return k.toLowerCase() === normalized.toLowerCase();
+    });
+    if (exactCi) return files[exactCi];
+
+    const partial = keys.find(function (k) {
+      return k.includes(normalized) || normalized.includes(k);
+    });
+    return partial ? files[partial] : '';
   }
 
   function getLocalImageCandidates(review, manifest) {
@@ -47,46 +60,30 @@
     if (!productName) return [];
 
     const files = (manifest && manifest.files) || {};
-    const urls = [];
-    const seen = new Set();
-
-    function pushUrl(filename) {
-      if (!filename || seen.has(filename)) return;
-      seen.add(filename);
-      urls.push(BASE + filename);
-    }
-
-    if (files[productName]) {
-      pushUrl(files[productName]);
-    }
-
-    EXTENSIONS.forEach(function (ext) {
-      pushUrl(encodeURIComponent(productName) + '.' + ext);
-    });
-
-    const slug = slugify(productName);
-    if (slug) {
-      EXTENSIONS.forEach(function (ext) {
-        pushUrl(slug + '.' + ext);
-      });
-    }
-
-    return urls;
+    const manifestFile = findManifestFilename(productName, files);
+    if (!manifestFile) return [];
+    return [BASE + manifestFile];
   }
 
   function resolveImage(review, manifest) {
     const dataImg = pickDataImage(review);
+    const localRaw = getLocalImageCandidates(review, manifest || manifestCache);
+    const localUrls = localRaw.map(toPublicUrl);
+
     if (dataImg) {
-      return { src: dataImg, fallbacks: [], source: 'data' };
+      const dataUrl = toPublicUrl(dataImg);
+      const fallbacks = localUrls.filter(function (u) { return u && u !== dataUrl; });
+      return { src: dataUrl, fallbacks: fallbacks, source: 'data' };
     }
-    if (!shouldUseLocalImage(review)) {
+
+    if (!shouldUseLocalImage(review) && !localUrls.length) {
       return { src: '', fallbacks: [], source: 'none' };
     }
-    const candidates = getLocalImageCandidates(review, manifest || manifestCache);
+
     return {
-      src: candidates[0] || '',
-      fallbacks: candidates.slice(1),
-      source: candidates.length ? 'local' : 'none'
+      src: localUrls[0] || '',
+      fallbacks: localUrls.slice(1),
+      source: localUrls.length ? 'local' : 'none'
     };
   }
 
@@ -104,25 +101,41 @@
     return manifestPromise;
   }
 
+  function showPlaceholder(img) {
+    img.classList.add('hidden');
+    const placeholder = img.parentElement && img.parentElement.querySelector('[data-ph-img-placeholder]');
+    if (placeholder) placeholder.classList.remove('hidden');
+  }
+
   function attachFallbackHandler(img) {
     if (!img || img.dataset.phFallbackBound) return;
     img.dataset.phFallbackBound = '1';
+    img.onerror = null;
+
     img.addEventListener('error', function onError() {
+      if (img.dataset.phFallbackDone === '1') return;
+
       let fallbacks = [];
       try {
         fallbacks = JSON.parse(img.dataset.phFallbacks || '[]');
       } catch (e) {
         fallbacks = [];
       }
+
+      while (fallbacks.length && fallbacks[0] === img.src) {
+        fallbacks.shift();
+      }
+
       if (!fallbacks.length) {
+        img.dataset.phFallbackDone = '1';
         img.removeEventListener('error', onError);
-        img.classList.add('hidden');
-        const placeholder = img.parentElement && img.parentElement.querySelector('[data-ph-img-placeholder]');
-        if (placeholder) placeholder.classList.remove('hidden');
+        showPlaceholder(img);
         return;
       }
-      img.src = fallbacks.shift();
+
+      const next = fallbacks.shift();
       img.dataset.phFallbacks = JSON.stringify(fallbacks);
+      img.src = next;
     });
   }
 
@@ -135,11 +148,7 @@
     shouldUseLocalImage: shouldUseLocalImage,
     getLocalImageCandidates: getLocalImageCandidates,
     resolveImage: resolveImage,
-    attachFallbackHandler: attachFallbackHandler
-  };
-
-  global.__phReviewImgFallback = function (img) {
-    attachFallbackHandler(img);
-    img.dispatchEvent(new Event('error'));
+    attachFallbackHandler: attachFallbackHandler,
+    toPublicUrl: toPublicUrl
   };
 })(typeof window !== 'undefined' ? window : globalThis);

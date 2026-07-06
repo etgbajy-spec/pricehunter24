@@ -225,6 +225,48 @@
     if (!isValidEmail(params.toEmail)) {
       return { success: false, errorMessage: '유효한 고객 이메일이 없습니다.' };
     }
+
+    try {
+      var headers = { 'Content-Type': 'application/json' };
+      var authUser = (typeof window !== 'undefined' && window.firebaseAuth && window.firebaseAuth.currentUser) ||
+        (typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser);
+      if (authUser) {
+        var idToken = await authUser.getIdToken();
+        headers.Authorization = 'Bearer ' + idToken;
+      }
+      var apiRes = await fetch('/api/notify-customer-report-complete', {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify({
+          requestId: params.requestId || params.firebaseDocId || '',
+          toEmail: params.toEmail,
+          userName: params.userName,
+          requestNumber: params.requestNumber,
+          productName: params.productName,
+          productOption: params.productOption,
+          isGuest: params.isGuest,
+          source: params.source
+        })
+      });
+      var apiData = await apiRes.json().catch(function () { return {}; });
+      if (apiRes.ok && apiData.success !== false && (apiData.email && apiData.email.success || apiData.success)) {
+        return {
+          success: true,
+          toEmail: (apiData.email && apiData.email.toEmail) || params.toEmail,
+          isGuest: isGuestRequest(params),
+          via: 'server',
+          alimtalk: apiData.alimtalk || null
+        };
+      }
+      if (apiData.email && apiData.email.needsBrowserFallback) {
+        console.warn('[CustomerNotification] 서버 EmailJS 실패, 브라우저 fallback:', apiData.email.errorMessage);
+      } else if (!apiRes.ok) {
+        console.warn('[CustomerNotification] 서버 알림 실패, 브라우저 EmailJS 시도:', apiData.error || apiRes.status);
+      }
+    } catch (apiErr) {
+      console.warn('[CustomerNotification] 서버 알림 요청 실패, 브라우저 EmailJS 시도:', apiErr);
+    }
+
     if (!EMAILJS_TEMPLATE_IS_CONFIGURED) {
       return { success: false, errorMessage: 'EmailJS 템플릿이 설정되지 않았습니다.' };
     }
@@ -238,7 +280,7 @@
         EMAILJS_SHARED_TEMPLATE_ID,
         buildCustomerCompleteParams(params)
       );
-      return { success: true, toEmail: params.toEmail, isGuest: isGuestRequest(params) };
+      return { success: true, toEmail: params.toEmail, isGuest: isGuestRequest(params), via: 'browser' };
     } catch (err) {
       var msg = (err && (err.text || err.message)) ? String(err.text || err.message) : '알 수 없는 오류';
       return { success: false, errorMessage: msg };

@@ -70,57 +70,218 @@ function detectMarketplace(url) {
   return { name: '외부 판매처', trust: 70 };
 }
 
+const BROWSER_UA =
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36';
+
+function decodeHtmlEntities(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCharCode(parseInt(h, 16)))
+    .replace(/&#(\d+);/g, (_, d) => String.fromCharCode(parseInt(d, 10)));
+}
+
+function cleanProductTitle(raw) {
+  if (!raw) return null;
+  let t = decodeHtmlEntities(raw).trim();
+  t = t.replace(/\s*[-|:|]\s*(쿠팡|Coupang|네이버|Naver|스마트스토어|11번가|G마켓|옥션|Gmarket|Auction).*$/i, '');
+  t = t.replace(/\s*:\s*.*$/, '').trim();
+  return t.slice(0, 200) || null;
+}
+
+function guessProductNameFromUrl(url) {
+  if (!url) return null;
+  try {
+    const u = new URL(url);
+    const host = u.hostname.toLowerCase();
+    const parts = decodeURIComponent(u.pathname)
+      .split('/')
+      .map((p) => p.trim())
+      .filter(Boolean);
+    if (host.includes('coupang') || host.includes('naver') || host.includes('11st') ||
+        host.includes('gmarket') || host.includes('auction')) {
+      const slug = parts.find((p) => /[가-힣a-zA-Z]/.test(p) && !/^\d+$/.test(p) && p.length > 2);
+      if (slug) return slug.replace(/[-_+]/g, ' ').slice(0, 200);
+    }
+  } catch (e) { /* ignore */ }
+  return null;
+}
+
+function extractMetaContent(html, prop) {
+  const re = new RegExp(
+    '<meta[^>]+(?:property|name)=["\']' + prop + '["\'][^>]+content=["\']([^"\']+)["\']',
+    'i'
+  );
+  const m1 = html.match(re);
+  if (m1) return m1[1];
+  const re2 = new RegExp(
+    '<meta[^>]+content=["\']([^"\']+)["\'][^>]+(?:property|name)=["\']' + prop + '["\']',
+    'i'
+  );
+  const m2 = html.match(re2);
+  return m2 ? m2[1] : null;
+}
+
+function extractFromJsonLd(html) {
+  const result = { title: null, price: null };
+  const blocks = html.match(/<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi);
+  if (!blocks) return result;
+  for (const block of blocks) {
+    const inner = (block.match(/<script[^>]*>([\s\S]*?)<\/script>/i) || [])[1];
+    if (!inner) continue;
+    try {
+      let data = JSON.parse(inner.trim());
+      const items = Array.isArray(data) ? data : [data];
+      for (const item of items) {
+        if (!item || typeof item !== 'object') continue;
+        const nodes = item['@graph'] ? item['@graph'] : [item];
+        for (const node of nodes) {
+          if (!node || typeof node !== 'object') continue;
+          const type = String(node['@type'] || '').toLowerCase();
+          if (!result.title && node.name) result.title = String(node.name);
+          if (type.includes('product') && node.name) result.title = String(node.name);
+          const offers = node.offers;
+          const offerList = Array.isArray(offers) ? offers : offers ? [offers] : [];
+          for (const offer of offerList) {
+            if (!offer) continue;
+            const p = parsePriceNumber(offer.price || offer.lowPrice || offer.highPrice);
+            if (p) result.price = result.price ? Math.min(result.price, p) : p;
+          }
+          if (!result.price && node.lowPrice) {
+            const p = parsePriceNumber(node.lowPrice);
+            if (p) result.price = p;
+          }
+        }
+      }
+    } catch (e) { /* ignore invalid JSON-LD */ }
+  }
+  return result;
+}
+
+function extractMarketplacePrice(html, url) {
+  const u = (url || '').toLowerCase();
+  const jsonPatterns = [
+    /"salePrice"\s*:\s*(\d{3,9})/g,
+    /"discountedSalePrice"\s*:\s*(\d{3,9})/g,
+    /"finalPrice"\s*:\s*(\d{3,9})/g,
+    /"lowPrice"\s*:\s*(\d{3,9})/g,
+    /"price"\s*:\s*(\d{3,9})/g,
+    /"originPrice"\s*:\s*(\d{3,9})/g
+  ];
+  const prices = [];
+  for (const re of jsonPatterns) {
+    let m;
+    while ((m = re.exec(html)) !== null) {
+      const n = parseInt(m[1], 10);
+      if (n >= 1000 && n <= 100000000) prices.push(n);
+    }
+  }
+  if (prices.length) return Math.min(...prices);
+
+  if (u.includes('naver') || u.includes('smartstore')) {
+    const naver = html.match(/"dispName"\s*:\s*"([^"]{2,200})"/);
+    if (naver) return { title: naver[1], price: null };
+  }
+  return null;
+}
+
+function extractPriceFromHtml(html, url) {
+  const ogPrice =
+    extractMetaContent(html, 'product:price:amount') ||
+    extractMetaContent(html, 'og:price:amount') ||
+    extractMetaContent(html, 'product:price');
+  if (ogPrice) {
+    const n = parsePriceNumber(ogPrice);
+    if (n) return n;
+  }
+
+  const jsonLd = extractFromJsonLd(html);
+  if (jsonLd.price) return jsonLd.price;
+
+  const mp = extractMarketplacePrice(html, url);
+  if (mp && typeof mp === 'number') return mp;
+
+  const patterns = [
+    /(?:판매가|할인가|최종가|현재가|salePrice|priceAmount)[^0-9]{0,30}([0-9][0-9,]{2,})/gi,
+    /₩\s*([0-9][0-9,]{2,})/g,
+    /([0-9][0-9,]{2,})\s*원/g
+  ];
+  const found = [];
+  for (const re of patterns) {
+    let m;
+    while ((m = re.exec(html)) !== null) {
+      const n = parsePriceNumber(m[1]);
+      if (n && n >= 1000 && n <= 100000000) found.push(n);
+    }
+  }
+  if (found.length) return Math.min(...found);
+  return null;
+}
+
+function extractTitleFromHtml(html, url) {
+  const og =
+    extractMetaContent(html, 'og:title') ||
+    extractMetaContent(html, 'twitter:title') ||
+    extractMetaContent(html, 'title');
+  if (og) return cleanProductTitle(og);
+  const titleTag = (html.match(/<title[^>]*>([^<]+)<\/title>/i) || [])[1];
+  if (titleTag) return cleanProductTitle(titleTag);
+  const jsonLd = extractFromJsonLd(html);
+  if (jsonLd.title) return cleanProductTitle(jsonLd.title);
+  const mp = extractMarketplacePrice(html, url);
+  if (mp && typeof mp === 'object' && mp.title) return cleanProductTitle(mp.title);
+  const disp = html.match(/"dispName"\s*:\s*"([^"]{2,200})"/);
+  if (disp) return cleanProductTitle(disp[1]);
+  const prodName = html.match(/"productName"\s*:\s*"([^"]{2,200})"/);
+  if (prodName) return cleanProductTitle(prodName[1]);
+  return guessProductNameFromUrl(url);
+}
+
 async function fetchPageMeta(url) {
   if (!url || !/^https?:\/\//i.test(url)) return null;
   try {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 8000);
+    const timer = setTimeout(() => controller.abort(), 10000);
     const res = await fetch(url, {
       signal: controller.signal,
       headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; PriceHunter/2.0; +https://pricehunt24.com)',
-        Accept: 'text/html,application/xhtml+xml'
+        'User-Agent': BROWSER_UA,
+        Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7',
+        'Cache-Control': 'no-cache'
       },
       redirect: 'follow'
     });
     clearTimeout(timer);
-    if (!res.ok) return { url, status: res.status, title: null, snippet: null };
-    const html = await res.text();
-    const title =
-      (html.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i) || [])[1] ||
-      (html.match(/<title[^>]*>([^<]+)<\/title>/i) || [])[1] ||
-      null;
-    const ogPrice =
-      (html.match(/<meta[^>]+property=["']product:price:amount["'][^>]+content=["']([^"']+)["']/i) || [])[1] ||
-      (html.match(/<meta[^>]+property=["']og:price:amount["'][^>]+content=["']([^"']+)["']/i) || [])[1] ||
-      null;
-    const priceFromHtml = ogPrice ? parsePriceNumber(ogPrice) : extractPriceFromHtml(html);
+    const html = res.ok ? await res.text() : '';
+    const title = html ? extractTitleFromHtml(html, url) : guessProductNameFromUrl(url);
+    const priceFromHtml = html ? extractPriceFromHtml(html, url) : null;
+    const blocked =
+      !res.ok ||
+      (html.length < 800 && !title && !priceFromHtml) ||
+      /access denied|robot|captcha|봇/i.test(html.slice(0, 3000));
     return {
       url,
       status: res.status,
-      title: title ? title.trim().slice(0, 200) : null,
+      title: title || guessProductNameFromUrl(url),
       detectedPrice: priceFromHtml,
-      marketplace: detectMarketplace(url)
+      marketplace: detectMarketplace(url),
+      fetchBlocked: blocked,
+      htmlLength: html.length
     };
   } catch (err) {
-    return { url, error: err.message || 'fetch_failed' };
+    return {
+      url,
+      error: err.message || 'fetch_failed',
+      title: guessProductNameFromUrl(url),
+      marketplace: detectMarketplace(url),
+      fetchBlocked: true
+    };
   }
-}
-
-function extractPriceFromHtml(html) {
-  const patterns = [
-    /(?:판매가|할인가|최종가|price)[^0-9]{0,20}([0-9][0-9,]{3,})/i,
-    /₩\s*([0-9][0-9,]{3,})/,
-    /([0-9][0-9,]{3,})\s*원/
-  ];
-  for (const re of patterns) {
-    const m = html.match(re);
-    if (m) {
-      const n = parsePriceNumber(m[1]);
-      if (n && n >= 1000 && n <= 100000000) return n;
-    }
-  }
-  return null;
 }
 
 /**
@@ -377,12 +538,138 @@ async function runAnalysisPipeline(requestData, options) {
   };
 }
 
+const VERDICT_LABELS = {
+  buy: { label: '구매 가능성 있음', tone: 'positive' },
+  hold: { label: '보류 · 정밀 검토 권장', tone: 'caution' },
+  skip: { label: '주의 · 정밀 검토 권장', tone: 'warning' }
+};
+
+function assessVerifiedReportNeed(priceData, draft, urlMeta, pageMeta) {
+  const reasons = [];
+  if (urlMeta?.flagged) reasons.push('등록되지 않은 쇼핑몰 — 판매처 확인 필요');
+  const hasPrice = !!(priceData.referencePrice || priceData.requestedPrice);
+  if (!hasPrice && pageMeta?.fetchBlocked) {
+    reasons.push('쇼핑몰 보안 정책으로 자동 가격 수집 불가 — 정밀 리포트에서 확인');
+  } else if (!hasPrice) {
+    reasons.push('페이지에서 가격을 확인하지 못했습니다');
+  }
+  const trust = priceData.marketplace?.trust || 70;
+  if (trust < 75) reasons.push('해외·직구 판매처 — 배송·관세 확인 필요');
+  const verdict = draft.decision?.verdict || 'hold';
+  if (verdict === 'skip' || verdict === 'hold') {
+    reasons.push('옵션·구성품·실구매가 정밀 검증 권장');
+  }
+  const confidence = Number(draft.decision?.confidence) || 0;
+  if (confidence > 0 && confidence < 65) reasons.push('1차 스캔 확신도가 낮습니다');
+  reasons.push('배송비·카드할인·멤버십 포함 실구매가는 정밀 리포트에서 확인');
+  return {
+    needsVerifiedReport: true,
+    urgency: urlMeta?.flagged || !priceData.referencePrice || verdict === 'skip' ? 'high' : 'normal',
+    reasons: [...new Set(reasons)]
+  };
+}
+
+/**
+ * Tier 0 — Quick Scan (공개 API용, AI 비용 절감을 위해 규칙 기반 우선)
+ */
+async function quickScan(input, options) {
+  options = options || {};
+  const url = String(input?.url || '').trim();
+  if (!url || !/^https?:\/\//i.test(url)) {
+    return { ok: false, error: '유효한 상품 URL이 필요합니다.' };
+  }
+
+  const clientPrice = parsePriceNumber(input?.price);
+  let pageMeta = null;
+  try {
+    pageMeta = await fetchPageMeta(url);
+  } catch (e) {
+    pageMeta = { url, error: e.message || 'fetch_failed', fetchBlocked: true, title: guessProductNameFromUrl(url) };
+  }
+
+  const productName = (
+    String(input?.productName || input?.name || '').trim() ||
+    pageMeta?.title ||
+    guessProductNameFromUrl(url) ||
+    detectMarketplace(url)?.name + ' 상품'
+  ).slice(0, 200);
+
+  const detectedPrice = clientPrice || pageMeta?.detectedPrice || null;
+
+  const requestData = {
+    name: productName,
+    url,
+    price: detectedPrice
+  };
+
+  const priceData = await collectPrices(requestData);
+  const { draft, mode } = await generateDraft(requestData, priceData, {
+    skipAi: options.skipAi !== false
+  });
+
+  const verdict = draft.decision?.verdict || 'hold';
+  const verdictInfo = VERDICT_LABELS[verdict] || VERDICT_LABELS.hold;
+  const verification = assessVerifiedReportNeed(priceData, draft, input?.urlMeta || null, pageMeta);
+  const hasDetectedPrice = !!(priceData.referencePrice || priceData.requestedPrice);
+  const fetchBlocked = !!(pageMeta?.fetchBlocked && !clientPrice);
+
+  return {
+    ok: true,
+    tier: 0,
+    scan: {
+      productName: priceData.productName || productName,
+      url,
+      marketplace: priceData.marketplace,
+      detectedPrice: priceData.referencePrice || clientPrice || null,
+      requestedPrice: priceData.requestedPrice,
+      lowestPrice: priceData.lowestPrice,
+      trend: priceData.trend,
+      priceSummary: priceData.summary,
+      verdict,
+      verdictLabel: verdictInfo.label,
+      verdictTone: verdictInfo.tone,
+      confidence: draft.decision?.confidence || null,
+      summary: draft.decision?.summary || draft.summary || '',
+      oneLineNote: buildQuickScanNote(priceData, verdict, fetchBlocked),
+      needsVerifiedReport: verification.needsVerifiedReport,
+      verificationUrgency: verification.urgency,
+      verificationReasons: verification.reasons,
+      pageFetchOk: hasDetectedPrice || !!(pageMeta?.title && !pageMeta?.fetchBlocked),
+      fetchBlocked,
+      priceFromClient: !!clientPrice,
+      mode
+    },
+    disclaimer:
+      '1차 Quick Scan 결과입니다. 배송·옵션·구성품·판매처 검증은 정밀 리포트(24시간 이내)에서 제공됩니다.',
+    scannedAt: new Date().toISOString()
+  };
+}
+
+function buildQuickScanNote(priceData, verdict, fetchBlocked) {
+  const mp = priceData.marketplace?.name;
+  const parts = [];
+  if (mp) parts.push(mp);
+  if (priceData.referencePrice || priceData.requestedPrice) {
+    parts.push(formatPriceKr(priceData.referencePrice || priceData.requestedPrice) + ' 확인');
+  } else if (fetchBlocked) {
+    parts.push('자동 수집 제한 — 입력 가격 또는 정밀 리포트 이용');
+  }
+  if (verdict === 'buy') parts.push('정밀 리포트로 최종 확인 권장');
+  else if (verdict === 'skip') parts.push('더 나은 대안이 있을 수 있습니다');
+  else parts.push('정밀 리포트로 확인을 권장합니다');
+  return parts.join(' · ') || '정밀 리포트 의뢰를 권장합니다';
+}
+
 module.exports = {
   parsePriceNumber,
   formatPriceKr,
+  detectMarketplace,
+  fetchPageMeta,
   collectPrices,
   generateDraft,
   generateRuleBasedDraft,
   runAnalysisPipeline,
-  normalizeDraft
+  normalizeDraft,
+  quickScan,
+  VERDICT_LABELS
 };

@@ -22,6 +22,11 @@
 
 # API 리다이렉트 (Functions로 라우팅)
 [[redirects]]
+  from = "/favicon.ico"
+  to = "/favicon.svg"
+  status = 200
+
+[[redirects]]
   from = "/api/validate-payment"
   to = "/.netlify/functions/validate-payment"
   status = 200
@@ -82,8 +87,23 @@
   status = 200
 
 [[redirects]]
+  from = "/api/quick-scan"
+  to = "/.netlify/functions/quick-scan"
+  status = 200
+
+[[redirects]]
   from = "/api/notify-admin-new-request"
   to = "/.netlify/functions/notify-admin-new-request"
+  status = 200
+
+[[redirects]]
+  from = "/api/notification-config"
+  to = "/.netlify/functions/notification-config"
+  status = 200
+
+[[redirects]]
+  from = "/api/notify-customer-report-complete"
+  to = "/.netlify/functions/notify-customer-report-complete"
   status = 200
 
 [[redirects]]

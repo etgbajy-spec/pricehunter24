@@ -4,9 +4,11 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="robots" content="index, follow" />
-  <meta name="description" content="PriceHunter 무료 1회 체험 — 가입 없이 링크와 이메일만으로 최저가·구매 조건 검토를 의뢰하세요. 결과는 이메일로 받아보실 수 있습니다." />
+  <meta name="description" content="PriceHunter — 링크와 옵션만 넣으면 24시간 이내 구매판단 리포트. 배송·옵션·판매처까지 검증합니다." />
   <link rel="canonical" href="https://pricehunt24.com/request-lite.html" />
-  <title>무료 1회 체험 — PriceHunter</title>
+  <title>구매판단 리포트 의뢰 — PriceHunter</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="/favicon.ico" sizes="any">
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -29,15 +31,31 @@
 
   <main class="px-4 pb-16">
     <div class="max-w-2xl mx-auto">
-      <!-- 폼 카드 -->
       <div id="form-card" class="bg-white/95 backdrop-blur rounded-2xl shadow-2xl p-6 sm:p-8 md:p-10">
-        <div class="text-center mb-8">
+        <div class="text-center mb-6">
           <span class="inline-block px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold mb-3">가입 없이 1회 무료</span>
-          <h1 class="text-2xl sm:text-3xl font-extrabold text-gray-900 mb-2">링크만내면 검토해 드려요</h1>
+          <h1 class="text-2xl sm:text-3xl font-extrabold text-gray-900 mb-2">구매판단 리포트 의뢰</h1>
           <p class="text-gray-600 text-sm sm:text-base leading-relaxed">
-            링크·옵션·이메일만 입력하세요.<br class="sm:hidden">
-            검토가 끝나면 <strong>이메일로 결과</strong>를 보내드립니다.
+            링크와 옵션을 보내주시면 <strong>24시간 이내</strong> 배송·가격·판매처까지 확인한 리포트를 드립니다.
           </p>
+        </div>
+
+        <!-- 진행 단계 -->
+        <div id="flow-steps" class="flex items-center justify-center gap-2 sm:gap-3 mb-8 text-xs sm:text-sm">
+          <div class="flex items-center gap-1.5">
+            <span class="flex items-center justify-center w-7 h-7 rounded-full bg-emerald-600 text-white font-bold text-xs">1</span>
+            <span class="font-semibold text-gray-900">의뢰 입력</span>
+          </div>
+          <span class="text-gray-300">→</span>
+          <div class="flex items-center gap-1.5 opacity-50">
+            <span class="flex items-center justify-center w-7 h-7 rounded-full bg-gray-200 text-gray-600 font-bold text-xs">2</span>
+            <span class="text-gray-600">24h 검증</span>
+          </div>
+          <span class="text-gray-300">→</span>
+          <div class="flex items-center gap-1.5 opacity-50">
+            <span class="flex items-center justify-center w-7 h-7 rounded-full bg-gray-200 text-gray-600 font-bold text-xs">3</span>
+            <span class="text-gray-600">리포트 발송</span>
+          </div>
         </div>
 
         <form id="guest-request-form" class="space-y-5">
@@ -51,7 +69,7 @@
                 placeholder="https://www.coupang.com/..."
                 class="flex-1 bg-transparent border-0 outline-none text-sm sm:text-base py-1.5 min-w-0" />
             </div>
-            <p class="text-xs text-gray-500 mt-1.5">쿠팡, 네이버, 11번가, 해외 쇼핑몰 링크 모두 가능합니다.</p>
+            <p class="text-xs text-gray-500 mt-1.5">쿠팡 · 네이버 · 11번가 · G마켓 · 해외몰 링크 가능</p>
           </div>
 
           <div>
@@ -65,25 +83,33 @@
           </div>
 
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label for="productPrice" class="block text-sm font-semibold text-gray-800 mb-1.5">
-              요청가 <span class="text-gray-400 font-normal">(선택)</span>
-            </label>
-            <input type="number" id="productPrice" name="price" min="0" step="1"
-              placeholder="예: 129000"
-              class="w-full rounded-xl border-2 border-gray-200 px-4 py-3 text-sm sm:text-base focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 outline-none transition" />
+            <div>
+              <label for="productPrice" class="block text-sm font-semibold text-gray-800 mb-1.5">
+                현재 보신 가격 <span class="text-gray-400 font-normal">(선택)</span>
+              </label>
+              <input type="number" id="productPrice" name="price" min="0" step="1"
+                placeholder="예: 129000"
+                class="w-full rounded-xl border-2 border-gray-200 px-4 py-3 text-sm sm:text-base focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 outline-none transition" />
+              <p class="text-xs text-gray-500 mt-1.5">화면에 보이는 가격을 적어주시면 비교에 도움이 됩니다.</p>
+            </div>
+            <div>
+              <label for="userEmail" class="block text-sm font-semibold text-gray-800 mb-1.5">
+                결과 받을 이메일 <span class="text-red-500">*</span>
+              </label>
+              <input type="email" id="userEmail" name="email" required
+                placeholder="example@email.com"
+                class="w-full rounded-xl border-2 border-gray-200 px-4 py-3 text-sm sm:text-base focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 outline-none transition" />
+            </div>
           </div>
 
-          <div>
-            <label for="userEmail" class="block text-sm font-semibold text-gray-800 mb-1.5">
-              결과 받을 이메일 <span class="text-red-500">*</span>
-            </label>
-            <input type="email" id="userEmail" name="email" required
-              placeholder="example@email.com"
-              class="w-full rounded-xl border-2 border-gray-200 px-4 py-3 text-sm sm:text-base focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 outline-none transition" />
+          <div class="rounded-xl bg-slate-50 border border-slate-200 p-4">
+            <p class="text-xs font-bold text-slate-700 mb-3">검토 진행 단계</p>
+            <ol class="space-y-2 text-xs text-slate-600">
+              <li class="flex gap-2"><span class="text-emerald-600 font-bold">①</span> 의뢰 접수 — 즉시</li>
+              <li class="flex gap-2"><span class="text-emerald-600 font-bold">②</span> 가격·판매처·옵션 검증 — 24시간 이내</li>
+              <li class="flex gap-2"><span class="text-emerald-600 font-bold">③</span> 구매판단 리포트 발송 — 이메일</li>
+            </ol>
           </div>
-          </div>
-          <p class="text-xs text-gray-500 -mt-2">검토 결과는 이메일로만 보내드립니다. (스팸함도 확인해 주세요)</p>
 
           <label class="flex items-start gap-3 p-4 rounded-xl bg-gray-50 border border-gray-200 cursor-pointer">
             <input type="checkbox" id="privacyAgree" required class="mt-1 w-4 h-4 text-emerald-600 rounded" />
@@ -95,12 +121,12 @@
 
           <button type="submit" id="submit-btn"
             class="w-full py-4 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-bold text-lg shadow-lg hover:from-emerald-600 hover:to-emerald-700 transition disabled:opacity-60 disabled:cursor-not-allowed">
-            무료로 검토 의뢰하기
+            구매판단 리포트 의뢰하기
           </button>
 
           <p class="text-center text-xs text-gray-500">
-            무료 체험은 이메일당 1회입니다.
-            <a href="register.html" class="text-emerald-600 hover:underline font-medium">회원가입</a>하면 무제한 의뢰·내역 확인이 가능합니다.
+            무료 체험은 이메일당 1회 · 리포트는 <strong>24시간 이내</strong> 발송
+            <a href="register.html" class="text-emerald-600 hover:underline font-medium">회원가입</a>하면 추가 의뢰·내역 확인 가능
           </p>
         </form>
       </div>
@@ -112,10 +138,10 @@
             <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
           </svg>
         </div>
-        <h2 class="text-2xl font-extrabold text-gray-900 mb-2">의뢰가 접수됐어요</h2>
+        <h2 class="text-2xl font-extrabold text-gray-900 mb-2">의뢰 접수 완료</h2>
         <p class="text-gray-600 mb-6 leading-relaxed">
-          검토가 완료되면 아래 이메일로 <strong>검토 결과 전문</strong>을 보내드릴게요.<br>
-          보통 <strong>24~48시간</strong> 내 발송됩니다.
+          <strong>24시간 이내</strong> 구매판단 리포트를 아래 이메일로 보내드립니다.<br>
+          배송·옵션·판매처까지 포함된 검증 결과입니다.
         </p>
         <div class="rounded-xl bg-emerald-50 border border-emerald-200 p-4 mb-4">
           <div class="text-xs text-emerald-700 mb-1">결과 수신 이메일</div>
@@ -136,15 +162,17 @@
     (function () {
       var GUEST_TRIAL_KEY = 'ph_guest_trial_used';
       var guestTrialStrict = false;
+
       var form = document.getElementById('guest-request-form');
       var formCard = document.getElementById('form-card');
       var successCard = document.getElementById('success-card');
       var submitBtn = document.getElementById('submit-btn');
+      var productUrlInput = document.getElementById('productUrl');
 
       var params = new URLSearchParams(window.location.search);
       var prefillUrl = params.get('url');
       if (prefillUrl) {
-        document.getElementById('productUrl').value = prefillUrl;
+        productUrlInput.value = prefillUrl;
       }
 
       function memberRegisterUrl() {
@@ -184,11 +212,17 @@
           return;
         }
 
-        var url = document.getElementById('productUrl').value.trim();
+        var url = productUrlInput.value.trim();
         var optionName = document.getElementById('productOption').value.trim();
         var email = document.getElementById('userEmail').value.trim();
         var priceVal = document.getElementById('productPrice').value.trim();
         var privacyAgree = document.getElementById('privacyAgree').checked;
+
+        if (!url) {
+          alert('쇼핑몰 상품 링크를 입력해주세요.');
+          productUrlInput.focus();
+          return;
+        }
 
         if (!optionName) {
           alert('옵션을 입력해주세요. 옵션이 없으면 "단일옵션"이라고 적어주세요.');
@@ -202,6 +236,7 @@
             return;
           }
           url = urlCheck.normalized;
+          productUrlInput.value = url;
           if (urlCheck.flagged) {
             var proceed = confirm(
               '등록되지 않은 쇼핑몰 링크입니다.\n' +
@@ -261,11 +296,12 @@
           formCard.classList.add('hidden');
           successCard.classList.remove('hidden');
           document.getElementById('success-email').textContent = email;
-          document.getElementById('success-req-num').textContent = data.requestNumber || '';
+          document.getElementById('success-req-num').textContent = data.requestNumber || '-';
         } catch (err) {
           alert(err.message || '의뢰 접수 중 오류가 발생했습니다.');
+        } finally {
           submitBtn.disabled = false;
-          submitBtn.textContent = '무료로 검토 의뢰하기';
+          submitBtn.textContent = '구매판단 리포트 의뢰하기';
         }
       });
     })();
