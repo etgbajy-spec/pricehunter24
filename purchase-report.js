@@ -53,7 +53,8 @@
         sellerName: '',
         trustScore: '',
         risks: '',
-        domesticVsImport: ''
+        domesticVsImport: '',
+        domesticImportPreset: ''
       },
       evidenceNotes: ''
     };
@@ -477,7 +478,8 @@
         sellerName: val('admin-seller-name'),
         trustScore: val('admin-trust-score'),
         risks: val('admin-seller-risks'),
-        domesticVsImport: val('admin-domestic-import')
+        domesticVsImport: val('admin-domestic-import'),
+        domesticImportPreset: val('admin-domestic-import-preset')
       },
       evidenceNotes: val('admin-evidence-notes')
     });
@@ -513,6 +515,7 @@
     set('admin-seller-name', data.sellerAnalysis.sellerName);
     set('admin-trust-score', data.sellerAnalysis.trustScore);
     set('admin-seller-risks', data.sellerAnalysis.risks);
+    set('admin-domestic-import-preset', data.sellerAnalysis.domesticImportPreset);
     set('admin-domestic-import', data.sellerAnalysis.domesticVsImport);
     set('admin-evidence-notes', data.evidenceNotes);
   }

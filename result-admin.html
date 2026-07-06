@@ -314,8 +314,18 @@
                 <textarea id="admin-seller-risks" rows="2" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-indigo-400 focus:outline-none"></textarea>
               </div>
               <div>
-                <label class="block text-gray-600 text-xs mb-1" for="admin-domestic-import">국내 vs 직구 비교</label>
-                <textarea id="admin-domestic-import" rows="2" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-indigo-400 focus:outline-none"></textarea>
+                <label class="block text-gray-600 text-xs mb-1" for="admin-domestic-import-preset">국내 vs 직구</label>
+                <select id="admin-domestic-import-preset" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm mb-1.5 focus:ring-2 focus:ring-indigo-400 focus:outline-none">
+                  <option value="">— 템플릿 선택 —</option>
+                  <option value="domestic_advantage">국내 구매가 유리</option>
+                  <option value="import_advantage">직구가 유리 (총비용)</option>
+                  <option value="similar">국내·직구 비슷함</option>
+                  <option value="domestic_recommended">국내 구매 추천 (배송·AS)</option>
+                  <option value="import_recommended">직구 추천 (가격)</option>
+                  <option value="domestic_only">국내 경로만 검증</option>
+                  <option value="import_only">직구 경로만 검증</option>
+                </select>
+                <textarea id="admin-domestic-import" rows="3" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-indigo-400 focus:outline-none" placeholder="템플릿 선택 시 자동 입력 · 필요 시 수정"></textarea>
               </div>
             </div>
 
@@ -1297,6 +1307,22 @@
           if (!trend || !window.ReportPresets) return;
           ReportPresets.applyTrendToAdminForm(trend, getAdminPresetContext());
           if (window.PurchaseReport) updateQaWarningsPanel(PurchaseReport.collectFromAdminForm());
+        });
+
+        document.getElementById('admin-domestic-import-preset')?.addEventListener('change', function () {
+          var preset = this.value;
+          if (!preset || !window.ReportPresets) return;
+          ReportPresets.applyDomesticImportToAdminForm(preset, getAdminPresetContext());
+          if (window.PurchaseReport) updateQaWarningsPanel(PurchaseReport.collectFromAdminForm());
+        });
+
+        document.getElementById('admin-domestic-import')?.addEventListener('input', function () {
+          var presetEl = document.getElementById('admin-domestic-import-preset');
+          if (!presetEl || !window.ReportPresets) return;
+          var expected = ReportPresets.getDomesticImportPresetText(presetEl.value, getAdminPresetContext());
+          if (presetEl.value && this.value.trim() !== expected.trim()) {
+            presetEl.value = '';
+          }
         });
       });
       

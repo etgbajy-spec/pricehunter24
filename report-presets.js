@@ -93,17 +93,75 @@
   function buildSellerAnalysis(ctx) {
     ctx = buildContext(ctx);
     var seller = ctx.sellerName || '검증 판매처';
-    var isImport = /직구|해외|amazon|aliexpress|ebay/i.test(seller + ctx.referenceUrl);
+    var presetKey = inferDomesticImportPresetKey(ctx);
+    var importPreset = getDomesticImportPreset(presetKey, ctx);
     return {
       sellerName: seller.replace(/ \/ PriceHunter.*/, ''),
       trustScore: 84,
-      risks: isImport
+      risks: isImportRoute(ctx)
         ? '해외 배송·통관·AS 절차는 구매 전 안내드린 범위 내에서 확인했습니다.'
         : '국내 판매처 기준으로 정상 운영이 확인되었으며, 특이 리스크는 발견되지 않았습니다.',
-      domesticVsImport: isImport
-        ? '해외 직구 경로입니다. 총비용(배송·관세)을 포함해 검증했습니다.'
-        : '국내 구매 기준으로 검증했으며, 배송·AS 접근성이 양호합니다.'
+      domesticVsImport: importPreset.text,
+      domesticImportPreset: presetKey
     };
+  }
+
+  function isImportRoute(ctx) {
+    var hay = String((ctx && ctx.sellerName) || '') + String((ctx && ctx.referenceUrl) || '');
+    return /직구|해외|amazon|aliexpress|ebay|타오바오|tmall|글로벌|global/i.test(hay);
+  }
+
+  function inferDomesticImportPresetKey(ctx) {
+    return isImportRoute(ctx) ? 'import_only' : 'domestic_only';
+  }
+
+  function getDomesticImportPreset(type, ctx) {
+    ctx = buildContext(ctx);
+    var lowest = formatPriceKr(ctx.lowestPrice);
+    var requested = formatPriceKr(ctx.requestedPrice);
+    var priceSuffix = lowest ? ' (확인 최저가: ' + lowest + ')' : '';
+    var compareSuffix = lowest && requested
+      ? ' 의뢰가 ' + requested + ' 대비 ' + lowest + ' 기준입니다.'
+      : priceSuffix;
+
+    var presets = {
+      domestic_advantage: {
+        label: '국내 구매가 유리',
+        text: '국내 판매처 기준으로 검증했습니다. 총비용·배송·AS·반품 접근성을 포함하면 국내 구매가 더 유리합니다.' + compareSuffix
+      },
+      import_advantage: {
+        label: '직구가 유리 (총비용)',
+        text: '해외 직구 경로가 상품가·배송·관세를 합산한 총비용 기준으로 더 유리합니다. 통관·배송 기간은 판매처 안내 범위 내에서 확인했습니다.' + compareSuffix
+      },
+      similar: {
+        label: '국내·직구 비슷함',
+        text: '국내 구매와 해외 직구를 비교한 결과, 총비용 차이가 크지 않습니다. 빠른 배송·AS는 국내, 가격은 직구 쪽을 검토할 수 있습니다.'
+      },
+      domestic_recommended: {
+        label: '국내 구매 추천 (배송·AS)',
+        text: '가격 차이가 크지 않거나 국내가 다소 높더라도, 빠른 배송·국내 AS·반품 편의를 고려하면 국내 구매를 추천합니다.' + priceSuffix
+      },
+      import_recommended: {
+        label: '직구 추천 (가격)',
+        text: '총비용 기준 해외 직구가 확실히 유리합니다. 다만 배송·통관·AS는 해외 판매처 정책을 따릅니다.' + compareSuffix
+      },
+      domestic_only: {
+        label: '국내 경로만 검증',
+        text: '국내 구매 경로로 검증했습니다. 배송·반품·AS가 국내 기준으로 처리되는 판매처입니다.' + priceSuffix
+      },
+      import_only: {
+        label: '직구 경로만 검증',
+        text: '해외 직구 경로로 검증했습니다. 관세·배송비를 포함한 실구매가 기준입니다.' + compareSuffix
+      }
+    };
+
+    var preset = presets[type];
+    if (!preset) return { label: '', text: '' };
+    return preset;
+  }
+
+  function getDomesticImportPresetText(type, ctx) {
+    return getDomesticImportPreset(type, ctx).text;
   }
 
   function buildEvidenceNotes(ctx) {
@@ -197,8 +255,21 @@
     set('admin-seller-name', seller.sellerName);
     set('admin-trust-score', seller.trustScore);
     set('admin-seller-risks', seller.risks);
+    set('admin-domestic-import-preset', seller.domesticImportPreset || '');
     set('admin-domestic-import', seller.domesticVsImport);
     set('admin-evidence-notes', buildEvidenceNotes(ctx));
+  }
+
+  function applyDomesticImportToAdminForm(type, ctx) {
+    if (!type) return;
+    var text = getDomesticImportPresetText(type, ctx);
+    if (!text) return;
+    function set(id, val) {
+      var el = document.getElementById(id);
+      if (el) el.value = val != null ? val : '';
+    }
+    set('admin-domestic-import-preset', type);
+    set('admin-domestic-import', text);
   }
 
   function buildAdminFormContextFromRequest(req, formVals) {
@@ -219,12 +290,16 @@
     buildAdminFormContextFromRequest: buildAdminFormContextFromRequest,
     getVerdictPreset: getVerdictPreset,
     getTrendPreset: getTrendPreset,
+    getDomesticImportPreset: getDomesticImportPreset,
+    getDomesticImportPresetText: getDomesticImportPresetText,
+    inferDomesticImportPresetKey: inferDomesticImportPresetKey,
     buildProductAnalysis: buildProductAnalysis,
     buildSellerAnalysis: buildSellerAnalysis,
     buildEvidenceNotes: buildEvidenceNotes,
     enrichDraft: enrichDraft,
     applyVerdictToAdminForm: applyVerdictToAdminForm,
     applyTrendToAdminForm: applyTrendToAdminForm,
+    applyDomesticImportToAdminForm: applyDomesticImportToAdminForm,
     applyAnalysisSectionsToAdminForm: applyAnalysisSectionsToAdminForm
   };
 

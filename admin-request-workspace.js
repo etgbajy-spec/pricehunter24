@@ -546,6 +546,22 @@
       ReportPresets.applyTrendToAdminForm(trend, getAdminPresetContext());
       if (global.PurchaseReport) updateQaWarningsPanel(PurchaseReport.collectFromAdminForm());
     });
+
+    document.getElementById('admin-domestic-import-preset')?.addEventListener('change', function () {
+      var preset = this.value;
+      if (!preset || !global.ReportPresets) return;
+      ReportPresets.applyDomesticImportToAdminForm(preset, getAdminPresetContext());
+      if (global.PurchaseReport) updateQaWarningsPanel(PurchaseReport.collectFromAdminForm());
+    });
+
+    document.getElementById('admin-domestic-import')?.addEventListener('input', function () {
+      var presetEl = document.getElementById('admin-domestic-import-preset');
+      if (!presetEl || !global.ReportPresets) return;
+      var expected = ReportPresets.getDomesticImportPresetText(presetEl.value, getAdminPresetContext());
+      if (presetEl.value && this.value.trim() !== expected.trim()) {
+        presetEl.value = '';
+      }
+    });
   }
 
   function init() {
