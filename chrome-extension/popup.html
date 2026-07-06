@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PriceHunter</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <header class="ph-header">
+    <div class="ph-logo">🎯 PriceHunter</div>
+    <p class="ph-sub">구매판단 리포트 의뢰</p>
+  </header>
+
+  <main>
+    <div id="status" class="ph-status">페이지 정보를 읽는 중…</div>
+
+    <div id="preview" class="ph-preview hidden">
+      <div class="ph-row"><span class="ph-label">판매처</span><span id="pv-marketplace" class="ph-value">—</span></div>
+      <div class="ph-row"><span class="ph-label">상품명</span><span id="pv-name" class="ph-value">—</span></div>
+      <div class="ph-row"><span class="ph-label">가격</span><span id="pv-price" class="ph-value">—</span></div>
+      <div class="ph-row"><span class="ph-label">옵션</span><span id="pv-option" class="ph-value">—</span></div>
+    </div>
+
+    <div class="ph-actions">
+      <button type="button" id="btn-guest" class="ph-btn ph-btn-primary" disabled>무료 의뢰 (게스트)</button>
+      <button type="button" id="btn-member" class="ph-btn ph-btn-secondary" disabled>회원 의뢰</button>
+    </div>
+
+    <details class="ph-settings">
+      <summary>설정</summary>
+      <label class="ph-setting-row">
+        <span>연결 사이트</span>
+        <select id="site-mode">
+          <option value="production">pricehunt24.com (운영)</option>
+          <option value="local">localhost:1000 (로컬)</option>
+        </select>
+      </label>
+    </details>
+  </main>
+
+  <script src="lib/config.js"></script>
+  <script src="lib/open-request.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

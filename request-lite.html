@@ -15,6 +15,21 @@
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
   <script src="url-safety.js"></script>
+  <script src="request-url-prefill.js"></script>
+  <script>
+    (function () {
+      window.__PH_PREFILL_FIELDS__ = {
+        url: 'productUrl',
+        name: 'productName',
+        option: 'productOption',
+        price: 'productPrice',
+        bannerHostId: 'extension-prefill-banner'
+      };
+      if (window.RequestUrlPrefill) {
+        RequestUrlPrefill.bindExtensionListener(window.__PH_PREFILL_FIELDS__);
+      }
+    })();
+  </script>
   <script src="customer-notification.js"></script>
   <style>
     body { font-family: 'Noto Sans KR', sans-serif; }
@@ -58,6 +73,10 @@
           </div>
         </div>
 
+        <div id="extension-prefill-banner" class="hidden mb-5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 leading-relaxed">
+          <strong>확장 프로그램</strong>에서 상품 정보를 불러왔습니다. 내용을 확인한 뒤 의뢰해 주세요.
+        </div>
+
         <form id="guest-request-form" class="space-y-5">
           <div>
             <label for="productUrl" class="block text-sm font-semibold text-gray-800 mb-1.5">
@@ -70,6 +89,16 @@
                 class="flex-1 bg-transparent border-0 outline-none text-sm sm:text-base py-1.5 min-w-0" />
             </div>
             <p class="text-xs text-gray-500 mt-1.5">쿠팡 · 네이버 · 11번가 · G마켓 · 해외몰 링크 가능</p>
+          </div>
+
+          <div>
+            <label for="productName" class="block text-sm font-semibold text-gray-800 mb-1.5">
+              상품명 <span class="text-gray-400 font-normal">(선택)</span>
+            </label>
+            <input type="text" id="productName" name="productName"
+              placeholder="예: 무선 블루투스 이어폰"
+              class="w-full rounded-xl border-2 border-gray-200 px-4 py-3 text-sm sm:text-base focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 outline-none transition" />
+            <p class="text-xs text-gray-500 mt-1.5">확장 프로그램·링크에서 자동으로 채워집니다. 틀리면 수정해 주세요.</p>
           </div>
 
           <div>
@@ -170,10 +199,48 @@
       var productUrlInput = document.getElementById('productUrl');
 
       var params = new URLSearchParams(window.location.search);
-      var prefillUrl = params.get('url');
-      if (prefillUrl) {
-        productUrlInput.value = prefillUrl;
+      var prefillFields = window.__PH_PREFILL_FIELDS__ || {
+        url: 'productUrl',
+        name: 'productName',
+        option: 'productOption',
+        price: 'productPrice',
+        bannerHostId: 'extension-prefill-banner'
+      };
+
+      if (window.RequestUrlPrefill) {
+        RequestUrlPrefill.apply(prefillFields);
+        RequestUrlPrefill.drainQueuedPrefill(prefillFields);
+      } else if (params.get('url')) {
+        productUrlInput.value = params.get('url');
       }
+
+      async function enrichFromQuickScan() {
+        var url = productUrlInput.value.trim();
+        if (!url) return;
+        var nameEl = document.getElementById('productName');
+        var priceEl = document.getElementById('productPrice');
+        var needName = nameEl && !nameEl.value.trim();
+        var needPrice = priceEl && !priceEl.value.trim();
+        if (!needName && !needPrice) return;
+
+        try {
+          var res = await fetch('/api/quick-scan', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url: url })
+          });
+          var data = await res.json().catch(function () { return {}; });
+          if (!data.ok || !data.scan) return;
+          if (needName && data.scan.productName) {
+            nameEl.value = data.scan.productName;
+          }
+          if (needPrice && data.scan.detectedPrice) {
+            priceEl.value = String(Math.round(data.scan.detectedPrice));
+          }
+        } catch (e) { /* ignore */ }
+      }
+
+      enrichFromQuickScan();
 
       function memberRegisterUrl() {
         return 'register.html?next=' + encodeURIComponent('request-v2.html') + '&reason=guest_trial';
@@ -213,6 +280,7 @@
         }
 
         var url = productUrlInput.value.trim();
+        var productName = document.getElementById('productName').value.trim();
         var optionName = document.getElementById('productOption').value.trim();
         var email = document.getElementById('userEmail').value.trim();
         var priceVal = document.getElementById('productPrice').value.trim();
@@ -262,6 +330,7 @@
             body: JSON.stringify({
               url: url,
               email: email,
+              productName: productName,
               optionName: optionName,
               price: priceVal || null,
               privacyAgree: true

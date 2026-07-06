@@ -23,6 +23,20 @@
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <script src="purchase-report.js"></script>
   <script src="request-data-sync.js"></script>
+  <script src="request-url-prefill.js"></script>
+  <script>
+    (function () {
+      window.__PH_PREFILL_FIELDS__ = {
+        url: 'productUrl',
+        name: 'productName',
+        option: 'productOption',
+        price: 'productPrice'
+      };
+      if (window.RequestUrlPrefill) {
+        RequestUrlPrefill.bindExtensionListener(window.__PH_PREFILL_FIELDS__);
+      }
+    })();
+  </script>
   <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
   <script src="customer-notification.js"></script>
   
@@ -987,6 +1001,26 @@
     }
     
     showStep(1);
+
+    if (window.RequestUrlPrefill) {
+      var prefillFields = window.__PH_PREFILL_FIELDS__ || {
+        url: 'productUrl',
+        name: 'productName',
+        option: 'productOption',
+        price: 'productPrice'
+      };
+      var prefillResult = RequestUrlPrefill.apply(prefillFields);
+      RequestUrlPrefill.drainQueuedPrefill(prefillFields);
+      if (prefillResult.fromExtension) {
+        var descEl = document.getElementById('productDesc');
+        if (descEl && !descEl.value.trim()) {
+          var name = document.getElementById('productName').value.trim();
+          descEl.value = name
+            ? '크롬 확장에서 불러온 상품입니다. (' + name + ') 링크·옵션 기준으로 검토해 주세요.'
+            : '크롬 확장에서 불러온 상품입니다. 링크·옵션 기준으로 검토해 주세요.';
+        }
+      }
+    }
 
     function validateStep1() {
       const comparisonType = document.querySelector('input[name="comparisonType"]:checked');

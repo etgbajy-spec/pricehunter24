@@ -1,0 +1,56 @@
+{
+  "manifest_version": 3,
+  "name": "PriceHunter — 구매판단 리포트",
+  "version": "1.0.2",
+  "description": "쿠팡·네이버 등 상품 페이지에서 링크·가격·옵션을 자동으로 읽어 구매판단 리포트를 의뢰합니다.",
+  "permissions": ["activeTab", "storage"],
+  "host_permissions": [
+    "https://www.coupang.com/*",
+    "https://m.coupang.com/*",
+    "https://shopping.naver.com/*",
+    "https://smartstore.naver.com/*",
+    "https://*.11st.co.kr/*",
+    "https://*.gmarket.co.kr/*",
+    "https://item.gmarket.co.kr/*",
+    "https://*.auction.co.kr/*",
+    "https://pricehunt24.com/*",
+    "http://localhost:1000/*",
+    "http://127.0.0.1:1000/*"
+  ],
+  "action": {
+    "default_title": "PriceHunter 의뢰",
+    "default_popup": "popup.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.coupang.com/*",
+        "https://m.coupang.com/*",
+        "https://shopping.naver.com/*",
+        "https://smartstore.naver.com/*",
+        "https://*.11st.co.kr/*",
+        "https://*.gmarket.co.kr/*",
+        "https://item.gmarket.co.kr/*",
+        "https://*.auction.co.kr/*"
+      ],
+      "js": ["lib/config.js", "content/extract.js", "lib/open-request.js", "content/fab.js"],
+      "css": ["content/fab.css"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://pricehunt24.com/request-lite.html*",
+        "https://pricehunt24.com/request-v2.html*",
+        "http://localhost:1000/request-lite.html*",
+        "http://127.0.0.1:1000/request-lite.html*",
+        "http://localhost:1000/request-v2.html*",
+        "http://127.0.0.1:1000/request-v2.html*"
+      ],
+      "js": ["content/request-prefill-bridge.js"],
+      "run_at": "document_start"
+    }
+  ]
+}
