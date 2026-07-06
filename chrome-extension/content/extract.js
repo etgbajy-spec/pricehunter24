@@ -222,43 +222,97 @@
 
   function getCoupangBuyPanel() {
     return (
-      document.querySelector('.prod-buy, .prod-option, .prod-buy-header, #contents') ||
+      document.querySelector('.prod-buy, .prod-buy-new, .prod-option, .prod-buy-header') ||
       document.body
     );
+  }
+
+  function getCoupangOptionRoot() {
+    return (
+      document.querySelector('.prod-option, .prod-option-container, [class*="prod-option"]') ||
+      getCoupangBuyPanel()
+    );
+  }
+
+  function cleanCoupangOptionLine(text) {
+    var t = cleanMallOptionLine(text);
+    t = t.replace(/(\d+\s*A(?:H|h)?)(\d{1,3}(?:,\d{3})+\s*원?.*)$/i, '$1');
+    t = t.replace(/(\d+\s*(?:GB|ML|인치|inch))(\d{1,3}(?:,\d{3})+\s*원?.*)$/i, '$1');
+    t = t.replace(/([가-힣A-Za-z0-9])(\d{1,3}(?:,\d{3})+\s*원).*$/g, '$1').trim();
+    t = t.replace(/\d{1,3}(?:,\d{3})+\s*원.*$/g, '').trim();
+    t = t.replace(/할인.*$/i, '').trim();
+    t = t.replace(/\d{1,2}\/\d{1,2}\s*도착.*$/i, '').trim();
+    t = t.replace(/도착\s*예정.*$/i, '').trim();
+    t = t.replace(/\(?(?:판매자|로켓|새벽|당일|직접)배송[^)]*\)?/gi, '').trim();
+    t = t.replace(/배송비.*$/i, '').trim();
+    t = t.replace(/색상\s*[x×]\s*사이즈\s*/gi, '').trim();
+    return t.replace(/\s+/g, ' ').trim();
+  }
+
+  function finalizeCoupangOption(option) {
+    return cleanCoupangOptionLine(option);
   }
 
   function isCoupangOptionNoise(text) {
     if (!text) return true;
     if (/^(옵션|수량|필수|선택|삭제|닫기)$/i.test(text)) return true;
     if (/선택해\s*주세요|옵션을\s*선택|필수\s*옵션/i.test(text)) return true;
-    if (/장바구니|바로구매|쿠폰\s*받기|로켓배송/i.test(text) && text.length < 35) return true;
+    if (/장바구니|바로구매|쿠폰\s*받기/i.test(text) && text.length < 35) return true;
+    if (/도착\s*예정|판매자배송|로켓배송|배송비/i.test(text)) return true;
+    if (/\d{1,2}\/\d{1,2}/.test(text) && /도착|배송/.test(text)) return true;
+    if (/\d{1,3}(?:,\d{3})+\s*원/.test(text) && text.length > 25 && !/[x×]/.test(text)) return true;
     return false;
   }
 
   function extractCoupangOptions() {
-    var buyRoot = getCoupangBuyPanel();
+    var optionRoot = getCoupangOptionRoot();
     var items = [];
     var seen = {};
 
-    queryAll([
-      '.prod-option__item--selected',
-      '.prod-option-selected-item',
-      '[class*="option-selected"]',
-      '.option-table-list__option--selected',
-      '.prod-option-table__item--selected',
-      '.prod-option__selected-item'
-    ], buyRoot).forEach(function (row) {
-      var name = finalizeMallOption(getOptionTextFromEl(row) || row.textContent);
-      if (!name || name.length < 2 || name.length > 150 || isCoupangOptionNoise(name)) return;
+    function add(name) {
+      name = finalizeCoupangOption(name);
+      if (!name || name.length < 2 || name.length > 120 || isCoupangOptionNoise(name)) return;
       if (seen[name]) return;
       seen[name] = true;
       items.push({ name: name });
+    }
+
+    optionRoot.querySelectorAll(
+      '.prod-option__name, [class*="option__name"], .prod-option-selected__name'
+    ).forEach(function (el) {
+      var t = getOptionTextFromEl(el) || el.textContent;
+      if (t && t.length < 80) add(t);
     });
+
+    if (!items.length) {
+      queryAll([
+        '.prod-option__item--selected .prod-option__name',
+        '.option-table-list__option--selected .prod-option__name',
+        'button.prod-option__item[aria-pressed="true"] .prod-option__name',
+        '.prod-option__item--selected'
+      ], optionRoot).forEach(function (row) {
+        var nameEl = row.querySelector('.prod-option__name, [class*="option__name"]');
+        if (nameEl) {
+          add(nameEl.textContent);
+        } else if (row.classList && row.classList.contains('prod-option__item--selected')) {
+          add(getOptionTextFromEl(row));
+        }
+      });
+    }
+
+    if (!items.length) {
+      optionRoot.querySelectorAll('button.prod-option__item, .prod-option__item').forEach(function (btn) {
+        var pressed = btn.getAttribute('aria-pressed');
+        if (pressed === 'false') return;
+        var nameEl = btn.querySelector('.prod-option__name, [class*="option__name"]');
+        if (nameEl) add(nameEl.textContent);
+      });
+    }
 
     if (items.length) return formatNaverOptionList(items);
 
     var parts = [];
-    buyRoot.querySelectorAll('select').forEach(function (sel) {
+    optionRoot.querySelectorAll('select').forEach(function (sel) {
       if (!sel.value || sel.selectedIndex < 0) return;
       var opt = sel.options[sel.selectedIndex];
       var label = (opt && opt.textContent || '').replace(/\s+/g, ' ').trim();
@@ -266,7 +320,7 @@
       if (/선택|옵션\s*선택/i.test(label) && label.length < 20) return;
       if (parts.indexOf(label) < 0) parts.push(label);
     });
-    if (parts.length) return finalizeMallOption(parts.join(' / '));
+    if (parts.length) return finalizeCoupangOption(parts.join(' / '));
     return '';
   }
 
@@ -281,10 +335,10 @@
     var price = extractTotalPriceFromPanel(buyRoot) ||
       PH.normalizePrice(textOf([
         '.total-price strong',
-        '.total-price',
-        '.prod-price .total-price',
         '.price-amount.final-price-amount',
-        '[class*="total-price"] strong'
+        '.prod-price .total-price strong',
+        '.total-price',
+        '.prod-price .total-price'
       ], buyRoot));
     if (price && !isValidNaverPrice(price)) price = null;
     return {
@@ -1084,13 +1138,10 @@
     if (host.indexOf('coupang') >= 0) {
       document.querySelectorAll(
         '.prod-option__item--selected .prod-option__name, ' +
-        '.prod-option__item--selected, ' +
-        'button[class*="option"][aria-pressed="true"], ' +
-        'li[class*="option"][class*="selected"], ' +
-        '[class*="option-picker"] [class*="selected"], ' +
-        '.option-table-list__option--selected'
+        '.prod-option__name, ' +
+        'button[class*="option"][aria-pressed="true"] .prod-option__name'
       ).forEach(function (el) {
-        var t = (el.textContent || '').replace(/\s+/g, ' ').trim();
+        var t = cleanCoupangOptionLine(el.textContent || '');
         if (t && t.length < 100 && parts.indexOf(t) < 0 && !/^옵션/.test(t)) parts.push(t);
       });
     } else {
