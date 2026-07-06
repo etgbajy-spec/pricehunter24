@@ -619,6 +619,29 @@
     if (/^(옵션|수량|필수|선택|삭제|닫기)$/i.test(text)) return true;
     if (/선택해\s*주세요|옵션\s*선택/i.test(text)) return true;
     if (/장바구니|바로구매|쿠폰|찜하기/i.test(text) && text.length < 30) return true;
+    if (/배송비|무료\s*배송|도착\s*예정|이내\s*도착|택배|대한통운|CJ|제주|도서\s*산간|산간\s*지역/i.test(text)) return true;
+    if (/\d{1,2}\/\d{1,2}\s*\(?[월화수목금토일]\)?\s*(이내)?\s*도착/i.test(text)) return true;
+    return false;
+  }
+
+  function clean11stOptionLine(text) {
+    var t = cleanMallOptionLine(text);
+    t = t.replace(/배송비.*$/i, '').trim();
+    t = t.replace(/무료\s*배송.*$/i, '').trim();
+    t = t.replace(/CJ\s*대한통운.*$/i, '').trim();
+    t = t.replace(/\d{1,2}\/\d{1,2}\s*\(?[월화수목금토일]\)?\s*(이내)?\s*도착\s*예정.*$/i, '').trim();
+    t = t.replace(/제주지역\s*,?\s*도서산간지역.*$/i, '').trim();
+    t = t.replace(/\s+/g, ' ').trim();
+    return t;
+  }
+
+  function looksLike11stOptionValue(text) {
+    var t = clean11stOptionLine(text);
+    if (!t || t.length < 3 || t.length > 120) return false;
+    if (is11stOptionNoise(t)) return false;
+    if (/\d+\s*(?:AH|Ah|km|KM|V|GB|인치|inch)\b/.test(t)) return true;
+    if (/[가-힣]{2,}\s*[-–—]\s*.+/.test(t)) return true; // "6AH - ..."
+    if (/[x×]/.test(t) && /[가-힣A-Za-z]/.test(t)) return true;
     return false;
   }
 
@@ -628,7 +651,7 @@
     var seen = {};
 
     function add(name) {
-      name = finalizeMallOption(name);
+      name = clean11stOptionLine(finalizeMallOption(name));
       if (!name || seen[name] || is11stOptionNoise(name)) return;
       seen[name] = true;
       items.push({ name: name });
@@ -643,7 +666,7 @@
       '.c_product_option li.on',
       '[class*="opt_select"] [class*="on"]'
     ], buyRoot).forEach(function (row) {
-      var name = getOptionTextFromEl(row) || cleanMallOptionLine(row.textContent);
+      var name = getOptionTextFromEl(row) || clean11stOptionLine(row.textContent);
       if (name && name.length >= 2 && name.length <= 150) add(name);
     });
 
@@ -655,12 +678,31 @@
         var row = btn.closest('li, div[class]');
         if (!row || (row.textContent || '').length > 280) return;
         if (!/\d{1,3}(?:,\d{3})+\s*원/.test(row.textContent || '')) return;
-        var name = getOptionTextFromEl(row);
+        var name = clean11stOptionLine(getOptionTextFromEl(row));
         if (name) add(name);
       });
     }
 
     if (items.length) return formatNaverOptionList(items);
+
+    // Pattern fallback: grab a plausible selected value from buy panel (exclude shipping text)
+    var best = '';
+    var bestScore = 0;
+    buyRoot.querySelectorAll('span, div, p, strong, em, dd, dt, li').forEach(function (el) {
+      if (!el || el.children.length > 6) return;
+      var raw = (el.textContent || '').replace(/\s+/g, ' ').trim();
+      if (!looksLike11stOptionValue(raw)) return;
+      var cleaned = clean11stOptionLine(raw);
+      var score = cleaned.length;
+      if (/\d+\s*(?:AH|Ah)/.test(cleaned)) score += 20;
+      if (/\d+\s*km/i.test(cleaned)) score += 10;
+      if (/[x×]/.test(cleaned)) score += 8;
+      if (score > bestScore) {
+        bestScore = score;
+        best = cleaned;
+      }
+    });
+    if (best) return best.slice(0, 300);
 
     var parts = [];
     buyRoot.querySelectorAll('select').forEach(function (sel) {
@@ -669,7 +711,8 @@
       var label = (opt && opt.textContent || '').replace(/\s+/g, ' ').trim();
       if (!label || is11stOptionNoise(label)) return;
       if (/^(선택|옵션|모델|색상|사이즈)$/i.test(label)) return;
-      if (parts.indexOf(label) < 0) parts.push(label);
+      label = clean11stOptionLine(label);
+      if (label && parts.indexOf(label) < 0) parts.push(label);
     });
     if (parts.length >= 2) return finalizeMallOption(parts.join(' + '));
     if (parts.length === 1) return finalizeMallOption(parts[0]);
