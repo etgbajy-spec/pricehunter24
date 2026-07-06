@@ -642,69 +642,85 @@
     if (!t || t.length < 3 || t.length > 120) return false;
     if (is11stOptionNoise(t)) return false;
     if (/\d+\s*(?:AH|Ah|km|KM|V|GB|인치|inch)\b/.test(t)) return true;
-    if (/[가-힣]{2,}\s*[-–—]\s*.+/.test(t)) return true; // "6AH - ..."
+    if (/[가-힣]{2,}\s*[-–—]\s*.+/.test(t)) return true;
     if (/[x×]/.test(t) && /[가-힣A-Za-z]/.test(t)) return true;
     return false;
   }
 
-  function extract11stOptions() {
+  function is11stOptionPickerItem(row) {
+    if (!row) return false;
+    var raw = (row.textContent || '').replace(/\s+/g, ' ').trim();
+    if (/선택하기/.test(raw) && !/수량\s*(증가|감소)|수량증가|수량감소|삭제/.test(raw)) return true;
+    var list = row.closest('ul, ol, [role="listbox"], [class*="option_list"], [class*="option-list"]');
+    if (!list) return false;
+    return (list.textContent || '').split('선택하기').length >= 3;
+  }
+
+  function is11stSelectedOptionRow(row) {
+    if (!row || is11stOptionPickerItem(row)) return false;
+    var raw = (row.textContent || '').replace(/\s+/g, ' ').trim();
+    if (!raw || raw.length > 280) return false;
+    if (!/\d{1,3}(?:,\d{3})+\s*원/.test(raw)) return false;
+    var hasQty = /수량\s*(증가|감소)|수량증가|수량감소/.test(raw);
+    var hasDelete = /삭제/.test(raw) ||
+      !!row.querySelector('[class*="delete"], [class*="remove"], [class*="btn-remove"], [class*="btn_del"]');
+    return hasQty || hasDelete;
+  }
+
+  function extract11stOptionNameFromRow(row) {
+    var clone = row.cloneNode(true);
+    clone.querySelectorAll(
+      'button, input, img, svg, [class*="quantity"], [class*="delete"], [class*="remove"], [class*="btn-remove"]'
+    ).forEach(function (node) { node.remove(); });
+
+    var raw = getOptionTextFromEl(clone) || clone.textContent || '';
+    raw = clean11stOptionLine(raw);
+    raw = raw.replace(/\d{1,3}(?:,\d{3})+\s*원.*$/g, '').trim();
+    raw = raw.replace(/할인모음가.*$/i, '').trim();
+    raw = raw.replace(/판매가.*$/i, '').trim();
+    raw = raw.replace(/수량\s*(증가|감소).*$/gi, '').trim();
+    raw = raw.replace(/수량증가|수량감소/gi, '').trim();
+    raw = raw.replace(/삭제.*$/i, '').trim();
+    raw = raw.replace(/선택하기.*$/i, '').trim();
+    return raw;
+  }
+
+  function extract11stSelectedOptionRows() {
     var buyRoot = get11stBuyPanel();
     var items = [];
     var seen = {};
 
-    function add(name) {
-      name = clean11stOptionLine(finalizeMallOption(name));
-      if (!name || seen[name] || is11stOptionNoise(name)) return;
+    function addFromRow(row) {
+      var name = extract11stOptionNameFromRow(row);
+      if (!name || !looksLike11stOptionValue(name) || seen[name]) return;
       seen[name] = true;
       items.push({ name: name });
     }
 
-    queryAll([
-      '.list_option .on',
-      '.list_option li.selected',
-      '.prd_option_select li.on',
-      '[class*="option"] [class*="selected"]',
-      '.select_option_list li',
-      '.c_product_option li.on',
-      '[class*="opt_select"] [class*="on"]'
-    ], buyRoot).forEach(function (row) {
-      var name = getOptionTextFromEl(row) || clean11stOptionLine(row.textContent);
-      if (name && name.length >= 2 && name.length <= 150) add(name);
+    buyRoot.querySelectorAll('li, div, section, article').forEach(function (row) {
+      if (!is11stSelectedOptionRow(row)) return;
+      addFromRow(row);
     });
 
     if (!items.length) {
       buyRoot.querySelectorAll(
-        'button, a, [class*="delete"], [class*="close"], [class*="btn-remove"]'
+        'button, a, [class*="delete"], [class*="close"], [class*="btn-remove"], [class*="btn_del"]'
       ).forEach(function (btn) {
         if (/장바구니|구매|쿠폰|찜/i.test(btn.textContent || '')) return;
-        var row = btn.closest('li, div[class]');
-        if (!row || (row.textContent || '').length > 280) return;
+        var row = btn.closest('li, div[class], section');
+        if (!row || is11stOptionPickerItem(row)) return;
         if (!/\d{1,3}(?:,\d{3})+\s*원/.test(row.textContent || '')) return;
-        var name = clean11stOptionLine(getOptionTextFromEl(row));
-        if (name) add(name);
+        addFromRow(row);
       });
     }
 
-    if (items.length) return formatNaverOptionList(items);
+    return items;
+  }
 
-    // Pattern fallback: grab a plausible selected value from buy panel (exclude shipping text)
-    var best = '';
-    var bestScore = 0;
-    buyRoot.querySelectorAll('span, div, p, strong, em, dd, dt, li').forEach(function (el) {
-      if (!el || el.children.length > 6) return;
-      var raw = (el.textContent || '').replace(/\s+/g, ' ').trim();
-      if (!looksLike11stOptionValue(raw)) return;
-      var cleaned = clean11stOptionLine(raw);
-      var score = cleaned.length;
-      if (/\d+\s*(?:AH|Ah)/.test(cleaned)) score += 20;
-      if (/\d+\s*km/i.test(cleaned)) score += 10;
-      if (/[x×]/.test(cleaned)) score += 8;
-      if (score > bestScore) {
-        bestScore = score;
-        best = cleaned;
-      }
-    });
-    if (best) return best.slice(0, 300);
+  function extract11stOptions() {
+    var buyRoot = get11stBuyPanel();
+    var selected = extract11stSelectedOptionRows();
+    if (selected.length) return formatNaverOptionList(selected);
 
     var parts = [];
     buyRoot.querySelectorAll('select').forEach(function (sel) {
