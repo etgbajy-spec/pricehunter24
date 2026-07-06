@@ -190,72 +190,156 @@
     });
 
     if (!candidates.length) return '';
-    candidates.sort(function (a, b) { return b.length - a.length; });
+    candidates = candidates.filter(function (c) { return c.length >= 8 && c.length <= 160; });
+    if (!candidates.length) return '';
+    candidates.sort(function (a, b) {
+      var score = function (t) {
+        var s = 0;
+        if (t.length >= 15 && t.length <= 90) s += 40;
+        if (t.indexOf(':') < 0) s += 20;
+        if (/전기자전거|자전거|타이어|배터리|Ah|inch|인치/i.test(t)) s += 10;
+        return s - t.length * 0.05;
+      };
+      return score(b) - score(a);
+    });
     return candidates[0];
   }
 
+  function cleanNaverProductTitle(title) {
+    title = cleanTitle(title);
+    if (!title) return '';
+    title = title.replace(/\s*:\s*[^:]{1,50}$/, '').trim();
+    title = title.replace(/\s*-\s*네이버\s*쇼핑.*$/i, '').trim();
+    title = title.replace(/\s*:\s*[^:]*스마트스토어.*$/i, '').trim();
+    return title;
+  }
+
+  function isNaverOptionNoise(text) {
+    if (!text) return true;
+    if (/^(선택|옵션|수량|색상|사이즈|필수|추가|옵션\s*선택)/i.test(text)) return true;
+    if (/선택해\s*주세요|선택하세요|필수\s*옵션|추가\s*옵션/i.test(text)) return true;
+    if (/^\d+원$/.test(text) || /^\d+$/.test(text)) return true;
+    if (/^PAS모드|^배터리용량|^추가\s*옵션/i.test(text) && text.length < 25) return true;
+    return false;
+  }
+
+  function cleanNaverOptionLine(text) {
+    var t = String(text || '').replace(/\s+/g, ' ').trim();
+    t = t.replace(/\s*\d[\d,]*\s*원\s*$/g, '').trim();
+    t = t.replace(/\s*\d+\s*개\s*$/g, '').trim();
+    t = t.replace(/\s*[xX×]\s*$/g, '').trim();
+    t = t.replace(/\s*삭제\s*$/g, '').trim();
+    return t;
+  }
+
+  /** 옵션 선택 후 나타나는 요약 줄 (빨간 박스 영역) */
+  function extractNaverSelectedSummaryRow() {
+    var buyRoot =
+      document.querySelector(
+        '[class*="product_option"], [class*="ProductOption"], [class*="option_area"], ' +
+        '[class*="purchase"], [class*="ProductDetail"], [class*="product_detail"]'
+      ) || document.body;
+
+    var best = '';
+    var bestScore = 0;
+
+    buyRoot.querySelectorAll('div, li, span, p, em, strong, a, button').forEach(function (el) {
+      if (el.children.length > 6) return;
+      var t = cleanNaverOptionLine(el.textContent);
+      if (!t || t.length < 6 || t.length > 180) return;
+      if (/총\s*\d+\s*개|총\s*금액|배송비|무료배송|구매하기|장바구니|찜하기|톡톡|네이버페이/i.test(t)) return;
+
+      var score = 0;
+      if (/\s\/\s/.test(t)) score += 80;
+      if (/\([^)]{1,30}\)/.test(t)) score += 10;
+      if (el.closest('[class*="product_item"], [class*="ProductItem"], [class*="option_result"], [class*="selected"]')) {
+        score += 30;
+      }
+      if (el.querySelector('button, [class*="delete"], [class*="remove"], [class*="close"]')) score += 25;
+      score += Math.min(t.length, 60);
+      if (el.children.length <= 2) score += 15;
+
+      if (score > bestScore && !isNaverOptionNoise(t)) {
+        bestScore = score;
+        best = t;
+      }
+    });
+
+    return best;
+  }
+
+  /** 드롭다운(select)에서 선택된 옵션 조합 */
+  function extractNaverFromDropdowns() {
+    var parts = [];
+    var selects = document.querySelectorAll(
+      '[class*="product_option"] select, [class*="ProductOption"] select, ' +
+      '[class*="option_area"] select, [class*="product_detail"] select, #content select'
+    );
+
+    selects.forEach(function (sel) {
+      if (!sel.value || sel.selectedIndex < 0) return;
+      var opt = sel.options[sel.selectedIndex];
+      var label = (opt && opt.textContent || '').replace(/\s+/g, ' ').trim();
+      if (!label || isNaverOptionNoise(label)) return;
+      if (/선택|필수|추가\s*옵션|옵션\s*선택/i.test(label) && label.length < 20) return;
+      if (parts.indexOf(label) < 0) parts.push(label);
+    });
+
+    return parts.join(' / ').slice(0, 200);
+  }
+
   function extractNaverOptions() {
+    var summary = extractNaverSelectedSummaryRow();
+    if (summary) return summary;
+
+    var fromDropdowns = extractNaverFromDropdowns();
+    if (fromDropdowns) return fromDropdowns;
+
     var parts = [];
     var root =
       document.querySelector('[class*="ProductDetail"], [class*="product_detail"], [class*="productDetail"], [class*="option_area"], #content') ||
       document.body;
 
     queryAll([
-      '[class*="product_option"] [class*="option"]',
-      '[class*="product_option"] em',
-      '[class*="product_option"] strong',
+      '[class*="product_item"] [class*="name"]',
+      '[class*="ProductItem"] [class*="name"]',
+      '[class*="product_item"] em',
+      '[class*="product_item"] strong',
+      '[class*="option_result"]',
+      '[class*="selected_option"]',
       '[class*="ProductOption"] [class*="selected"]',
       '[class*="option_select"] [class*="on"]',
       '[class*="option_select"] [class*="selected"]',
-      '[class*="option"] [class*="selected"]',
-      '[class*="Option"] [class*="selected"]',
       'button[class*="option"][aria-pressed="true"]',
       '[class*="color"] [class*="selected"]',
-      '[class*="Color"] [aria-selected="true"]',
-      '[class*="product_item"] [class*="name"]',
-      '[class*="option_name"]',
-      '[class*="OptionName"]'
+      '[class*="Color"] [aria-selected="true"]'
     ], root).forEach(function (el) {
-      var t = (el.textContent || '').replace(/\s+/g, ' ').trim();
-      if (!t || t.length > 120) return;
-      if (/^(선택|옵션|수량|색상|사이즈|필수|추가)$/i.test(t)) return;
-      if (/^\d+원$/.test(t)) return;
-      if (/^\d+$/.test(t)) return;
+      var t = cleanNaverOptionLine(el.textContent);
+      if (!t || t.length > 120 || isNaverOptionNoise(t)) return;
       if (parts.indexOf(t) < 0) parts.push(t);
     });
-
-    if (!parts.length) {
-      queryAll('[class*="product_item"], [class*="ProductItem"], [class*="selected_option"]', root).forEach(function (el) {
-        var t = (el.textContent || '').replace(/\s+/g, ' ').trim();
-        var m = t.match(/^([^0-9\n]{2,80}?)(?:\s+\d+\s*개|\s*\d+원)/);
-        if (m && m[1] && parts.indexOf(m[1].trim()) < 0) {
-          parts.push(m[1].trim());
-        }
-      });
-    }
 
     return parts.join(' / ').slice(0, 200);
   }
 
   function extractNaverSmartStore() {
     var scripts = extractNaverFromScripts();
-    var ogTitle = cleanTitle(metaContent('og:title'));
-    if (ogTitle) {
-      ogTitle = ogTitle.replace(/\s*:\s*[^:]*스마트스토어.*$/i, '').trim();
-      ogTitle = ogTitle.replace(/\s*-\s*네이버\s*쇼핑.*$/i, '').trim();
-    }
-
+    var ogTitle = cleanNaverProductTitle(metaContent('og:title'));
     var domTitle = extractNaverTitleFromDom();
+    var scriptTitle = cleanNaverProductTitle(scripts.title);
+
     var title = '';
-    if (ogTitle && !isBadTitle(ogTitle) && ogTitle.length >= (scripts.title || '').length) {
+    if (domTitle && domTitle.length >= 8) {
+      title = domTitle;
+    } else if (scriptTitle && !isBadTitle(scriptTitle)) {
+      title = scriptTitle;
+    } else if (ogTitle && !isBadTitle(ogTitle)) {
       title = ogTitle;
-    } else if (scripts.title && !isBadTitle(scripts.title)) {
-      title = scripts.title;
     } else if (domTitle) {
       title = domTitle;
-    } else if (ogTitle) {
-      title = ogTitle;
     }
+
+    title = cleanNaverProductTitle(title);
 
     var price = scripts.price || extractNaverPriceFromDom();
     var option = extractNaverOptions();
