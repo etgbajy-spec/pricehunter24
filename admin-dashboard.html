@@ -93,99 +93,8 @@
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     
-    <!-- Tailwind CSS (개선된 로딩 방식) -->
-    <script>
-        // Tailwind CSS 설정 - CSP 오류 방지
-        if (typeof tailwind !== 'undefined') {
-            tailwind.config = {
-                theme: {
-                    extend: {}
-                },
-                corePlugins: {
-                    preflight: false
-                }
-            }
-        }
-        
-        // Tailwind CSS 동적 로딩
-        function loadTailwindCSS() {
-            return new Promise((resolve, reject) => {
-                const script = document.createElement('script');
-                script.src = 'https://cdn.tailwindcss.com';
-                script.onload = () => {
-                    console.log('✅ Tailwind CSS 로드됨 (개발용 CDN)');
-                    resolve();
-                };
-                script.onerror = (error) => {
-                    console.error('❌ Tailwind CSS 로드 실패:', error);
-                    // Tailwind 로드 실패 시 기본 스타일 적용
-                    applyFallbackStyles();
-                    reject(error);
-                };
-                document.head.appendChild(script);
-            });
-        }
-        
-        // Tailwind 로드 실패 시 대체 스타일
-        function applyFallbackStyles() {
-            const style = document.createElement('style');
-            style.textContent = `
-                body { font-family: 'Noto Sans KR', sans-serif; }
-                .bg-gradient-to-br { background: linear-gradient(135deg, #f3f4f6, #dbeafe, #d1fae5); }
-                .min-h-screen { min-height: 100vh; }
-                .flex { display: flex; }
-                .items-center { align-items: center; }
-                .justify-center { justify-content: center; }
-                .bg-white { background-color: white; }
-                .rounded-xl { border-radius: 0.75rem; }
-                .shadow-2xl { box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); }
-                .p-8 { padding: 2rem; }
-                .w-full { width: 100%; }
-                .max-w-md { max-width: 28rem; }
-                .text-center { text-align: center; }
-                .mb-8 { margin-bottom: 2rem; }
-                .text-3xl { font-size: 1.875rem; }
-                .font-bold { font-weight: 700; }
-                .text-pink-600 { color: #db2777; }
-                .text-gray-600 { color: #4b5563; }
-                .space-y-6 > * + * { margin-top: 1.5rem; }
-                .block { display: block; }
-                .text-sm { font-size: 0.875rem; }
-                .font-medium { font-weight: 500; }
-                .text-gray-700 { color: #374151; }
-                .mb-2 { margin-bottom: 0.5rem; }
-                .px-4 { padding-left: 1rem; padding-right: 1rem; }
-                .py-3 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
-                .border { border-width: 1px; }
-                .border-gray-300 { border-color: #d1d5db; }
-                .rounded-lg { border-radius: 0.5rem; }
-                .focus\\:ring-2:focus { box-shadow: 0 0 0 2px rgba(236, 72, 153, 0.5); }
-                .focus\\:ring-pink-400:focus { box-shadow: 0 0 0 2px rgba(244, 114, 182, 0.5); }
-                .focus\\:outline-none:focus { outline: none; }
-                .bg-gradient-to-r { background: linear-gradient(to right, #ec4899, #8b5cf6); }
-                .text-white { color: white; }
-                .hover\\:from-pink-600:hover { background: linear-gradient(to right, #db2777, #7c3aed); }
-                .hover\\:to-purple-600:hover { background: linear-gradient(to right, #ec4899, #7c3aed); }
-                .transition { transition: all 0.15s ease-in-out; }
-                .shadow-lg { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
-                .mt-6 { margin-top: 1.5rem; }
-                .text-pink-600 { color: #db2777; }
-                .hover\\:text-pink-700:hover { color: #be185d; }
-                .text-blue-600 { color: #2563eb; }
-                .hover\\:text-blue-700:hover { color: #1d4ed8; }
-                .text-xs { font-size: 0.75rem; }
-                .text-gray-500 { color: #6b7280; }
-                .mt-2 { margin-top: 0.5rem; }
-            `;
-            document.head.appendChild(style);
-            console.log('⚠️ Tailwind CSS 대체 스타일 적용됨');
-        }
-        
-        // Tailwind CSS 로딩 시작
-        loadTailwindCSS().catch(() => {
-            console.log('⚠️ Tailwind CSS 로딩 실패, 대체 스타일 사용');
-        });
-    </script>
+    <!-- Tailwind (production build) -->
+    <link rel="stylesheet" href="styles/tailwind.build.css">
     
     
     <script>
@@ -216,6 +125,58 @@
                 }
             } catch (e) { /* ignore */ }
             return null;
+        }
+
+        function getAdminDocCreatedAtMs(item) {
+            const v = item && (item.createdAt || item.date || item.reqDate);
+            if (!v) return 0;
+            if (typeof v.toMillis === 'function') return v.toMillis();
+            if (typeof v.toDate === 'function') return v.toDate().getTime();
+            if (v.seconds) return v.seconds * 1000;
+            const t = new Date(v).getTime();
+            return isNaN(t) ? 0 : t;
+        }
+
+        function sortAdminDocsByCreatedAtDesc(items) {
+            return (items || []).slice().sort((a, b) => getAdminDocCreatedAtMs(b) - getAdminDocCreatedAtMs(a));
+        }
+
+        async function fetchAdminCollectionDocs(collectionName, maxDocs) {
+            const max = maxDocs || 1000;
+            if (!window.firebaseDb || !window.firebaseFirestoreFunctions) return [];
+            const { collection, getDocs, query, limit } = window.firebaseFirestoreFunctions;
+            const ref = collection(window.firebaseDb, collectionName);
+            let docs = [];
+            try {
+                const snap = await getDocs(query(ref, limit(max)));
+                snap.forEach((d) => docs.push({ id: d.id, ...d.data() }));
+            } catch (e) {
+                console.warn(`⚠️ ${collectionName} limit 쿼리 실패, 전체 조회 시도:`, e.message || e);
+            }
+            if (!docs.length) {
+                try {
+                    const snap = await getDocs(ref);
+                    snap.forEach((d) => docs.push({ id: d.id, ...d.data() }));
+                } catch (e2) {
+                    console.error(`❌ ${collectionName} 조회 실패:`, e2);
+                    return [];
+                }
+            }
+            return sortAdminDocsByCreatedAtDesc(docs).slice(0, max);
+        }
+
+        async function preloadAdminListData() {
+            const [requests, inquiries] = await Promise.all([
+                fetchAdminCollectionDocs('requests', 1000),
+                fetchAdminCollectionDocs('inquiries', 1000)
+            ]);
+            allRequestsCache = requests;
+            allInquiriesCache = inquiries;
+            applyRequestListFilters();
+            updateInquiryListUI(inquiries);
+            updateInquiryStats(inquiries);
+            updateRequestStats(requests);
+            return { requests, inquiries };
         }
 
         function getAdminMonthKey(value) {
@@ -599,10 +560,17 @@
                     return adminData.role === 'admin' || adminData.permissions?.includes('admin');
                 }
                 
-                // 기본 관리자 이메일 확인 (임시)
-                const adminEmails = ['admin@pricehunter.com', 'admin@example.com'];
-                return adminEmails.includes(user.email);
-                
+                // Firestore rules와 동일한 관리자 이메일
+                const adminEmails = [
+                    'admin@pricehunter.com',
+                    'manager@pricehunter.com',
+                    'staff@pricehunter.com',
+                    'q886654@naver.com',
+                    'pricehunter.service@gmail.com',
+                    'admin@example.com'
+                ];
+                if (user.email && adminEmails.includes(user.email)) return true;
+                return false;
             } catch (error) {
                 console.error('❌ 관리자 권한 확인 실패:', error);
                 if (options.allowCached && adminAuthVerified && window.firebaseAuth?.currentUser?.uid === user?.uid) {
@@ -1355,22 +1323,9 @@
                 requestsUnsubscribe = null;
             }
             try {
-                const { collection, onSnapshot } = window.firebaseFirestoreFunctions;
+                const { collection, onSnapshot, query, limit } = window.firebaseFirestoreFunctions;
                 const db = window.firebaseDb;
-                
-                // 쿼리 최적화: 최신 1000개만 구독 (관리자 대시보드용)
-                const { query, orderBy, limit } = window.firebaseFirestoreFunctions;
-                let requestsQuery;
-                try {
-                    requestsQuery = query(
-                        collection(db, 'requests'),
-                        orderBy('createdAt', 'desc'),
-                        limit(1000)
-                    );
-                } catch (error) {
-                    console.warn('⚠️ orderBy 쿼리 실패, 기본 쿼리 사용:', error);
-                    requestsQuery = query(collection(db, 'requests'), limit(1000));
-                }
+                const requestsQuery = query(collection(db, 'requests'), limit(1000));
                 
                 console.log('🔄 의뢰 데이터 실시간 구독 시작... (최신 1000개)');
                 
@@ -1384,20 +1339,20 @@
                         });
                     });
                     
-                    // 클라이언트 사이드에서 정렬 (createdAt 기준 내림차순)
-                    requests.sort((a, b) => {
-                        const aTime = a.createdAt ? (a.createdAt.toDate ? a.createdAt.toDate() : new Date(a.createdAt)) : new Date(0);
-                        const bTime = b.createdAt ? (b.createdAt.toDate ? b.createdAt.toDate() : new Date(b.createdAt)) : new Date(0);
-                        return bTime - aTime;
-                    });
+                    const sorted = sortAdminDocsByCreatedAtDesc(requests);
+                    console.log(`✅ 실시간 의뢰 데이터 업데이트: ${sorted.length}개`);
                     
-                    console.log(`✅ 실시간 의뢰 데이터 업데이트: ${requests.length}개`);
-                    
-                    allRequestsCache = requests;
+                    allRequestsCache = sorted;
                     applyRequestListFilters();
-                    updateRequestStats(requests);
+                    updateRequestStats(sorted);
                 }, (error) => {
                     console.error('❌ 의뢰 데이터 실시간 구독 오류:', error);
+                    requestsUnsubscribe = null;
+                    fetchAdminCollectionDocs('requests', 1000).then((requests) => {
+                        allRequestsCache = requests;
+                        applyRequestListFilters();
+                        updateRequestStats(requests);
+                    });
                 });
                 
             } catch (error) {
@@ -1544,24 +1499,7 @@
         // Firebase에서 의뢰 데이터 가져오기 (일회성 조회 — 최신 1000건만)
         async function getRequestsFromFirebase() {
             try {
-                const { collection, getDocs, query, orderBy, limit } = window.firebaseFirestoreFunctions;
-                const db = window.firebaseDb;
-                const requestsRef = collection(db, 'requests');
-                let querySnapshot;
-                try {
-                    querySnapshot = await getDocs(query(requestsRef, orderBy('createdAt', 'desc'), limit(1000)));
-                } catch (error) {
-                    querySnapshot = await getDocs(query(requestsRef, limit(1000)));
-                }
-                const requests = [];
-                querySnapshot.forEach((docSnap) => {
-                    requests.push({ id: docSnap.id, ...docSnap.data() });
-                });
-                requests.sort((a, b) => {
-                    const aTime = a.createdAt ? (a.createdAt.toDate ? a.createdAt.toDate() : new Date(a.createdAt)) : new Date(0);
-                    const bTime = b.createdAt ? (b.createdAt.toDate ? b.createdAt.toDate() : new Date(b.createdAt)) : new Date(0);
-                    return bTime - aTime;
-                });
+                const requests = await fetchAdminCollectionDocs('requests', 1000);
                 console.log(`✅ Firebase에서 의뢰 데이터 ${requests.length}개 가져옴 (최대 1000)`);
                 return requests;
             } catch (error) {
@@ -1579,22 +1517,9 @@
                 inquiriesUnsubscribe = null;
             }
             try {
-                const { collection, onSnapshot } = window.firebaseFirestoreFunctions;
+                const { collection, onSnapshot, query, limit } = window.firebaseFirestoreFunctions;
                 const db = window.firebaseDb;
-                
-                // 쿼리 최적화: 최신 1000개만 구독 (관리자 대시보드용)
-                const { query, orderBy, limit } = window.firebaseFirestoreFunctions;
-                let inquiriesQuery;
-                try {
-                    inquiriesQuery = query(
-                        collection(db, 'inquiries'),
-                        orderBy('createdAt', 'desc'),
-                        limit(1000)
-                    );
-                } catch (error) {
-                    console.warn('⚠️ orderBy 쿼리 실패, 기본 쿼리 사용:', error);
-                    inquiriesQuery = query(collection(db, 'inquiries'), limit(1000));
-                }
+                const inquiriesQuery = query(collection(db, 'inquiries'), limit(1000));
                 
                 console.log('🔄 문의 데이터 실시간 구독 시작... (최신 1000개)');
                 
@@ -1608,20 +1533,20 @@
                         });
                     });
                     
-                    // 클라이언트 사이드에서 정렬 (createdAt 기준 내림차순)
-                    inquiries.sort((a, b) => {
-                        const aTime = a.createdAt ? (a.createdAt.toDate ? a.createdAt.toDate() : new Date(a.createdAt)) : new Date(0);
-                        const bTime = b.createdAt ? (b.createdAt.toDate ? b.createdAt.toDate() : new Date(b.createdAt)) : new Date(0);
-                        return bTime - aTime;
-                    });
+                    const sorted = sortAdminDocsByCreatedAtDesc(inquiries);
+                    console.log(`✅ 실시간 문의 데이터 업데이트: ${sorted.length}개`);
                     
-                    console.log(`✅ 실시간 문의 데이터 업데이트: ${inquiries.length}개`);
-                    
-                    allInquiriesCache = inquiries;
-                    updateInquiryListUI(inquiries);
-                    updateInquiryStats(inquiries);
+                    allInquiriesCache = sorted;
+                    updateInquiryListUI(sorted);
+                    updateInquiryStats(sorted);
                 }, (error) => {
                     console.error('❌ 문의 데이터 실시간 구독 오류:', error);
+                    inquiriesUnsubscribe = null;
+                    fetchAdminCollectionDocs('inquiries', 1000).then((inquiries) => {
+                        allInquiriesCache = inquiries;
+                        updateInquiryListUI(inquiries);
+                        updateInquiryStats(inquiries);
+                    });
                 });
                 
             } catch (error) {
@@ -1698,24 +1623,7 @@
         // Firebase에서 문의 데이터 가져오기 (일회성 조회 — 최신 1000건만)
         async function getInquiriesFromFirebase() {
             try {
-                const { collection, getDocs, query, orderBy, limit } = window.firebaseFirestoreFunctions;
-                const db = window.firebaseDb;
-                const inquiriesRef = collection(db, 'inquiries');
-                let querySnapshot;
-                try {
-                    querySnapshot = await getDocs(query(inquiriesRef, orderBy('createdAt', 'desc'), limit(1000)));
-                } catch (error) {
-                    querySnapshot = await getDocs(query(inquiriesRef, limit(1000)));
-                }
-                const inquiries = [];
-                querySnapshot.forEach((docSnap) => {
-                    inquiries.push({ id: docSnap.id, ...docSnap.data() });
-                });
-                inquiries.sort((a, b) => {
-                    const aTime = a.createdAt ? (a.createdAt.toDate ? a.createdAt.toDate() : new Date(a.createdAt)) : new Date(0);
-                    const bTime = b.createdAt ? (b.createdAt.toDate ? b.createdAt.toDate() : new Date(b.createdAt)) : new Date(0);
-                    return bTime - aTime;
-                });
+                const inquiries = await fetchAdminCollectionDocs('inquiries', 1000);
                 console.log(`✅ Firebase에서 문의 데이터 ${inquiries.length}개 가져옴 (최대 1000)`);
                 return inquiries;
             } catch (error) {
@@ -2472,9 +2380,14 @@
         }
 
         async function getFirestoreCollectionCount(collectionName) {
-            const { collection, query, getCountFromServer } = window.firebaseFirestoreFunctions;
-            const snap = await getCountFromServer(query(collection(window.firebaseDb, collectionName)));
-            return snap.data().count || 0;
+            try {
+                const { collection, query, getCountFromServer } = window.firebaseFirestoreFunctions;
+                const snap = await getCountFromServer(query(collection(window.firebaseDb, collectionName)));
+                return snap.data().count || 0;
+            } catch (e) {
+                console.warn(`⚠️ ${collectionName} count 쿼리 실패:`, e.message || e);
+                return 0;
+            }
         }
 
         // 대시보드 통계 업데이트 (캐시·집계 쿼리 우선 — 전체 컬렉션 스캔 방지)
@@ -2591,8 +2504,16 @@
                 return;
             }
             
-            // 통계만 갱신 (실시간 구독은 각 관리 탭 진입 시 시작)
-            updateDashboardStats();
+            // 통계 + 의뢰/문의 목록 선로드 (탭 진입 전에도 데이터 표시)
+            try {
+                await preloadAdminListData();
+                updateDashboardStats(true);
+                if (!requestsUnsubscribe) subscribeToRequests();
+                if (!inquiriesUnsubscribe) subscribeToInquiries();
+            } catch (e) {
+                console.error('❌ 관리자 목록 로드 실패:', e);
+                updateDashboardStats(true);
+            }
             
             console.log('✅ 대시보드 데이터 로드 완료');
         }

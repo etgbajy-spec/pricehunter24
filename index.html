@@ -102,23 +102,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     
-    <!-- Tailwind CDN 경고 억제 후 로드 -->
-    <script>
-      if (typeof window !== 'undefined') {
-        const suppressTailwindProdMsg = (args) => args.join(' ').includes('cdn.tailwindcss.com should not be used in production');
-        const originalWarn = console.warn;
-        const originalError = console.error;
-        console.warn = function(...args) {
-          if (suppressTailwindProdMsg(args)) return;
-          originalWarn.apply(console, args);
-        };
-        console.error = function(...args) {
-          if (suppressTailwindProdMsg(args)) return;
-          originalError.apply(console, args);
-        };
-      }
-    </script>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tailwind (production build) -->
+    <link rel="stylesheet" href="styles/tailwind.build.css">
     <script>
       // 스플래시 스크린 — 세션당 1회 표시 (탭/브라우저 재시작 시 다시 표시)
       (function() {
@@ -3181,18 +3166,6 @@
       }
     </style>
     <script>
-      // Tailwind CSS 설정 - CSP 오류 방지
-      if (typeof tailwind !== 'undefined') {
-        tailwind.config = {
-          theme: {
-            extend: {}
-          },
-          corePlugins: {
-            preflight: false
-          }
-        }
-      }
-      
       // FAQ 아코디언 토글 함수
       function toggleFAQ(button) {
         const faqItem = button.parentElement;
@@ -6642,28 +6615,6 @@
       </div>
     </div>
     <script>
-      // 콘솔 경고 필터링 (불필요한 경고 제거)
-      const originalWarn = console.warn;
-      const originalError = console.error;
-      
-      console.warn = function(...args) {
-        const message = args.join(' ');
-        // 불필요한 경고 필터링
-        if (message.includes('cdn.tailwindcss.com should not be used in production')) {
-          return; // Tailwind CDN 경고 무시 (이미 제거됨)
-        }
-        originalWarn.apply(console, args);
-      };
-      
-      console.error = function(...args) {
-        const message = args.join(' ');
-        // 불필요한 오류 필터링
-        if (message.includes('cdn.tailwindcss.com should not be used in production')) {
-          return; // Tailwind CDN 경고 무시 (이미 제거됨)
-        }
-        originalError.apply(console, args);
-      };
-      
       // Firebase v9 기반 공통 함수들
       let isFirebaseReady = false;
 

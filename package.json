@@ -7,7 +7,8 @@
     "start": "node server.js",
     "start:1000": "node start-1000.js",
     "dev": "nodemon server.js",
-    "build": "echo 'Static site - no build required' && exit 0"
+    "build": "npx tailwindcss -c tailwind.config.js -i ./styles/tailwind-input.css -o ./styles/tailwind.build.css --minify",
+    "build:css": "npm run build"
   },
   "keywords": [
     "pricehunter",
@@ -28,7 +29,10 @@
     "firebase-admin": "^11.11.0"
   },
   "devDependencies": {
-    "nodemon": "^3.0.1"
+    "autoprefixer": "^10.4.20",
+    "nodemon": "^3.0.1",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.17"
   },
   "engines": {
     "node": ">=18.0.0"

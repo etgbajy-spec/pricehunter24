@@ -3,10 +3,15 @@ module.exports = {
   content: [
     "./*.html",
     "./**/*.html",
-    "./**/*.js"
+    "./*.js",
+    "./scripts/**/*.js",
+    "!./node_modules/**"
   ],
   theme: {
     extend: {},
+  },
+  corePlugins: {
+    preflight: false,
   },
   plugins: [],
 }
