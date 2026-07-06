@@ -685,34 +685,104 @@
     return raw;
   }
 
-  function extract11stSelectedOptionRows() {
-    var buyRoot = get11stBuyPanel();
-    var items = [];
-    var seen = {};
+  function extract11stRowPrice(row) {
+    var raw = (row.textContent || '').replace(/\s+/g, ' ');
+    var m = raw.match(/(?:판매가|할인모음가)\s*([\d,]{4,12})\s*원?/i) ||
+      raw.match(/([\d,]{4,12})\s*원/);
+    return m ? PH.normalizePrice(m[1]) : null;
+  }
 
-    function addFromRow(row) {
+  function extract11stSelectedCount() {
+    var buyRoot = get11stBuyPanel();
+    var count = null;
+    buyRoot.querySelectorAll('div, span, p, strong, em, li').forEach(function (el) {
+      var raw = (el.textContent || '').replace(/\s+/g, ' ').trim();
+      if (!/총\s*\d+\s*개/i.test(raw)) return;
+      var m = raw.match(/총\s*(\d+)\s*개/i);
+      if (!m) return;
+      var n = parseInt(m[1], 10);
+      if (!Number.isFinite(n) || n < 1) return;
+      if (/할인모음가|원/.test(raw)) count = n;
+    });
+    return count;
+  }
+
+  function rowHasNestedSelectedOption(row) {
+    var nested = false;
+    row.querySelectorAll('li, div, section, article').forEach(function (child) {
+      if (child === row) return;
+      if (is11stSelectedOptionRow(child)) nested = true;
+    });
+    return nested;
+  }
+
+  function collect11stSelectedCandidates(buyRoot) {
+    var candidates = [];
+
+    function pushRow(row) {
+      if (!is11stSelectedOptionRow(row) || rowHasNestedSelectedOption(row)) return;
       var name = extract11stOptionNameFromRow(row);
-      if (!name || !looksLike11stOptionValue(name) || seen[name]) return;
-      seen[name] = true;
-      items.push({ name: name });
+      if (!name || !looksLike11stOptionValue(name)) return;
+      candidates.push({
+        name: name,
+        price: extract11stRowPrice(row),
+        row: row
+      });
     }
 
-    buyRoot.querySelectorAll('li, div, section, article').forEach(function (row) {
-      if (!is11stSelectedOptionRow(row)) return;
-      addFromRow(row);
-    });
+    buyRoot.querySelectorAll('li, div, section, article').forEach(pushRow);
 
-    if (!items.length) {
+    if (!candidates.length) {
       buyRoot.querySelectorAll(
         'button, a, [class*="delete"], [class*="close"], [class*="btn-remove"], [class*="btn_del"]'
       ).forEach(function (btn) {
         if (/장바구니|구매|쿠폰|찜/i.test(btn.textContent || '')) return;
         var row = btn.closest('li, div[class], section');
         if (!row || is11stOptionPickerItem(row)) return;
-        if (!/\d{1,3}(?:,\d{3})+\s*원/.test(row.textContent || '')) return;
-        addFromRow(row);
+        pushRow(row);
       });
     }
+
+    return candidates;
+  }
+
+  function narrow11stSelectedCandidates(candidates) {
+    if (!candidates.length) return candidates;
+
+    var totalPrice = extract11stTotalPrice();
+    var totalCount = extract11stSelectedCount();
+
+    if (totalPrice) {
+      var byPrice = candidates.filter(function (item) { return item.price === totalPrice; });
+      if (byPrice.length) candidates = byPrice;
+    }
+
+    if (totalCount === 1 && candidates.length > 1) {
+      if (totalPrice) {
+        var exact = candidates.filter(function (item) { return item.price === totalPrice; });
+        if (exact.length === 1) return exact;
+      }
+      return [candidates[candidates.length - 1]];
+    }
+
+    if (candidates.length > 1 && totalCount && candidates.length > totalCount) {
+      return candidates.slice(-totalCount);
+    }
+
+    return candidates;
+  }
+
+  function extract11stSelectedOptionRows() {
+    var buyRoot = get11stBuyPanel();
+    var candidates = narrow11stSelectedCandidates(collect11stSelectedCandidates(buyRoot));
+    var seen = {};
+    var items = [];
+
+    candidates.forEach(function (item) {
+      if (!item.name || seen[item.name]) return;
+      seen[item.name] = true;
+      items.push({ name: item.name });
+    });
 
     return items;
   }
@@ -720,6 +790,7 @@
   function extract11stOptions() {
     var buyRoot = get11stBuyPanel();
     var selected = extract11stSelectedOptionRows();
+    if (selected.length === 1) return selected[0].name;
     if (selected.length) return formatNaverOptionList(selected);
 
     var parts = [];
