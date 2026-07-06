@@ -687,6 +687,7 @@
     if (/^쿠폰\s*적용$|^장바구니$|^구매하기$|^찜하기$/i.test(text)) return true;
     if (/총\s*금액|총\s*\d+\s*개|옵션\s*선택|선택해\s*주세요/i.test(text)) return true;
     if (/^모델$|^배터리$|^옵션$/i.test(text)) return true;
+    if (/^수량증가$|^수량감소$|^닫기$|^삭제$/i.test(text)) return true;
     if (/^\d+$/.test(text)) return true;
     return false;
   }
@@ -694,10 +695,17 @@
   function cleanGmarketOptionLine(text) {
     var t = String(text || '').replace(/\s+/g, ' ').trim();
     t = t.replace(/쿠폰\s*적용/gi, ' ').trim();
+    t = t.replace(/수량\s*증가|수량\s*감소|수량증가|수량감소/gi, ' ').trim();
+    t = t.replace(/\b닫기\b|\b삭제\b|\b더보기\b/gi, ' ').trim();
     t = t.replace(/\d{1,3}(?:,\d{3})+\s*원/g, ' ').trim();
     t = t.replace(/^\s*[-+]\s*\d+\s*[-+]\s*/g, '').trim();
     t = t.replace(/\s*[-—]\s*\d+\s*\+\s*$/g, '').trim();
-    return t.replace(/\s+/g, ' ').trim();
+    t = t.replace(/\s+/g, ' ').trim();
+    var core = t.match(/^(.+?\s\+\s+.+?)(?:\s*$)/);
+    if (core && core[1].length >= 8) {
+      return core[1].trim();
+    }
+    return t;
   }
 
   function looksLikeGmarketOptionName(name) {
