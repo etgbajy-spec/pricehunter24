@@ -222,24 +222,124 @@
 
   function getCoupangBuyPanel() {
     return (
-      document.querySelector('.prod-buy, .prod-buy-new, .prod-option, .prod-buy-header') ||
+      document.querySelector(
+        '.prod-atf-contents, .prod-atf, .prod-buy, .prod-buy-new, .prod-option, .product-buy-header, .prod-buy-header'
+      ) ||
       document.body
     );
   }
 
-  function getCoupangOptionRoot() {
-    var buy = document.querySelector('.prod-buy, .prod-buy-new, #contents');
-    if (buy) {
-      var opt = buy.querySelector(
-        '.prod-option, .prod-option-container, .option-table, [class*="prod-option"]'
-      );
-      if (opt) return opt;
-      return buy;
-    }
-    return getCoupangBuyPanel();
+  function getCoupangAtfRoot() {
+    return (
+      document.querySelector('.prod-atf-contents, .prod-atf, .sdp-content main') ||
+      getCoupangBuyPanel()
+    );
   }
 
-  function isCoupangOptionLabel(text) {
+  function getCoupangOptionRoot() {
+    var buy = getCoupangAtfRoot();
+    var opt = buy.querySelector(
+      '.prod-option, .prod-option-container, .option-table, [class*="prod-option"], [class*="option-picker"], [class*="OptionPicker"]'
+    );
+    return opt || buy;
+  }
+
+  function isInsideCoupangOptionArea(el) {
+    if (!el) return false;
+    if (el.closest(
+      '#reviews, [class*="review"], [class*="Review"], [class*="related"], [class*="sdp-review"], footer'
+    )) {
+      return false;
+    }
+    return !!el.closest(
+      '.prod-atf, .prod-atf-contents, .prod-buy, .prod-buy-new, [class*="prod-option"], ' +
+      '[class*="option"], .sdp-content, main'
+    );
+  }
+
+  function getCoupangTextWithoutMedia(el) {
+    if (!el) return '';
+    var clone = el.cloneNode(true);
+    clone.querySelectorAll('img, svg, picture, video, button').forEach(function (node) {
+      node.remove();
+    });
+    return stripMallUiLabels(clone.textContent).replace(/\s+/g, ' ').trim();
+  }
+
+  function pushCoupangOptionValue(values, seen, raw) {
+    var v = finalizeCoupangOption(raw);
+    if (!v || seen[v] || isCoupangOptionNoise(v) || isCoupangOptionLabel(v)) return;
+    if (!looksLikeCoupangDropdownValue(v) && !looksLikeCoupangOptionValue(v)) return;
+    seen[v] = true;
+    values.push(v);
+  }
+
+  function extractCoupangLabelValuePairs() {
+    var root = getCoupangAtfRoot();
+    var values = [];
+    var seen = {};
+
+    root.querySelectorAll('button, div, li').forEach(function (box) {
+      if (!isInsideCoupangOptionArea(box)) return;
+      if (/장바구니|바로구매|구매하기/i.test(box.textContent || '') && box.children.length < 2) return;
+
+      var kids = Array.from(box.children).filter(function (child) {
+        var t = getCoupangTextWithoutMedia(child);
+        return t && t.length >= 2 && t.length <= 100;
+      });
+      if (kids.length < 2 || kids.length > 5) return;
+
+      for (var i = 0; i < kids.length - 1; i++) {
+        var label = getCoupangTextWithoutMedia(kids[i]);
+        var value = getCoupangTextWithoutMedia(kids[i + 1]);
+        if (isCoupangOptionLabel(label) && value && !isCoupangOptionLabel(value)) {
+          pushCoupangOptionValue(values, seen, value);
+        }
+      }
+    });
+
+    root.querySelectorAll('span, label, p, dt').forEach(function (labelEl) {
+      if (!isInsideCoupangOptionArea(labelEl)) return;
+      if (labelEl.children.length > 0) return;
+
+      var label = (labelEl.textContent || '').replace(/\s+/g, ' ').trim();
+      if (!isCoupangOptionLabel(label)) return;
+
+      var sibling = labelEl.nextElementSibling;
+      if (sibling) pushCoupangOptionValue(values, seen, getCoupangTextWithoutMedia(sibling));
+
+      var parent = labelEl.parentElement;
+      if (!parent) return;
+      Array.from(parent.children).forEach(function (child) {
+        if (child === labelEl) return;
+        var t = getCoupangTextWithoutMedia(child);
+        if (t && !isCoupangOptionLabel(t)) pushCoupangOptionValue(values, seen, t);
+      });
+    });
+
+    return values;
+  }
+
+  function isCoupangOpenOptionList(el) {
+    var list = el.closest('ul, ol, [role="listbox"], [class*="list"]');
+    if (!list || !isInsideCoupangOptionArea(list)) return false;
+    return list.querySelectorAll('li, [role="option"]').length >= 4;
+  }
+
+  function extractCoupangLeafOptionValues(root) {
+    root = root || getCoupangAtfRoot();
+    var values = [];
+    var seen = {};
+
+    root.querySelectorAll('span, div, p').forEach(function (el) {
+      if (!isInsideCoupangOptionArea(el)) return;
+      if (el.children.length > 0) return;
+      if (isCoupangOpenOptionList(el)) return;
+      pushCoupangOptionValue(values, seen, el.textContent);
+    });
+
+    return values;
+  }
     var t = String(text || '').replace(/\s+/g, ' ').trim();
     if (!t || t.length > 45) return false;
     if (/^사이즈$/i.test(t)) return true;
@@ -273,21 +373,21 @@
   }
 
   function isCoupangDropdownTrigger(el) {
-    if (!el) return false;
+    if (!el || !isInsideCoupangOptionArea(el)) return false;
     var tag = el.tagName;
     if (tag !== 'BUTTON' && tag !== 'DIV') return false;
-    if (tag === 'DIV' && el.getAttribute('role') !== 'button' &&
-        !el.closest('[class*="prod-option"], [class*="option"]')) {
-      return false;
-    }
     var raw = (el.textContent || '').replace(/\s+/g, ' ').trim();
     if (!raw || raw.length < 3 || raw.length > 150) return false;
     if (/^장바구니|^구매하기|^바로구매|^찜하기|^쿠폰|^수량/i.test(raw)) return false;
     if (el.closest('[class*="quantity"], .prod-buy-quantity, [class*="buy-count"]') &&
-        !el.closest('[class*="prod-option"], [class*="option"]')) {
+        !el.closest('[class*="option"], [class*="Option"], .prod-atf')) {
       return false;
     }
-    return !!el.closest('[class*="prod-option"], [class*="option"], .prod-buy, .prod-buy-new');
+    if (tag === 'DIV' && el.getAttribute('role') !== 'button') {
+      if (!/(사이즈|색상|프레임|RS\d|리얼|인치|하이텐)/i.test(raw)) return false;
+      if (!el.closest('[class*="option"], [class*="Option"], .prod-atf, .prod-atf-contents')) return false;
+    }
+    return true;
   }
 
   function extractValueFromCoupangDropdownTrigger(trigger) {
@@ -322,51 +422,23 @@
   }
 
   function extractCoupangLabeledDropdowns() {
-    var root = getCoupangBuyPanel();
-    var values = [];
-    var seen = {};
-
-    function addValue(value) {
-      value = finalizeCoupangOption(value);
-      if (!value || seen[value] || isCoupangOptionNoise(value) || isCoupangOptionLabel(value)) return;
-      if (!looksLikeCoupangDropdownValue(value) && !looksLikeCoupangOptionValue(value)) return;
-      seen[value] = true;
-      values.push(value);
-    }
-
-    root.querySelectorAll('span, div, label, p, dt').forEach(function (el) {
-      if (el.children.length > 4) return;
-      var ownText = (el.textContent || '').replace(/\s+/g, ' ').trim();
-      if (!isCoupangOptionLabel(ownText)) return;
-
-      var block = el.closest('button, div[role="button"], div, li') || el.parentElement;
-      if (!block || !block.closest('.prod-buy, .prod-buy-new, [class*="prod-option"], [class*="option"]')) return;
-      if (block.closest('[class*="quantity"], .prod-buy-quantity')) return;
-
-      var value = extractValueFromCoupangDropdownTrigger(block);
-      if (value) addValue(value);
-    });
-
-    return values;
+    return extractCoupangLabelValuePairs();
   }
 
   function collectCoupangDropdownValues(root) {
-    root = root || getCoupangBuyPanel();
+    root = root || getCoupangAtfRoot();
     var collected = [];
     var seen = {};
 
     function pushValue(value) {
-      value = finalizeCoupangOption(value);
-      if (!value || seen[value] || isCoupangOptionNoise(value) || isCoupangOptionLabel(value)) return;
-      if (!looksLikeCoupangDropdownValue(value) && !looksLikeCoupangOptionValue(value)) return;
-      seen[value] = true;
-      collected.push(value);
+      pushCoupangOptionValue(collected, seen, value);
     }
 
-    var labeled = extractCoupangLabeledDropdowns();
-    labeled.forEach(function (value) { pushValue(value); });
+    extractCoupangLabelValuePairs().forEach(function (value) { pushValue(value); });
 
-    root.querySelectorAll('button, div[role="button"]').forEach(function (trigger) {
+    root.querySelectorAll(
+      'button, div[role="button"], [class*="option"] button, [class*="option"] div, [class*="Option"] div'
+    ).forEach(function (trigger) {
       if (!isCoupangDropdownTrigger(trigger)) return;
       var value = extractValueFromCoupangDropdownTrigger(trigger);
       if (value) pushValue(value);
@@ -401,31 +473,22 @@
 
   function extractCoupangOptionByPattern() {
     var root = getCoupangOptionRoot();
-    var best = '';
-    var bestScore = 0;
+    var collected = [];
+    var seen = {};
 
     root.querySelectorAll('span, div, p, button, li, label').forEach(function (el) {
-      if (el.children.length > 8) return;
+      if (el.children.length > 8 || isCoupangOpenOptionList(el)) return;
       var raw = (el.textContent || '').replace(/\s+/g, ' ').trim();
       if (raw.length < 6 || raw.length > 100) return;
       if (/^색상\s*[x×]\s*사이즈$/i.test(raw)) return;
-
       var t = splitCoupangOptionText(raw);
-      if (!looksLikeCoupangOptionValue(t)) return;
-
-      var score = 30;
-      if (/\d+\s*A(?:H|h)?/i.test(t)) score += 25;
-      if (/[x×]/.test(t)) score += 15;
-      if (el.closest('button, [class*="prod-option"], [class*="option"]')) score += 20;
-      score += Math.max(0, 15 - el.children.length * 2);
-
-      if (score > bestScore) {
-        bestScore = score;
-        best = t;
-      }
+      pushCoupangOptionValue(collected, seen, t);
     });
 
-    return bestScore >= 40 ? best : '';
+    if (collected.length >= 2) {
+      return formatNaverOptionList(collected.map(function (name) { return { name: name }; }));
+    }
+    return collected.length === 1 ? collected[0] : '';
   }
 
   function cleanCoupangOptionLine(text) {
@@ -459,22 +522,24 @@
   }
 
   function extractCoupangOptions() {
-    var dropdownValues = collectCoupangDropdownValues(getCoupangBuyPanel());
-    if (dropdownValues.length >= 2) {
-      return formatNaverOptionList(dropdownValues.map(function (name) { return { name: name }; }));
+    var buyRoot = getCoupangAtfRoot();
+    var merged = [];
+    var seen = {};
+
+    function mergeList(list) {
+      (list || []).forEach(function (name) {
+        pushCoupangOptionValue(merged, seen, name);
+      });
+    }
+
+    mergeList(extractCoupangLabelValuePairs());
+    mergeList(collectCoupangDropdownValues(buyRoot));
+    if (merged.length < 2) mergeList(extractCoupangLeafOptionValues(buyRoot));
+    if (merged.length >= 2) {
+      return formatNaverOptionList(merged.map(function (name) { return { name: name }; }));
     }
 
     var optionRoot = getCoupangOptionRoot();
-    var items = [];
-    var seen = {};
-
-    function add(name) {
-      name = finalizeCoupangOption(name);
-      if (!name || name.length < 2 || name.length > 120 || isCoupangOptionNoise(name)) return;
-      if (seen[name]) return;
-      seen[name] = true;
-      items.push({ name: name });
-    }
 
     optionRoot.querySelectorAll(
       '.prod-option__item--selected .prod-option__name, ' +
@@ -482,41 +547,35 @@
       'button.prod-option__item[aria-pressed="true"] .prod-option__name'
     ).forEach(function (el) {
       var t = getOptionTextFromEl(el) || el.textContent;
-      if (t && t.length < 80) add(t);
+      if (t && t.length < 80) mergeList([t]);
     });
 
-    if (!items.length) {
+    if (merged.length < 2) {
       queryAll([
         '.prod-option__item--selected',
         '.option-table-list__option--selected'
       ], optionRoot).forEach(function (row) {
         var nameEl = row.querySelector('.prod-option__name, [class*="option__name"]');
         if (nameEl) {
-          add(nameEl.textContent);
+          mergeList([nameEl.textContent]);
         } else if (row.classList && row.classList.contains('prod-option__item--selected')) {
-          add(getOptionTextFromEl(row));
+          mergeList([getOptionTextFromEl(row)]);
         }
       });
     }
 
-    if (!items.length) {
+    if (merged.length < 2) {
       optionRoot.querySelectorAll('button.prod-option__item, .prod-option__item').forEach(function (btn) {
         var pressed = btn.getAttribute('aria-pressed');
         if (pressed === 'false') return;
         var nameEl = btn.querySelector('.prod-option__name, [class*="option__name"]');
-        if (nameEl) add(nameEl.textContent);
+        if (nameEl) mergeList([nameEl.textContent]);
       });
     }
 
-    dropdownValues.forEach(function (name) { add(name); });
-
-    if (items.length) return formatNaverOptionList(items);
-
-    var fromBlocks = extractCoupangFromOptionBlocks();
-    if (fromBlocks) return fromBlocks;
-
-    var fromPicker = extractCoupangOptionFromPicker();
-    if (fromPicker) return fromPicker;
+    if (merged.length) {
+      return formatNaverOptionList(merged.map(function (name) { return { name: name }; }));
+    }
 
     var fromPattern = extractCoupangOptionByPattern();
     if (fromPattern) return fromPattern;
@@ -535,13 +594,15 @@
   }
 
   function extractCoupangProduct() {
-    var buyRoot = getCoupangBuyPanel();
+    var buyRoot = getCoupangAtfRoot();
     var title = textOf([
       'h1.prod-buy-header__title',
       '.prod-buy-header__title',
+      '.product-buy-header h1',
+      'div.product-buy-header h1 span',
       'h1.product-title',
       'h1'
-    ]);
+    ], buyRoot);
     var price = extractTotalPriceFromPanel(buyRoot) ||
       PH.normalizePrice(textOf([
         '.total-price strong',
@@ -1346,24 +1407,17 @@
     var host = location.hostname.toLowerCase();
 
     if (host.indexOf('coupang') >= 0) {
-      document.querySelectorAll(
-        '.prod-option__item--selected .prod-option__name, ' +
-        '.prod-option__name, ' +
-        'button[class*="option"][aria-pressed="true"] .prod-option__name'
-      ).forEach(function (el) {
-        var t = cleanCoupangOptionLine(el.textContent || '');
-        if (t && t.length < 100 && parts.indexOf(t) < 0 && !/^옵션/.test(t)) parts.push(t);
-      });
-    } else {
-      document.querySelectorAll(
-        '[class*="option"][class*="selected"], ' +
-        '[class*="Option"][class*="selected"], ' +
-        '[class*="option"][aria-selected="true"]'
-      ).forEach(function (el) {
-        var t = (el.textContent || '').replace(/\s+/g, ' ').trim();
-        if (t && t.length < 100 && parts.indexOf(t) < 0) parts.push(t);
-      });
+      return extractCoupangOptions() || '';
     }
+
+    document.querySelectorAll(
+      '[class*="option"][class*="selected"], ' +
+      '[class*="Option"][class*="selected"], ' +
+      '[class*="option"][aria-selected="true"]'
+    ).forEach(function (el) {
+      var t = (el.textContent || '').replace(/\s+/g, ' ').trim();
+      if (t && t.length < 100 && parts.indexOf(t) < 0) parts.push(t);
+    });
 
     document.querySelectorAll('select').forEach(function (sel) {
       if (!sel.value || sel.selectedIndex < 0) return;
