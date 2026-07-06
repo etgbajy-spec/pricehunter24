@@ -647,7 +647,8 @@
         if (raw.length < 8 || raw.length > 200) return;
         if (/^장바구니$|^구매하기$|^옵션선택$/i.test(raw)) return;
 
-        var t = cleanGmarketOptionLine(raw);
+        var t = getGmarketOptionTextFromEl(el);
+        if (!t) t = cleanGmarketOptionLine(raw);
         var score = scoreGmarketOptionText(t);
         if (score < 0) return;
         if (/\d{1,3}(?:,\d{3})+\s*원/.test(raw)) score += 12;
@@ -663,7 +664,7 @@
         }
       });
     });
-    return bestScore >= 45 ? best : '';
+    return bestScore >= 45 ? finalizeGmarketOption(best) : '';
   }
 
   function extractGmarketFromActiveDropdowns() {
@@ -692,20 +693,47 @@
     return false;
   }
 
+  function stripGmarketUiLabels(text) {
+    return String(text || '')
+      .replace(/수량\s*증가|수량\s*감소|수량증가|수량감소/gi, ' ')
+      .replace(/쿠폰\s*적용/gi, ' ')
+      .replace(/닫기|삭제|더보기/gi, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function getGmarketOptionTextFromEl(el) {
+    if (!el) return '';
+    var clone = el.cloneNode(true);
+    clone.querySelectorAll(
+      'button, a, [role="button"], input, [class*="btn"], [class*="button"], [class*="coupon"]'
+    ).forEach(function (node) {
+      node.remove();
+    });
+    return stripGmarketUiLabels(clone.textContent);
+  }
+
   function cleanGmarketOptionLine(text) {
-    var t = String(text || '').replace(/\s+/g, ' ').trim();
-    t = t.replace(/쿠폰\s*적용/gi, ' ').trim();
-    t = t.replace(/수량\s*증가|수량\s*감소|수량증가|수량감소/gi, ' ').trim();
-    t = t.replace(/\b닫기\b|\b삭제\b|\b더보기\b/gi, ' ').trim();
+    var t = stripGmarketUiLabels(text);
     t = t.replace(/\d{1,3}(?:,\d{3})+\s*원/g, ' ').trim();
     t = t.replace(/^\s*[-+]\s*\d+\s*[-+]\s*/g, '').trim();
     t = t.replace(/\s*[-—]\s*\d+\s*\+\s*$/g, '').trim();
+    t = t.replace(/\s+(?:수량증가|수량감소|닫기|삭제|쿠폰적용)(?:\s+.*)?$/i, '').trim();
     t = t.replace(/\s+/g, ' ').trim();
-    var core = t.match(/^(.+?\s\+\s+.+?)(?:\s*$)/);
-    if (core && core[1].length >= 8) {
-      return core[1].trim();
+
+    var plusIdx = t.indexOf(' + ');
+    if (plusIdx >= 0) {
+      var before = t.slice(0, plusIdx).trim();
+      var after = t.slice(plusIdx + 3).trim();
+      after = after.replace(/\s*(?:수량증가|수량감소|닫기|삭제|쿠폰적용).*$/i, '').trim();
+      after = after.replace(/\s+\d+\s*$/, '').trim();
+      if (before && after) return before + ' + ' + after;
     }
     return t;
+  }
+
+  function finalizeGmarketOption(option) {
+    return cleanGmarketOptionLine(option);
   }
 
   function looksLikeGmarketOptionName(name) {
@@ -719,6 +747,11 @@
   }
 
   function extractGmarketOptionNameFromRow(row) {
+    var fromClone = getGmarketOptionTextFromEl(row);
+    if (fromClone && (looksLikeGmarketOptionName(fromClone) || /\s\+\s/.test(fromClone))) {
+      return finalizeGmarketOption(fromClone);
+    }
+
     var candidates = [];
     row.querySelectorAll('strong, span, p, em, div, a').forEach(function (el) {
       if (el.children.length > 3) return;
@@ -734,7 +767,7 @@
 
     for (var i = 0; i < candidates.length; i++) {
       if (looksLikeGmarketOptionName(candidates[i]) || /\s\+\s/.test(candidates[i])) {
-        return candidates[i];
+        return finalizeGmarketOption(candidates[i]);
       }
     }
     return '';
@@ -746,6 +779,7 @@
     var seen = {};
 
     function add(name) {
+      name = finalizeGmarketOption(name);
       if (!name || seen[name]) return;
       seen[name] = true;
       items.push({ name: name });
@@ -815,13 +849,13 @@
     if (byPattern) return byPattern;
 
     var items = extractGmarketSelectedRows();
-    if (items.length) return formatNaverOptionList(items);
+    if (items.length) return finalizeGmarketOption(formatNaverOptionList(items));
 
     var fromActive = extractGmarketFromActiveDropdowns();
-    if (fromActive) return fromActive;
+    if (fromActive) return finalizeGmarketOption(fromActive);
 
     var fromDropdowns = extractGmarketFromDropdowns();
-    if (fromDropdowns) return fromDropdowns;
+    if (fromDropdowns) return finalizeGmarketOption(fromDropdowns);
 
     return '';
   }
