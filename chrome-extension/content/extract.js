@@ -626,6 +626,8 @@
 
   function clean11stOptionLine(text) {
     var t = cleanMallOptionLine(text);
+    t = t.replace(/판매가\s*선택하기/gi, '').trim();
+    t = t.replace(/\b판매가\b/gi, '').trim();
     t = t.replace(/배송비.*$/i, '').trim();
     t = t.replace(/무료\s*배송.*$/i, '').trim();
     t = t.replace(/CJ\s*대한통운.*$/i, '').trim();
@@ -719,10 +721,61 @@
     return '';
   }
 
+  function extract11stTotalPrice() {
+    var buyRoot = get11stBuyPanel();
+    var nodes = buyRoot.querySelectorAll('div, span, p, strong, em, dd, dt, li, section');
+    var best = null;
+
+    function consider(text) {
+      var raw = String(text || '').replace(/\s+/g, ' ').trim();
+      if (!raw) return;
+
+      // Prefer totals that appear after option selection
+      var m1 = raw.match(/(?:할인모음가|판매가)\s*([\d,]{4,12})\s*원?/i);
+      var m2 = raw.match(/총\s*\d+\s*개[^0-9]*([\d,]{4,12})\s*원?/i);
+      var m3 = raw.match(/총\s*1개[^0-9]*([\d,]{4,12})\s*원?/i);
+
+      var cand = null;
+      if (m2 && m2[1]) cand = m2[1];
+      else if (m3 && m3[1]) cand = m3[1];
+      else if (m1 && m1[1]) cand = m1[1];
+      if (!cand) return;
+
+      var p = PH.normalizePrice(cand);
+      if (!isValidNaverPrice(p)) return;
+
+      // Score: explicit total > discount-bundle > sale price
+      var score = 0;
+      if (/총\s*\d+\s*개|총\s*1개/i.test(raw)) score += 30;
+      if (/할인모음가/i.test(raw)) score += 20;
+      if (/판매가/i.test(raw)) score += 10;
+      score += Math.min(20, Math.floor(raw.length / 10));
+
+      if (!best || score > best.score) best = { price: p, score: score };
+    }
+
+    for (var i = 0; i < nodes.length; i++) {
+      consider(nodes[i].textContent || '');
+    }
+
+    // Fallback: sometimes the selected option row contains the right-most price
+    if (!best) {
+      buyRoot.querySelectorAll('li, div').forEach(function (row) {
+        var raw = (row.textContent || '').replace(/\s+/g, ' ').trim();
+        if (!raw) return;
+        if (!/(할인모음가|판매가|총\s*\d+\s*개|총\s*1개)/i.test(raw)) return;
+        consider(raw);
+      });
+    }
+
+    return best ? best.price : null;
+  }
+
   function extract11stProduct() {
     var buyRoot = get11stBuyPanel();
     var title = textOf(['h1.title', '.prd_name', 'h1.c_product_title', 'h1']);
-    var price = extractTotalPriceFromPanel(buyRoot) ||
+    var price = extract11stTotalPrice() ||
+      extractTotalPriceFromPanel(buyRoot) ||
       PH.normalizePrice(textOf([
         '.price',
         '.sale_price',
