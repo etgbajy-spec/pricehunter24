@@ -17,6 +17,23 @@
     }
   }
 
+  function formatDisplayPrice(value) {
+    if (value == null || value === '') return '';
+    var digits = String(value).replace(/[^\d]/g, '');
+    if (!digits) return '';
+    var num = Number(digits);
+    if (!Number.isFinite(num) || num <= 0) return '';
+    return num.toLocaleString('ko-KR');
+  }
+
+  function parsePriceInput(value) {
+    if (value == null || value === '') return '';
+    var digits = String(value).replace(/[^\d]/g, '');
+    if (!digits) return '';
+    var num = Number(digits);
+    return Number.isFinite(num) && num > 0 ? String(Math.round(num)) : '';
+  }
+
   function setInputValue(id, value, force) {
     if (value == null || value === '') return false;
     var el = document.getElementById(id);
@@ -49,7 +66,12 @@
     if (setInputValue(fields.url || 'productUrl', data.url, force)) applied.push('url');
     if (setInputValue(fields.name || 'productName', name, force)) applied.push('name');
     if (setInputValue(fields.option || 'productOption', option, force)) applied.push('option');
-    if (setInputValue(fields.price || 'productPrice', data.price, force)) applied.push('price');
+    if (data.price != null && data.price !== '') {
+      var priceDisplay = formatDisplayPrice(data.price);
+      if (priceDisplay && setInputValue(fields.price || 'productPrice', priceDisplay, force)) {
+        applied.push('price');
+      }
+    }
     if (fields.desc && setInputValue(fields.desc, data.desc, force)) applied.push('desc');
 
     if (opts.showBanner && opts.bannerHostId) showExtensionBanner(opts.bannerHostId);
@@ -122,6 +144,8 @@
     applyData: applyData,
     showExtensionBanner: showExtensionBanner,
     bindExtensionListener: bindExtensionListener,
-    drainQueuedPrefill: drainQueuedPrefill
+    drainQueuedPrefill: drainQueuedPrefill,
+    formatDisplayPrice: formatDisplayPrice,
+    parsePriceInput: parsePriceInput
   };
 })(typeof window !== 'undefined' ? window : globalThis);

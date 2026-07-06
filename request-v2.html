@@ -497,7 +497,7 @@
             </div>
             <div>
               <label class="block text-gray-700 font-semibold mb-2" for="productPrice">제품 가격</label>
-              <input type="number" id="productPrice" min="1000" step="1"
+              <input type="text" id="productPrice" inputmode="numeric"
                      class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none transition input-animate"
                      placeholder="예: 89000" />
               <div class="text-xs text-gray-500 mt-1">입력 시 1,000원 이상</div>
@@ -1058,8 +1058,11 @@
 
       const priceInput = document.getElementById('productPrice').value.trim();
       if (priceInput) {
-        const price = Number(priceInput);
-        if (isNaN(price) || price < 1000) {
+        const priceDigits = window.RequestUrlPrefill && RequestUrlPrefill.parsePriceInput
+          ? RequestUrlPrefill.parsePriceInput(priceInput)
+          : priceInput.replace(/[^\d]/g, '');
+        const price = Number(priceDigits);
+        if (!priceDigits || isNaN(price) || price < 1000) {
           alert('가격을 입력하신 경우 1,000원 이상이어야 합니다.');
           document.getElementById('productPrice').focus();
           return false;
@@ -1334,7 +1337,12 @@
       const email = document.getElementById('userEmail').value;
       const phone = document.getElementById('userPhone').value;
       const priceInput = document.getElementById('productPrice').value.trim();
-      const price = priceInput ? Number(priceInput) : null;
+      const priceDigits = priceInput
+        ? (window.RequestUrlPrefill && RequestUrlPrefill.parsePriceInput
+          ? RequestUrlPrefill.parsePriceInput(priceInput)
+          : priceInput.replace(/[^\d]/g, ''))
+        : '';
+      const price = priceDigits ? Number(priceDigits) : null;
       const comparisonTypeValue = comparisonType.value;
       
       // 고유 의뢰번호 생성

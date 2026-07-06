@@ -106,7 +106,7 @@
               옵션 <span class="text-red-500">*</span>
             </label>
             <input type="text" id="productOption" name="option" required
-              placeholder="예: 블랙 / 256GB / L사이즈"
+              placeholder="예: (1) 블랙 / 256GB  (2) 급속충전기 48V 5A"
               class="w-full rounded-xl border-2 border-gray-200 px-4 py-3 text-sm sm:text-base focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 outline-none transition" />
             <p class="text-xs text-gray-500 mt-1.5">옵션이 없으면 <strong>단일옵션</strong>이라고 적어주세요.</p>
           </div>
@@ -116,8 +116,8 @@
               <label for="productPrice" class="block text-sm font-semibold text-gray-800 mb-1.5">
                 현재 보신 가격 <span class="text-gray-400 font-normal">(선택)</span>
               </label>
-              <input type="number" id="productPrice" name="price" min="0" step="1"
-                placeholder="예: 129000"
+              <input type="text" id="productPrice" name="price" inputmode="numeric"
+                placeholder="예: 1,290,000"
                 class="w-full rounded-xl border-2 border-gray-200 px-4 py-3 text-sm sm:text-base focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 outline-none transition" />
               <p class="text-xs text-gray-500 mt-1.5">화면에 보이는 가격을 적어주시면 비교에 도움이 됩니다.</p>
             </div>
@@ -235,7 +235,9 @@
             nameEl.value = data.scan.productName;
           }
           if (needPrice && data.scan.detectedPrice) {
-            priceEl.value = String(Math.round(data.scan.detectedPrice));
+            priceEl.value = window.RequestUrlPrefill && RequestUrlPrefill.formatDisplayPrice
+              ? RequestUrlPrefill.formatDisplayPrice(data.scan.detectedPrice)
+              : String(Math.round(data.scan.detectedPrice));
           }
         } catch (e) { /* ignore */ }
       }
@@ -283,7 +285,10 @@
         var productName = document.getElementById('productName').value.trim();
         var optionName = document.getElementById('productOption').value.trim();
         var email = document.getElementById('userEmail').value.trim();
-        var priceVal = document.getElementById('productPrice').value.trim();
+        var priceRaw = document.getElementById('productPrice').value.trim();
+        var priceVal = window.RequestUrlPrefill && RequestUrlPrefill.parsePriceInput
+          ? RequestUrlPrefill.parsePriceInput(priceRaw)
+          : priceRaw.replace(/[^\d]/g, '');
         var privacyAgree = document.getElementById('privacyAgree').checked;
 
         if (!url) {

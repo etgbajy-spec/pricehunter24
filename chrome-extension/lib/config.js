@@ -35,7 +35,7 @@ var PH_EXTENSION = (function () {
     params.set('from', 'extension');
     if (product.url) params.set('url', cleanProductUrl(product.url));
     if (product.productName) params.set('name', String(product.productName).slice(0, 200));
-    if (product.option) params.set('option', String(product.option).slice(0, 200));
+    if (product.option) params.set('option', String(product.option).slice(0, 300));
     if (product.price) params.set('price', String(Math.round(product.price)));
     return baseSite.replace(/\/$/, '') + path + '?' + params.toString();
   }
