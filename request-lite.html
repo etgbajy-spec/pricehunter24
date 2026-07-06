@@ -32,8 +32,14 @@
   </script>
   <script src="customer-notification.js"></script>
   <style>
-    body { font-family: 'Noto Sans KR', sans-serif; }
+    body {
+      font-family: 'Noto Sans KR', sans-serif;
+      word-break: keep-all;
+      overflow-wrap: break-word;
+      text-wrap: pretty;
+    }
     input, textarea { caret-color: auto; }
+    input, textarea, .break-all { word-break: break-all; }
   </style>
 </head>
 <body class="min-h-screen bg-gradient-to-br from-slate-900 via-[#0F1E3A] to-[#1A2F4F] text-gray-900">
@@ -50,8 +56,9 @@
         <div class="text-center mb-6">
           <span class="inline-block px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold mb-3">가입 없이 1회 무료</span>
           <h1 class="text-2xl sm:text-3xl font-extrabold text-gray-900 mb-2">구매판단 리포트 의뢰</h1>
-          <p class="text-gray-600 text-sm sm:text-base leading-relaxed">
-            링크와 옵션을 보내주시면 <strong>24시간 이내</strong> 배송·가격·판매처까지 확인한 리포트를 드립니다.
+          <p class="text-gray-600 text-sm sm:text-base leading-relaxed max-w-md mx-auto">
+            링크와 옵션을 보내주시면<br class="sm:hidden">
+            <strong>24시간 이내</strong> 배송·가격·판매처까지 확인한 리포트를 드립니다.
           </p>
         </div>
 
@@ -154,7 +161,7 @@
           </button>
 
           <p class="text-center text-xs text-gray-500">
-            무료 체험은 이메일당 1회 · 리포트는 <strong>24시간 이내</strong> 발송
+            무료 체험은 이메일당 1회 · 리포트는 <strong>24시간 이내</strong> 발송<br class="sm:hidden">
             <a href="register.html" class="text-emerald-600 hover:underline font-medium">회원가입</a>하면 추가 의뢰·내역 확인 가능
           </p>
         </form>

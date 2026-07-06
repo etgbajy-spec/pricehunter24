@@ -124,14 +124,18 @@
   </script>
   
   <style>
-    body { font-family: 'Noto Sans KR', sans-serif; }
     /* 텍스트 선택 허용 (드래그 가능) */
     body {
+      font-family: 'Noto Sans KR', sans-serif;
+      word-break: keep-all;
+      overflow-wrap: break-word;
+      text-wrap: pretty;
       -webkit-user-select: text;
       -moz-user-select: text;
       -ms-user-select: text;
       user-select: text;
     }
+    input, textarea, .break-all { word-break: break-all; }
     
     /* 버튼과 링크, 입력 필드는 텍스트 선택 허용 */
     button, a, input, textarea, select {
