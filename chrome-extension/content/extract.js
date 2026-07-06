@@ -340,6 +340,8 @@
 
     return values;
   }
+
+  function isCoupangOptionLabel(text) {
     var t = String(text || '').replace(/\s+/g, ' ').trim();
     if (!t || t.length > 45) return false;
     if (/^사이즈$/i.test(t)) return true;
