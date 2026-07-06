@@ -408,6 +408,12 @@
 
     if (items.length) return formatNaverOptionList(items);
 
+    var fromPicker = extractCoupangOptionFromPicker();
+    if (fromPicker) return fromPicker;
+
+    var fromPattern = extractCoupangOptionByPattern();
+    if (fromPattern) return fromPattern;
+
     var parts = [];
     optionRoot.querySelectorAll('select').forEach(function (sel) {
       if (!sel.value || sel.selectedIndex < 0) return;
