@@ -228,10 +228,107 @@
   }
 
   function getCoupangOptionRoot() {
-    return (
-      document.querySelector('.prod-option, .prod-option-container, [class*="prod-option"]') ||
-      getCoupangBuyPanel()
-    );
+    var buy = document.querySelector('.prod-buy, .prod-buy-new, #contents');
+    if (buy) {
+      var opt = buy.querySelector(
+        '.prod-option, .prod-option-container, .option-table, [class*="prod-option"]'
+      );
+      if (opt) return opt;
+      return buy;
+    }
+    return getCoupangBuyPanel();
+  }
+
+  function looksLikeCoupangOptionValue(text) {
+    if (!text || text.length < 4 || text.length > 100) return false;
+    if (isCoupangOptionNoise(text)) return false;
+    if (/^색상\s*[x×]\s*사이즈$/i.test(text)) return false;
+    if (/^프레임재질\s*:/i.test(text)) return false;
+    if (/[x×]/.test(text) && /[가-힣A-Za-z]/.test(text) && /\d/.test(text)) return true;
+    if (/\d+\s*A(?:H|h)?/i.test(text) && /[가-힣]/.test(text)) return true;
+    if (/표준|프리미엄|S\d|M\d|L\d|XL/i.test(text) && text.length >= 5) return true;
+    return false;
+  }
+
+  function splitCoupangOptionText(text) {
+    var t = String(text || '').replace(/\s+/g, ' ').trim();
+    var labeled = t.match(/색상\s*[x×]\s*사이즈\s+(.+)$/i);
+    if (labeled && labeled[1]) return finalizeCoupangOption(labeled[1]);
+    return finalizeCoupangOption(t);
+  }
+
+  function extractCoupangOptionFromPicker() {
+    var root = getCoupangBuyPanel();
+    var best = '';
+    var bestScore = 0;
+
+    root.querySelectorAll(
+      'button[class*="option"], [class*="prod-option"] button, [class*="prod-option__item"], ' +
+      '[class*="option-picker"], [class*="OptionPicker"], [class*="prod-option__"]'
+    ).forEach(function (el) {
+      var raw = (el.textContent || '').replace(/\s+/g, ' ').trim();
+      if (!raw || raw.length < 4 || raw.length > 120) return;
+      if (/^장바구니|^구매하기|^바로구매|^찜하기/i.test(raw)) return;
+
+      var lines = [];
+      el.querySelectorAll('span, div, p').forEach(function (child) {
+        if (child.querySelector('span, div, p')) return;
+        var line = (child.textContent || '').replace(/\s+/g, ' ').trim();
+        if (line && line.length >= 2 && line.length <= 60) lines.push(line);
+      });
+
+      if (lines.length >= 2) {
+        var value = splitCoupangOptionText(lines[lines.length - 1]);
+        if (looksLikeCoupangOptionValue(value)) {
+          var score = 60 + value.length;
+          if (score > bestScore) {
+            bestScore = score;
+            best = value;
+          }
+        }
+        return;
+      }
+
+      var combined = splitCoupangOptionText(raw);
+      if (looksLikeCoupangOptionValue(combined)) {
+        var score2 = 40 + combined.length;
+        if (score2 > bestScore) {
+          bestScore = score2;
+          best = combined;
+        }
+      }
+    });
+
+    return best;
+  }
+
+  function extractCoupangOptionByPattern() {
+    var root = getCoupangOptionRoot();
+    var best = '';
+    var bestScore = 0;
+
+    root.querySelectorAll('span, div, p, button, li, label').forEach(function (el) {
+      if (el.children.length > 8) return;
+      var raw = (el.textContent || '').replace(/\s+/g, ' ').trim();
+      if (raw.length < 6 || raw.length > 100) return;
+      if (/^색상\s*[x×]\s*사이즈$/i.test(raw)) return;
+
+      var t = splitCoupangOptionText(raw);
+      if (!looksLikeCoupangOptionValue(t)) return;
+
+      var score = 30;
+      if (/\d+\s*A(?:H|h)?/i.test(t)) score += 25;
+      if (/[x×]/.test(t)) score += 15;
+      if (el.closest('button, [class*="prod-option"], [class*="option"]')) score += 20;
+      score += Math.max(0, 15 - el.children.length * 2);
+
+      if (score > bestScore) {
+        bestScore = score;
+        best = t;
+      }
+    });
+
+    return bestScore >= 40 ? best : '';
   }
 
   function cleanCoupangOptionLine(text) {
