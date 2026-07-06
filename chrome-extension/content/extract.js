@@ -170,6 +170,219 @@
     return isValidNaverPrice(p2) ? p2 : null;
   }
 
+  /** 네이버·G마켓·쿠팡·11번가 공통 UI 라벨 제거 */
+  function stripMallUiLabels(text) {
+    return String(text || '')
+      .replace(/수량\s*증가|수량\s*감소|수량증가|수량감소/gi, ' ')
+      .replace(/쿠폰\s*적용/gi, ' ')
+      .replace(/닫기|삭제|더보기|선택됨/gi, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function getOptionTextFromEl(el) {
+    if (!el) return '';
+    var clone = el.cloneNode(true);
+    clone.querySelectorAll(
+      'button, a, [role="button"], input, [class*="btn"], [class*="button"], [class*="coupon"]'
+    ).forEach(function (node) {
+      node.remove();
+    });
+    return stripMallUiLabels(clone.textContent);
+  }
+
+  function cleanMallOptionLine(text) {
+    var t = stripMallUiLabels(text);
+    t = t.replace(/\d{1,3}(?:,\d{3})+\s*원/g, ' ').trim();
+    t = t.replace(/^\s*[-+]\s*\d+\s*[-+]\s*/g, '').trim();
+    t = t.replace(/\s+(?:수량증가|수량감소|닫기|삭제|쿠폰적용)(?:\s+.*)?$/i, '').trim();
+    return t.replace(/\s+/g, ' ').trim();
+  }
+
+  function finalizeMallOption(option) {
+    return cleanMallOptionLine(option);
+  }
+
+  function extractTotalPriceFromPanel(root) {
+    root = root || document.body;
+    var nodes = root.querySelectorAll('div, span, p, strong, em, dt, dd');
+    for (var i = 0; i < nodes.length; i++) {
+      var raw = (nodes[i].textContent || '').replace(/\s+/g, ' ').trim();
+      if (!/총\s*금액|총\s*상품|결제\s*예정|주문\s*금액/i.test(raw)) continue;
+      var match = raw.match(
+        /(?:총\s*금액|총\s*상품\s*금액|결제\s*예정\s*금액|주문\s*금액)\s*([\d,]{4,12})\s*원?/i
+      );
+      if (match) {
+        var p = PH.normalizePrice(match[1]);
+        if (isValidNaverPrice(p)) return p;
+      }
+    }
+    return null;
+  }
+
+  function getCoupangBuyPanel() {
+    return (
+      document.querySelector('.prod-buy, .prod-option, .prod-buy-header, #contents') ||
+      document.body
+    );
+  }
+
+  function isCoupangOptionNoise(text) {
+    if (!text) return true;
+    if (/^(옵션|수량|필수|선택|삭제|닫기)$/i.test(text)) return true;
+    if (/선택해\s*주세요|옵션을\s*선택|필수\s*옵션/i.test(text)) return true;
+    if (/장바구니|바로구매|쿠폰\s*받기|로켓배송/i.test(text) && text.length < 35) return true;
+    return false;
+  }
+
+  function extractCoupangOptions() {
+    var buyRoot = getCoupangBuyPanel();
+    var items = [];
+    var seen = {};
+
+    queryAll([
+      '.prod-option__item--selected',
+      '.prod-option-selected-item',
+      '[class*="option-selected"]',
+      '.option-table-list__option--selected',
+      '.prod-option-table__item--selected',
+      '.prod-option__selected-item'
+    ], buyRoot).forEach(function (row) {
+      var name = finalizeMallOption(getOptionTextFromEl(row) || row.textContent);
+      if (!name || name.length < 2 || name.length > 150 || isCoupangOptionNoise(name)) return;
+      if (seen[name]) return;
+      seen[name] = true;
+      items.push({ name: name });
+    });
+
+    if (items.length) return formatNaverOptionList(items);
+
+    var parts = [];
+    buyRoot.querySelectorAll('select').forEach(function (sel) {
+      if (!sel.value || sel.selectedIndex < 0) return;
+      var opt = sel.options[sel.selectedIndex];
+      var label = (opt && opt.textContent || '').replace(/\s+/g, ' ').trim();
+      if (!label || isCoupangOptionNoise(label)) return;
+      if (/선택|옵션\s*선택/i.test(label) && label.length < 20) return;
+      if (parts.indexOf(label) < 0) parts.push(label);
+    });
+    if (parts.length) return finalizeMallOption(parts.join(' / '));
+    return '';
+  }
+
+  function extractCoupangProduct() {
+    var buyRoot = getCoupangBuyPanel();
+    var title = textOf([
+      'h1.prod-buy-header__title',
+      '.prod-buy-header__title',
+      'h1.product-title',
+      'h1'
+    ]);
+    var price = extractTotalPriceFromPanel(buyRoot) ||
+      PH.normalizePrice(textOf([
+        '.total-price strong',
+        '.total-price',
+        '.prod-price .total-price',
+        '.price-amount.final-price-amount',
+        '[class*="total-price"] strong'
+      ], buyRoot));
+    if (price && !isValidNaverPrice(price)) price = null;
+    return {
+      title: cleanTitle(title),
+      price: price,
+      option: extractCoupangOptions()
+    };
+  }
+
+  function get11stBuyPanel() {
+    return (
+      document.querySelector(
+        '#prdBuyArea, .c_product_info, .l_product_cont, .buy_wrap, .prd_buy, .b_product_info'
+      ) || document.body
+    );
+  }
+
+  function is11stOptionNoise(text) {
+    if (!text) return true;
+    if (/^(옵션|수량|필수|선택|삭제|닫기)$/i.test(text)) return true;
+    if (/선택해\s*주세요|옵션\s*선택/i.test(text)) return true;
+    if (/장바구니|바로구매|쿠폰|찜하기/i.test(text) && text.length < 30) return true;
+    return false;
+  }
+
+  function extract11stOptions() {
+    var buyRoot = get11stBuyPanel();
+    var items = [];
+    var seen = {};
+
+    function add(name) {
+      name = finalizeMallOption(name);
+      if (!name || seen[name] || is11stOptionNoise(name)) return;
+      seen[name] = true;
+      items.push({ name: name });
+    }
+
+    queryAll([
+      '.list_option .on',
+      '.list_option li.selected',
+      '.prd_option_select li.on',
+      '[class*="option"] [class*="selected"]',
+      '.select_option_list li',
+      '.c_product_option li.on',
+      '[class*="opt_select"] [class*="on"]'
+    ], buyRoot).forEach(function (row) {
+      var name = getOptionTextFromEl(row) || cleanMallOptionLine(row.textContent);
+      if (name && name.length >= 2 && name.length <= 150) add(name);
+    });
+
+    if (!items.length) {
+      buyRoot.querySelectorAll(
+        'button, a, [class*="delete"], [class*="close"], [class*="btn-remove"]'
+      ).forEach(function (btn) {
+        if (/장바구니|구매|쿠폰|찜/i.test(btn.textContent || '')) return;
+        var row = btn.closest('li, div[class]');
+        if (!row || (row.textContent || '').length > 280) return;
+        if (!/\d{1,3}(?:,\d{3})+\s*원/.test(row.textContent || '')) return;
+        var name = getOptionTextFromEl(row);
+        if (name) add(name);
+      });
+    }
+
+    if (items.length) return formatNaverOptionList(items);
+
+    var parts = [];
+    buyRoot.querySelectorAll('select').forEach(function (sel) {
+      if (!sel.value || sel.selectedIndex < 0) return;
+      var opt = sel.options[sel.selectedIndex];
+      var label = (opt && opt.textContent || '').replace(/\s+/g, ' ').trim();
+      if (!label || is11stOptionNoise(label)) return;
+      if (/^(선택|옵션|모델|색상|사이즈)$/i.test(label)) return;
+      if (parts.indexOf(label) < 0) parts.push(label);
+    });
+    if (parts.length >= 2) return finalizeMallOption(parts.join(' + '));
+    if (parts.length === 1) return finalizeMallOption(parts[0]);
+    return '';
+  }
+
+  function extract11stProduct() {
+    var buyRoot = get11stBuyPanel();
+    var title = textOf(['h1.title', '.prd_name', 'h1.c_product_title', 'h1']);
+    var price = extractTotalPriceFromPanel(buyRoot) ||
+      PH.normalizePrice(textOf([
+        '.price',
+        '.sale_price',
+        '.c_product_price_value',
+        '.value',
+        '.sale_price_area .value'
+      ], buyRoot));
+    if (price && !isValidNaverPrice(price)) price = null;
+    return {
+      title: cleanTitle(title),
+      price: price,
+      option: extract11stOptions()
+    };
+  }
+
   function getNaverBuyPanel() {
     return (
       document.querySelector(
@@ -694,23 +907,11 @@
   }
 
   function stripGmarketUiLabels(text) {
-    return String(text || '')
-      .replace(/수량\s*증가|수량\s*감소|수량증가|수량감소/gi, ' ')
-      .replace(/쿠폰\s*적용/gi, ' ')
-      .replace(/닫기|삭제|더보기/gi, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
+    return stripMallUiLabels(text);
   }
 
   function getGmarketOptionTextFromEl(el) {
-    if (!el) return '';
-    var clone = el.cloneNode(true);
-    clone.querySelectorAll(
-      'button, a, [role="button"], input, [class*="btn"], [class*="button"], [class*="coupon"]'
-    ).forEach(function (node) {
-      node.remove();
-    });
-    return stripGmarketUiLabels(clone.textContent);
+    return getOptionTextFromEl(el);
   }
 
   function cleanGmarketOptionLine(text) {
@@ -861,18 +1062,7 @@
   }
 
   function extractGmarketTotalPrice() {
-    var buyRoot = getGmarketBuyPanel();
-    var nodes = buyRoot.querySelectorAll('div, span, p, strong, em, dt, dd');
-    for (var i = 0; i < nodes.length; i++) {
-      var raw = (nodes[i].textContent || '').replace(/\s+/g, ' ').trim();
-      if (!/총\s*금액/i.test(raw)) continue;
-      var match = raw.match(/총\s*금액\s*([\d,]{4,12})\s*원?/i);
-      if (match) {
-        var p = PH.normalizePrice(match[1]);
-        if (isValidNaverPrice(p)) return p;
-      }
-    }
-    return null;
+    return extractTotalPriceFromPanel(getGmarketBuyPanel());
   }
 
   function extractGmarketProduct() {
@@ -931,7 +1121,8 @@
     var price = null;
 
     if (host.indexOf('coupang') >= 0) {
-      title = textOf([
+      var coupang = extractCoupangProduct();
+      title = coupang.title || textOf([
         'h1.prod-buy-header__title',
         '.prod-buy-header__title',
         'h1.product-title',
@@ -939,7 +1130,7 @@
         'h1[class*="title"]',
         'h1'
       ]);
-      price = PH.normalizePrice(textOf([
+      price = coupang.price || PH.normalizePrice(textOf([
         '.total-price strong',
         '.total-price',
         '.prod-price .total-price',
@@ -961,8 +1152,9 @@
       ]);
       price = naver.price || PH.normalizePrice(metaContent('product:price:amount'));
     } else if (host.indexOf('11st') >= 0) {
-      title = textOf(['h1.title', '.prd_name', 'h1']);
-      price = PH.normalizePrice(textOf(['.price', '.sale_price', '.value']));
+      var eleven = extract11stProduct();
+      title = eleven.title || textOf(['h1.title', '.prd_name', 'h1']);
+      price = eleven.price || PH.normalizePrice(textOf(['.price', '.sale_price', '.value']));
     } else if (host.indexOf('gmarket') >= 0 || host.indexOf('auction') >= 0) {
       var gmarket = extractGmarketProduct();
       title = gmarket.title || textOf(['h1.itemtit', '.itemtit', 'h1']);
@@ -996,8 +1188,12 @@
     var host = location.hostname.toLowerCase();
     var isNaver = host.indexOf('naver') >= 0 || host.indexOf('smartstore') >= 0;
     var isGmarket = host.indexOf('gmarket') >= 0 || host.indexOf('auction') >= 0;
+    var isCoupang = host.indexOf('coupang') >= 0;
+    var is11st = host.indexOf('11st') >= 0;
     var naverData = isNaver ? extractNaverSmartStore() : null;
     var gmarketData = isGmarket ? extractGmarketProduct() : null;
+    var coupangData = isCoupang ? extractCoupangProduct() : null;
+    var elevenData = is11st ? extract11stProduct() : null;
     var scripts = extractFromScripts();
     var ld = parseJsonLd();
     var dom = extractDomByHost(host);
@@ -1015,10 +1211,12 @@
     }
 
     var price = (naverData && naverData.price) || (gmarketData && gmarketData.price) ||
+      (coupangData && coupangData.price) || (elevenData && elevenData.price) ||
       dom.price || scripts.price || ld.price ||
       PH.normalizePrice(metaContent('product:price:amount'));
 
     var option = (naverData && naverData.option) || (gmarketData && gmarketData.option) ||
+      (coupangData && coupangData.option) || (elevenData && elevenData.option) ||
       extractSelectedOptions();
 
     return {
