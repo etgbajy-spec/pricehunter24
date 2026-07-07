@@ -6,7 +6,7 @@
   'use strict';
   global.PH_EXTENSION_STORE = {
     chromeWebStoreUrl: '',
-    privacyPolicyUrl: 'https://pricehunt24.com/privacy.html#chrome-extension',
+    privacyPolicyUrl: 'https://pricehunt24.com/extension-privacy.html',
     devInstallGuideUrl: 'chrome-extension/README.md'
   };
 })(typeof window !== 'undefined' ? window : this);
