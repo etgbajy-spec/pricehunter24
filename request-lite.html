@@ -226,7 +226,8 @@
         if (!url) return;
         var nameEl = document.getElementById('productName');
         var priceEl = document.getElementById('productPrice');
-        var needName = nameEl && !nameEl.value.trim();
+        var currentName = nameEl && nameEl.value.trim();
+        var needName = nameEl && (!currentName || /^(products|product|vp|item|goods)$/i.test(currentName));
         var needPrice = priceEl && !priceEl.value.trim();
         if (!needName && !needPrice) return;
 
@@ -238,8 +239,9 @@
           });
           var data = await res.json().catch(function () { return {}; });
           if (!data.ok || !data.scan) return;
-          if (needName && data.scan.productName) {
-            nameEl.value = data.scan.productName;
+          var scanName = data.scan.productName || '';
+          if (needName && scanName && !/^(products|product|vp|item|goods)$/i.test(scanName)) {
+            nameEl.value = scanName;
           }
           if (needPrice && data.scan.detectedPrice) {
             priceEl.value = window.RequestUrlPrefill && RequestUrlPrefill.formatDisplayPrice

@@ -98,13 +98,15 @@ function guessProductNameFromUrl(url) {
   try {
     const u = new URL(url);
     const host = u.hostname.toLowerCase();
+    const skip = new Set(['vp', 'products', 'product', 'items', 'item', 'goods', 'catalog', 'mall', 'shop']);
     const parts = decodeURIComponent(u.pathname)
       .split('/')
       .map((p) => p.trim())
       .filter(Boolean);
     if (host.includes('coupang') || host.includes('naver') || host.includes('11st') ||
         host.includes('gmarket') || host.includes('auction')) {
-      const slug = parts.find((p) => /[가-힣a-zA-Z]/.test(p) && !/^\d+$/.test(p) && p.length > 2);
+      const slug = parts.find((p) => /[가-힣a-zA-Z]/.test(p) && !/^\d+$/.test(p) && p.length > 2 &&
+        !skip.has(p.toLowerCase()));
       if (slug) return slug.replace(/[-_+]/g, ' ').slice(0, 200);
     }
   } catch (e) { /* ignore */ }

@@ -2,6 +2,12 @@
 
 var product = null;
 
+var CONTENT_SCRIPTS = [
+  'lib/config.js',
+  'content/extract.js',
+  'lib/open-request.js'
+];
+
 function formatPrice(num) {
   if (!num) return '—';
   return Number(num).toLocaleString('ko-KR') + '원';
@@ -37,6 +43,63 @@ function enableButtons(enabled) {
   document.getElementById('btn-member').disabled = !enabled;
 }
 
+function isSupportedMallUrl(url) {
+  return /coupang\.com|smartstore\.naver|shopping\.naver|11st\.co\.kr|gmarket\.co\.kr|auction\.co\.kr/i.test(url || '');
+}
+
+function detectMarketplaceFromUrl(url) {
+  if (/coupang/i.test(url)) return '쿠팡';
+  if (/smartstore|shopping\.naver/i.test(url)) return '네이버';
+  if (/11st/i.test(url)) return '11번가';
+  if (/gmarket/i.test(url)) return 'G마켓';
+  if (/auction/i.test(url)) return '옥션';
+  return '쇼핑몰';
+}
+
+function fallbackProduct(tab) {
+  return {
+    url: tab.url,
+    productName: '',
+    price: null,
+    option: '',
+    marketplace: detectMarketplaceFromUrl(tab.url),
+    isProductPage: true
+  };
+}
+
+function sleep(ms) {
+  return new Promise(function (resolve) { setTimeout(resolve, ms); });
+}
+
+async function injectContentScripts(tabId) {
+  if (!chrome.scripting || !chrome.scripting.executeScript) return;
+  await chrome.scripting.executeScript({
+    target: { tabId: tabId },
+    files: CONTENT_SCRIPTS
+  });
+}
+
+async function requestExtract(tabId) {
+  var lastError = null;
+  for (var attempt = 0; attempt < 4; attempt++) {
+    try {
+      var response = await chrome.tabs.sendMessage(tabId, { action: 'extract' });
+      if (response && response.ok && response.product) return response;
+      if (response && response.product) return { ok: true, product: response.product };
+      lastError = new Error('empty_response');
+    } catch (err) {
+      lastError = err;
+      if (attempt === 1) {
+        try {
+          await injectContentScripts(tabId);
+        } catch (injectErr) { /* ignore */ }
+      }
+      if (attempt < 3) await sleep(350);
+    }
+  }
+  throw lastError || new Error('extract_failed');
+}
+
 async function init() {
   var siteSelect = document.getElementById('site-mode');
   chrome.storage.sync.get(['siteMode'], function (data) {
@@ -57,13 +120,22 @@ async function init() {
       return;
     }
 
-    var response = await chrome.tabs.sendMessage(tab.id, { action: 'extract' });
-    if (!response || !response.ok) {
-      setStatus('이 페이지에서는 상품 정보를 읽을 수 없습니다. 쿠팡·네이버 등 상품 상세 페이지에서 열어주세요.');
+    if (!isSupportedMallUrl(tab.url)) {
+      setStatus('쿠팡·네이버·11번가·G마켓 상품 페이지에서 열어주세요.');
       return;
     }
 
-    product = response.product;
+    try {
+      var response = await requestExtract(tab.id);
+      product = response.product;
+    } catch (err) {
+      product = fallbackProduct(tab);
+      setStatus('일부 정보만 읽었습니다. 링크는 자동 입력되며, 의뢰 페이지에서 확인해 주세요.');
+      renderPreview(product);
+      enableButtons(true);
+      return;
+    }
+
     if (!product.isProductPage) {
       setStatus('상품 상세 페이지가 아닐 수 있습니다. 그래도 의뢰는 가능합니다.');
     } else {

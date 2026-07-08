@@ -7,21 +7,35 @@
   var PH = globalThis.PH_EXTENSION;
   var FAB_ID = 'ph-extension-fab';
 
+  function safeExtractProduct() {
+    var fallback = {
+      url: PH.cleanProductUrl(location.href),
+      productName: '',
+      price: null,
+      option: '',
+      marketplace: '쇼핑몰'
+    };
+    try {
+      if (!globalThis.PHExtract || !PHExtract.extractProductInfo) return fallback;
+      var product = PHExtract.extractProductInfo();
+      if (!product || !product.url) product.url = fallback.url;
+      return product;
+    } catch (err) {
+      return fallback;
+    }
+  }
+
   function openRequest(member) {
-    var product = globalThis.PHExtract && PHExtract.extractProductInfo
-      ? PHExtract.extractProductInfo()
-      : { url: location.href, option: '단일옵션' };
+    var product = safeExtractProduct();
 
     if (globalThis.PHOpenRequest && PHOpenRequest.openRequestPage) {
       PHOpenRequest.openRequestPage(product, member);
       return;
     }
 
-    chrome.storage.sync.get(['siteMode'], function (data) {
-      var siteBase = data.siteMode === 'local' ? PH.LOCAL_SITE : PH.DEFAULT_SITE;
-      var url = PH.buildRequestUrl(product, { siteBase: siteBase, member: !!member });
-      window.open(url, '_blank', 'noopener');
-    });
+    var url = PH.buildRequestUrl(product, { siteBase: PH.DEFAULT_SITE, member: !!member });
+    if (!PH.isExtensionContextValid()) PH.showContextInvalidNotice();
+    window.open(url, '_blank', 'noopener');
   }
 
   function createFab() {
@@ -50,7 +64,9 @@
   }
 
   var observer = new MutationObserver(function () {
-    if (!document.getElementById(FAB_ID) && PHExtract.isLikelyProductPage()) createFab();
+    if (!document.getElementById(FAB_ID) && globalThis.PHExtract && PHExtract.isLikelyProductPage && PHExtract.isLikelyProductPage()) {
+      createFab();
+    }
   });
   observer.observe(document.documentElement, { childList: true, subtree: true });
 })();

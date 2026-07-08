@@ -52,6 +52,12 @@
     host.classList.remove('hidden');
   }
 
+  function isBadPrefillName(name) {
+    var t = String(name || '').trim();
+    if (!t || t.length < 6) return true;
+    return /^(products|product|vp|item|goods|쿠팡|상품)$/i.test(t);
+  }
+
   function applyData(data, fields, opts) {
     fields = fields || {};
     opts = opts || {};
@@ -60,6 +66,7 @@
 
     var applied = [];
     var name = data.productName || data.name || '';
+    if (isBadPrefillName(name)) name = '';
     var option = data.option || data.optionName || '';
     if (!option && opts.defaultOption) option = opts.defaultOption;
 

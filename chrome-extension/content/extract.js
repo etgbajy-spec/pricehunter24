@@ -52,11 +52,112 @@
   }
 
   var BAD_TITLE_RE = /추천\s*상품|관련\s*상품|인기\s*상품|베스트\s*상품|최근\s*본|함께\s*보면|다른\s*고객/i;
+  var MAX_COUPANG_OPTION_SCAN = 80;
 
   function isBadTitle(text) {
     var t = String(text || '').trim();
     if (!t || t.length < 6) return true;
+    if (/^(products|product|vp|item|goods|쿠팡|상품)$/i.test(t)) return true;
+    if (/^https?:\/\//i.test(t)) return true;
     return BAD_TITLE_RE.test(t);
+  }
+
+  function pickFirstGoodTitle(candidates) {
+    for (var i = 0; i < candidates.length; i++) {
+      var t = cleanTitle(candidates[i]);
+      if (t && !isBadTitle(t)) return t;
+    }
+    return '';
+  }
+
+  function extractCoupangTitleFromVisibleDom() {
+    var roots = [getCoupangAtfRoot(), document.querySelector('main'), document.body];
+    var seen = {};
+    var candidates = [];
+
+    roots.forEach(function (root) {
+      if (!root) return;
+      root.querySelectorAll('h1, h2, [class*="title"], [class*="Title"]').forEach(function (el) {
+        if (el.closest('header, nav, footer, [class*="review"], [class*="Review"], [class*="related"], [class*="breadcrumb"]')) {
+          return;
+        }
+        var t = cleanTitle(el.textContent);
+        if (!t || isBadTitle(t) || !/[가-힣]/.test(t) || t.length < 8) return;
+        if (seen[t]) return;
+        seen[t] = true;
+        var score = t.length;
+        if (el.tagName === 'H1') score += 50;
+        if (el.closest('.prod-buy, .prod-atf, .prod-atf-contents, [class*="product"], [class*="Product"]')) {
+          score += 30;
+        }
+        candidates.push({ t: t, score: score });
+      });
+    });
+
+    if (!candidates.length) return '';
+    candidates.sort(function (a, b) { return b.score - a.score; });
+    return candidates[0].t;
+  }
+
+  function extractCoupangPriceFromVisibleDom(buyRoot) {
+    buyRoot = buyRoot || getCoupangAtfRoot();
+    var candidates = [];
+
+    buyRoot.querySelectorAll('span, strong, em, div, p').forEach(function (el) {
+      if (isStrikethroughPrice(el)) return;
+      var raw = (el.textContent || '').replace(/\s+/g, ' ').trim();
+      if (!raw || raw.length > 24) return;
+      if (/쿠폰|개당|배송|적립|%/i.test(raw)) return;
+      var p = parseNaverPriceText(raw);
+      if (p && isValidNaverPrice(p)) candidates.push(p);
+    });
+
+    if (!candidates.length) return null;
+    candidates.sort(function (a, b) { return a - b; });
+    return candidates[0];
+  }
+
+  function extractCoupangOptionFromVisibleDom() {
+    var root = getCoupangOptionRoot();
+    var best = '';
+    var bestScore = 0;
+    var nodes = root.querySelectorAll('button, [role="button"], div, span, p, li');
+    var limit = Math.min(nodes.length, MAX_COUPANG_OPTION_SCAN);
+
+    for (var i = 0; i < limit; i++) {
+      var el = nodes[i];
+      if (!isCoupangOptionPickerEl(el)) continue;
+      if (el.children.length > 10) continue;
+      var raw = getCoupangTextWithoutMedia(el);
+      var value = extractCoupangValueFromCompositeButton(el, raw);
+      if (!value || !looksLikeCoupangDropdownValue(value)) continue;
+
+      var score = value.length;
+      if (/\d+\s*개/.test(value)) score += 50;
+      if (/프리미엄|패키지|풀패키지|행정|휠/i.test(value)) score += 30;
+      if (isCoupangCompositeLabelHeader(raw)) score -= 10;
+      if (score > bestScore) {
+        bestScore = score;
+        best = value;
+      }
+    }
+
+    return best;
+  }
+
+  function cleanCoupangOgTitle(title) {
+    title = cleanTitle(title);
+    if (!title) return '';
+    return title
+      .replace(/\s*:\s*쿠팡!.*$/i, '')
+      .replace(/\s*-\s*쿠팡.*$/i, '')
+      .replace(/\s*\|\s*쿠팡.*$/i, '')
+      .trim();
+  }
+
+  function getCoupangProductId() {
+    var m = location.pathname.match(/\/products\/(\d+)/i);
+    return m ? m[1] : '';
   }
 
   function getNaverProductId() {
@@ -267,9 +368,23 @@
   }
 
   function pushCoupangOptionValue(values, seen, raw) {
-    var v = finalizeCoupangOption(raw);
-    if (!v || seen[v] || isCoupangOptionNoise(v) || isCoupangOptionLabel(v)) return;
+    var stripped = extractCoupangValueFromGluedText(raw);
+    var v = finalizeCoupangOption(stripped || raw);
+    if (!v || isCoupangOptionNoise(v) || isCoupangOptionLabel(v)) return;
     if (!looksLikeCoupangDropdownValue(v) && !looksLikeCoupangOptionValue(v)) return;
+
+    for (var i = 0; i < values.length; i++) {
+      if (!isDuplicateCoupangOption(values[i], v)) continue;
+      var better = pickBetterCoupangOption(values[i], v);
+      if (better !== values[i]) {
+        delete seen[values[i]];
+        values[i] = better;
+        seen[better] = true;
+      }
+      return;
+    }
+
+    if (seen[v]) return;
     seen[v] = true;
     values.push(v);
   }
@@ -365,18 +480,68 @@
     var t = String(text || '').replace(/\s+/g, ' ').trim();
     if (isCoupangCompositeLabelHeader(t)) return '';
 
-    var glued = t.match(/^((?:(?:[가-힣A-Za-z]+\s*×\s*){2,}[가-힣A-Za-z]+?))([가-힣].+)$/);
+    var knownHeaders = [
+      /^구성\s*×\s*엔진\s*방식\s*×\s*수량\s*/i,
+      /^색상\s*×\s*사이즈\s*/i,
+      /^색상\s*×\s*프레임재질\s*/i
+    ];
+    for (var h = 0; h < knownHeaders.length; h++) {
+      if (knownHeaders[h].test(t)) {
+        return cleanCoupangSelectionLine(t.replace(knownHeaders[h], ''));
+      }
+    }
+
+    var qtyGlued = t.match(/^((?:[가-힣A-Za-z][가-힣A-Za-z0-9\s]*\s*×\s*){2,}수량)(.+)$/);
+    if (qtyGlued && qtyGlued[2]) {
+      var headerOnly = qtyGlued[1].replace(/\s+$/, '');
+      if (isCoupangCompositeLabelHeader(headerOnly)) {
+        return cleanCoupangSelectionLine(qtyGlued[2]);
+      }
+    }
+
+    var glued = t.match(/^((?:(?:[가-힣A-Za-z]+\s*×\s*){2,}[가-힣A-Za-z]+?))([가-힣+].+)$/);
     if (glued && glued[2] && isCoupangCompositeLabelHeader(glued[1])) {
       return cleanCoupangSelectionLine(glued[2]);
     }
 
-    var afterQty = t.match(/^(?:.+?수량)\s*([가-힣].+)$/);
+    var afterQty = t.match(/^(?:.+?수량)\s*([가-힣+].+)$/);
     if (afterQty && afterQty[1]) return cleanCoupangSelectionLine(afterQty[1]);
 
     if (/×/.test(t) && /\d+\s*개/.test(t) && !isCoupangCompositeLabelHeader(t)) {
       return cleanCoupangSelectionLine(t);
     }
     return '';
+  }
+
+  function normalizeCoupangOptionCompareKey(text) {
+    return String(text || '').replace(/\s+/g, '').toLowerCase();
+  }
+
+  function isDuplicateCoupangOption(a, b) {
+    if (!a || !b) return false;
+    if (a === b) return true;
+    var ka = normalizeCoupangOptionCompareKey(a);
+    var kb = normalizeCoupangOptionCompareKey(b);
+    if (ka === kb) return true;
+    if (ka.indexOf(kb) >= 0 || kb.indexOf(ka) >= 0) return true;
+    var strippedA = extractCoupangValueFromGluedText(a);
+    if (strippedA && normalizeCoupangOptionCompareKey(strippedA) === kb) return true;
+    var strippedB = extractCoupangValueFromGluedText(b);
+    if (strippedB && ka === normalizeCoupangOptionCompareKey(strippedB)) return true;
+    return false;
+  }
+
+  function pickBetterCoupangOption(a, b) {
+    if (!a) return b;
+    if (!b) return a;
+    if (isCoupangCompositeLabelHeader(a) || /^구성\s*×\s*엔진/i.test(a)) return b;
+    if (isCoupangCompositeLabelHeader(b) || /^구성\s*×\s*엔진/i.test(b)) return a;
+    var strippedA = extractCoupangValueFromGluedText(a);
+    var strippedB = extractCoupangValueFromGluedText(b);
+    if (strippedA && !strippedB) return strippedA;
+    if (strippedB && !strippedA) return strippedB;
+    if (strippedA && strippedB) return strippedA.length <= strippedB.length ? strippedA : strippedB;
+    return a.length <= b.length ? a : b;
   }
 
   function extractCoupangValueFromCompositeButton(btn, raw) {
@@ -401,34 +566,80 @@
     return cleanCoupangSelectionLine(raw);
   }
 
-  function isCoupangClosedDropdownButton(btn) {
-    if (!btn || !isInsideCoupangOptionArea(btn)) return false;
-    if (btn.closest('ul, ol, [role="listbox"], [role="option"]')) return false;
-    if (/장바구니|바로구매|구매하기|찜하기/i.test(btn.textContent || '')) return false;
-    if (!btn.closest('.prod-option, [class*="prod-option"], [class*="option"], .prod-atf, .prod-buy, .prod-atf-contents')) {
+  function isCoupangOptionPickerEl(el) {
+    if (!el || !isInsideCoupangOptionArea(el)) return false;
+    if (el.closest('ul, ol, [role="listbox"], [role="option"]')) return false;
+    if (!el.closest('.prod-option, [class*="prod-option"], [class*="option"], .prod-atf, .prod-buy, .prod-atf-contents')) {
       return false;
     }
-    var expanded = btn.getAttribute('aria-expanded');
-    if (expanded === 'true') return false;
+    if (/장바구니|바로구매|구매하기|찜하기|쿠폰\s*받기/i.test(el.textContent || '')) return false;
+    var raw = getCoupangTextWithoutMedia(el);
+    if (!raw || raw.length < 8 || raw.length > 220) return false;
+    if (!/[×x]/.test(raw) && !/프리미엄|패키지|풀패키지|행정/i.test(raw)) return false;
+    if (el.getAttribute('aria-expanded') === 'true') return false;
     return true;
   }
 
+  function isCoupangClosedDropdownButton(btn) {
+    return isCoupangOptionPickerEl(btn);
+  }
+
+  function extractCoupangCompositeOptionFromDom() {
+    var root = getCoupangOptionRoot();
+    var best = '';
+    var bestScore = 0;
+    var nodes = root.querySelectorAll('button, [role="button"], div, span, p');
+    var limit = Math.min(nodes.length, MAX_COUPANG_OPTION_SCAN);
+
+    for (var ci = 0; ci < limit; ci++) {
+      var el = nodes[ci];
+      if (!isCoupangOptionPickerEl(el)) continue;
+      if (el.children.length > 8) continue;
+      var raw = getCoupangTextWithoutMedia(el);
+      var value = extractCoupangValueFromCompositeButton(el, raw);
+      if (!value || !looksLikeCoupangDropdownValue(value)) continue;
+
+      var score = value.length;
+      if (/\d+\s*개/.test(value)) score += 50;
+      if (/프리미엄|패키지|풀패키지|행정|휠/i.test(value)) score += 30;
+      if (isCoupangCompositeLabelHeader(raw)) score -= 10;
+      if (score > bestScore) {
+        bestScore = score;
+        best = value;
+      }
+    }
+
+    return best;
+  }
+
   function extractCoupangClosedDropdownSelections() {
-    var root = getCoupangAtfRoot();
+    var root = getCoupangOptionRoot();
     var values = [];
     var seen = {};
+    var nodes = root.querySelectorAll('button, [role="button"], div, span, p');
+    var limit = Math.min(nodes.length, MAX_COUPANG_OPTION_SCAN);
 
-    root.querySelectorAll('button, [role="button"]').forEach(function (btn) {
-      if (!isCoupangClosedDropdownButton(btn)) return;
+    for (var di = 0; di < limit; di++) {
+      var btn = nodes[di];
+      if (!isCoupangClosedDropdownButton(btn)) continue;
       var raw = getCoupangTextWithoutMedia(btn);
-      if (!raw || raw.length < 6 || raw.length > 200) return;
-      if (!/[×x]/.test(raw) && !/프리미엄|패키지|행정|RS\d/i.test(raw)) return;
+      if (!raw || raw.length < 6 || raw.length > 200) continue;
+      if (!/[×x]/.test(raw) && !/프리미엄|패키지|행정|RS\d/i.test(raw)) continue;
 
       var value = extractCoupangValueFromCompositeButton(btn, raw);
-      if (!value || seen[value]) return;
+      if (!value) continue;
+
+      for (var i = 0; i < values.length; i++) {
+        if (!isDuplicateCoupangOption(values[i], value)) continue;
+        values[i] = pickBetterCoupangOption(values[i], value);
+        seen[values[i]] = true;
+        value = null;
+        break;
+      }
+      if (!value || seen[value]) continue;
       seen[value] = true;
       values.push(value);
-    });
+    }
 
     return values;
   }
@@ -448,6 +659,7 @@
   function looksLikeCoupangDropdownValue(text) {
     if (!text || text.length < 3 || text.length > 120) return false;
     if (isCoupangOptionNoise(text) || isCoupangOptionLabel(text)) return false;
+    if (/^구성\s*×\s*엔진/i.test(text) && /프리미엄|패키지|풀패키지|행정/i.test(text)) return false;
     if (/RS\d|\.?\d*v[-\s]?\d+\s*a?h?/i.test(text)) return true;
     if (/[A-Za-z]\d+[\.\d]*v[-\s]?\d+/i.test(text)) return true;
     if (/[가-힣]+[_\s][\d]+인치/i.test(text)) return true;
@@ -458,21 +670,11 @@
   }
 
   function isCoupangDropdownTrigger(el) {
-    if (!el || !isInsideCoupangOptionArea(el)) return false;
+    if (!isCoupangOptionPickerEl(el)) return false;
     var tag = el.tagName;
-    if (tag !== 'BUTTON' && tag !== 'DIV') return false;
-    // Only accept div that is explicitly clickable
-    if (tag === 'DIV' && el.getAttribute('role') !== 'button') return false;
-    var raw = (el.textContent || '').replace(/\s+/g, ' ').trim();
-    if (!raw || raw.length < 3 || raw.length > 150) return false;
-    if (/^장바구니|^구매하기|^바로구매|^찜하기|^쿠폰|^수량/i.test(raw)) return false;
-    if (el.closest('[class*="quantity"], .prod-buy-quantity, [class*="buy-count"]') &&
-        !el.closest('[class*="option"], [class*="Option"], .prod-atf')) {
-      return false;
-    }
-    if (!/(사이즈|색상|프레임|구성|엔진|옵션|패키지|행정|프리미엄|RS\d|리얼|인치|하이텐|[×x])/i.test(raw)) return false;
-    if (!el.closest('[class*="option"], [class*="Option"], .prod-atf, .prod-atf-contents')) return false;
-    return true;
+    if (tag === 'BUTTON' || el.getAttribute('role') === 'button') return true;
+    if (tag === 'DIV' || tag === 'SPAN' || tag === 'P') return true;
+    return false;
   }
 
   function extractValueFromCoupangDropdownTrigger(trigger) {
@@ -498,6 +700,8 @@
       .replace(/^색상\s*[x×]\s*프레임재질\s*/i, '')
       .replace(/^색상\s*[x×]\s*사이즈\s*/i, '')
       .trim();
+    var fromGlued = extractCoupangValueFromGluedText(raw);
+    if (fromGlued) return finalizeCoupangOption(fromGlued);
     raw = splitCoupangOptionText(raw);
     if (!raw || isCoupangOptionLabel(raw) || isCoupangOptionNoise(raw)) return '';
     if (looksLikeCoupangDropdownValue(raw) || looksLikeCoupangOptionValue(raw)) {
@@ -542,6 +746,8 @@
 
   function splitCoupangOptionText(text) {
     var t = String(text || '').replace(/\s+/g, ' ').trim();
+    var fromGlued = extractCoupangValueFromGluedText(t);
+    if (fromGlued) return finalizeCoupangOption(fromGlued);
     var labeled = t.match(/색상\s*[x×]\s*사이즈\s+(.+)$/i);
     if (labeled && labeled[1]) return finalizeCoupangOption(labeled[1]);
     return finalizeCoupangOption(t);
@@ -592,7 +798,13 @@
   }
 
   function finalizeCoupangOption(option) {
-    return cleanCoupangOptionLine(option);
+    var t = cleanCoupangOptionLine(option);
+    if (!t) return '';
+    var stripped = extractCoupangValueFromGluedText(t);
+    if (stripped) t = stripped;
+    t = cleanCoupangOptionLine(t);
+    if (!t || isCoupangCompositeLabelHeader(t) || isCoupangOptionLabel(t)) return '';
+    return t;
   }
 
   function isCoupangOptionNoise(text) {
@@ -609,7 +821,6 @@
   }
 
   function extractCoupangOptions() {
-    var buyRoot = getCoupangAtfRoot();
     var optionRoot = getCoupangOptionRoot();
     var merged = [];
     var seen = {};
@@ -653,6 +864,12 @@
       return formatNaverOptionList(merged.map(function (name) { return { name: name }; }));
     }
 
+    var composite = extractCoupangCompositeOptionFromDom();
+    if (composite) return composite;
+
+    var visible = extractCoupangOptionFromVisibleDom();
+    if (visible) return visible;
+
     var closedDropdowns = extractCoupangClosedDropdownSelections();
     if (closedDropdowns.length === 1) return closedDropdowns[0];
     if (closedDropdowns.length > 1) {
@@ -677,29 +894,90 @@
     return '';
   }
 
+  function extractCoupangPriceFromDom(buyRoot) {
+    buyRoot = buyRoot || getCoupangAtfRoot();
+    var visible = extractCoupangPriceFromVisibleDom(buyRoot);
+    if (visible && isValidNaverPrice(visible)) return visible;
+
+    var nextData = extractCoupangFromNextData();
+    if (nextData.price && isValidNaverPrice(nextData.price)) return nextData.price;
+
+    var fromPanel = extractTotalPriceFromPanel(buyRoot);
+    if (fromPanel) return fromPanel;
+
+    var direct = PH.normalizePrice(textOf([
+      '.total-price strong',
+      '.price-amount.final-price-amount',
+      '.prod-price .total-price strong',
+      '.prod-sale-price',
+      '[class*="total-price"] strong',
+      '[class*="final-price"]',
+      '[class*="sale-price"]',
+      '.total-price'
+    ], buyRoot));
+    if (direct && isValidNaverPrice(direct)) return direct;
+
+    var candidates = [];
+    buyRoot.querySelectorAll('[class*="price"], [class*="Price"], strong, span, em').forEach(function (el) {
+      if (isStrikethroughPrice(el)) return;
+      var raw = (el.textContent || '').replace(/\s+/g, ' ').trim();
+      if (!raw || raw.length > 28) return;
+      if (/쿠폰|개당|할인|%|배송/i.test(raw)) return;
+      var p = parseNaverPriceText(raw);
+      if (p && isValidNaverPrice(p)) candidates.push(p);
+    });
+    if (!candidates.length) return null;
+    candidates.sort(function (a, b) { return a - b; });
+    return candidates[0];
+  }
+
+  function extractCoupangOptionFast() {
+    var option = extractCoupangOptionFromVisibleDom();
+    if (option) return option;
+
+    option = extractCoupangCompositeOptionFromDom();
+    if (option) return option;
+
+    var closedDropdowns = extractCoupangClosedDropdownSelections();
+    if (closedDropdowns.length === 1) return closedDropdowns[0];
+    if (closedDropdowns.length > 1) {
+      return formatNaverOptionList(closedDropdowns.map(function (name) { return { name: name }; }));
+    }
+
+    return '';
+  }
+
   function extractCoupangProduct() {
     var buyRoot = getCoupangAtfRoot();
-    var title = textOf([
-      'h1.prod-buy-header__title',
-      '.prod-buy-header__title',
-      '.product-buy-header h1',
-      'div.product-buy-header h1 span',
-      'h1.product-title',
-      'h1'
-    ], buyRoot);
-    var price = extractTotalPriceFromPanel(buyRoot) ||
-      PH.normalizePrice(textOf([
-        '.total-price strong',
-        '.price-amount.final-price-amount',
-        '.prod-price .total-price strong',
-        '.total-price',
-        '.prod-price .total-price'
-      ], buyRoot));
+    var nextData = extractCoupangFromNextData();
+
+    var title = pickFirstGoodTitle([
+      extractCoupangTitleFromVisibleDom(),
+      cleanCoupangOgTitle(metaContent('og:title')),
+      cleanCoupangOgTitle(metaContent('twitter:title')),
+      cleanTitle(textOf([
+        'h1.prod-buy-header__title',
+        '.prod-buy-header__title',
+        'h1[class*="product-title"]',
+        'h1[class*="ProductTitle"]',
+        '.product-buy-header h1',
+        'div.product-buy-header h1 span',
+        'h1.product-title',
+        'h1'
+      ], buyRoot)),
+      nextData.title,
+      cleanCoupangOgTitle(document.title)
+    ]);
+
+    var price = extractCoupangPriceFromDom(buyRoot);
     if (price && !isValidNaverPrice(price)) price = null;
+
+    var option = extractCoupangOptionFast();
+
     return {
-      title: cleanTitle(title),
+      title: title,
       price: price,
-      option: extractCoupangOptions()
+      option: option
     };
   }
 
@@ -1022,7 +1300,47 @@
     if (/삭제|제거|닫기|delete|remove|close/i.test(label)) return true;
     if (/^[xX×✕]$/.test(label)) return true;
     var cls = String(btn.className || '');
-    return /delete|remove|close|btn_del/i.test(cls);
+    return /delete|remove|close|btn_del|btn_delete|icon_delete/i.test(cls);
+  }
+
+  function getNaverCartRowFromNode(node) {
+    var el = node;
+    for (var depth = 0; depth < 8 && el && el !== document.body; depth++) {
+      var text = (el.textContent || '').replace(/\s+/g, ' ').trim();
+      if (text.length < 6 || text.length > 350) {
+        el = el.parentElement;
+        continue;
+      }
+      if ((/총\s*금액|총\s*\d+\s*개|장바구니|바로구매/i.test(text)) && text.length < 90) {
+        el = el.parentElement;
+        continue;
+      }
+      if (!/\d{1,3}(?:,\d{3})+\s*원|\d{4,9}\s*원/.test(text)) {
+        el = el.parentElement;
+        continue;
+      }
+      if (!isNaverSelectedOptionRow(el)) {
+        el = el.parentElement;
+        continue;
+      }
+      return el;
+    }
+    return null;
+  }
+
+  function isNaverCartLineRow(row) {
+    var text = (row.textContent || '').replace(/\s+/g, ' ').trim();
+    if (text.length < 6 || text.length > 320) return false;
+    if (!/\d{1,3}(?:,\d{3})+\s*원|\d{4,9}\s*원/.test(text)) return false;
+    if (!isNaverSelectedOptionRow(row)) return false;
+    var hasQty = row.querySelector(
+      'input[type="number"], [class*="quantity"], [class*="Quantity"], [class*="count"], [class*="Count"]'
+    );
+    var hasRemove = row.querySelector(
+      'button, [role="button"], [class*="delete"], [class*="remove"], [class*="close"], ' +
+      'span[class*="delete"], span[class*="remove"], i[class*="delete"], i[class*="close"]'
+    );
+    return !!(hasQty || hasRemove);
   }
 
   function collectNaverRowsFromRemoveButtons(buyRoot) {
@@ -1037,7 +1355,10 @@
       items.push({ name: name, price: price || null });
     }
 
-    buyRoot.querySelectorAll('button, [role="button"], a').forEach(function (btn) {
+    buyRoot.querySelectorAll(
+      'button, [role="button"], a, span[class*="delete"], span[class*="remove"], ' +
+      'i[class*="delete"], i[class*="remove"], i[class*="close"]'
+    ).forEach(function (btn) {
       if (!isNaverCartRemoveControl(btn)) return;
       var row = btn.closest('li, div, tr');
       if (!row || row === buyRoot) return;
@@ -1047,6 +1368,32 @@
       if (!/\d{1,3}(?:,\d{3})+\s*원|\d{4,9}\s*원/.test(rowText)) return;
       var name = extractNameFromNaverRow(row);
       if (!name) name = shortenNaverOptionName(rowText);
+      if (!name || name.length < 2 || name.length > 150) return;
+      addItem(name, extractPriceFromNaverRow(row));
+    });
+
+    return items;
+  }
+
+  function collectNaverRowsFromQuantityRows(buyRoot) {
+    var items = [];
+    var seen = {};
+
+    function addItem(name, price) {
+      name = shortenNaverOptionName(name);
+      if (!looksLikeNaverOptionName(name)) return;
+      if (seen[name]) return;
+      seen[name] = true;
+      items.push({ name: name, price: price || null });
+    }
+
+    buyRoot.querySelectorAll(
+      'input[type="number"], [class*="quantity"], [class*="Quantity"], [class*="count"], [class*="Count"]'
+    ).forEach(function (qtyEl) {
+      var row = getNaverCartRowFromNode(qtyEl);
+      if (!row) return;
+      var name = extractNameFromNaverRow(row);
+      if (!name) name = shortenNaverOptionName(cleanNaverOptionLine(row.textContent));
       if (!name || name.length < 2 || name.length > 150) return;
       addItem(name, extractPriceFromNaverRow(row));
     });
@@ -1097,14 +1444,51 @@
     var fromPanel = extractTotalPriceFromPanel(buyRoot);
     if (fromPanel) return fromPanel;
 
-    var nodes = buyRoot.querySelectorAll('div, span, p, strong, em, dd, dt, li, section');
+    var nodes = buyRoot.querySelectorAll('div, span, p, strong, em, dd, dt, li, section, h3, h4');
     for (var i = 0; i < nodes.length; i++) {
-      var raw = (nodes[i].textContent || '').replace(/\s+/g, ' ').trim();
-      if (!/총\s*금액/i.test(raw)) continue;
-      var match = raw.match(/총\s*금액\s*([\d,]{4,12})\s*원?/i);
-      if (match) {
-        var p = PH.normalizePrice(match[1]);
-        if (isValidNaverPrice(p)) return p;
+      var el = nodes[i];
+      var own = (el.textContent || '').replace(/\s+/g, ' ').trim();
+      if (!/총\s*금액/i.test(own)) continue;
+
+      var scopes = [el, el.parentElement];
+      if (el.parentElement && el.parentElement.parentElement) {
+        scopes.push(el.parentElement.parentElement);
+      }
+      for (var s = 0; s < scopes.length; s++) {
+        var scope = scopes[s];
+        if (!scope) continue;
+        var raw = (scope.textContent || '').replace(/\s+/g, ' ').trim();
+        if (raw.length > 140) continue;
+        var match = raw.match(/총\s*금액[^0-9]{0,40}([\d,]{4,12})\s*원?/i);
+        if (match) {
+          var p = PH.normalizePrice(match[1]);
+          if (isValidNaverPrice(p)) return p;
+        }
+      }
+    }
+
+    for (var j = 0; j < nodes.length; j++) {
+      var el2 = nodes[j];
+      var t2 = (el2.textContent || '').replace(/\s+/g, ' ').trim();
+      if (!/^총\s*\d+\s*개/i.test(t2) || t2.length > 40) continue;
+      var parent = el2.parentElement;
+      if (!parent) continue;
+      var pt = (parent.textContent || '').replace(/\s+/g, ' ').trim();
+      if (pt.length > 160) continue;
+      var m2 = pt.match(/([\d,]{4,12})\s*원/);
+      if (m2) {
+        var p2 = PH.normalizePrice(m2[1]);
+        if (isValidNaverPrice(p2) && p2 >= 10000) return p2;
+      }
+    }
+
+    for (var k = 0; k < nodes.length; k++) {
+      var raw2 = (nodes[k].textContent || '').replace(/\s+/g, ' ').trim();
+      if (!/총\s*금액/i.test(raw2)) continue;
+      var match2 = raw2.match(/총\s*금액\s*([\d,]{4,12})\s*원?/i);
+      if (match2) {
+        var p3 = PH.normalizePrice(match2[1]);
+        if (isValidNaverPrice(p3)) return p3;
       }
     }
     return null;
@@ -1116,9 +1500,21 @@
     );
     if (nameEl) {
       var fromEl = shortenNaverOptionName(nameEl.textContent);
-      if (fromEl && looksLikeNaverOptionName(fromEl)) return fromEl;
+      if (fromEl && fromEl.length >= 3 && looksLikeNaverOptionName(fromEl)) return fromEl;
     }
-    var cleaned = shortenNaverOptionName(row.textContent);
+
+    var rowText = row.textContent || '';
+    var modelInRow = rowText.match(/(\d+\s*행정\s+[A-Z0-9-]+)/i);
+    if (modelInRow && looksLikeNaverOptionName(modelInRow[1])) return modelInRow[1];
+
+    var cleanedLine = cleanNaverOptionLine(rowText);
+    var addonMatch = cleanedLine.match(/\(옵션\d+\)[^0-9]+/);
+    if (addonMatch) {
+      var addonName = addonMatch[0].trim();
+      if (looksLikeNaverOptionName(addonName)) return addonName;
+    }
+
+    var cleaned = shortenNaverOptionName(rowText);
     return looksLikeNaverOptionName(cleaned) ? cleaned : '';
   }
 
@@ -1155,11 +1551,7 @@
       '[class*="selected_option"] li',
       '[class*="option_list"] li'
     ], buyRoot).forEach(function (row) {
-      if (!isNaverSelectedOptionRow(row)) return;
-      var hasRemove = row.querySelector(
-        'button, [role="button"], [class*="delete"], [class*="remove"], [class*="close"], [aria-label*="삭제"]'
-      );
-      if (!hasRemove) return;
+      if (!isNaverCartLineRow(row)) return;
       var name = extractNameFromNaverRow(row);
       if (!name || name.length < 2 || name.length > 150) return;
       addItem(name, extractPriceFromNaverRow(row));
@@ -1169,8 +1561,14 @@
       addItem(item.name, item.price);
     });
 
+    collectNaverRowsFromQuantityRows(buyRoot).forEach(function (item) {
+      addItem(item.name, item.price);
+    });
+
     items = sortNaverOptionItems(items);
-    return mergeNaverDropdownSelections(items);
+    items = mergeNaverDropdownSelections(items);
+    items = ensureNaverMainProductRow(items);
+    return sortNaverOptionItems(items);
   }
 
   function resolveNaverPrice(scripts) {
@@ -1182,7 +1580,16 @@
       var priced = items.filter(function (item) { return item.price; });
       if (priced.length >= 1) {
         var sum = priced.reduce(function (acc, item) { return acc + item.price; }, 0);
-        if (isValidNaverPrice(sum)) return sum;
+        if (isValidNaverPrice(sum)) {
+          var addonsOnly = items.every(function (it) {
+            return /^\(옵션\d+\)/.test(it.name);
+          });
+          if (!addonsOnly) return sum;
+          if (scripts && scripts.price && isValidNaverPrice(scripts.price)) {
+            var withBase = sum + scripts.price;
+            if (isValidNaverPrice(withBase)) return withBase;
+          }
+        }
       }
     }
 
@@ -1368,6 +1775,42 @@
     return parts.join(' / ').slice(0, 200);
   }
 
+  function ensureNaverMainProductRow(items) {
+    if (!items || !items.length) return items || [];
+
+    var hasMain = items.some(function (it) {
+      return it.name && !/^\(옵션\d+\)/.test(it.name);
+    });
+    if (hasMain) return items;
+
+    var addonItems = items.filter(function (it) {
+      return it.name && /^\(옵션\d+\)/.test(it.name);
+    });
+    if (!addonItems.length) return items;
+
+    var title = extractNaverTitleFromDom();
+    if (!title) title = cleanNaverProductTitle(metaContent('og:title'));
+    title = shortenNaverOptionName(title);
+    if (!title || title.length < 4) return items;
+
+    var total = extractNaverTotalPriceFromDom();
+    var addonSum = addonItems.reduce(function (acc, it) {
+      return acc + (it.price || 0);
+    }, 0);
+    var mainPrice = null;
+    if (total && addonSum && total > addonSum) {
+      mainPrice = total - addonSum;
+    } else {
+      var scripts = extractNaverFromScripts();
+      if (scripts && scripts.price && isValidNaverPrice(scripts.price)) {
+        mainPrice = scripts.price;
+      }
+    }
+
+    items.unshift({ name: title, price: mainPrice });
+    return items;
+  }
+
   function formatNaverOptionList(items) {
     if (!items || !items.length) return '';
     if (items.length === 1) return items[0].name.slice(0, 300);
@@ -1414,7 +1857,78 @@
     return { title: title, price: price, option: option };
   }
 
+  function extractCoupangFromNextData() {
+    var result = { title: '', price: null };
+    var productId = getCoupangProductId();
+    var nextEl = document.getElementById('__NEXT_DATA__');
+    var source = nextEl ? (nextEl.textContent || '') : '';
+    if (!source) return result;
+
+    if (productId) {
+      var scopedPrice = new RegExp(
+        '"(?:itemId|productId|id)"\\s*:\\s*"?'+ productId + '"?[\\s\\S]{0,25000}?' +
+        '"(?:salePrice|discountedSalePrice|finalPrice|priceAmount)"\\s*:\\s*(\\d{3,9})',
+        'i'
+      );
+      var priceMatch = source.match(scopedPrice);
+      if (priceMatch) result.price = PH.normalizePrice(priceMatch[1]);
+
+      var scopedTitle = new RegExp(
+        '"(?:itemId|productId|id)"\\s*:\\s*"?'+ productId + '"?[\\s\\S]{0,25000}?' +
+        '"itemName"\\s*:\\s*"((?:\\\\.|[^"\\\\])*)"',
+        'i'
+      );
+      var titleMatch = source.match(scopedTitle);
+      if (titleMatch) {
+        var scopedName = cleanTitle(unescapeJsonString(titleMatch[1]));
+        if (!isBadTitle(scopedName)) result.title = scopedName;
+      }
+
+      if (!result.title) {
+        var scopedTitle2 = new RegExp(
+          '"itemName"\\s*:\\s*"((?:\\\\.|[^"\\\\])*)"[\\s\\S]{0,25000}?' +
+          '"(?:itemId|productId)"\\s*:\\s*"?'+ productId + '"?',
+          'i'
+        );
+        var titleMatch2 = source.match(scopedTitle2);
+        if (titleMatch2) {
+          var scopedName2 = cleanTitle(unescapeJsonString(titleMatch2[1]));
+          if (!isBadTitle(scopedName2)) result.title = scopedName2;
+        }
+      }
+    }
+
+    if (!result.title) {
+      var names = [];
+      var nameRe = /"itemName"\s*:\s*"((?:\\.|[^"\\])*)"/g;
+      var nm;
+      while ((nm = nameRe.exec(source)) !== null) {
+        var n = cleanTitle(unescapeJsonString(nm[1]));
+        if (n && !isBadTitle(n) && /[가-힣]/.test(n) && n.length >= 8) names.push(n);
+      }
+      if (names.length) {
+        names.sort(function (a, b) { return b.length - a.length; });
+        result.title = names[0];
+      }
+    }
+
+    if (!result.price) {
+      result.price = firstPriceMatch(source, [
+        /"discountedSalePrice"\s*:\s*(\d{3,9})/,
+        /"salePrice"\s*:\s*(\d{3,9})/,
+        /"finalPrice"\s*:\s*(\d{3,9})/,
+        /"priceAmount"\s*:\s*(\d{3,9})/
+      ]);
+    }
+
+    return result;
+  }
+
   function extractFromScripts() {
+    if (location.hostname.toLowerCase().indexOf('coupang') >= 0) {
+      return extractCoupangFromNextData();
+    }
+
     var result = { title: '', price: null };
     var html = document.documentElement.innerHTML;
 
@@ -1439,8 +1953,10 @@
     var nextEl = document.getElementById('__NEXT_DATA__');
     if (nextEl) {
       try {
+        var visited = 0;
         var walk = function (node) {
-          if (!node || typeof node !== 'object') return;
+          if (!node || typeof node !== 'object' || visited > 4000) return;
+          visited++;
           if (Array.isArray(node)) {
             node.forEach(walk);
             return;
@@ -1862,19 +2378,29 @@
     var elevenData = is11st ? extract11stProduct() : null;
     var scripts = extractFromScripts();
     var ld = parseJsonLd();
-    var dom = extractDomByHost(host);
+    var dom = isCoupang
+      ? { title: (coupangData && coupangData.title) || '', price: (coupangData && coupangData.price) || null }
+      : extractDomByHost(host);
 
-    var title = cleanTitle(
-      (naverData && naverData.title) ||
-      dom.title ||
-      scripts.title ||
-      ld.title ||
-      metaContent('og:title') ||
-      document.title
-    );
-    if (isBadTitle(title) && naverData && naverData.title) {
-      title = cleanTitle(naverData.title);
-    }
+    var title = isCoupang
+      ? pickFirstGoodTitle([
+        coupangData && coupangData.title,
+        extractCoupangTitleFromVisibleDom(),
+        cleanCoupangOgTitle(metaContent('og:title')),
+        cleanCoupangOgTitle(metaContent('twitter:title')),
+        dom.title,
+        scripts.title,
+        ld.title,
+        cleanCoupangOgTitle(document.title)
+      ])
+      : pickFirstGoodTitle([
+        naverData && naverData.title,
+        dom.title,
+        scripts.title,
+        ld.title,
+        metaContent('og:title'),
+        document.title
+      ]);
 
     var price = (naverData && naverData.price) || (gmarketData && gmarketData.price) ||
       (coupangData && coupangData.price) || (elevenData && elevenData.price) ||
@@ -1889,20 +2415,37 @@
       url: PH.cleanProductUrl(location.href),
       productName: title,
       price: price,
-      option: option || '단일옵션',
+      option: option || '',
       marketplace: detectMarketplace(host),
       imageUrl: ld.image || metaContent('og:image') || '',
       isProductPage: isLikelyProductPage()
     };
   }
 
+  function buildFallbackProduct() {
+    return {
+      url: PH.cleanProductUrl(location.href),
+      productName: '',
+      price: null,
+      option: '',
+      marketplace: detectMarketplace(location.hostname.toLowerCase()),
+      imageUrl: metaContent('og:image') || '',
+      isProductPage: isLikelyProductPage()
+    };
+  }
+
   chrome.runtime.onMessage.addListener(function (message, _sender, sendResponse) {
     if (!message || message.action !== 'extract') return;
+    var product;
     try {
-      sendResponse({ ok: true, product: extractProductInfo() });
+      product = extractProductInfo();
     } catch (err) {
-      sendResponse({ ok: false, error: err.message || String(err) });
+      product = buildFallbackProduct();
     }
+    if (!product || !product.url) {
+      product = buildFallbackProduct();
+    }
+    sendResponse({ ok: true, product: product });
     return true;
   });
 

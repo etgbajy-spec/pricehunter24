@@ -28,6 +28,10 @@ chrome.runtime.onMessage.addListener(function (message, _sender, sendResponse) {
   if (!message || message.action !== 'openRequestPage') return;
 
   chrome.tabs.create({ url: message.url }, function (tab) {
+    if (chrome.runtime.lastError) {
+      sendResponse({ ok: false, error: chrome.runtime.lastError.message });
+      return;
+    }
     if (tab && tab.id != null && message.product) {
       pendingPrefills.set(tab.id, message.product);
     }
