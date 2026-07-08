@@ -894,13 +894,97 @@
     /상품\s*바로가기|이\s*상품담기|장바구니|찜하기|톡톡|선물하기|바로구매|네이버페이|구매하기|쿠폰|배송비|무료배송|상품\s*정보|리뷰\s*\d|적립\s*포인트|포인트\s*적립|최대\s*적립|자세히\s*보기|멤버십|할인\s*혜택/i;
 
   function looksLikeNaverOptionName(name) {
-    if (!name || name.length < 4 || isNaverOptionNoise(name)) return false;
+    if (!name || name.length < 2 || isNaverOptionNoise(name)) return false;
+    if (/^\(옵션\d+\)/.test(name) && /[가-힣A-Za-z0-9]/.test(name)) return true;
+    if (/\(옵션\d+\)[가-힣A-Za-z0-9]/.test(name)) return true;
+    if (/\d+\s*행정\s+[A-Z0-9-]+/i.test(name)) return true;
     if (/\d+\s*(Ah|V|W|A|mAh)\b/i.test(name)) return true;
     if (/\s\/\s/.test(name)) return true;
     if (/\d+\s*인치|\d+인치|inch/i.test(name)) return true;
     if (/[A-Z]{2,}/.test(name) && /[가-힣]/.test(name)) return true;
-    if (/[가-힣]{2,}/.test(name) && name.length >= 8) return true;
+    if (/[가-힣]{2,}/.test(name) && name.length >= 4) return true;
     return false;
+  }
+
+  function shortenNaverOptionName(name) {
+    name = cleanNaverOptionLine(name);
+    if (!name) return '';
+    var model = name.match(/(\d+\s*행정\s+[A-Z0-9-]+)\s*$/i);
+    if (model && name.length > 40) return model[1];
+    if (name.length > 80) {
+      var tail = name.slice(-50).trim();
+      if (looksLikeNaverOptionName(tail)) return tail;
+    }
+    return name;
+  }
+
+  function isNaverCartRemoveControl(btn) {
+    if (!btn || btn.disabled) return false;
+    var label = ((btn.getAttribute('aria-label') || '') + ' ' + (btn.getAttribute('title') || '') + ' ' + (btn.textContent || '')).trim();
+    if (/장바구니|구매|찜|선물|톡톡|바로구매|네이버페이/i.test(label)) return false;
+    if (/삭제|제거|닫기|delete|remove|close/i.test(label)) return true;
+    if (/^[xX×✕]$/.test(label)) return true;
+    var cls = String(btn.className || '');
+    return /delete|remove|close|btn_del/i.test(cls);
+  }
+
+  function collectNaverRowsFromRemoveButtons(buyRoot) {
+    var items = [];
+    var seen = {};
+
+    function addItem(name, price) {
+      name = shortenNaverOptionName(name);
+      if (!looksLikeNaverOptionName(name)) return;
+      if (seen[name]) return;
+      seen[name] = true;
+      items.push({ name: name, price: price || null });
+    }
+
+    buyRoot.querySelectorAll('button, [role="button"], a').forEach(function (btn) {
+      if (!isNaverCartRemoveControl(btn)) return;
+      var row = btn.closest('li, div, tr');
+      if (!row || row === buyRoot) return;
+      var rowText = (row.textContent || '').replace(/\s+/g, ' ').trim();
+      if (rowText.length > 320 || rowText.length < 4) return;
+      if (!isNaverSelectedOptionRow(row)) return;
+      if (!/\d{1,3}(?:,\d{3})+\s*원|\d{4,9}\s*원/.test(rowText)) return;
+      var name = extractNameFromNaverRow(row);
+      if (!name) name = shortenNaverOptionName(rowText);
+      if (!name || name.length < 2 || name.length > 150) return;
+      addItem(name, extractPriceFromNaverRow(row));
+    });
+
+    return items;
+  }
+
+  function sortNaverOptionItems(items) {
+    return items.slice().sort(function (a, b) {
+      var aAddon = /^\(옵션\d+\)/.test(a.name);
+      var bAddon = /^\(옵션\d+\)/.test(b.name);
+      if (aAddon && !bAddon) return 1;
+      if (!aAddon && bAddon) return -1;
+      return 0;
+    });
+  }
+
+  function mergeNaverDropdownSelections(items) {
+    var fromDropdowns = extractNaverFromDropdowns();
+    if (!fromDropdowns) return items;
+
+    var parts = fromDropdowns.split(' / ').map(function (p) { return p.trim(); }).filter(Boolean);
+    parts.forEach(function (part) {
+      if (isNaverOptionNoise(part)) return;
+      if (/^(추가\s*부품|추가\s*옵션|필수\s*옵션)$/i.test(part)) return;
+      if (/선택해\s*주세요|선택하세요/i.test(part)) return;
+      var exists = items.some(function (it) {
+        return it.name === part || it.name.indexOf(part) >= 0 || part.indexOf(it.name) >= 0;
+      });
+      if (!exists) {
+        items.unshift({ name: shortenNaverOptionName(part), price: null });
+      }
+    });
+
+    return sortNaverOptionItems(items);
   }
 
   function isNaverSelectedOptionRow(row) {
@@ -913,6 +997,9 @@
 
   function extractNaverTotalPriceFromDom() {
     var buyRoot = getNaverBuyPanel();
+    var fromPanel = extractTotalPriceFromPanel(buyRoot);
+    if (fromPanel) return fromPanel;
+
     var nodes = buyRoot.querySelectorAll('div, span, p, strong, em, dd, dt, li, section');
     for (var i = 0; i < nodes.length; i++) {
       var raw = (nodes[i].textContent || '').replace(/\s+/g, ' ').trim();
@@ -931,10 +1018,10 @@
       '[class*="option_name"], [class*="product_name"], [class*="name"], [class*="title"]'
     );
     if (nameEl) {
-      var fromEl = cleanNaverOptionLine(nameEl.textContent);
+      var fromEl = shortenNaverOptionName(nameEl.textContent);
       if (fromEl && looksLikeNaverOptionName(fromEl)) return fromEl;
     }
-    var cleaned = cleanNaverOptionLine(row.textContent);
+    var cleaned = shortenNaverOptionName(row.textContent);
     return looksLikeNaverOptionName(cleaned) ? cleaned : '';
   }
 
@@ -957,6 +1044,7 @@
     var seen = {};
 
     function addItem(name, price) {
+      name = shortenNaverOptionName(name);
       if (!looksLikeNaverOptionName(name)) return;
       if (seen[name]) return;
       seen[name] = true;
@@ -972,28 +1060,20 @@
     ], buyRoot).forEach(function (row) {
       if (!isNaverSelectedOptionRow(row)) return;
       var hasRemove = row.querySelector(
-        'button, [class*="delete"], [class*="remove"], [class*="close"], [aria-label*="삭제"]'
+        'button, [role="button"], [class*="delete"], [class*="remove"], [class*="close"], [aria-label*="삭제"]'
       );
       if (!hasRemove) return;
       var name = extractNameFromNaverRow(row);
-      if (!name || name.length < 3 || name.length > 150) return;
+      if (!name || name.length < 2 || name.length > 150) return;
       addItem(name, extractPriceFromNaverRow(row));
     });
 
-    if (!items.length) {
-      buyRoot.querySelectorAll('button, [class*="delete"], [class*="remove"], [class*="close"]').forEach(function (btn) {
-        if (/장바구니|구매|찜|선물|톡톡/i.test(btn.textContent || '')) return;
-        var row = btn.closest('li, div');
-        if (!row || row === buyRoot || (row.textContent || '').length > 300) return;
-        if (!isNaverSelectedOptionRow(row)) return;
-        if (!/\d{1,3}(?:,\d{3})+\s*원|\d{4,9}\s*원/.test(row.textContent || '')) return;
-        var name = extractNameFromNaverRow(row);
-        if (!name || name.length < 3 || name.length > 150) return;
-        addItem(name, extractPriceFromNaverRow(row));
-      });
-    }
+    collectNaverRowsFromRemoveButtons(buyRoot).forEach(function (item) {
+      addItem(item.name, item.price);
+    });
 
-    return items;
+    items = sortNaverOptionItems(items);
+    return mergeNaverDropdownSelections(items);
   }
 
   function resolveNaverPrice(scripts) {
@@ -1001,14 +1081,13 @@
     if (total) return total;
 
     var items = extractNaverSelectedItemRows();
-    if (items.length >= 2) {
+    if (items.length >= 1) {
       var priced = items.filter(function (item) { return item.price; });
-      if (priced.length === items.length) {
+      if (priced.length >= 1) {
         var sum = priced.reduce(function (acc, item) { return acc + item.price; }, 0);
         if (isValidNaverPrice(sum)) return sum;
       }
     }
-    if (items.length === 1 && items[0].price) return items[0].price;
 
     var domPrice = extractNaverPriceFromDom();
     if (domPrice) return domPrice;
@@ -1050,7 +1129,12 @@
     });
 
     if (!candidates.length) return null;
-    return Math.min.apply(null, candidates);
+    if (items.length >= 2) {
+      var itemSum = items.filter(function (it) { return it.price; })
+        .reduce(function (acc, it) { return acc + it.price; }, 0);
+      if (isValidNaverPrice(itemSum)) return itemSum;
+    }
+    return Math.max.apply(null, candidates);
   }
 
   function extractNaverTitleFromDom() {
