@@ -2350,13 +2350,15 @@
         function getMetricsReportConfig() {
             return window.MetricsReportConfig || {
                 MEMBER_REPORT_FACTOR: 1.82,
+                MEMBER_REPORT_TARGET: 312,
                 GUEST_REPORT_FACTOR: 3.2,
                 SERVICE_LAUNCH_DATE: '2025-11-18',
                 VISITOR_TREND_START: 50,
                 VISITOR_TREND_END: 120,
                 VISITOR_BACKFILL_START: '2025-11-18',
-                VISITOR_BACKFILL_KEY: 'ph_visit_backfill_v11',
-                getReportMemberCount: (value) => Math.max(0, Math.round(Number(value || 0) * 1.82)),
+                VISITOR_BACKFILL_KEY: 'ph_visit_backfill_v12',
+                getReportMemberCount: () => 312,
+                getReportMemberTarget: () => 312,
                 getReportGuestUniqueCount: (value) => Math.max(0, Math.round(Number(value || 0) * 3.2)),
                 getReportGuestRequestCount: (value) => Math.max(0, Math.round(Number(value || 0) * 3.2))
             };
@@ -2540,19 +2542,38 @@
                 realCount,
                 totalCount,
                 usedSets,
+                users,
                 launchStr,
                 endStr,
-                getReportMemberCount: (value) => cfg.getReportMemberCount(value)
+                targetTotal: cfg.MEMBER_REPORT_TARGET || 312,
+                getReportMemberCount: (value) => cfg.getReportMemberCount(value),
+                getReportMemberTarget: () => (typeof cfg.getReportMemberTarget === 'function'
+                    ? cfg.getReportMemberTarget()
+                    : (cfg.MEMBER_REPORT_TARGET || 312))
             });
+
+            let removed = 0;
+            if (plan.trimIds && plan.trimIds.length) {
+                const { doc, deleteDoc } = window.firebaseFirestoreFunctions;
+                for (const id of plan.trimIds) {
+                    try {
+                        await deleteDoc(doc(db, 'users', id));
+                        removed++;
+                    } catch (e) {
+                        console.warn('시드 회원 삭제 실패:', id, e);
+                    }
+                }
+            }
 
             if (!plan.need) {
                 return {
                     created: 0,
+                    removed,
                     targetTotal: plan.targetTotal,
                     realCount,
                     seedCount,
                     totalBefore: totalCount,
-                    totalAfter: totalCount
+                    totalAfter: totalCount - removed
                 };
             }
 
@@ -2571,12 +2592,13 @@
 
             return {
                 created,
+                removed,
                 failed,
                 targetTotal: plan.targetTotal,
                 realCount,
                 seedCount,
                 totalBefore: totalCount,
-                totalAfter: totalCount + created
+                totalAfter: totalCount - removed + created
             };
         }
 
@@ -3982,14 +4004,16 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
         window.syncReportMetrics = async function(silent = false) {
             const endStr = getVisitorBackfillEndStr();
             const launchStr = SERVICE_LAUNCH_DATE;
-            const factor = getMetricsReportConfig().MEMBER_REPORT_FACTOR || 1.82;
-            const guestFactor = getMetricsReportConfig().GUEST_REPORT_FACTOR || 3.2;
+            const reportCfg = getMetricsReportConfig();
+            const factor = reportCfg.MEMBER_REPORT_FACTOR || 1.82;
+            const guestFactor = reportCfg.GUEST_REPORT_FACTOR || 3.2;
+            const memberTarget = reportCfg.MEMBER_REPORT_TARGET || 312;
             const dayCount = countCalendarDays(new Date(launchStr + 'T00:00:00'), new Date(endStr + 'T00:00:00'));
             const monthReadEstimate = buildPeriodKeys('all', new Date(launchStr + 'T00:00:00'), new Date(endStr + 'T00:00:00')).length;
             if (!silent && !confirm(
                 `방문·가입·게스트 리포트를 동기화합니다.\n\n` +
                 `• 방문: ${launchStr} ~ ${endStr} (페이지 개설일부터, ${dayCount}일)\n` +
-                `• 회원: 실제 ×${factor} 목표에 맞춰 부족분 자동 추가\n` +
+                `• 회원: 목표 ${memberTarget}명 (실제 회원 유지 + 부족분 자동 추가)\n` +
                 `• Firestore: visitDaily ${dayCount}건 쓰기 · visitMonthly ~${monthReadEstimate}건\n` +
                 `• 리포트 조회(월간/전체): visitMonthly ~${monthReadEstimate}회 읽기\n` +
                 `• 게스트: ×${guestFactor}\n\n` +
@@ -4026,8 +4050,9 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                     const memberSeed = result.memberSeed;
                     if (memberSeed) {
                         msg += `\n\n[회원] 목표 ${memberSeed.targetTotal}명 · 실제 ${memberSeed.realCount}명`;
-                        if (memberSeed.created > 0) msg += `\n자동 추가 ${memberSeed.created}명 (합계 ${memberSeed.totalAfter}명)`;
-                        else msg += `\n추가 없음 (현재 ${memberSeed.totalAfter ?? memberSeed.totalBefore}명)`;
+                        if (memberSeed.removed > 0) msg += `\n초과 시드 ${memberSeed.removed}명 정리`;
+                        if (memberSeed.created > 0) msg += `\n자동 추가 ${memberSeed.created}명`;
+                        msg += `\n합계 ${memberSeed.totalAfter}명`;
                     }
                     if (signup) msg += `\n\n[가입 리포트] 누적 ${signup.totalReportSignups}명 (실제 ${signup.totalRealSignups}명)`;
                     if (guest) msg += `\n\n[게스트] 리포트 ${guest.totalReportUniqueGuests}명 / ${guest.totalReportGuestRequests}건 (실제 ${guest.totalRealUniqueGuests}명 / ${guest.totalRealGuestRequests}건)`;

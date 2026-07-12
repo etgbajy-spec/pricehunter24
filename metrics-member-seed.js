@@ -184,22 +184,62 @@
     return { realCount, seedCount, totalCount: realCount + seedCount };
   }
 
+  function resolveTargetTotal(options) {
+    if (options.targetTotal != null && options.targetTotal > 0) return options.targetTotal;
+    if (typeof options.getReportMemberTarget === 'function') {
+      const fixed = options.getReportMemberTarget();
+      if (fixed > 0) return fixed;
+    }
+    if (typeof options.getReportMemberCount === 'function') {
+      return options.getReportMemberCount(options.realCount || 0);
+    }
+    return Math.round((options.realCount || 0) * 1.82);
+  }
+
+  function getUserCreatedTime(user) {
+    const data = user && typeof user.data === 'function' ? user.data() : user;
+    const v = data && (data.createdAt || data.joinDate || data.updatedAt);
+    if (!v) return 0;
+    if (v instanceof Date) return v.getTime();
+    if (typeof v.toDate === 'function') return v.toDate().getTime();
+    if (v.seconds) return v.seconds * 1000;
+    const t = new Date(v).getTime();
+    return isNaN(t) ? 0 : t;
+  }
+
+  function listTrimSeedUserIds(users, targetTotal) {
+    const all = (users || []).map((user) => {
+      const data = user && typeof user.data === 'function' ? user.data() : user;
+      const id = user.id || user.docId || data.id;
+      return { id, data, createdAt: getUserCreatedTime(user) };
+    }).filter((u) => u.id);
+
+    const total = all.length;
+    if (total <= targetTotal) return [];
+
+    const seeds = all
+      .filter((u) => isReportSeedUser(u.data))
+      .sort((a, b) => b.createdAt - a.createdAt);
+
+    const removeCount = Math.min(total - targetTotal, seeds.length);
+    return seeds.slice(0, removeCount).map((u) => u.id);
+  }
+
   function planReportMemberSeeds(options) {
     const {
       realCount,
       totalCount,
       usedSets,
       launchStr,
-      endStr,
-      getReportMemberCount
+      endStr
     } = options;
 
-    const targetTotal = typeof getReportMemberCount === 'function'
-      ? getReportMemberCount(realCount)
-      : Math.round(realCount * 1.82);
-    const need = Math.max(0, targetTotal - totalCount);
-    if (need <= 0) {
-      return { need: 0, targetTotal, queue: [] };
+    const targetTotal = resolveTargetTotal({ ...options, realCount });
+    const trimIds = listTrimSeedUserIds(options.users || [], targetTotal);
+    const projectedTotal = totalCount - trimIds.length;
+    const need = Math.max(0, targetTotal - projectedTotal);
+    if (need <= 0 && !trimIds.length) {
+      return { need: 0, trimIds, targetTotal, queue: [] };
     }
 
     const usedNames = new Set(usedSets.names || []);
@@ -233,7 +273,7 @@
       usedPhones.add(normalizeMemberPhone(phone));
     }
 
-    return { need, targetTotal, queue };
+    return { need, trimIds, targetTotal, queue };
   }
 
   const api = {
@@ -251,6 +291,8 @@
     buildSeedMemberDocument,
     collectUsedMemberSets,
     countRealAndSeedUsers,
+    resolveTargetTotal,
+    listTrimSeedUserIds,
     planReportMemberSeeds,
     formatDateYmd,
     parseDateYmd

@@ -6,6 +6,7 @@
 
   const METRICS_REPORT_SCALE = 0.2;
   const MEMBER_REPORT_FACTOR = 1.82;
+  const MEMBER_REPORT_TARGET = 312;
   const GUEST_REPORT_FACTOR = 3.2;
   /** 서비스/페이지 개설일 (최초 회원 가입일 기준) */
   const SERVICE_LAUNCH_DATE = '2025-11-18';
@@ -13,19 +14,24 @@
   const config = {
     METRICS_REPORT_SCALE,
     MEMBER_REPORT_FACTOR,
+    MEMBER_REPORT_TARGET,
     GUEST_REPORT_FACTOR,
     SERVICE_LAUNCH_DATE,
     VISITOR_TREND_START: 50,
     VISITOR_TREND_END: 120,
     VISITOR_BACKFILL_START: SERVICE_LAUNCH_DATE,
-    VISITOR_BACKFILL_KEY: 'ph_visit_backfill_v11',
+    VISITOR_BACKFILL_KEY: 'ph_visit_backfill_v12',
     MAU_ROADMAP_TARGET: Math.round(500 * METRICS_REPORT_SCALE)
   };
 
   config.getReportMemberCount = function getReportMemberCount(actualCount) {
     const actual = Number(actualCount) || 0;
     if (actual <= 0) return 0;
-    return Math.round(actual * MEMBER_REPORT_FACTOR);
+    return config.MEMBER_REPORT_TARGET;
+  };
+
+  config.getReportMemberTarget = function getReportMemberTarget() {
+    return config.MEMBER_REPORT_TARGET;
   };
 
   config.getReportGuestUniqueCount = function getReportGuestUniqueCount(actualCount) {

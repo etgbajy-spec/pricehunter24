@@ -229,19 +229,36 @@ async function runMemberSeedBackfill(db) {
     realCount,
     totalCount,
     usedSets,
+    users: docs,
     launchStr,
     endStr,
-    getReportMemberCount: metricsConfig.getReportMemberCount
+    getReportMemberCount: metricsConfig.getReportMemberCount,
+    getReportMemberTarget: metricsConfig.getReportMemberTarget,
+    targetTotal: metricsConfig.MEMBER_REPORT_TARGET
   });
+
+  let removed = 0;
+  if (plan.trimIds && plan.trimIds.length) {
+    const chunkSize = 400;
+    for (let i = 0; i < plan.trimIds.length; i += chunkSize) {
+      const batch = db.batch();
+      plan.trimIds.slice(i, i + chunkSize).forEach((id) => {
+        batch.delete(db.collection('users').doc(id));
+      });
+      await batch.commit();
+      removed += Math.min(chunkSize, plan.trimIds.length - i);
+    }
+  }
 
   if (!plan.need) {
     return {
       created: 0,
+      removed,
       targetTotal: plan.targetTotal,
       realCount,
       seedCount,
       totalBefore: totalCount,
-      totalAfter: totalCount
+      totalAfter: totalCount - removed
     };
   }
 
@@ -265,11 +282,12 @@ async function runMemberSeedBackfill(db) {
 
   return {
     created,
+    removed,
     targetTotal: plan.targetTotal,
     realCount,
     seedCount,
     totalBefore: totalCount,
-    totalAfter: totalCount + created
+    totalAfter: totalCount - removed + created
   };
 }
 
