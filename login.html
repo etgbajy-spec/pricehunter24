@@ -211,6 +211,18 @@
       </div>
     </div>
 
+    <!-- 카카오 로그인 -->
+    <div class="max-w-xs sm:max-w-sm md:max-w-md mx-auto mt-6 mx-4 fade-in-up">
+      <div class="flex items-center gap-3 text-gray-400 text-xs uppercase tracking-wide mb-4">
+        <span class="flex-1 h-px bg-gray-200"></span>
+        <span>또는</span>
+        <span class="flex-1 h-px bg-gray-200"></span>
+      </div>
+      <button type="button" id="kakao-login" class="w-full flex items-center justify-center gap-3 py-2 sm:py-3 px-4 sm:px-6 rounded-lg transition duration-200 bg-[#FEE500] hover:bg-[#FDD835] text-gray-900 font-semibold text-sm sm:text-base">
+        <span id="kakao-login-text">카카오로 로그인</span>
+      </button>
+    </div>
+
     <!-- 회원가입 링크 -->
     <div class="max-w-xs sm:max-w-sm md:max-w-md mx-auto text-center mt-8 mx-4">
       <p class="text-gray-600 mb-4">계정이 없으신가요?</p>
@@ -410,6 +422,113 @@
         }
       }
 
+      const KAKAO_REST_API_KEY = '1d998d95218190a7ee03d06314b49951';
+      let kakaoCallbackProcessing = false;
+
+      function getKakaoRedirectUri() {
+        return window.location.origin + window.location.pathname;
+      }
+
+      function stripKakaoCodeFromUrl() {
+        try {
+          const params = new URLSearchParams(window.location.search);
+          params.delete('code');
+          params.delete('state');
+          const query = params.toString();
+          window.history.replaceState({}, document.title, window.location.pathname + (query ? '?' + query : ''));
+        } catch (error) {
+          console.warn('카카오 URL 정리 실패:', error);
+        }
+      }
+
+      function startKakaoLogin() {
+        const button = document.getElementById('kakao-login');
+        const text = document.getElementById('kakao-login-text');
+        if (button) button.disabled = true;
+        if (text) text.textContent = '카카오로 이동 중...';
+
+        const authParams = new URLSearchParams({
+          client_id: KAKAO_REST_API_KEY,
+          redirect_uri: getKakaoRedirectUri(),
+          response_type: 'code',
+          scope: 'profile_nickname,account_email,profile_image',
+        });
+        window.location.href = 'https://kauth.kakao.com/oauth/authorize?' + authParams.toString();
+      }
+
+      async function finalizeKakaoLogin(firebaseUser, kakaoProfile, isNewUser) {
+        const userData = {
+          uid: firebaseUser.uid,
+          email: kakaoProfile.email || '',
+          displayName: kakaoProfile.displayName || '',
+          photoURL: kakaoProfile.photoURL || '',
+          loginMethod: 'kakao',
+        };
+
+        await waitForFirebase();
+        const { doc, getDoc } = window.firebaseFirestoreFunctions;
+        const userRef = doc(window.firebaseDb, 'users', firebaseUser.uid);
+        const userDoc = await getDoc(userRef);
+        const needsProfile = !userDoc.exists() || !userDoc.data()?.name || !userDoc.data()?.phone;
+
+        if (needsProfile) {
+          localStorage.setItem('loggedIn', 'true');
+          localStorage.setItem('currentUser', JSON.stringify(userData));
+          localStorage.setItem('user', JSON.stringify(userData));
+          if (userData.email) localStorage.setItem('loggedInEmail', userData.email);
+          window.location.href = 'complete-profile.html';
+          return;
+        }
+
+        await upsertUser(userData, { lastLogin: new Date() });
+        localStorage.setItem('loggedIn', 'true');
+        localStorage.setItem('currentUser', JSON.stringify(userData));
+        localStorage.setItem('user', JSON.stringify(userData));
+        if (userData.email) localStorage.setItem('loggedInEmail', userData.email);
+
+        showToast(isNewUser ? '카카오 회원가입이 완료되었습니다!' : '카카오 로그인 성공!', 'success');
+        setTimeout(function() {
+          window.location.href = 'index.html';
+        }, 800);
+      }
+
+      async function handleKakaoAuthCallback(code) {
+        if (!code || kakaoCallbackProcessing) return;
+        kakaoCallbackProcessing = true;
+
+        const button = document.getElementById('kakao-login');
+        const text = document.getElementById('kakao-login-text');
+        if (button) button.disabled = true;
+        if (text) text.textContent = '카카오 로그인 처리 중...';
+        stripKakaoCodeFromUrl();
+
+        try {
+          await waitForFirebase();
+          const response = await fetch('/api/kakao-to-firebase-token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code, redirectUri: getKakaoRedirectUri() }),
+          });
+          const data = await response.json();
+          if (!response.ok) {
+            throw new Error(data.error || '카카오 로그인에 실패했습니다.');
+          }
+
+          const credential = await window.firebaseAuthFunctions.signInWithCustomToken(
+            window.firebaseAuth,
+            data.customToken || data.token
+          );
+          await finalizeKakaoLogin(credential.user, data.user, data.isNewUser);
+        } catch (error) {
+          console.error('❌ 카카오 로그인 실패:', error);
+          if (button) button.disabled = false;
+          if (text) text.textContent = '카카오로 로그인';
+          showToast(error.message || '카카오 로그인에 실패했습니다.', 'error');
+        } finally {
+          kakaoCallbackProcessing = false;
+        }
+      }
+
       // 이벤트 리스너 등록
       document.addEventListener('DOMContentLoaded', function() {
         console.log('🚀 login.html v1.0 로드됨');
@@ -582,6 +701,20 @@
             showToast('테스트 사용자 생성에 실패했습니다.', 'error');
           }
         });
+
+        const kakaoLoginButton = document.getElementById('kakao-login');
+        if (kakaoLoginButton) {
+          kakaoLoginButton.addEventListener('click', function(e) {
+            e.preventDefault();
+            startKakaoLogin();
+          });
+        }
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const kakaoAuthCode = urlParams.get('code');
+        if (kakaoAuthCode) {
+          handleKakaoAuthCallback(kakaoAuthCode);
+        }
       });
   </script>
   <script src="visit-tracker.js" defer></script>

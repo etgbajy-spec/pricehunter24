@@ -218,7 +218,41 @@ async function runTrendBackfill(db, backfillStartStr) {
   };
 }
 
+async function fixSeedLoginMethods(db) {
+  const snap = await db.collection('users').get();
+  let fixed = 0;
+  const batchSize = 400;
+  const pending = [];
+
+  snap.forEach((docSnap) => {
+    const data = docSnap.data() || {};
+    if (!memberSeed.isReportSeedUser(data)) return;
+    const method = (data.loginMethod || data.loginType || '').toLowerCase();
+    if (method !== 'kakao') return;
+    pending.push({
+      id: docSnap.id,
+      loginMethod: memberSeed.pickSeedLoginMethod(data.email || docSnap.id)
+    });
+  });
+
+  for (let i = 0; i < pending.length; i += batchSize) {
+    const batch = db.batch();
+    pending.slice(i, i + batchSize).forEach(({ id, loginMethod }) => {
+      batch.update(db.collection('users').doc(id), {
+        loginMethod,
+        loginType: loginMethod,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+    });
+    await batch.commit();
+    fixed += Math.min(batchSize, pending.length - i);
+  }
+
+  return fixed;
+}
+
 async function runMemberSeedBackfill(db) {
+  const loginMethodFixed = await fixSeedLoginMethods(db);
   const snap = await db.collection('users').get();
   const docs = snap.docs;
   const usedSets = memberSeed.collectUsedMemberSets(docs);
@@ -254,6 +288,7 @@ async function runMemberSeedBackfill(db) {
     return {
       created: 0,
       removed,
+      loginMethodFixed,
       targetTotal: plan.targetTotal,
       realCount,
       seedCount,
@@ -283,6 +318,7 @@ async function runMemberSeedBackfill(db) {
   return {
     created,
     removed,
+    loginMethodFixed,
     targetTotal: plan.targetTotal,
     realCount,
     seedCount,

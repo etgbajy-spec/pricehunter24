@@ -16,7 +16,7 @@
     '김', '이', '박', '최', '정', '강', '조', '윤', '장', '임', '한', '오', '신', '권', '황'
   ];
 
-  const EMAIL_DOMAINS = ['gmail.com', 'naver.com', 'daum.net', 'hanmail.net', 'kakao.com'];
+  const EMAIL_DOMAINS = ['gmail.com', 'naver.com', 'daum.net', 'hanmail.net', 'nate.com'];
   const EMAIL_PREFIXES = ['kim', 'lee', 'park', 'choi', 'jung', 'kang', 'yoon', 'lim', 'han', 'seo', 'oh', 'shin'];
   const EMAIL_SUFFIXES = ['minjun', 'seoyeon', 'jihoon', 'yuna', 'eunseo', 'doyoon', 'taemin', 'jiwoo', 'hayoon', 'woojin', 'subin', 'jaeho'];
 
@@ -125,11 +125,17 @@
     return { name: fallback, key: normalizeMemberName(fallback) };
   }
 
+  /** 카카오 로그인은 현재 미활성 — 시드 회원은 email/google만 사용 */
+  function pickSeedLoginMethod(email) {
+    const h = memberSeedHash(String(email));
+    return h % 4 === 0 ? 'google' : 'email';
+  }
+
   function buildSeedMemberDocument(item) {
     const joinDate = item.joinDate instanceof Date ? item.joinDate : new Date(item.joinDate);
     const email = item.email;
     const h = memberSeedHash(`${email}_${item.name}`);
-    const loginMethod = (h % 5 === 0) ? 'kakao' : 'email';
+    const loginMethod = pickSeedLoginMethod(email);
     const loginCount = (h % 11) + 1;
     const lastLogin = new Date(joinDate);
     lastLogin.setDate(lastLogin.getDate() + (h % 45) + 1);
@@ -288,6 +294,7 @@
     buildReportSeedEmail,
     buildReportSeedPhone,
     buildReportSeedJoinDate,
+    pickSeedLoginMethod,
     buildSeedMemberDocument,
     collectUsedMemberSets,
     countRealAndSeedUsers,

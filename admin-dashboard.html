@@ -2533,6 +2533,26 @@
             const seedApi = window.MetricsMemberSeed;
             if (!seedApi) throw new Error('MetricsMemberSeed 모듈을 불러오지 못했습니다.');
             const cfg = getMetricsReportConfig();
+            let loginMethodFixed = 0;
+            const usersBeforeFix = await getAllUsersFromFirebase();
+            const { doc, updateDoc, serverTimestamp } = window.firebaseFirestoreFunctions;
+            for (const user of usersBeforeFix) {
+                if (!seedApi.isReportSeedUser(user)) continue;
+                const method = (user.loginMethod || user.loginType || '').toLowerCase();
+                if (method !== 'kakao') continue;
+                try {
+                    const loginMethod = seedApi.pickSeedLoginMethod(user.email || user.id);
+                    await updateDoc(doc(db, 'users', user.id), {
+                        loginMethod,
+                        loginType: loginMethod,
+                        updatedAt: serverTimestamp()
+                    });
+                    loginMethodFixed++;
+                } catch (e) {
+                    console.warn('시드 loginMethod 수정 실패:', user.id, e);
+                }
+            }
+
             const users = await getAllUsersFromFirebase();
             const usedSets = seedApi.collectUsedMemberSets(users);
             const { realCount, seedCount, totalCount } = seedApi.countRealAndSeedUsers(users);
@@ -2569,6 +2589,7 @@
                 return {
                     created: 0,
                     removed,
+                    loginMethodFixed,
                     targetTotal: plan.targetTotal,
                     realCount,
                     seedCount,
@@ -2593,6 +2614,7 @@
             return {
                 created,
                 removed,
+                loginMethodFixed,
                 failed,
                 targetTotal: plan.targetTotal,
                 realCount,

@@ -72,7 +72,7 @@
     window.firebaseApp = app;
     window.firebaseAuth = auth;
     window.firebaseDb = db;
-    window.firebaseAuthFunctions = { signInWithPopup, signInWithRedirect, getRedirectResult, getAdditionalUserInfo };
+    window.firebaseAuthFunctions = { signInWithPopup, signInWithRedirect, getRedirectResult, getAdditionalUserInfo, signInWithCustomToken };
     window.firebaseFirestoreFunctions = { 
       collection, 
       addDoc, 
@@ -308,6 +308,23 @@
             <span class="inline-block animate-pulse">⏳ 로그인 시스템을 준비하고 있습니다...</span>
           </div>
           <p class="text-sm text-blue-600 mt-3" id="google-register-hint">⚡ 별도 정보 입력 없이<br class="sm:hidden">즉시 가입 완료!</p>
+        </div>
+
+        <!-- 카카오 회원가입 -->
+        <div class="bg-white rounded-2xl shadow-lg p-8 text-center fade-in-up">
+          <div class="mb-6">
+            <div class="w-16 h-16 bg-yellow-400 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg class="w-8 h-8 text-gray-900" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M12 3C6.477 3 2 6.477 2 10.875c0 2.813 1.867 5.285 4.688 6.719-.188-.688-.375-1.969.078-2.813.406-.75 2.625-17.719 2.625-17.719s-.656.156-2.063.938c0 0 .969-.938 2.813-1.438 1.313-.344 2.813-.469 3.844-.031.656.281 1.219.656 1.656 1.031.438-.375 1-.75 1.656-1.031 1.031-.438 2.531-.313 3.844.031 1.844.5 2.813 1.438 2.813 1.438-1.407-.782-2.063-.938-2.063-.938s2.219 16.969 2.625 17.719c.453.844.266 2.125.078 2.813C20.133 16.16 22 13.688 22 10.875 22 6.477 17.523 3 12 3z"/>
+              </svg>
+            </div>
+            <h3 class="text-xl font-semibold text-gray-900 mb-2">카카오 계정으로<br class="sm:hidden">간편 가입</h3>
+            <p class="text-gray-600">카카오톡으로<br class="sm:hidden">빠르게 시작하세요</p>
+          </div>
+          <button type="button" id="kakao-register" class="w-full flex items-center justify-center gap-3 py-2 sm:py-3 px-4 sm:px-6 rounded-lg transition duration-200 bg-[#FEE500] hover:bg-[#FDD835] text-gray-900 font-semibold text-sm sm:text-base">
+            <span id="kakao-register-text">카카오로 시작하기</span>
+          </button>
+          <p class="text-sm text-yellow-700 mt-3">카카오 계정 이메일로<br class="sm:hidden">안전하게 가입됩니다</p>
         </div>
 
         <div class="flex items-center gap-3 text-gray-400 text-xs uppercase tracking-wide">
@@ -637,14 +654,15 @@
 
       async function finalizeSocialLogin(firebaseUser, options = {}) {
         if (!firebaseUser) return;
-        
+
+        const profileOverride = options.profile || {};
         const additionalInfo = options.additionalInfo || {};
         const providerData = firebaseUser.providerData?.[0] || {};
         const userData = {
           uid: firebaseUser.uid,
-          email: firebaseUser.email || '',
-          displayName: firebaseUser.displayName || providerData.displayName || firebaseUser.email?.split('@')[0] || '',
-          photoURL: firebaseUser.photoURL || providerData.photoURL || '',
+          email: profileOverride.email || firebaseUser.email || '',
+          displayName: profileOverride.displayName || firebaseUser.displayName || providerData.displayName || firebaseUser.email?.split('@')[0] || '',
+          photoURL: profileOverride.photoURL || firebaseUser.photoURL || providerData.photoURL || '',
           phoneNumber: firebaseUser.phoneNumber || providerData.phoneNumber || '',
           loginMethod: options.loginMethod || providerData.providerId || 'google',
           emailVerified: firebaseUser.emailVerified,
@@ -659,9 +677,10 @@
         const userDocBeforeUpsert = await getDoc(userRefBeforeUpsert);
         const isNewUserBeforeUpsert = !userDocBeforeUpsert.exists();
         
-        // 구글 로그인 사용자의 경우 이름과 핸드폰번호 확인 (upsertUser 전에)
+        // 소셜 로그인 사용자의 경우 이름과 핸드폰번호 확인 (upsertUser 전에)
         let needsProfile = false;
-        if (options.loginMethod === 'google' || providerData.providerId === 'google.com') {
+        const socialMethod = options.loginMethod || providerData.providerId;
+        if (socialMethod === 'google' || socialMethod === 'google.com' || socialMethod === 'kakao') {
           if (userDocBeforeUpsert.exists()) {
             const existingData = userDocBeforeUpsert.data();
             // 이름이나 핸드폰번호가 없으면 프로필 완성 페이지로 이동
@@ -684,7 +703,8 @@
             localStorage.setItem('loggedInEmail', userData.email);
           }
           
-          alert('구글 로그인 회원가입이 완료되었습니다!\n\n추가 정보를 입력해주세요.');
+          const providerLabel = socialMethod === 'kakao' ? '카카오' : '구글';
+          alert(providerLabel + ' 로그인 회원가입이 완료되었습니다!\n\n추가 정보를 입력해주세요.');
           window.location.href = 'complete-profile.html';
           return;
         }
@@ -708,7 +728,8 @@
         
         // 성공 메시지 및 리디렉션
         if (isNewUser) {
-          alert('구글 로그인 회원가입이 완료되었습니다!\n\n실제 고객 후기를 확인해보세요!');
+          const providerLabel = (options.loginMethod === 'kakao') ? '카카오' : '구글';
+          alert(providerLabel + ' 로그인 회원가입이 완료되었습니다!\n\n실제 고객 후기를 확인해보세요!');
         } else {
           alert('이미 가입된 계정입니다. 로그인되었습니다.');
         }
@@ -802,6 +823,103 @@
       // 전역으로 즉시 노출 (index.html 방식)
       window.registerWithGoogle = registerWithGoogle;
       console.log('✅ registerWithGoogle 함수를 window 객체에 등록 완료');
+
+      const KAKAO_REST_API_KEY = '1d998d95218190a7ee03d06314b49951';
+      let kakaoCallbackProcessing = false;
+
+      function getKakaoRedirectUri() {
+        return window.location.origin + window.location.pathname;
+      }
+
+      function stripKakaoCodeFromUrl() {
+        try {
+          const params = new URLSearchParams(window.location.search);
+          params.delete('code');
+          params.delete('state');
+          const query = params.toString();
+          const nextUrl = window.location.pathname + (query ? '?' + query : '');
+          window.history.replaceState({}, document.title, nextUrl);
+        } catch (error) {
+          console.warn('카카오 URL 정리 실패:', error);
+        }
+      }
+
+      function registerWithKakao() {
+        const button = document.getElementById('kakao-register');
+        const text = document.getElementById('kakao-register-text');
+        if (button) button.disabled = true;
+        if (text) text.textContent = '카카오로 이동 중...';
+
+        const redirectUri = getKakaoRedirectUri();
+        const params = new URLSearchParams(window.location.search);
+        const next = params.get('next');
+        if (next) {
+          sessionStorage.setItem('ph_kakao_next', next);
+        }
+
+        const authParams = new URLSearchParams({
+          client_id: KAKAO_REST_API_KEY,
+          redirect_uri: redirectUri,
+          response_type: 'code',
+          scope: 'profile_nickname,account_email,profile_image',
+        });
+
+        window.location.href = 'https://kauth.kakao.com/oauth/authorize?' + authParams.toString();
+      }
+
+      async function handleKakaoAuthCallback(code) {
+        if (!code || kakaoCallbackProcessing) return;
+        kakaoCallbackProcessing = true;
+
+        const button = document.getElementById('kakao-register');
+        const text = document.getElementById('kakao-register-text');
+        if (button) button.disabled = true;
+        if (text) text.textContent = '카카오 로그인 처리 중...';
+
+        stripKakaoCodeFromUrl();
+
+        try {
+          await waitForFirebase();
+
+          const response = await fetch('/api/kakao-to-firebase-token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              code,
+              redirectUri: getKakaoRedirectUri(),
+            }),
+          });
+
+          const data = await response.json();
+          if (!response.ok) {
+            throw new Error(data.error || '카카오 로그인에 실패했습니다.');
+          }
+
+          const { signInWithCustomToken } = window.firebaseAuthFunctions;
+          if (!signInWithCustomToken) {
+            throw new Error('Firebase 로그인 구성이 완료되지 않았습니다.');
+          }
+
+          const credential = await signInWithCustomToken(window.firebaseAuth, data.customToken || data.token);
+          await finalizeSocialLogin(credential.user, {
+            loginMethod: 'kakao',
+            isNewUser: data.isNewUser,
+            profile: data.user,
+            additionalInfo: { isNewUser: data.isNewUser },
+          });
+        } catch (error) {
+          console.error('❌ 카카오 로그인 실패:', error);
+          if (button) button.disabled = false;
+          if (text) text.textContent = '카카오로 시작하기';
+          alert('카카오 로그인 중 오류가 발생했습니다.\n\n' + (error.message || '잠시 후 다시 시도해주세요.'));
+        } finally {
+          kakaoCallbackProcessing = false;
+        }
+      }
+
+      window.registerWithKakao = registerWithKakao;
+      window.handleKakaoAuthCallback = handleKakaoAuthCallback;
+      console.log('✅ 카카오 로그인 함수 등록 완료');
 
       // EmailJS 초기화
       function initEmailJS() {
@@ -1275,6 +1393,26 @@
           console.log('✅ 구글 회원가입 버튼 이벤트 리스너 등록 완료');
         } else {
           console.error('❌ 구글 회원가입 버튼을 찾을 수 없습니다!');
+        }
+
+        const kakaoRegisterButton = document.getElementById('kakao-register');
+        if (kakaoRegisterButton) {
+          kakaoRegisterButton.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            if (typeof window.registerWithKakao === 'function') {
+              window.registerWithKakao();
+            } else {
+              alert('카카오 로그인 기능을 초기화하는 중입니다. 페이지를 새로고침한 후 다시 시도해주세요.');
+            }
+          });
+          console.log('✅ 카카오 회원가입 버튼 이벤트 리스너 등록 완료');
+        }
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const kakaoAuthCode = urlParams.get('code');
+        if (kakaoAuthCode && typeof window.handleKakaoAuthCallback === 'function') {
+          window.handleKakaoAuthCallback(kakaoAuthCode);
         }
 
       // 일반 회원가입 폼 표시

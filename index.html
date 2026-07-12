@@ -8819,13 +8819,9 @@
         const authCode = urlParams.get('code');
         
         if (authCode) {
-          console.log('카카오 인가 코드가 감지되었지만 카카오 로그인이 비활성화되었습니다.');
-          // URL 정리
-          try {
-            window.history.replaceState({}, document.title, window.location.pathname);
-          } catch (error) {
-            console.warn('초기 URL 정리 실패:', error);
-          }
+          console.log('카카오 인가 코드 감지 — register.html로 전달');
+          window.location.replace('register.html?code=' + encodeURIComponent(authCode));
+          return;
         }
         
         // 브라우저 뒤로가기/앞으로가기 이벤트 처리 (KOE205 에러 방지)
