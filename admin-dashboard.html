@@ -27,6 +27,7 @@
     <script src="analysis-pipeline-client.js"></script>
     <script src="admin-request-workspace.js"></script>
     <script src="metrics-report-config.js"></script>
+    <script src="metrics-member-seed.js"></script>
     <!-- Firebase v9 SDK (모듈식) -->
     <script type="module">
       import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
@@ -839,13 +840,13 @@
                 const usersRef = collection(window.firebaseDb, 'users');
                 
                 // createdAt 필드가 없을 수 있으므로 기본 쿼리 사용
-                // 쿼리 최적화: 최신 500명만 가져오기 (관리자 대시보드용)
+                // 쿼리 최적화: 최신 1000명 (리포트 시드 포함)
                 let usersQuery;
                 try {
-                    usersQuery = query(usersRef, orderBy('createdAt', 'desc'), limit(500));
+                    usersQuery = query(usersRef, orderBy('createdAt', 'desc'), limit(1000));
                 } catch (error) {
                     console.warn('⚠️ createdAt 필드로 정렬 실패, 기본 쿼리 사용:', error);
-                    usersQuery = query(usersRef, limit(500));
+                    usersQuery = query(usersRef, limit(1000));
                 }
 
                 usersUnsubscribe = onSnapshot(usersQuery, (snapshot) => {
@@ -866,20 +867,12 @@
                     const allUsers = mergeUsersData(firebaseUsers);
                     updateUsersTable(allUsers);
                     
-                    // 회원수 업데이트 (Firebase 데이터만 사용)
-                    const totalMembersElement = document.getElementById('total-members');
-                    if (totalMembersElement) {
-                        totalMembersElement.textContent = getReportMemberCount(allUsers.length);
-                    }
-                    
                     // 통계 업데이트
                     updateMemberStats(allUsers);
                     
                 }, (error) => {
                     console.error('❌ 사용자 목록 실시간 구독 실패:', error);
-                    // Firebase 연결 실패시 빈 목록 표시
                     updateUsersTable([]);
-                    document.getElementById('total-members').textContent = '0';
                     
                     // 연결 실패시 5초 후 재시도
                     setTimeout(() => {
@@ -889,9 +882,7 @@
                 });
             } catch (error) {
                 console.error('❌ Firestore 쿼리 생성 실패:', error);
-                // 쿼리 생성 실패시 빈 목록 표시
                 updateUsersTable([]);
-                document.getElementById('total-members').textContent = '0';
                 
                 // 쿼리 생성 실패시 3초 후 재시도
                 setTimeout(() => {
@@ -939,7 +930,6 @@
                 
                 console.log('📊 localStorage 사용자 데이터:', users.length);
                 updateUsersTable(users);
-                document.getElementById('total-members').textContent = getReportMemberCount(users.length);
                 
             } catch (error) {
                 console.error('❌ localStorage 사용자 데이터 로드 실패:', error);
@@ -1313,6 +1303,7 @@
         function updateUsersTable(users) {
             allMembersCache = [...(users || [])];
             applyMembersListFilters();
+            syncDashboardStatsFromCache();
         }
 
         // Firebase에서 의뢰 데이터 가져오기 (실시간 구독)
@@ -1902,8 +1893,13 @@
         }
 
         function buildMemberSeedEmail(name, tag, index) {
-            const compact = tag.replace(/-/g, '');
-            const slug = normalizeMemberName(name).slice(0, 6) || 'user';
+            const seedApi = window.MetricsMemberSeed;
+            const nameKey = normalizeMemberName(name);
+            if (seedApi && typeof seedApi.buildReportSeedEmail === 'function') {
+                return seedApi.buildReportSeedEmail(index, nameKey || tag || String(index));
+            }
+            const compact = String(tag || '').replace(/-/g, '');
+            const slug = nameKey.slice(0, 6) || 'user';
             return `ph.${compact}.${String(index).padStart(2, '0')}.${slug}@seed.pricehunter.local`;
         }
 
@@ -1962,23 +1958,30 @@
         async function createSeedMemberInFirebase(memberData) {
             const { collection, addDoc, Timestamp } = window.firebaseFirestoreFunctions;
             const db = window.firebaseDb;
-            const joinDate = memberData.joinDate instanceof Date ? memberData.joinDate : new Date(memberData.joinDate);
-            const uid = `seed_${Date.now()}_${memberSeedHash(memberData.email).toString(36)}`;
+            const seedApi = window.MetricsMemberSeed;
+            const base = seedApi && typeof seedApi.buildSeedMemberDocument === 'function'
+                ? seedApi.buildSeedMemberDocument(memberData)
+                : null;
 
-            const payload = {
-                uid,
+            const joinDate = memberData.joinDate instanceof Date ? memberData.joinDate : new Date(memberData.joinDate);
+            const payload = base ? {
+                ...base,
+                createdAt: Timestamp.fromDate(base.createdAt),
+                updatedAt: Timestamp.fromDate(base.updatedAt),
+                lastLogin: Timestamp.fromDate(base.lastLogin)
+            } : {
+                uid: `seed_${Date.now()}_${memberSeedHash(memberData.email).toString(36)}`,
                 email: memberData.email,
                 name: memberData.name,
                 displayName: memberData.name,
                 phone: memberData.phone,
                 loginMethod: 'email',
                 isActive: true,
-                seeded: true,
-                seedSource: memberData.source || 'manual',
                 agreeTerms: true,
                 agreePrivacy: true,
                 agreeMarketing: false,
-                loginCount: 0,
+                loginCount: 1,
+                _phReportSeed: true,
                 createdAt: Timestamp.fromDate(joinDate),
                 updatedAt: Timestamp.fromDate(joinDate),
                 lastLogin: Timestamp.fromDate(joinDate)
@@ -2328,41 +2331,19 @@
 
         // 의뢰 통계 업데이트 함수
         function updateRequestStats(requests) {
-            const totalRequestsElement = document.getElementById('total-requests');
-            const completedRequestsElement = document.getElementById('completed-requests');
-            
-            if (totalRequestsElement) {
-                totalRequestsElement.textContent = requests.length;
-            }
-            
-            if (completedRequestsElement) {
-                const completedCount = requests.filter(req => req.status === '답변완료' || req.status === '완료').length;
-                completedRequestsElement.textContent = completedCount;
-            }
-            
+            syncDashboardStatsFromCache();
             console.log('📊 의뢰 통계 업데이트:', {
-                total: requests.length,
-                completed: requests.filter(req => req.status === '답변완료' || req.status === '완료').length
+                total: (requests || allRequestsCache).length,
+                completed: (requests || allRequestsCache).filter(req => req.status === '답변완료' || req.status === '완료').length
             });
         }
         
         // 문의 통계 업데이트 함수
         function updateInquiryStats(inquiries) {
-            const totalInquiriesElement = document.getElementById('total-inquiries');
-            const unansweredInquiriesElement = document.getElementById('unanswered-inquiries');
-            
-            if (totalInquiriesElement) {
-                totalInquiriesElement.textContent = inquiries.length;
-            }
-            
-            if (unansweredInquiriesElement) {
-                const unansweredCount = inquiries.filter(inq => inq.status !== '답변완료' && inq.status !== '완료').length;
-                unansweredInquiriesElement.textContent = unansweredCount;
-            }
-            
+            syncDashboardStatsFromCache();
             console.log('📊 문의 통계 업데이트:', {
-                total: inquiries.length,
-                unanswered: inquiries.filter(inq => inq.status !== '답변완료' && inq.status !== '완료').length
+                total: (inquiries || allInquiriesCache).length,
+                unanswered: (inquiries || allInquiriesCache).filter(inq => inq.status !== '답변완료' && inq.status !== '완료').length
             });
         }
         
@@ -2392,7 +2373,7 @@
             return request?.isGuest === true || request?.source === 'guest_trial';
         }
 
-        function countGuestRequestStats(requests) {
+        function countGuestRequestStats(requests, scaled = false) {
             const cfg = getMetricsReportConfig();
             const guestRequests = (requests || []).filter(isGuestRequest);
             const uniqueEmails = new Set();
@@ -2402,6 +2383,9 @@
             });
             const rawUnique = uniqueEmails.size;
             const rawRequests = guestRequests.length;
+            if (!scaled) {
+                return { guestRequests: rawRequests, guestUniqueRequesters: rawUnique };
+            }
             return {
                 guestRequests: typeof cfg.getReportGuestRequestCount === 'function'
                     ? cfg.getReportGuestRequestCount(rawRequests)
@@ -2412,21 +2396,45 @@
             };
         }
 
+        function buildDashboardStatsFromCaches() {
+            const requests = allRequestsCache || [];
+            const inquiries = allInquiriesCache || [];
+            const members = allMembersCache || [];
+            const guestStats = countGuestRequestStats(requests, false);
+            return {
+                requests: requests.length,
+                completedRequests: requests.filter(req => req.status === '답변완료' || req.status === '완료' || req.status === 'completed').length,
+                inquiries: inquiries.length,
+                unansweredInquiries: inquiries.filter(inq => inq.status !== '답변완료' && inq.status !== '완료').length,
+                members: members.length,
+                guestRequests: guestStats.guestRequests,
+                guestUniqueRequesters: guestStats.guestUniqueRequesters
+            };
+        }
+
         function applyDashboardStats(stats) {
-            const guestStats = countGuestRequestStats(allRequestsCache);
             const map = [
                 ['total-requests', stats.requests],
                 ['completed-requests', stats.completedRequests],
                 ['total-inquiries', stats.inquiries],
                 ['unanswered-inquiries', stats.unansweredInquiries],
-                ['total-members', getReportMemberCount(stats.members)],
-                ['guest-requesters', stats.guestUniqueRequesters ?? guestStats.guestUniqueRequesters],
-                ['guest-requests', stats.guestRequests ?? guestStats.guestRequests]
+                ['total-members', stats.members],
+                ['guest-requesters', stats.guestUniqueRequesters],
+                ['guest-requests', stats.guestRequests]
             ];
             map.forEach(([id, val]) => {
                 const el = document.getElementById(id);
                 if (el) el.textContent = Number(val || 0).toLocaleString();
             });
+        }
+
+        function syncDashboardStatsFromCache() {
+            const stats = buildDashboardStatsFromCaches();
+            applyDashboardStats(stats);
+            try {
+                sessionStorage.setItem(ADMIN_STATS_CACHE_KEY, JSON.stringify({ ts: Date.now(), data: stats }));
+            } catch (e) { /* ignore */ }
+            return stats;
         }
 
         async function getFirestoreCollectionCount(collectionName) {
@@ -2456,36 +2464,19 @@
                     } catch (e) { /* ignore */ }
                 }
 
-                let requests = allRequestsCache;
-                let inquiries = allInquiriesCache;
-                let members = allMembersCache;
-
-                let stats;
-                const guestStats = countGuestRequestStats(requests);
-                if (requests.length || inquiries.length || members.length) {
-                    stats = {
-                        requests: requests.length || await getFirestoreCollectionCount('requests'),
-                        completedRequests: requests.filter(req => req.status === '답변완료' || req.status === '완료' || req.status === 'completed').length,
-                        inquiries: inquiries.length || await getFirestoreCollectionCount('inquiries'),
-                        unansweredInquiries: inquiries.filter(inq => inq.status !== '답변완료' && inq.status !== '완료').length,
-                        members: members.length || await getFirestoreCollectionCount('users'),
-                        guestRequests: guestStats.guestRequests,
-                        guestUniqueRequesters: guestStats.guestUniqueRequesters
-                    };
-                } else {
+                let stats = buildDashboardStatsFromCaches();
+                const needServerCounts = !stats.requests || !stats.inquiries || !stats.members;
+                if (needServerCounts) {
                     const [reqCount, inqCount, memCount] = await Promise.all([
-                        getFirestoreCollectionCount('requests'),
-                        getFirestoreCollectionCount('inquiries'),
-                        getFirestoreCollectionCount('users')
+                        stats.requests ? Promise.resolve(stats.requests) : getFirestoreCollectionCount('requests'),
+                        stats.inquiries ? Promise.resolve(stats.inquiries) : getFirestoreCollectionCount('inquiries'),
+                        stats.members ? Promise.resolve(stats.members) : getFirestoreCollectionCount('users')
                     ]);
                     stats = {
-                        requests: reqCount,
-                        completedRequests: 0,
-                        inquiries: inqCount,
-                        unansweredInquiries: 0,
-                        members: memCount,
-                        guestRequests: 0,
-                        guestUniqueRequesters: 0
+                        ...stats,
+                        requests: stats.requests || reqCount,
+                        inquiries: stats.inquiries || inqCount,
+                        members: stats.members || memCount
                     };
                 }
 
@@ -2497,7 +2488,7 @@
             }
         }
         
-        // Firebase에서 사용자 데이터 가져오기 (최신 500명)
+        // Firebase에서 사용자 데이터 가져오기 (최신 1000명)
         async function getUsersFromFirebase() {
             try {
                 const { collection, getDocs, query, orderBy, limit } = window.firebaseFirestoreFunctions;
@@ -2505,9 +2496,9 @@
                 const usersRef = collection(db, 'users');
                 let querySnapshot;
                 try {
-                    querySnapshot = await getDocs(query(usersRef, orderBy('createdAt', 'desc'), limit(500)));
+                    querySnapshot = await getDocs(query(usersRef, orderBy('createdAt', 'desc'), limit(1000)));
                 } catch (error) {
-                    querySnapshot = await getDocs(query(usersRef, limit(500)));
+                    querySnapshot = await getDocs(query(usersRef, limit(1000)));
                 }
                 const users = [];
                 querySnapshot.forEach((docSnap) => {
@@ -2518,6 +2509,75 @@
                 console.error('❌ Firebase에서 사용자 데이터 가져오기 실패:', error);
                 return [];
             }
+        }
+
+        async function getAllUsersFromFirebase() {
+            try {
+                const { collection, getDocs } = window.firebaseFirestoreFunctions;
+                const db = window.firebaseDb;
+                const snap = await getDocs(collection(db, 'users'));
+                const users = [];
+                snap.forEach((docSnap) => {
+                    users.push({ id: docSnap.id, ...docSnap.data() });
+                });
+                return users;
+            } catch (error) {
+                console.error('❌ 전체 사용자 조회 실패:', error);
+                return getUsersFromFirebase();
+            }
+        }
+
+        async function runMemberSeedBackfillClient(db) {
+            const seedApi = window.MetricsMemberSeed;
+            if (!seedApi) throw new Error('MetricsMemberSeed 모듈을 불러오지 못했습니다.');
+            const cfg = getMetricsReportConfig();
+            const users = await getAllUsersFromFirebase();
+            const usedSets = seedApi.collectUsedMemberSets(users);
+            const { realCount, seedCount, totalCount } = seedApi.countRealAndSeedUsers(users);
+            const launchStr = SERVICE_LAUNCH_DATE;
+            const endStr = getVisitorBackfillEndStr();
+            const plan = seedApi.planReportMemberSeeds({
+                realCount,
+                totalCount,
+                usedSets,
+                launchStr,
+                endStr,
+                getReportMemberCount: (value) => cfg.getReportMemberCount(value)
+            });
+
+            if (!plan.need) {
+                return {
+                    created: 0,
+                    targetTotal: plan.targetTotal,
+                    realCount,
+                    seedCount,
+                    totalBefore: totalCount,
+                    totalAfter: totalCount
+                };
+            }
+
+            let created = 0;
+            let failed = 0;
+            for (const item of plan.queue) {
+                try {
+                    const id = await createSeedMemberInFirebase(item);
+                    if (id) created++;
+                    else failed++;
+                } catch (e) {
+                    console.warn('리포트 회원 시드 생성 실패:', item.name, e);
+                    failed++;
+                }
+            }
+
+            return {
+                created,
+                failed,
+                targetTotal: plan.targetTotal,
+                realCount,
+                seedCount,
+                totalBefore: totalCount,
+                totalAfter: totalCount + created
+            };
         }
 
         // 로그인 섹션 표시 (shouldSignOut=true일 때만 명시적 로그아웃)
@@ -3836,18 +3896,25 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
 
         async function backfillSignupDailyClient(db) {
             const { setDoc, doc, serverTimestamp } = window.firebaseFirestoreFunctions;
-            const users = await getUsersFromFirebase();
+            const seedApi = window.MetricsMemberSeed;
+            const users = await getAllUsersFromFirebase();
             const byMonth = new Map();
+            let realCount = 0;
             users.forEach((user) => {
+                if (seedApi && !seedApi.isReportSeedUser(user)) realCount++;
                 const created = safeRequestDate(user);
                 if (!created) return;
                 const mk = monthKeyFromDate(created);
                 byMonth.set(mk, (byMonth.get(mk) || 0) + 1);
             });
+            let cumulative = 0;
+            const rows = Array.from(byMonth.entries())
+                .sort((a, b) => a[0].localeCompare(b[0]))
+                .map(([month, count]) => {
+                    cumulative += count;
+                    return { month, signups: count, cumulative };
+                });
             const cfg = getMetricsReportConfig();
-            const rows = typeof cfg.scaleMonthlySignups === 'function'
-                ? cfg.scaleMonthlySignups(Array.from(byMonth.entries()).sort((a, b) => a[0].localeCompare(b[0])))
-                : [];
             await Promise.all(rows.map((row) =>
                 setDoc(doc(db, 'signupDaily', row.month), {
                     month: row.month,
@@ -3861,7 +3928,8 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             return {
                 filled: rows.length,
                 totalReportSignups: rows.length ? rows[rows.length - 1].cumulative : 0,
-                totalRealSignups: users.length
+                totalRealSignups: realCount,
+                totalMembers: users.length
             };
         }
 
@@ -3921,9 +3989,10 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             if (!silent && !confirm(
                 `방문·가입·게스트 리포트를 동기화합니다.\n\n` +
                 `• 방문: ${launchStr} ~ ${endStr} (페이지 개설일부터, ${dayCount}일)\n` +
+                `• 회원: 실제 ×${factor} 목표에 맞춰 부족분 자동 추가\n` +
                 `• Firestore: visitDaily ${dayCount}건 쓰기 · visitMonthly ~${monthReadEstimate}건\n` +
                 `• 리포트 조회(월간/전체): visitMonthly ~${monthReadEstimate}회 읽기\n` +
-                `• 가입: ×${factor} · 게스트: ×${guestFactor}\n\n` +
+                `• 게스트: ×${guestFactor}\n\n` +
                 `계속할까요?`
             )) return;
             try {
@@ -3932,13 +4001,17 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 try {
                     result = await backfillVisitDailyViaServer();
                 } catch (serverErr) {
-                    console.warn('서버 동기화 실패, 방문만 클라이언트 시도:', serverErr.message);
+                    console.warn('서버 동기화 실패, 클라이언트 시도:', serverErr.message);
                     const visitOnly = await backfillVisitDailyClient(window.firebaseDb);
-                    result = { visit: visitOnly, signup: null, guest: null };
+                    const memberSeedOnly = await runMemberSeedBackfillClient(window.firebaseDb);
+                    const signupOnly = await backfillSignupDailyClient(window.firebaseDb);
+                    result = { visit: visitOnly, memberSeed: memberSeedOnly, signup: signupOnly, guest: null };
                 }
 
                 localStorage.setItem(VISITOR_BACKFILL_KEY, '1');
                 sessionStorage.removeItem(VISITOR_REPORT_CACHE_KEY);
+                sessionStorage.removeItem(ADMIN_STATS_CACHE_KEY);
+                if (typeof subscribeToUsers === 'function') subscribeToUsers();
                 if (!silent) {
                     const visit = result.visit || result;
                     const signup = result.signup;
@@ -3950,7 +4023,13 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                     const rangeLabel = visit.range || `${visit.backfillStart || launchStr} ~ ${endStr}`;
                     let msg = `[방문] ${visit.filled || dayCount}일 (${rangeLabel}) · 말일 UV ~${last}명\n${monthLines}`;
                     if (visit.monthlyDocs) msg += `\nvisitMonthly ${visit.monthlyDocs}건 저장`;
-                    if (signup) msg += `\n\n[가입] 리포트 누적 ${signup.totalReportSignups}명 (실제 ${signup.totalRealSignups}명)`;
+                    const memberSeed = result.memberSeed;
+                    if (memberSeed) {
+                        msg += `\n\n[회원] 목표 ${memberSeed.targetTotal}명 · 실제 ${memberSeed.realCount}명`;
+                        if (memberSeed.created > 0) msg += `\n자동 추가 ${memberSeed.created}명 (합계 ${memberSeed.totalAfter}명)`;
+                        else msg += `\n추가 없음 (현재 ${memberSeed.totalAfter ?? memberSeed.totalBefore}명)`;
+                    }
+                    if (signup) msg += `\n\n[가입 리포트] 누적 ${signup.totalReportSignups}명 (실제 ${signup.totalRealSignups}명)`;
                     if (guest) msg += `\n\n[게스트] 리포트 ${guest.totalReportUniqueGuests}명 / ${guest.totalReportGuestRequests}건 (실제 ${guest.totalRealUniqueGuests}명 / ${guest.totalRealGuestRequests}건)`;
                     alert(`동기화 완료\n\n${msg}`);
                 }

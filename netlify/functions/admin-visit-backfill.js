@@ -3,6 +3,7 @@
  */
 const admin = require('firebase-admin');
 const metricsConfig = require('../../metrics-report-config');
+const memberSeed = require('../../metrics-member-seed');
 
 const headers = {
   'Access-Control-Allow-Origin': '*',
@@ -217,20 +218,81 @@ async function runTrendBackfill(db, backfillStartStr) {
   };
 }
 
+async function runMemberSeedBackfill(db) {
+  const snap = await db.collection('users').get();
+  const docs = snap.docs;
+  const usedSets = memberSeed.collectUsedMemberSets(docs);
+  const { realCount, seedCount, totalCount } = memberSeed.countRealAndSeedUsers(docs);
+  const launchStr = metricsConfig.SERVICE_LAUNCH_DATE || metricsConfig.VISITOR_BACKFILL_START;
+  const endStr = getBackfillEndStr();
+  const plan = memberSeed.planReportMemberSeeds({
+    realCount,
+    totalCount,
+    usedSets,
+    launchStr,
+    endStr,
+    getReportMemberCount: metricsConfig.getReportMemberCount
+  });
+
+  if (!plan.need) {
+    return {
+      created: 0,
+      targetTotal: plan.targetTotal,
+      realCount,
+      seedCount,
+      totalBefore: totalCount,
+      totalAfter: totalCount
+    };
+  }
+
+  let created = 0;
+  const chunkSize = 400;
+  for (let i = 0; i < plan.queue.length; i += chunkSize) {
+    const batch = db.batch();
+    plan.queue.slice(i, i + chunkSize).forEach((item) => {
+      const doc = memberSeed.buildSeedMemberDocument(item);
+      const ref = db.collection('users').doc();
+      batch.set(ref, {
+        ...doc,
+        createdAt: admin.firestore.Timestamp.fromDate(doc.createdAt),
+        updatedAt: admin.firestore.Timestamp.fromDate(doc.updatedAt),
+        lastLogin: admin.firestore.Timestamp.fromDate(doc.lastLogin)
+      });
+    });
+    await batch.commit();
+    created += Math.min(chunkSize, plan.queue.length - i);
+  }
+
+  return {
+    created,
+    targetTotal: plan.targetTotal,
+    realCount,
+    seedCount,
+    totalBefore: totalCount,
+    totalAfter: totalCount + created
+  };
+}
+
 async function runSignupBackfill(db) {
   const snap = await db.collection('users').get();
   const byMonth = new Map();
+  let realCount = 0;
   snap.forEach((doc) => {
     const data = doc.data() || {};
+    if (!memberSeed.isReportSeedUser(data)) realCount++;
     const created = toDate(data.createdAt) || toDate(data.updatedAt);
     if (!created) return;
     const mk = monthKeyFromDate(created);
     byMonth.set(mk, (byMonth.get(mk) || 0) + 1);
   });
 
-  const rows = metricsConfig.scaleMonthlySignups(
-    Array.from(byMonth.entries()).sort((a, b) => a[0].localeCompare(b[0]))
-  );
+  let cumulative = 0;
+  const rows = Array.from(byMonth.entries())
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([month, count]) => {
+      cumulative += count;
+      return { month, signups: count, cumulative, estimated: true };
+    });
 
   const batch = db.batch();
   rows.forEach((row) => {
@@ -248,7 +310,8 @@ async function runSignupBackfill(db) {
   return {
     filled: rows.length,
     totalReportSignups: rows.length ? rows[rows.length - 1].cumulative : 0,
-    totalRealSignups: snap.size
+    totalRealSignups: realCount,
+    totalMembers: snap.size
   };
 }
 
@@ -312,12 +375,13 @@ exports.handler = async (event) => {
     const db = admin.firestore();
     const backfillStart = await resolveBackfillStartStr(db);
     const visit = await runTrendBackfill(db, backfillStart);
+    const memberSeedResult = await runMemberSeedBackfill(db);
     const signup = await runSignupBackfill(db);
     const guest = await runGuestBackfill(db);
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify({ ok: true, backfillStart, visit, signup, guest })
+      body: JSON.stringify({ ok: true, backfillStart, visit, memberSeed: memberSeedResult, signup, guest })
     };
   } catch (e) {
     console.error('admin-visit-backfill error:', e);
