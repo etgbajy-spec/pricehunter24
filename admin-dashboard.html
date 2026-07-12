@@ -4023,6 +4023,83 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             initBackfillButtonReveal();
         }
 
+        // 회원 관리 숨김 버튼 (제목 7연타)
+        const MEMBER_ADMIN_BTN_VISIBLE_KEY = 'ph_member_admin_btn_visible';
+        const MEMBER_ADMIN_REVEAL_CLICKS = 7;
+        const MEMBER_ADMIN_REVEAL_WINDOW_MS = 3000;
+        let memberAdminRevealClicks = [];
+
+        function setMemberAdminButtonsVisible(visible) {
+            const createBtn = document.getElementById('member-seed-create-btn');
+            const resetBtn = document.getElementById('member-seed-reset-btn');
+            const hideBtn = document.getElementById('member-admin-hide-btn');
+            if (createBtn) createBtn.classList.toggle('hidden', !visible);
+            if (resetBtn) resetBtn.classList.toggle('hidden', !visible);
+            if (hideBtn) hideBtn.classList.toggle('hidden', !visible);
+            try {
+                if (visible) sessionStorage.setItem(MEMBER_ADMIN_BTN_VISIBLE_KEY, '1');
+                else sessionStorage.removeItem(MEMBER_ADMIN_BTN_VISIBLE_KEY);
+            } catch (e) { /* ignore */ }
+        }
+
+        window.hideMemberAdminButtons = function() {
+            setMemberAdminButtonsVisible(false);
+        };
+
+        window.syncMemberSeedsOnly = async function() {
+            const reportCfg = getMetricsReportConfig();
+            const memberTarget = reportCfg.MEMBER_REPORT_TARGET || 312;
+            if (!confirm(
+                `회원 시드를 목표 ${memberTarget}명에 맞게 동기화합니다.\n\n` +
+                `· 초과 시드 회원 삭제\n` +
+                `· 부족분 자동 추가\n` +
+                `· 잘못된 loginMethod 수정\n\n` +
+                `계속할까요?`
+            )) return;
+            try {
+                await waitForFirebase();
+                const result = await runMemberSeedBackfillClient(window.firebaseDb);
+                sessionStorage.removeItem(ADMIN_STATS_CACHE_KEY);
+                if (typeof subscribeToUsers === 'function') subscribeToUsers();
+                if (typeof syncDashboardStatsFromCache === 'function') syncDashboardStatsFromCache();
+                let msg = `회원 시드 동기화 완료\n\n목표: ${result.targetTotal}명\n실제 회원: ${result.realCount}명`;
+                if (result.removed > 0) msg += `\n정리: ${result.removed}명`;
+                if (result.created > 0) msg += `\n추가: ${result.created}명`;
+                if (result.loginMethodFixed > 0) msg += `\nloginMethod 수정: ${result.loginMethodFixed}명`;
+                if (result.failed > 0) msg += `\n실패: ${result.failed}명`;
+                msg += `\n합계: ${result.totalAfter}명`;
+                alert(msg);
+            } catch (error) {
+                console.error('회원 시드 동기화 실패:', error);
+                alert('회원 시드 동기화 실패: ' + (error.message || error));
+            }
+        };
+
+        function initMemberAdminButtonReveal() {
+            const title = document.getElementById('members-section-title');
+            if (!title) return;
+            try {
+                if (sessionStorage.getItem(MEMBER_ADMIN_BTN_VISIBLE_KEY) === '1') {
+                    setMemberAdminButtonsVisible(true);
+                }
+            } catch (e) { /* ignore */ }
+            title.addEventListener('click', () => {
+                const now = Date.now();
+                memberAdminRevealClicks = memberAdminRevealClicks.filter((t) => now - t < MEMBER_ADMIN_REVEAL_WINDOW_MS);
+                memberAdminRevealClicks.push(now);
+                if (memberAdminRevealClicks.length >= MEMBER_ADMIN_REVEAL_CLICKS) {
+                    memberAdminRevealClicks = [];
+                    setMemberAdminButtonsVisible(true);
+                }
+            });
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initMemberAdminButtonReveal);
+        } else {
+            initMemberAdminButtonReveal();
+        }
+
         window.syncReportMetrics = async function(silent = false) {
             const endStr = getVisitorBackfillEndStr();
             const launchStr = SERVICE_LAUNCH_DATE;
@@ -5500,13 +5577,19 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 <!-- 회원 관리 섹션 -->
                 <div id="members-section" class="section-content p-8 hidden">
                     <div class="flex justify-between items-center mb-6">
-                        <h2 class="text-2xl font-bold text-gray-800">👥 회원 관리</h2>
-                        <div class="flex gap-2 flex-wrap">
+                        <h2 id="members-section-title" class="text-2xl font-bold text-gray-800 select-none cursor-default">👥 회원 관리</h2>
+                        <div class="flex gap-2 flex-wrap items-center">
                             <button type="button" onclick="subscribeToUsers()" class="px-4 py-2 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition">
                                 🔄 새로고침
                             </button>
-                            <button type="button" onclick="runBulkMemberSeedFromRequests()" class="px-4 py-2 bg-amber-600 text-white rounded-lg font-semibold hover:bg-amber-700 transition" title="의뢰관리 의뢰자 이름 기준 회원 생성 + 임의 40명">
+                            <button type="button" id="member-seed-create-btn" onclick="runBulkMemberSeedFromRequests()" class="hidden px-4 py-2 bg-amber-600 text-white rounded-lg font-semibold hover:bg-amber-700 transition" title="의뢰관리 의뢰자 이름 기준 회원 생성 + 임의 40명">
                                 📋 회원 일괄 생성
+                            </button>
+                            <button type="button" id="member-seed-reset-btn" onclick="syncMemberSeedsOnly()" class="hidden px-4 py-2 bg-orange-500 text-white rounded-lg font-semibold hover:bg-orange-600 transition" title="목표 회원 수에 맞게 시드 정리·추가">
+                                🔄 회원 시드 초기화
+                            </button>
+                            <button type="button" id="member-admin-hide-btn" onclick="hideMemberAdminButtons()" class="hidden px-3 py-2 bg-gray-400 text-white rounded-lg font-semibold hover:bg-gray-500 transition" title="회원 관리 숨김 버튼 닫기">
+                                🙈 숨김
                             </button>
                         </div>
                     </div>
