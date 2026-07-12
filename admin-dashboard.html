@@ -2369,12 +2369,12 @@
         function getMetricsReportConfig() {
             return window.MetricsReportConfig || {
                 MEMBER_REPORT_FACTOR: 1.82,
-                VISITOR_TREND_START: 10,
-                VISITOR_TREND_END: 24,
-                VISITOR_BACKFILL_START: '2026-01-01',
-                VISITOR_BACKFILL_KEY: 'ph_visit_backfill_v9',
-                MEMBER_REPORT_FACTOR: 1.82,
                 GUEST_REPORT_FACTOR: 3.2,
+                SERVICE_LAUNCH_DATE: '2025-11-18',
+                VISITOR_TREND_START: 50,
+                VISITOR_TREND_END: 120,
+                VISITOR_BACKFILL_START: '2025-11-18',
+                VISITOR_BACKFILL_KEY: 'ph_visit_backfill_v11',
                 getReportMemberCount: (value) => Math.max(0, Math.round(Number(value || 0) * 1.82)),
                 getReportGuestUniqueCount: (value) => Math.max(0, Math.round(Number(value || 0) * 3.2)),
                 getReportGuestRequestCount: (value) => Math.max(0, Math.round(Number(value || 0) * 3.2))
@@ -3432,7 +3432,12 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
         const VISITOR_TRUST_MIN = 60;
         const VISITOR_BACKFILL_START = metricsReportConfig.VISITOR_BACKFILL_START;
         const VISITOR_BACKFILL_KEY = metricsReportConfig.VISITOR_BACKFILL_KEY;
+        const SERVICE_LAUNCH_DATE = metricsReportConfig.SERVICE_LAUNCH_DATE || VISITOR_BACKFILL_START;
         let visitorChart = null;
+
+        function getServiceLaunchDate() {
+            return SERVICE_LAUNCH_DATE;
+        }
         
         // 날짜 포맷 함수
         function formatDate(date) {
@@ -3481,6 +3486,57 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 }));
             }
             return map;
+        }
+
+        async function fetchVisitMonthlyByRange(db, startStr, endStr) {
+            const { doc, getDoc } = window.firebaseFirestoreFunctions;
+            const dataMap = new Map();
+            const monthKeys = [];
+            const start = new Date(startStr + 'T00:00:00');
+            const end = new Date(endStr + 'T00:00:00');
+            const cur = new Date(start.getFullYear(), start.getMonth(), 1);
+            const endMonth = new Date(end.getFullYear(), end.getMonth(), 1);
+            while (cur <= endMonth) {
+                monthKeys.push(`${cur.getFullYear()}-${String(cur.getMonth() + 1).padStart(2, '0')}`);
+                cur.setMonth(cur.getMonth() + 1);
+            }
+
+            await Promise.all(monthKeys.map(async (mk) => {
+                try {
+                    const snap = await getDoc(doc(db, 'visitMonthly', mk));
+                    if (!snap.exists()) return;
+                    const data = snap.data() || {};
+                    const dayCount = Number(data.dayCount) || 0;
+                    dataMap.set(mk, {
+                        visits: Number(data.pageViews) || 0,
+                        uniqueVisitors: Number(data.uniqueVisitors) || 0,
+                        dayCount,
+                        estimatedDays: data.estimated === true ? dayCount : 0,
+                        dailyMax: Number(data.dailyMax) || 0,
+                        estimated: data.estimated === true
+                    });
+                } catch (e) {
+                    console.warn('visitMonthly 읽기 실패:', mk, e);
+                }
+            }));
+
+            return { dataMap, readCount: monthKeys.length, monthKeys };
+        }
+
+        function getExpectedMonthKeys(startDate, endDate) {
+            const keys = [];
+            const cur = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
+            const end = new Date(endDate.getFullYear(), endDate.getMonth(), 1);
+            while (cur <= end) {
+                keys.push(`${cur.getFullYear()}-${String(cur.getMonth() + 1).padStart(2, '0')}`);
+                cur.setMonth(cur.getMonth() + 1);
+            }
+            return keys;
+        }
+
+        function isMonthlyCoverageComplete(expectedKeys, dataMap) {
+            if (!expectedKeys.length || !dataMap || dataMap.size === 0) return false;
+            return expectedKeys.every((mk) => dataMap.has(mk));
         }
 
         function dailyMapToMerged(dailyMap) {
@@ -3624,7 +3680,7 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             let startDate, endDate;
 
             if (period === 'all') {
-                startDate = new Date(2026, 0, 1);
+                startDate = new Date(SERVICE_LAUNCH_DATE + 'T00:00:00');
                 endDate = new Date(today);
             } else if (period === 'custom' && customStartDate && customEndDate) {
                 startDate = new Date(customStartDate);
@@ -3638,7 +3694,7 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 startDate.setDate(today.getDate() - 83);
                 endDate = new Date(today);
             } else if (period === 'monthly') {
-                startDate = new Date(today.getFullYear(), 0, 1);
+                startDate = new Date(SERVICE_LAUNCH_DATE + 'T00:00:00');
                 endDate = new Date(today);
             } else {
                 startDate = new Date(today);
@@ -3718,20 +3774,24 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
         }
 
         async function backfillVisitDailyClient(db) {
-            const { serverTimestamp } = window.firebaseFirestoreFunctions;
+            const { setDoc, doc, serverTimestamp } = window.firebaseFirestoreFunctions;
             const endStr = getVisitorBackfillEndStr();
-            const start = new Date(2026, 0, 1);
+            const start = new Date(SERVICE_LAUNCH_DATE + 'T00:00:00');
             const end = new Date(endStr + 'T00:00:00');
             const writes = [];
             const monthTotals = new Map();
             const monthDays = new Map();
+            const monthPageViews = new Map();
+            const monthMaxDaily = new Map();
 
             eachDayInRange(start, end, (dateStr) => {
-                const u = trendingUniqueVisitors(dateStr, VISITOR_BACKFILL_START, endStr);
+                const u = trendingUniqueVisitors(dateStr, SERVICE_LAUNCH_DATE, endStr);
                 const pv = Math.max(u, Math.round(u * 1.35));
                 const mk = dateStr.slice(0, 7);
                 monthTotals.set(mk, (monthTotals.get(mk) || 0) + u);
+                monthPageViews.set(mk, (monthPageViews.get(mk) || 0) + pv);
                 monthDays.set(mk, (monthDays.get(mk) || 0) + 1);
+                monthMaxDaily.set(mk, Math.max(monthMaxDaily.get(mk) || 0, u));
                 writes.push({
                     dateStr,
                     payload: {
@@ -3745,17 +3805,31 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             });
 
             await commitVisitDailyWrites(db, writes);
+
+            const monthKeys = Array.from(monthTotals.keys()).sort();
+            await Promise.all(monthKeys.map((mk) =>
+                setDoc(doc(db, 'visitMonthly', mk), {
+                    month: mk,
+                    pageViews: monthPageViews.get(mk) || 0,
+                    uniqueVisitors: monthTotals.get(mk) || 0,
+                    dayCount: monthDays.get(mk) || 0,
+                    dailyMax: monthMaxDaily.get(mk) || 0,
+                    estimated: true,
+                    updatedAt: serverTimestamp()
+                }, { merge: true })
+            ));
+
             return {
                 filled: writes.length,
-                range: `${VISITOR_BACKFILL_START} ~ ${endStr}`,
-                months: Array.from(monthTotals.entries())
-                    .sort((a, b) => a[0].localeCompare(b[0]))
-                    .map(([mk, total]) => ({
-                        month: mk,
-                        total,
-                        dailyAvg: Math.round(total / (monthDays.get(mk) || 1)),
-                        days: monthDays.get(mk) || 1
-                    })),
+                backfillStart: SERVICE_LAUNCH_DATE,
+                range: `${SERVICE_LAUNCH_DATE} ~ ${endStr}`,
+                months: monthKeys.map((mk) => ({
+                    month: mk,
+                    total: monthTotals.get(mk) || 0,
+                    dailyAvg: Math.round((monthTotals.get(mk) || 0) / (monthDays.get(mk) || 1)),
+                    days: monthDays.get(mk) || 1
+                })),
+                monthlyDocs: monthKeys.length,
                 lastDayVisitors: writes.length ? writes[writes.length - 1].payload.uniqueVisitors : VISITOR_TREND_END
             };
         }
@@ -3839,9 +3913,19 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
 
         window.syncReportMetrics = async function(silent = false) {
             const endStr = getVisitorBackfillEndStr();
+            const launchStr = SERVICE_LAUNCH_DATE;
             const factor = getMetricsReportConfig().MEMBER_REPORT_FACTOR || 1.82;
             const guestFactor = getMetricsReportConfig().GUEST_REPORT_FACTOR || 3.2;
-            if (!silent && !confirm(`방문·가입·게스트 리포트를 동기화합니다.\n\n• 방문: ${VISITOR_BACKFILL_START} ~ ${endStr}\n• 가입: ×${factor} · 게스트: ×${guestFactor}\n\n계속할까요?`)) return;
+            const dayCount = countCalendarDays(new Date(launchStr + 'T00:00:00'), new Date(endStr + 'T00:00:00'));
+            const monthReadEstimate = buildPeriodKeys('all', new Date(launchStr + 'T00:00:00'), new Date(endStr + 'T00:00:00')).length;
+            if (!silent && !confirm(
+                `방문·가입·게스트 리포트를 동기화합니다.\n\n` +
+                `• 방문: ${launchStr} ~ ${endStr} (페이지 개설일부터, ${dayCount}일)\n` +
+                `• Firestore: visitDaily ${dayCount}건 쓰기 · visitMonthly ~${monthReadEstimate}건\n` +
+                `• 리포트 조회(월간/전체): visitMonthly ~${monthReadEstimate}회 읽기\n` +
+                `• 가입: ×${factor} · 게스트: ×${guestFactor}\n\n` +
+                `계속할까요?`
+            )) return;
             try {
                 await waitForFirebase();
                 let result;
@@ -3863,7 +3947,9 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                         `${m.month}: ${Number(m.total).toLocaleString()}명 (일평균 ${m.dailyAvg}명)`
                     ).join('\n');
                     const last = visit.lastDayVisitors || VISITOR_TREND_END;
-                    let msg = `[방문] ${visit.filled || visit.range}일 · 말일 UV ~${last}명\n${monthLines}`;
+                    const rangeLabel = visit.range || `${visit.backfillStart || launchStr} ~ ${endStr}`;
+                    let msg = `[방문] ${visit.filled || dayCount}일 (${rangeLabel}) · 말일 UV ~${last}명\n${monthLines}`;
+                    if (visit.monthlyDocs) msg += `\nvisitMonthly ${visit.monthlyDocs}건 저장`;
                     if (signup) msg += `\n\n[가입] 리포트 누적 ${signup.totalReportSignups}명 (실제 ${signup.totalRealSignups}명)`;
                     if (guest) msg += `\n\n[게스트] 리포트 ${guest.totalReportUniqueGuests}명 / ${guest.totalReportGuestRequests}건 (실제 ${guest.totalRealUniqueGuests}명 / ${guest.totalRealGuestRequests}건)`;
                     alert(`동기화 완료\n\n${msg}`);
@@ -3881,7 +3967,8 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
         function applyVisitorReportUi(period, payload, startStr, endStr, startDate, endDate, customStartDate, customEndDate) {
             const {
                 totalVisits, totalUniqueSum, maxDailyVisitors, avgDaily,
-                estimatedDays, calendarDays, chartData, sortedKeys, dataMap, dailyDaysLoaded
+                estimatedDays, calendarDays, chartData, sortedKeys, dataMap, dailyDaysLoaded,
+                firestoreReads, dataSource
             } = payload;
 
             document.getElementById('total-visitors-count').textContent = totalUniqueSum.toLocaleString();
@@ -3891,22 +3978,23 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
 
             const dataRangeInfo = document.getElementById('data-range-info');
             if (dataRangeInfo) {
-                const estNote = estimatedDays > 0 ? ` · 추정 ${estimatedDays}일 포함` : '';
-                dataRangeInfo.textContent = `기간: ${startStr} ~ ${endStr} (${calendarDays}일, visitDaily ${dailyDaysLoaded}일${estNote})`;
+                const readNote = firestoreReads != null ? ` · Firestore 읽기 ${firestoreReads}회` : '';
+                const srcNote = dataSource === 'visitMonthly' ? ' (visitMonthly)' : ` (visitDaily ${dailyDaysLoaded}일)`;
+                dataRangeInfo.textContent = `기간: ${startStr} ~ ${endStr} (${calendarDays}일${srcNote}${readNote})`;
                 dataRangeInfo.classList.remove('text-gray-500');
                 dataRangeInfo.classList.add('text-blue-600');
             }
 
             let chartTitle = '방문자 추이';
             if (period === 'all') {
-                chartTitle = `2026년 방문자 추이 (${startStr} ~ ${endStr})`;
+                chartTitle = `전체 방문자 추이 (${startStr} ~ ${endStr})`;
             } else if (period === 'custom' && customStartDate && customEndDate) {
                 chartTitle = `방문자 추이 (${startStr} ~ ${endStr})`;
             } else {
                 const titles = {
                     daily: '일일 방문자 추이 (최근 30일)',
                     weekly: '주간 방문자 추이 (최근 12주)',
-                    monthly: `월간 방문자 추이 (${startDate.getFullYear()}년)`
+                    monthly: `월간 방문자 추이 (${startStr} ~ ${endStr})`
                 };
                 chartTitle = titles[period] || '방문자 추이';
             }
@@ -3936,7 +4024,7 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 const startStr = formatDate(startDate);
                 const endStr = formatDate(endDate);
 
-                const cacheKey = `${period}:${startStr}:${endStr}`;
+                const cacheKey = `${VISITOR_BACKFILL_KEY}:${period}:${startStr}:${endStr}`;
                 if (!customStartDate && !customEndDate) {
                     try {
                         const raw = sessionStorage.getItem(VISITOR_REPORT_CACHE_KEY);
@@ -3950,10 +4038,6 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                     } catch (e) { /* ignore */ }
                 }
 
-                const dailyMap = await fetchVisitDailyByRange(db, startStr, endStr);
-                const mergedByDate = dailyMapToMerged(dailyMap);
-                const filledDaily = fillDailyRange(mergedByDate, startDate, endDate);
-                const dataMap = groupDailyToPeriod(period, filledDaily);
                 const sortedKeys = buildPeriodKeys(period, startDate, endDate, customStartDate, customEndDate);
 
                 let totalVisits = 0;
@@ -3961,6 +4045,66 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 let maxDailyVisitors = 0;
                 let estimatedDays = 0;
                 const chartData = { labels: [], visitors: [], visits: [], uniqueVisitors: [] };
+                let firestoreReads = 0;
+                let dataSource = 'visitDaily';
+                let dailyDaysLoaded = 0;
+                let dataMap;
+
+                if (period === 'monthly' || period === 'all') {
+                    const expectedMonthKeys = getExpectedMonthKeys(startDate, endDate);
+                    const monthly = await fetchVisitMonthlyByRange(db, startStr, endStr);
+                    const useMonthly = isMonthlyCoverageComplete(expectedMonthKeys, monthly.dataMap);
+
+                    if (useMonthly) {
+                        firestoreReads = monthly.readCount;
+                        dataSource = 'visitMonthly';
+                        dailyDaysLoaded = monthly.dataMap.size;
+                        dataMap = monthly.dataMap;
+
+                        sortedKeys.forEach(key => {
+                            const periodData = monthly.dataMap.get(key) || {
+                                visits: 0, uniqueVisitors: 0, estimatedDays: 0, dayCount: 0, dailyMax: 0, estimated: false
+                            };
+                            chartData.labels.push(key);
+                            chartData.visitors.push(periodData.uniqueVisitors);
+                            chartData.visits.push(periodData.visits);
+                            chartData.uniqueVisitors.push(periodData.uniqueVisitors);
+                            totalVisits += periodData.visits;
+                            totalUniqueSum += periodData.uniqueVisitors;
+                            if (periodData.dailyMax > maxDailyVisitors) maxDailyVisitors = periodData.dailyMax;
+                            if (periodData.estimated) estimatedDays += periodData.estimatedDays || periodData.dayCount || 0;
+                        });
+
+                        const calendarDays = countCalendarDays(startDate, endDate);
+                        const avgDaily = calendarDays > 0 ? Math.round(totalUniqueSum / calendarDays) : 0;
+                        const payload = {
+                            totalVisits, totalUniqueSum, maxDailyVisitors, avgDaily,
+                            estimatedDays, calendarDays, chartData, sortedKeys,
+                            dataMap: monthly.dataMap, dailyDaysLoaded,
+                            firestoreReads, dataSource
+                        };
+
+                        if (!customStartDate && !customEndDate) {
+                            sessionStorage.setItem(VISITOR_REPORT_CACHE_KEY, JSON.stringify({
+                                key: cacheKey, ts: Date.now(), payload
+                            }));
+                        }
+
+                        applyVisitorReportUi(period, payload, startStr, endStr, startDate, endDate, customStartDate, customEndDate);
+
+                        if ((period === 'monthly' || period === 'all' || period === 'daily') && !localStorage.getItem(VISITOR_BACKFILL_KEY)) {
+                            syncReportMetrics(true);
+                        }
+                        return;
+                    }
+                }
+
+                const dailyMap = await fetchVisitDailyByRange(db, startStr, endStr);
+                const mergedByDate = dailyMapToMerged(dailyMap);
+                const filledDaily = fillDailyRange(mergedByDate, startDate, endDate);
+                dataMap = groupDailyToPeriod(period, filledDaily);
+                firestoreReads = countCalendarDays(startDate, endDate);
+                dailyDaysLoaded = dailyMap.size;
 
                 filledDaily.forEach((stats) => {
                     if (stats.uniqueVisitors > maxDailyVisitors) maxDailyVisitors = stats.uniqueVisitors;
@@ -3983,7 +4127,7 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 const payload = {
                     totalVisits, totalUniqueSum, maxDailyVisitors, avgDaily,
                     estimatedDays, calendarDays, chartData, sortedKeys, dataMap,
-                    dailyDaysLoaded: dailyMap.size
+                    dailyDaysLoaded, firestoreReads, dataSource
                 };
 
                 if (!customStartDate && !customEndDate) {
@@ -4095,12 +4239,11 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                     : (periodData.uniqueVisitors || 0);
                 const dayCount = periodData.dayCount || 1;
                 const dailyAvg = dayCount > 0 ? Math.round(uniqueCount / dayCount) : 0;
-                const estMark = periodData.estimatedDays > 0 ? ' <span class="text-xs text-amber-600">(추정)</span>' : '';
                 const percentage = totalVisitors > 0 ? ((uniqueCount / totalVisitors * 100).toFixed(1)) : 0;
                 
                 return `
                     <tr class="hover:bg-gray-50">
-                        <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">${key}${estMark}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">${key}</td>
                         <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">${uniqueCount.toLocaleString()}</td>
                         ${showDailyAvg ? `<td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700 font-semibold">${dailyAvg.toLocaleString()}</td>` : ''}
                         <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">${(periodData.visits || 0).toLocaleString()}</td>
@@ -4173,16 +4316,21 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             return `${y}-${m}`;
         }
 
-        function getYtdMonthKeys() {
-            const keys = [];
+        function getReportMonthKeys() {
+            const launch = new Date(SERVICE_LAUNCH_DATE + 'T00:00:00');
             const now = new Date();
-            const cur = new Date(now.getFullYear(), 0, 1);
+            const keys = [];
+            const cur = new Date(launch.getFullYear(), launch.getMonth(), 1);
             const end = new Date(now.getFullYear(), now.getMonth(), 1);
             while (cur <= end) {
                 keys.push(monthKeyFromDate(cur));
                 cur.setMonth(cur.getMonth() + 1);
             }
             return keys;
+        }
+
+        function getYtdMonthKeys() {
+            return getReportMonthKeys();
         }
 
         function getLastNMonthKeys(n = 3) {
@@ -4316,20 +4464,28 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 const { collection, query, getDocs, orderBy, doc, getDoc } = window.firebaseFirestoreFunctions;
                 const db = window.firebaseDb;
 
-                const monthKeys = getYtdMonthKeys();
+                const monthKeys = getReportMonthKeys();
+                const endStr = formatDate(new Date());
 
                 const visitAgg = new Map(monthKeys.map(k => [k, 0]));
                 const memberAgg = new Map(monthKeys.map(k => [k, 0]));
                 const guestAgg = new Map(monthKeys.map(k => [k, 0]));
-                const dailyMap = await fetchVisitDailyMap(db, `${monthKeys[0]}-01`, null);
-                dailyMap.forEach((stats, dateStr) => {
-                    const d = new Date(dateStr + 'T00:00:00');
-                    if (isNaN(d.getTime())) return;
-                    const mk = monthKeyFromDate(d);
-                    if (!visitAgg.has(mk)) return;
-                    const uv = stats.uniqueVisitors || 0;
-                    visitAgg.set(mk, (visitAgg.get(mk) || 0) + uv);
-                });
+
+                const monthlyVisit = await fetchVisitMonthlyByRange(db, SERVICE_LAUNCH_DATE, endStr);
+                if (isMonthlyCoverageComplete(monthKeys, monthlyVisit.dataMap)) {
+                    monthlyVisit.dataMap.forEach((stats, mk) => {
+                        if (visitAgg.has(mk)) visitAgg.set(mk, stats.uniqueVisitors || 0);
+                    });
+                } else {
+                    const dailyMap = await fetchVisitDailyMap(db, SERVICE_LAUNCH_DATE, endStr);
+                    dailyMap.forEach((stats, dateStr) => {
+                        const d = new Date(dateStr + 'T00:00:00');
+                        if (isNaN(d.getTime())) return;
+                        const mk = monthKeyFromDate(d);
+                        if (!visitAgg.has(mk)) return;
+                        visitAgg.set(mk, (visitAgg.get(mk) || 0) + (stats.uniqueVisitors || 0));
+                    });
+                }
 
                 await Promise.all(monthKeys.map(async (mk) => {
                     try {

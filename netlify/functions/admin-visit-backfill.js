@@ -127,20 +127,41 @@ async function verifyAdminAuth(event) {
   }
 }
 
-async function runTrendBackfill(db) {
+async function resolveBackfillStartStr(db) {
+  const configured = metricsConfig.SERVICE_LAUNCH_DATE || metricsConfig.VISITOR_BACKFILL_START;
+  try {
+    const snap = await db.collection('users').orderBy('createdAt', 'asc').limit(1).get();
+    if (!snap.empty) {
+      const created = toDate(snap.docs[0].data().createdAt);
+      if (created) {
+        const userStart = formatDate(created);
+        return userStart < configured ? userStart : configured;
+      }
+    }
+  } catch (e) {
+    console.warn('resolveBackfillStartStr fallback:', e.message);
+  }
+  return configured;
+}
+
+async function runTrendBackfill(db, backfillStartStr) {
   const endStr = getBackfillEndStr();
-  const start = new Date(2026, 0, 1);
+  const start = new Date(backfillStartStr + 'T00:00:00');
   const end = new Date(endStr + 'T00:00:00');
   const writes = [];
   const monthTotals = new Map();
   const monthDays = new Map();
+  const monthPageViews = new Map();
+  const monthMaxDaily = new Map();
 
   eachDayInRange(start, end, (dateStr) => {
-    const u = trendingUniqueVisitors(dateStr, VISITOR_BACKFILL_START, endStr);
+    const u = trendingUniqueVisitors(dateStr, backfillStartStr, endStr);
     const pv = Math.max(u, Math.round(u * 1.35));
     const mk = dateStr.slice(0, 7);
     monthTotals.set(mk, (monthTotals.get(mk) || 0) + u);
+    monthPageViews.set(mk, (monthPageViews.get(mk) || 0) + pv);
     monthDays.set(mk, (monthDays.get(mk) || 0) + 1);
+    monthMaxDaily.set(mk, Math.max(monthMaxDaily.get(mk) || 0, u));
     writes.push({ dateStr, u, pv });
   });
 
@@ -159,22 +180,40 @@ async function runTrendBackfill(db) {
     await batch.commit();
   }
 
-  const months = Array.from(monthTotals.entries())
-    .sort((a, b) => a[0].localeCompare(b[0]))
-    .map(([mk, total]) => {
-      const days = monthDays.get(mk) || 1;
-      return { month: mk, total, dailyAvg: Math.round(total / days), days };
+  const monthKeys = Array.from(monthTotals.keys()).sort();
+  if (monthKeys.length) {
+    const monthBatch = db.batch();
+    monthKeys.forEach((mk) => {
+      monthBatch.set(db.collection('visitMonthly').doc(mk), {
+        month: mk,
+        pageViews: monthPageViews.get(mk) || 0,
+        uniqueVisitors: monthTotals.get(mk) || 0,
+        dayCount: monthDays.get(mk) || 0,
+        dailyMax: monthMaxDaily.get(mk) || 0,
+        estimated: true,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
     });
+    await monthBatch.commit();
+  }
+
+  const months = monthKeys.map((mk) => {
+    const days = monthDays.get(mk) || 1;
+    const total = monthTotals.get(mk) || 0;
+    return { month: mk, total, dailyAvg: Math.round(total / days), days };
+  });
 
   const lastDay = writes.length ? writes[writes.length - 1].u : VISITOR_TREND_END;
 
   return {
     filled: writes.length,
     months,
-    range: `${VISITOR_BACKFILL_START} ~ ${endStr}`,
+    backfillStart: backfillStartStr,
+    range: `${backfillStartStr} ~ ${endStr}`,
     trendStart: VISITOR_TREND_START,
     trendEnd: VISITOR_TREND_END,
-    lastDayVisitors: lastDay
+    lastDayVisitors: lastDay,
+    monthlyDocs: monthKeys.length
   };
 }
 
@@ -271,13 +310,14 @@ exports.handler = async (event) => {
 
   try {
     const db = admin.firestore();
-    const visit = await runTrendBackfill(db);
+    const backfillStart = await resolveBackfillStartStr(db);
+    const visit = await runTrendBackfill(db, backfillStart);
     const signup = await runSignupBackfill(db);
     const guest = await runGuestBackfill(db);
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify({ ok: true, visit, signup, guest })
+      body: JSON.stringify({ ok: true, backfillStart, visit, signup, guest })
     };
   } catch (e) {
     console.error('admin-visit-backfill error:', e);

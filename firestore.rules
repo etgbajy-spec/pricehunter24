@@ -138,6 +138,14 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // 월별 방문 집계 (리포트 조회 시 읽기 절약)
+    match /visitMonthly/{monthId} {
+      allow read: if true;
+      allow create: if true;
+      allow update: if true;
+      allow delete: if isAdmin();
+    }
+
     // 다른 모든 컬렉션에 대한 기본 규칙
     match /{document=**} {
       // 읽기: 모든 사용자 허용

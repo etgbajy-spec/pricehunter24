@@ -7,15 +7,18 @@
   const METRICS_REPORT_SCALE = 0.2;
   const MEMBER_REPORT_FACTOR = 1.82;
   const GUEST_REPORT_FACTOR = 3.2;
+  /** 서비스/페이지 개설일 (최초 회원 가입일 기준) */
+  const SERVICE_LAUNCH_DATE = '2025-11-18';
 
   const config = {
     METRICS_REPORT_SCALE,
     MEMBER_REPORT_FACTOR,
     GUEST_REPORT_FACTOR,
-    VISITOR_TREND_START: Math.round(50 * METRICS_REPORT_SCALE),
-    VISITOR_TREND_END: Math.round(120 * METRICS_REPORT_SCALE),
-    VISITOR_BACKFILL_START: '2026-01-01',
-    VISITOR_BACKFILL_KEY: 'ph_visit_backfill_v9',
+    SERVICE_LAUNCH_DATE,
+    VISITOR_TREND_START: 50,
+    VISITOR_TREND_END: 120,
+    VISITOR_BACKFILL_START: SERVICE_LAUNCH_DATE,
+    VISITOR_BACKFILL_KEY: 'ph_visit_backfill_v11',
     MAU_ROADMAP_TARGET: Math.round(500 * METRICS_REPORT_SCALE)
   };
 
@@ -64,17 +67,15 @@
 
     const months = Array.from(byMonth.keys()).sort();
     const allSeen = new Set();
-    let cumulativeUnique = 0;
     return months.map((month) => {
       const rawRequests = byMonth.get(month) || 0;
       const rawUnique = (uniqueByMonth.get(month) || new Set()).size;
       rawUnique && Array.from(uniqueByMonth.get(month)).forEach((e) => allSeen.add(e));
-      cumulativeUnique = Math.round(allSeen.size * GUEST_REPORT_FACTOR);
       return {
         month,
         guestRequests: config.getReportGuestRequestCount(rawRequests),
         uniqueGuests: config.getReportGuestUniqueCount(rawUnique),
-        cumulativeUniqueGuests: cumulativeUnique,
+        cumulativeUniqueGuests: Math.round(allSeen.size * GUEST_REPORT_FACTOR),
         estimated: true
       };
     });
