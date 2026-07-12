@@ -93,6 +93,19 @@ function cleanProductTitle(raw) {
   return t.slice(0, 200) || null;
 }
 
+function isGenericMallProductName(name) {
+  const t = String(name || '').replace(/\s+/g, ' ').trim();
+  if (!t || t.length < 6) return true;
+  if (/^(products|product|vp|item|goods|쿠팡|상품)$/i.test(t)) return true;
+  if (/^(G마켓|지마켓|옥션|Auction|Gmarket|쿠팡|Coupang|네이버|Naver|11번가|스마트스토어)\s*상품$/i.test(t)) {
+    return true;
+  }
+  if (/^(G마켓|지마켓|옥션|Auction|Gmarket|쿠팡|Coupang|네이버|Naver|11번가|스마트스토어)$/i.test(t)) {
+    return true;
+  }
+  return false;
+}
+
 function guessProductNameFromUrl(url) {
   if (!url) return null;
   try {
@@ -188,6 +201,12 @@ function extractMarketplacePrice(html, url) {
     const naver = html.match(/"dispName"\s*:\s*"([^"]{2,200})"/);
     if (naver) return { title: naver[1], price: null };
   }
+  if (u.includes('gmarket') || u.includes('auction')) {
+    const gm = html.match(/"goodsName"\s*:\s*"([^"]{2,200})"/) ||
+      html.match(/"gdscNm"\s*:\s*"([^"]{2,200})"/) ||
+      html.match(/"itemName"\s*:\s*"([^"]{2,200})"/);
+    if (gm) return { title: gm[1], price: null };
+  }
   return null;
 }
 
@@ -266,10 +285,11 @@ async function fetchPageMeta(url) {
       !res.ok ||
       (html.length < 800 && !title && !priceFromHtml) ||
       /access denied|robot|captcha|봇/i.test(html.slice(0, 3000));
+    const safeTitle = isGenericMallProductName(title) ? (guessProductNameFromUrl(url) || '') : title;
     return {
       url,
       status: res.status,
-      title: title || guessProductNameFromUrl(url),
+      title: safeTitle || guessProductNameFromUrl(url) || '',
       detectedPrice: priceFromHtml,
       marketplace: detectMarketplace(url),
       fetchBlocked: blocked,
@@ -593,13 +613,14 @@ async function quickScan(input, options) {
     String(input?.productName || input?.name || '').trim() ||
     pageMeta?.title ||
     guessProductNameFromUrl(url) ||
-    detectMarketplace(url)?.name + ' 상품'
+    ''
   ).slice(0, 200);
+  const safeProductName = isGenericMallProductName(productName) ? '' : productName;
 
   const detectedPrice = clientPrice || pageMeta?.detectedPrice || null;
 
   const requestData = {
-    name: productName,
+    name: safeProductName,
     url,
     price: detectedPrice
   };
@@ -619,7 +640,9 @@ async function quickScan(input, options) {
     ok: true,
     tier: 0,
     scan: {
-      productName: priceData.productName || productName,
+      productName: isGenericMallProductName(priceData.productName || productName)
+        ? safeProductName
+        : (priceData.productName || safeProductName),
       url,
       marketplace: priceData.marketplace,
       detectedPrice: priceData.referencePrice || clientPrice || null,

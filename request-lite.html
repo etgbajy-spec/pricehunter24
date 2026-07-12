@@ -222,12 +222,14 @@
       }
 
       async function enrichFromQuickScan() {
+        if (params.get('from') === 'extension') return;
         var url = productUrlInput.value.trim();
         if (!url) return;
         var nameEl = document.getElementById('productName');
         var priceEl = document.getElementById('productPrice');
         var currentName = nameEl && nameEl.value.trim();
-        var needName = nameEl && (!currentName || /^(products|product|vp|item|goods)$/i.test(currentName));
+        var badNameRe = /^(products|product|vp|item|goods|G마켓|지마켓|옥션|쿠팡|네이버|11번가|스마트스토어)(\s*상품)?$/i;
+        var needName = nameEl && (!currentName || badNameRe.test(currentName));
         var needPrice = priceEl && !priceEl.value.trim();
         if (!needName && !needPrice) return;
 
@@ -240,7 +242,7 @@
           var data = await res.json().catch(function () { return {}; });
           if (!data.ok || !data.scan) return;
           var scanName = data.scan.productName || '';
-          if (needName && scanName && !/^(products|product|vp|item|goods)$/i.test(scanName)) {
+          if (needName && scanName && !badNameRe.test(scanName)) {
             nameEl.value = scanName;
           }
           if (needPrice && data.scan.detectedPrice) {

@@ -54,6 +54,12 @@ var PH_EXTENSION = (function () {
     var t = String(name || '').trim();
     if (!t || t.length < 6) return false;
     if (/^(products|product|vp|item|goods|쿠팡|상품)$/i.test(t)) return false;
+    if (/^(G마켓|지마켓|옥션|Auction|Gmarket|쿠팡|Coupang|네이버|Naver|11번가|스마트스토어)\s*상품$/i.test(t)) {
+      return false;
+    }
+    if (/^(G마켓|지마켓|옥션|Auction|Gmarket|쿠팡|Coupang|네이버|Naver|11번가|스마트스토어)$/i.test(t)) {
+      return false;
+    }
     return true;
   }
 
