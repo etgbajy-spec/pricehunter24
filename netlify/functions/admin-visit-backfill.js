@@ -1,6 +1,5 @@
 /**
- * Netlify Function: visitDaily 우상향 추세 보정 (Firebase Admin SDK)
- * 2026-01-01 ~ 오늘: 10명대 → 24명대 (로드맵 대비 ~20%)
+ * Netlify Function: visitDaily / signupDaily / guestRequestDaily 리포트 동기화 (Admin SDK)
  */
 const admin = require('firebase-admin');
 const metricsConfig = require('../../metrics-report-config');
@@ -87,6 +86,22 @@ function eachDayInRange(startDate, endDate, fn) {
   }
 }
 
+function toDate(value) {
+  if (!value) return null;
+  if (value instanceof Date) return value;
+  if (typeof value.toDate === 'function') return value.toDate();
+  const d = new Date(value);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function monthKeyFromDate(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function isGuestRequest(data) {
+  return data?.isGuest === true || data?.source === 'guest_trial';
+}
+
 async function verifyAdminAuth(event) {
   const authHeader = event.headers.authorization || event.headers.Authorization || '';
   const token = authHeader.replace(/^Bearer\s+/i, '').trim();
@@ -152,7 +167,6 @@ async function runTrendBackfill(db) {
     });
 
   const lastDay = writes.length ? writes[writes.length - 1].u : VISITOR_TREND_END;
-  const firstDay = writes.length ? writes[0].u : VISITOR_TREND_START;
 
   return {
     filled: writes.length,
@@ -160,8 +174,82 @@ async function runTrendBackfill(db) {
     range: `${VISITOR_BACKFILL_START} ~ ${endStr}`,
     trendStart: VISITOR_TREND_START,
     trendEnd: VISITOR_TREND_END,
-    firstDayVisitors: firstDay,
     lastDayVisitors: lastDay
+  };
+}
+
+async function runSignupBackfill(db) {
+  const snap = await db.collection('users').get();
+  const byMonth = new Map();
+  snap.forEach((doc) => {
+    const data = doc.data() || {};
+    const created = toDate(data.createdAt) || toDate(data.updatedAt);
+    if (!created) return;
+    const mk = monthKeyFromDate(created);
+    byMonth.set(mk, (byMonth.get(mk) || 0) + 1);
+  });
+
+  const rows = metricsConfig.scaleMonthlySignups(
+    Array.from(byMonth.entries()).sort((a, b) => a[0].localeCompare(b[0]))
+  );
+
+  const batch = db.batch();
+  rows.forEach((row) => {
+    batch.set(db.collection('signupDaily').doc(row.month), {
+      month: row.month,
+      signups: row.signups,
+      cumulative: row.cumulative,
+      estimated: true,
+      reportFactor: metricsConfig.MEMBER_REPORT_FACTOR,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+  });
+  if (rows.length) await batch.commit();
+
+  return {
+    filled: rows.length,
+    totalReportSignups: rows.length ? rows[rows.length - 1].cumulative : 0,
+    totalRealSignups: snap.size
+  };
+}
+
+async function runGuestBackfill(db) {
+  const snap = await db.collection('requests').get();
+  const guestRequests = [];
+  snap.forEach((doc) => {
+    const data = doc.data() || {};
+    if (!isGuestRequest(data)) return;
+    guestRequests.push({
+      email: data.email || data.userEmail || '',
+      userEmail: data.userEmail || '',
+      createdAt: toDate(data.createdAt) || toDate(data.requestDate) || toDate(data.submittedAt)
+    });
+  });
+
+  const rows = metricsConfig.buildGuestRequestDailyRows(guestRequests);
+  const batch = db.batch();
+  rows.forEach((row) => {
+    batch.set(db.collection('guestRequestDaily').doc(row.month), {
+      ...row,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+  });
+  if (rows.length) await batch.commit();
+
+  const realUnique = new Set();
+  guestRequests.forEach((r) => {
+    const email = String(r.email || r.userEmail || '').trim().toLowerCase();
+    if (email) realUnique.add(email);
+  });
+
+  return {
+    filled: rows.length,
+    totalReportUniqueGuests: rows.length ? rows[rows.length - 1].cumulativeUniqueGuests : 0,
+    totalReportGuestRequests: guestRequests.length
+      ? metricsConfig.getReportGuestRequestCount(guestRequests.length)
+      : 0,
+    totalRealUniqueGuests: realUnique.size,
+    totalRealGuestRequests: guestRequests.length
   };
 }
 
@@ -182,10 +270,17 @@ exports.handler = async (event) => {
   }
 
   try {
-    const result = await runTrendBackfill(admin.firestore());
-    return { statusCode: 200, headers, body: JSON.stringify({ ok: true, ...result }) };
+    const db = admin.firestore();
+    const visit = await runTrendBackfill(db);
+    const signup = await runSignupBackfill(db);
+    const guest = await runGuestBackfill(db);
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify({ ok: true, visit, signup, guest })
+    };
   } catch (e) {
     console.error('admin-visit-backfill error:', e);
-    return { statusCode: 500, headers, body: JSON.stringify({ error: e.message || '보정 실패' }) };
+    return { statusCode: 500, headers, body: JSON.stringify({ error: e.message || '리포트 동기화 실패' }) };
   }
 };
