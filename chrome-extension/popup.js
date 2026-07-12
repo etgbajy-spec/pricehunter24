@@ -44,12 +44,12 @@ function enableButtons(enabled) {
 }
 
 function isSupportedMallUrl(url) {
-  return /coupang\.com|smartstore\.naver|shopping\.naver|11st\.co\.kr|gmarket\.co\.kr|auction\.co\.kr/i.test(url || '');
+  return /coupang\.com|smartstore\.naver|brand\.naver|shopping\.naver|11st\.co\.kr|gmarket\.co\.kr|auction\.co\.kr/i.test(url || '');
 }
 
 function detectMarketplaceFromUrl(url) {
   if (/coupang/i.test(url)) return '쿠팡';
-  if (/smartstore|shopping\.naver/i.test(url)) return '네이버';
+  if (/smartstore|brand\.naver|shopping\.naver/i.test(url)) return '네이버';
   if (/11st/i.test(url)) return '11번가';
   if (/gmarket/i.test(url)) return 'G마켓';
   if (/auction/i.test(url)) return '옥션';

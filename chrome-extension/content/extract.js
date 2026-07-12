@@ -2063,6 +2063,8 @@
     if (/\d+\s*인치|\d+인치|inch/i.test(name)) return true;
     if (/[A-Z]{2,}/.test(name) && /[가-힣]/.test(name)) return true;
     if (/[가-힣]{2,}/.test(name) && name.length >= 4) return true;
+    if (/^사이즈\s*[:：]/i.test(name)) return true;
+    if (/^컬러\s*[&＆]?\s*디자인\s*[:：]/i.test(name)) return true;
     return false;
   }
 
@@ -2205,11 +2207,14 @@
       if (isNaverOptionNoise(part)) return;
       if (/^(추가\s*부품|추가\s*옵션|필수\s*옵션)$/i.test(part)) return;
       if (/선택해\s*주세요|선택하세요/i.test(part)) return;
+      var formatted = part;
+      if (isLikelyNaverSizeValue(part)) formatted = formatNaverSizeOption(part);
       var exists = items.some(function (it) {
-        return it.name === part || it.name.indexOf(part) >= 0 || part.indexOf(it.name) >= 0;
+        return it.name === formatted || it.name === part ||
+          it.name.indexOf(formatted) >= 0 || formatted.indexOf(it.name) >= 0;
       });
       if (!exists) {
-        items.unshift({ name: shortenNaverOptionName(part), price: null });
+        items.unshift({ name: shortenNaverOptionName(formatted), price: null });
       }
     });
 
@@ -2300,6 +2305,10 @@
     }
 
     var cleaned = shortenNaverOptionName(rowText);
+    if (isLikelyNaverSizeValue(cleaned)) {
+      var sized = formatNaverSizeOption(cleaned);
+      if (sized) return sized;
+    }
     return looksLikeNaverOptionName(cleaned) ? cleaned : '';
   }
 
@@ -2508,6 +2517,442 @@
     return t.replace(/\s+/g, ' ').trim();
   }
 
+  function isNaverBrandStore() {
+    return /brand\.naver\.com/i.test(location.hostname);
+  }
+
+  function hasNaverColorDesignPicker() {
+    var text = (document.body && document.body.innerText) || '';
+    return /다른\s*컬러\s*[&＆]\s*디자인|컬러\s*[&＆]\s*디자인\s*상품|색상\s*\/\s*디자인/i.test(text);
+  }
+
+  function parseNaverColorDesignCounter() {
+    var text = (document.body && document.body.innerText) || '';
+    var m = text.match(/(?:다른\s*)?컬러\s*[&＆]\s*디자인\s*상품?\s*(\d+)\s*\/\s*(\d+)/i);
+    if (!m) return null;
+    return { index: parseInt(m[1], 10) - 1, total: parseInt(m[2], 10) };
+  }
+
+  function longestCommonPrefix(values) {
+    if (!values || !values.length) return '';
+    var prefix = values[0];
+    for (var i = 1; i < values.length; i++) {
+      while (values[i].indexOf(prefix) !== 0) {
+        prefix = prefix.slice(0, -1);
+        if (!prefix) return '';
+      }
+    }
+    return prefix.replace(/\s+$/, '');
+  }
+
+  function extractColorPartFromCommaTitle(title) {
+    title = cleanNaverProductTitle(title);
+    if (!title) return '';
+    var parts = title.split(/\s*,\s*/);
+    if (parts.length < 2) return '';
+
+    for (var i = parts.length - 1; i >= 1; i--) {
+      var part = cleanNaverOptionLine(parts[i]);
+      if (!part || part.length < 2 || part.length > 80) continue;
+      if (isLikelyNaverSizeValue(part)) continue;
+      if (/^\d+(\.\d+)?\s*(?:cm|mm|inch|인치)?$/i.test(part)) continue;
+      if (/^[A-Z0-9-]{2,}$/.test(part) && !/[가-힣]/.test(part)) continue;
+      return part;
+    }
+    return '';
+  }
+
+  function extractNaverVariantFromGroupProducts(products, productId, title) {
+    if (!products || !products.length) return '';
+    productId = String(productId || '');
+
+    if (productId) {
+      for (var i = 0; i < products.length; i++) {
+        if (String(products[i].productNo) === productId && products[i].name) {
+          var direct = cleanNaverOptionLine(products[i].name);
+          if (direct && direct.length >= 2) {
+            var names = products.map(function (p) { return p.name; }).filter(Boolean);
+            var prefix = longestCommonPrefix(names);
+            if (prefix && direct.indexOf(prefix) === 0) {
+              var suffix = direct.slice(prefix.length).replace(/^[\s,，/|-]+/, '').trim();
+              if (suffix && suffix.length >= 2 && suffix.length <= 80) return suffix;
+            }
+            if (direct.length <= 80) return direct;
+          }
+        }
+      }
+    }
+
+    var counter = parseNaverColorDesignCounter();
+    if (counter && counter.index >= 0 && counter.index < products.length && products[counter.index].name) {
+      return cleanNaverOptionLine(products[counter.index].name);
+    }
+
+    return extractColorPartFromCommaTitle(title);
+  }
+
+  function walkNaverJsonForGroupProducts(node, depth, out, seen) {
+    if (!node || depth > 18 || out.length >= 30) return;
+    if (Array.isArray(node)) {
+      if (node.length >= 2 && node.length <= 24) {
+        var hits = node.filter(function (item) {
+          return item && typeof item === 'object' &&
+            (item.productNo != null || item.id != null) &&
+            (item.dispName || item.name || item.productName);
+        });
+        if (hits.length >= 2) {
+          hits.forEach(function (item) {
+            var no = String(item.productNo != null ? item.productNo : item.id);
+            var name = cleanNaverOptionLine(item.dispName || item.name || item.productName || '');
+            if (!no || !name || seen[no] || isBadTitle(name)) return;
+            seen[no] = true;
+            out.push({ productNo: no, name: name });
+          });
+        }
+      }
+      for (var i = 0; i < node.length; i++) walkNaverJsonForGroupProducts(node[i], depth + 1, out, seen);
+      return;
+    }
+    if (typeof node === 'object') {
+      var keys = Object.keys(node);
+      for (var k = 0; k < keys.length; k++) walkNaverJsonForGroupProducts(node[keys[k]], depth + 1, out, seen);
+    }
+  }
+
+  function extractNaverGroupProductsFromScripts() {
+    var products = [];
+    var seen = {};
+    var sources = [];
+
+    var nextEl = document.getElementById('__NEXT_DATA__');
+    if (nextEl && nextEl.textContent) sources.push(nextEl.textContent);
+
+    var html = document.documentElement.innerHTML;
+    var blockRes = [
+      /"standardGroupProducts"\s*:\s*(\[[\s\S]{0,120000}?\])/i,
+      /"groupProducts"\s*:\s*(\[[\s\S]{0,120000}?\])/i,
+      /"relationProducts"\s*:\s*(\[[\s\S]{0,120000}?\])/i,
+      /"standardGroupProductList"\s*:\s*(\[[\s\S]{0,120000}?\])/i
+    ];
+    blockRes.forEach(function (re) {
+      var match = html.match(re);
+      if (!match || !match[1]) return;
+      try {
+        walkNaverJsonForGroupProducts(JSON.parse(match[1]), 0, products, seen);
+      } catch (e) { /* ignore malformed json slice */ }
+    });
+
+    sources.forEach(function (source) {
+      try {
+        walkNaverJsonForGroupProducts(JSON.parse(source), 0, products, seen);
+      } catch (e) { /* ignore */ }
+    });
+
+    if (!products.length) {
+      var itemRe = /"productNo"\s*:\s*"?(\d+)"?[\s\S]{0,900}?"dispName"\s*:\s*"((?:\\.|[^"\\])*)"/gi;
+      var im;
+      while ((im = itemRe.exec(html)) !== null) {
+        var no = im[1];
+        var name = cleanNaverOptionLine(unescapeJsonString(im[2]));
+        if (!no || !name || seen[no] || isBadTitle(name)) continue;
+        seen[no] = true;
+        products.push({ productNo: no, name: name });
+        if (products.length >= 24) break;
+      }
+    }
+
+    return products;
+  }
+
+  function collectNaverGroupProductLinks(section) {
+    section = section || document.body;
+    var links = [];
+    var seen = {};
+
+    section.querySelectorAll('a[href*="/products/"]').forEach(function (a) {
+      var href = a.getAttribute('href') || a.href || '';
+      var match = href.match(/\/products\/(\d+)/);
+      if (!match) return;
+      var productNo = match[1];
+      if (seen[productNo]) return;
+      if (!a.querySelector('img') &&
+          !a.closest('[class*="thumb"], [class*="Thumb"], [class*="color"], [class*="Color"], [class*="design"], [class*="Design"], [class*="option"], [class*="Option"]')) {
+        return;
+      }
+      seen[productNo] = true;
+      links.push({
+        productNo: productNo,
+        label: extractNaverColorDesignLabelFromEl(a)
+      });
+    });
+
+    return links;
+  }
+
+  function isLikelyNaverSizeValue(text) {
+    var t = String(text || '').trim();
+    return /^(?:\d{2,3}(?:\.\d)?|\d{2,3}\s*mm|\d{2,3}\s*cm)$/i.test(t);
+  }
+
+  function formatNaverSizeOption(value) {
+    var v = cleanNaverOptionLine(value);
+    if (!v || isNaverOptionNoise(v)) return '';
+    if (/^사이즈\s*[:：]/i.test(v)) return v;
+    if (isLikelyNaverSizeValue(v)) return '사이즈: ' + v;
+    return v;
+  }
+
+  function getNaverSelectGroupLabel(sel) {
+    if (!sel) return '';
+    var id = sel.id;
+    if (id) {
+      var labelEl = document.querySelector('label[for="' + id + '"]');
+      if (labelEl) {
+        var fromLabel = cleanNaverOptionLine(labelEl.textContent);
+        if (fromLabel && fromLabel.length <= 25) return fromLabel.replace(/\s*\(.*?\)\s*/g, '').trim();
+      }
+    }
+
+    var parent = sel.closest('[class*="option"], [class*="Option"], li, div, fieldset');
+    if (parent) {
+      var head = parent.querySelector(':scope > label, :scope > strong, :scope > span, [class*="label"], [class*="title"]');
+      if (head && head !== sel) {
+        var ht = cleanNaverOptionLine(head.textContent);
+        if (ht && ht.length <= 25 && !isNaverOptionNoise(ht)) {
+          return ht.replace(/\s*\(.*?\)\s*/g, '').trim();
+        }
+      }
+    }
+
+    if (sel.options && sel.options.length && sel.selectedIndex > 0) {
+      var first = cleanNaverOptionLine(sel.options[0].textContent);
+      if (first && /사이즈|색상|옵션|size|color/i.test(first) && first.length <= 20) {
+        return first.replace(/\s*\(.*?\)\s*/g, '').trim();
+      }
+    }
+    return '';
+  }
+
+  function findNaverColorDesignSection(root) {
+    root = root || document.body;
+    var heading = null;
+
+    root.querySelectorAll('h2, h3, h4, h5, strong, span, p, dt, div, label, button').forEach(function (el) {
+      if (heading) return;
+      var ht = (el.textContent || '').replace(/\s+/g, ' ').trim();
+      if (/다른\s*컬러|컬러\s*[&＆]\s*디자인\s*상품|색상\s*\/\s*디자인|컬러\s*선택|디자인\s*선택/i.test(ht)) {
+        heading = el;
+      }
+    });
+
+    if (heading) {
+      var el = heading;
+      for (var depth = 0; depth < 10 && el; depth++) {
+        if (el.querySelectorAll('a[href*="/products/"] img, button img, [class*="thumb"] img').length >= 2) {
+          return el;
+        }
+        el = el.parentElement;
+      }
+      return heading.closest('section, article, li, [class*="option"], [class*="Option"], div') || heading.parentElement;
+    }
+
+    return root.querySelector(
+      '[class*="color_design"], [class*="ColorDesign"], [class*="colorDesign"], ' +
+      '[class*="relatedColor"], [class*="RelatedColor"], [class*="group_product"], [class*="GroupProduct"], ' +
+      '[class*="standardGroup"], [class*="StandardGroup"]'
+    );
+  }
+
+  function extractNaverColorDesignLabelFromEl(el) {
+    if (!el) return '';
+    var img = el.tagName === 'IMG' ? el : el.querySelector('img');
+    var candidates = [
+      el.getAttribute('aria-label'),
+      el.getAttribute('title'),
+      el.getAttribute('data-shp-contents-dtl'),
+      img && img.getAttribute('alt'),
+      img && img.getAttribute('title')
+    ];
+
+    for (var i = 0; i < candidates.length; i++) {
+      var label = cleanNaverOptionLine(candidates[i]);
+      if (!label || label.length < 2 || label.length > 120) continue;
+      if (isNaverOptionNoise(label)) continue;
+      if (/^image$/i.test(label)) continue;
+      if (/^\d+\s*\/\s*\d+$/.test(label)) continue;
+      if (/다른\s*컬러|컬러\s*[&＆]\s*디자인\s*상품/i.test(label)) continue;
+      return label;
+    }
+
+    var text = cleanNaverOptionLine(el.textContent);
+    if (text && text.length >= 2 && text.length <= 80 && !isNaverOptionNoise(text) && !/^\d+\s*\/\s*\d+$/.test(text)) {
+      return text;
+    }
+    return '';
+  }
+
+  function extractNaverColorDesignFromDom() {
+    var section =
+      findNaverColorDesignSection(getNaverBuyPanel()) ||
+      findNaverColorDesignSection(document.body);
+    var currentId = getNaverProductId();
+    var groupProducts = extractNaverGroupProductsFromScripts();
+    var title = extractNaverTitleFromDom() || cleanNaverProductTitle(metaContent('og:title'));
+
+    if (groupProducts.length >= 2) {
+      var fromGroup = extractNaverVariantFromGroupProducts(groupProducts, currentId, title);
+      if (fromGroup) return fromGroup;
+    }
+
+    if (section) {
+      var links = collectNaverGroupProductLinks(section);
+      if (currentId && links.length) {
+        for (var i = 0; i < links.length; i++) {
+          if (links[i].productNo === currentId && links[i].label) return links[i].label;
+        }
+      }
+
+      var selected = null;
+      if (currentId) {
+        selected = section.querySelector(
+          'a[href*="/products/' + currentId + '"], ' +
+          'button[data-shp-contents-id="' + currentId + '"], ' +
+          '[data-product-id="' + currentId + '"], [data-product-no="' + currentId + '"]'
+        );
+      }
+
+      if (!selected) {
+        selected = section.querySelector(
+          '[aria-checked="true"], [aria-selected="true"], [aria-current="true"], [aria-current="page"], ' +
+          '[class*="selected"], [class*="Selected"], [class*="active"], [class*="Active"], [class*="on"], ' +
+          'button[aria-pressed="true"], a[class*="selected"]'
+        );
+      }
+
+      if (!selected) {
+        section.querySelectorAll('button, a, li, [role="button"], [role="option"]').forEach(function (el) {
+          if (selected) return;
+          var cls = String(el.className || '');
+          if (/selected|active|on|current|checked/i.test(cls) || el.getAttribute('aria-current')) {
+            selected = el;
+          }
+        });
+      }
+
+      var label = extractNaverColorDesignLabelFromEl(selected);
+      if (label) return label;
+
+      var counter = parseNaverColorDesignCounter();
+      if (counter && links.length > counter.index && links[counter.index].label) {
+        return links[counter.index].label;
+      }
+    }
+
+    if (hasNaverColorDesignPicker()) {
+      var fromTitle = extractColorPartFromCommaTitle(title);
+      if (fromTitle) return fromTitle;
+    }
+
+    return extractNaverColorDesignFromScripts();
+  }
+
+  function extractNaverColorDesignFromScripts() {
+    var html = document.documentElement.innerHTML;
+    var productId = getNaverProductId();
+    if (!productId) return '';
+
+    var patterns = [
+      new RegExp(
+        '"productNo"\\s*:\\s*"?'+ productId + '"?[\\s\\S]{0,1200}?' +
+        '"(?:dispName|name|productName|optionName)"\\s*:\\s*"((?:\\\\.|[^"\\\\])*)"',
+        'i'
+      ),
+      new RegExp(
+        '"(?:dispName|name|productName|optionName)"\\s*:\\s*"((?:\\\\.|[^"\\\\])*)"[\\s\\S]{0,1200}?' +
+        '"productNo"\\s*:\\s*"?'+ productId + '"?',
+        'i'
+      )
+    ];
+
+    for (var i = 0; i < patterns.length; i++) {
+      var match = html.match(patterns[i]);
+      if (!match || !match[1]) continue;
+      var label = cleanNaverOptionLine(unescapeJsonString(match[1]));
+      if (!label || isNaverOptionNoise(label) || label.length < 2) continue;
+      if (/^image$/i.test(label)) continue;
+      return label;
+    }
+    return '';
+  }
+
+  function extractNaverSelectedOptionsFromScripts() {
+    var html = document.documentElement.innerHTML;
+    var parts = [];
+    var seen = {};
+
+    function addPart(groupName, value) {
+      groupName = cleanNaverOptionLine(groupName);
+      value = cleanNaverOptionLine(value);
+      if (!value || isNaverOptionNoise(value)) return;
+      if (/^image$/i.test(value)) return;
+
+      var formatted = value;
+      if (groupName && !isNaverOptionNoise(groupName) && groupName !== value) {
+        formatted = groupName + ': ' + value;
+      } else if (isLikelyNaverSizeValue(value)) {
+        formatted = '사이즈: ' + value;
+      }
+
+      if (seen[formatted]) return;
+      seen[formatted] = true;
+      parts.push(formatted);
+    }
+
+    var selectedRe = /"(?:groupName|optionName)"\s*:\s*"((?:\\.|[^"\\])*)"[\s\S]{0,220}?"name"\s*:\s*"((?:\\.|[^"\\])*)"[\s\S]{0,120}?(?:"selected"\s*:\s*true|"isSelected"\s*:\s*true)/gi;
+    var match;
+    while ((match = selectedRe.exec(html)) !== null) {
+      addPart(unescapeJsonString(match[1]), unescapeJsonString(match[2]));
+    }
+
+    var pairRe = /"(?:optionName|groupName)"\s*:\s*"((?:\\.|[^"\\])*)"\s*,\s*"(?:optionValue|value)"\s*:\s*"((?:\\.|[^"\\])*)"/g;
+    while ((match = pairRe.exec(html)) !== null) {
+      addPart(unescapeJsonString(match[1]), unescapeJsonString(match[2]));
+    }
+
+    return parts;
+  }
+
+  function mergeNaverOptionParts() {
+    var merged = [];
+    var seen = {};
+
+    function pushPart(part) {
+      part = cleanNaverOptionLine(part);
+      if (!part || isNaverOptionNoise(part)) return;
+      if (/^image$/i.test(part)) return;
+      if (seen[part]) return;
+      seen[part] = true;
+      merged.push(part);
+    }
+
+    for (var i = 0; i < arguments.length; i++) {
+      var arg = arguments[i];
+      if (!arg) continue;
+      if (Array.isArray(arg)) {
+        arg.forEach(function (item) {
+          if (typeof item === 'string') pushPart(item);
+          else if (item && item.name) pushPart(item.name);
+        });
+        continue;
+      }
+      String(arg).split(/\s*\/\s*/).forEach(function (piece) {
+        pushPart(piece);
+      });
+    }
+
+    return merged.join(' / ').slice(0, 300);
+  }
+
   /** 옵션 선택 후 나타나는 요약 줄 (빨간 박스 영역) */
   function extractNaverSelectedSummaryRow() {
     var buyRoot = getNaverBuyPanel();
@@ -2543,6 +2988,17 @@
   /** 드롭다운(select)에서 선택된 옵션 조합 */
   function extractNaverFromDropdowns() {
     var parts = [];
+    var seen = {};
+
+    function addPart(part) {
+      part = cleanNaverOptionLine(part);
+      if (!part || isNaverOptionNoise(part)) return;
+      if (/선택|필수|추가\s*옵션|옵션\s*선택/i.test(part) && part.length < 20) return;
+      if (seen[part]) return;
+      seen[part] = true;
+      parts.push(part);
+    }
+
     var selects = document.querySelectorAll(
       '[class*="product_option"] select, [class*="ProductOption"] select, ' +
       '[class*="option_area"] select, [class*="product_detail"] select, #content select'
@@ -2551,10 +3007,20 @@
     selects.forEach(function (sel) {
       if (!sel.value || sel.selectedIndex < 0) return;
       var opt = sel.options[sel.selectedIndex];
-      var label = (opt && opt.textContent || '').replace(/\s+/g, ' ').trim();
+      var label = cleanNaverOptionLine(opt && opt.textContent);
       if (!label || isNaverOptionNoise(label)) return;
       if (/선택|필수|추가\s*옵션|옵션\s*선택/i.test(label) && label.length < 20) return;
-      if (parts.indexOf(label) < 0) parts.push(label);
+
+      var groupLabel = getNaverSelectGroupLabel(sel);
+      var formatted = label;
+      if (groupLabel && !isNaverOptionNoise(groupLabel)) {
+        if (label.indexOf(groupLabel) !== 0) {
+          formatted = groupLabel + ': ' + label;
+        }
+      } else {
+        formatted = formatNaverSizeOption(label);
+      }
+      addPart(formatted);
     });
 
     return parts.join(' / ').slice(0, 200);
@@ -2612,17 +3078,42 @@
     }).join('  ').slice(0, 600);
   }
 
+  function finalizeNaverExtractedOption(raw, colorPart) {
+    raw = cleanNaverOptionLine(raw);
+    if (!raw) return colorPart || '';
+    if (/컬러\s*[&＆]?\s*디자인/i.test(raw)) return raw;
+
+    if (isLikelyNaverSizeValue(raw)) raw = formatNaverSizeOption(raw);
+    else if (/^\d+$/.test(raw)) raw = formatNaverSizeOption(raw);
+
+    if (colorPart) return mergeNaverOptionParts(colorPart, raw);
+
+    if (hasNaverColorDesignPicker()) {
+      var colorDesign = extractNaverColorDesignFromDom();
+      if (colorDesign) {
+        var cp = /^컬러\s*[&＆]?\s*디자인\s*[:：]/i.test(colorDesign)
+          ? colorDesign
+          : '컬러&디자인: ' + colorDesign;
+        return mergeNaverOptionParts(cp, raw);
+      }
+    }
+
+    return raw;
+  }
+
   function extractNaverOptions() {
+    var colorDesign = extractNaverColorDesignFromDom();
+    var colorPart = colorDesign
+      ? (/^컬러\s*[&＆]?\s*디자인\s*[:：]/i.test(colorDesign) ? colorDesign : '컬러&디자인: ' + colorDesign)
+      : '';
+    var scriptParts = extractNaverSelectedOptionsFromScripts();
+
     var items = extractNaverSelectedItemRows();
-    if (items.length) return formatNaverOptionList(items);
+    var merged = items.length
+      ? mergeNaverOptionParts(formatNaverOptionList(items), scriptParts)
+      : mergeNaverOptionParts(extractNaverSelectedSummaryRow(), extractNaverFromDropdowns(), scriptParts);
 
-    var summary = extractNaverSelectedSummaryRow();
-    if (summary) return summary;
-
-    var fromDropdowns = extractNaverFromDropdowns();
-    if (fromDropdowns) return fromDropdowns;
-
-    return '';
+    return finalizeNaverExtractedOption(merged, colorPart);
   }
 
   function extractNaverSmartStore() {
@@ -4277,6 +4768,7 @@
     var host = location.hostname;
     if (/coupang\.com/i.test(host) && /\/vp\/products\/|\/products\//i.test(path)) return true;
     if (/smartstore\.naver\.com/i.test(host) && /\/products\//i.test(path)) return true;
+    if (/brand\.naver\.com/i.test(host) && /\/products\//i.test(path)) return true;
     if (/shopping\.naver\.com/i.test(host) && /\/catalog\//i.test(path)) return true;
     if (/11st\.co\.kr/i.test(host) && /\/products\//i.test(path)) return true;
     if (/gmarket\.co\.kr|auction\.co\.kr/i.test(host) && /item|Goods|goods|DetailView/i.test(path)) return true;

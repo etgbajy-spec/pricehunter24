@@ -22,11 +22,6 @@ const OUT_DIR = path.join(__dirname, '..', 'assets', 'review-products');
 const MANIFEST_PATH = path.join(OUT_DIR, 'manifest.json');
 
 const SKIP = new Set([
-  '30pcs 공구 세트', '4인용 가정 테이블 의자 세트', '거실 테이블',
-  '귀멸의 칼날 어드벤트 캘린더', '납땜 보저 통신기', '벽걸이 접이식 사다리',
-  '북유럽 아동 화장대 아이방인테리어가구 전신거울', '샤오미 전기난로 4세대 미지아 라디에이터',
-  '슈퍼싱글 원목 침대 프레임', '아이화장대 메이크업 놀이 세트', '야외용 파라솔테이블 세트',
-  '유니캐슬간이화장대', '회전 책장 거울 수납장',
 ]);
 
 function sleep(ms) {
