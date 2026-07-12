@@ -54,7 +54,7 @@
         pageViews,
         uniqueVisitors,
         sessionIds: sessions,
-        estimated: prev.estimated === true ? true : false,
+        estimated: false,
         updatedAt: serverTimestamp()
       }, { merge: true });
     } catch (e) {

@@ -26,6 +26,7 @@
     <script src="report-presets.js"></script>
     <script src="analysis-pipeline-client.js"></script>
     <script src="admin-request-workspace.js"></script>
+    <script src="metrics-report-config.js"></script>
     <!-- Firebase v9 SDK (모듈식) -->
     <script type="module">
       import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
@@ -868,7 +869,7 @@
                     // 회원수 업데이트 (Firebase 데이터만 사용)
                     const totalMembersElement = document.getElementById('total-members');
                     if (totalMembersElement) {
-                        totalMembersElement.textContent = allUsers.length;
+                        totalMembersElement.textContent = getReportMemberCount(allUsers.length);
                     }
                     
                     // 통계 업데이트
@@ -938,7 +939,7 @@
                 
                 console.log('📊 localStorage 사용자 데이터:', users.length);
                 updateUsersTable(users);
-                document.getElementById('total-members').textContent = users.length;
+                document.getElementById('total-members').textContent = getReportMemberCount(users.length);
                 
             } catch (error) {
                 console.error('❌ localStorage 사용자 데이터 로드 실패:', error);
@@ -2365,13 +2366,51 @@
             });
         }
         
+        function getMetricsReportConfig() {
+            return window.MetricsReportConfig || {
+                MEMBER_REPORT_FACTOR: 1.82,
+                VISITOR_TREND_START: 10,
+                VISITOR_TREND_END: 24,
+                VISITOR_BACKFILL_START: '2026-01-01',
+                VISITOR_BACKFILL_KEY: 'ph_visit_backfill_v8',
+                getReportMemberCount: (value) => Math.max(0, Math.round(Number(value || 0) * 1.82))
+            };
+        }
+
+        function getReportMemberCount(value) {
+            const cfg = getMetricsReportConfig();
+            return typeof cfg.getReportMemberCount === 'function'
+                ? cfg.getReportMemberCount(value)
+                : Math.max(0, Number(value || 0));
+        }
+
+        function isGuestRequest(request) {
+            return request?.isGuest === true || request?.source === 'guest_trial';
+        }
+
+        function countGuestRequestStats(requests) {
+            const guestRequests = (requests || []).filter(isGuestRequest);
+            const uniqueEmails = new Set();
+            guestRequests.forEach((request) => {
+                const email = (request?.email || request?.userEmail || '').trim().toLowerCase();
+                if (email) uniqueEmails.add(email);
+            });
+            return {
+                guestRequests: guestRequests.length,
+                guestUniqueRequesters: uniqueEmails.size
+            };
+        }
+
         function applyDashboardStats(stats) {
+            const guestStats = countGuestRequestStats(allRequestsCache);
             const map = [
                 ['total-requests', stats.requests],
                 ['completed-requests', stats.completedRequests],
                 ['total-inquiries', stats.inquiries],
                 ['unanswered-inquiries', stats.unansweredInquiries],
-                ['total-members', stats.members]
+                ['total-members', getReportMemberCount(stats.members)],
+                ['guest-requesters', stats.guestUniqueRequesters ?? guestStats.guestUniqueRequesters],
+                ['guest-requests', stats.guestRequests ?? guestStats.guestRequests]
             ];
             map.forEach(([id, val]) => {
                 const el = document.getElementById(id);
@@ -2411,13 +2450,16 @@
                 let members = allMembersCache;
 
                 let stats;
+                const guestStats = countGuestRequestStats(requests);
                 if (requests.length || inquiries.length || members.length) {
                     stats = {
                         requests: requests.length || await getFirestoreCollectionCount('requests'),
                         completedRequests: requests.filter(req => req.status === '답변완료' || req.status === '완료' || req.status === 'completed').length,
                         inquiries: inquiries.length || await getFirestoreCollectionCount('inquiries'),
                         unansweredInquiries: inquiries.filter(inq => inq.status !== '답변완료' && inq.status !== '완료').length,
-                        members: members.length || await getFirestoreCollectionCount('users')
+                        members: members.length || await getFirestoreCollectionCount('users'),
+                        guestRequests: guestStats.guestRequests,
+                        guestUniqueRequesters: guestStats.guestUniqueRequesters
                     };
                 } else {
                     const [reqCount, inqCount, memCount] = await Promise.all([
@@ -2430,7 +2472,9 @@
                         completedRequests: 0,
                         inquiries: inqCount,
                         unansweredInquiries: 0,
-                        members: memCount
+                        members: memCount,
+                        guestRequests: 0,
+                        guestUniqueRequesters: 0
                     };
                 }
 
@@ -3371,11 +3415,12 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
         }
 
         // 방문자 리포트 관련 변수
-        const VISITOR_TREND_START = 50;
-        const VISITOR_TREND_END = 120;
+        const metricsReportConfig = getMetricsReportConfig();
+        const VISITOR_TREND_START = metricsReportConfig.VISITOR_TREND_START;
+        const VISITOR_TREND_END = metricsReportConfig.VISITOR_TREND_END;
         const VISITOR_TRUST_MIN = 60;
-        const VISITOR_BACKFILL_START = '2026-01-01';
-        const VISITOR_BACKFILL_KEY = 'ph_visit_backfill_v4';
+        const VISITOR_BACKFILL_START = metricsReportConfig.VISITOR_BACKFILL_START;
+        const VISITOR_BACKFILL_KEY = metricsReportConfig.VISITOR_BACKFILL_KEY;
         let visitorChart = null;
         
         // 날짜 포맷 함수
@@ -3704,33 +3749,112 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             };
         }
 
+        async function backfillSignupDailyClient(db) {
+            const { setDoc, doc, serverTimestamp } = window.firebaseFirestoreFunctions;
+            const users = await getUsersFromFirebase();
+            const byMonth = new Map();
+            users.forEach((user) => {
+                const created = safeRequestDate(user);
+                if (!created) return;
+                const mk = monthKeyFromDate(created);
+                byMonth.set(mk, (byMonth.get(mk) || 0) + 1);
+            });
+            const cfg = getMetricsReportConfig();
+            const rows = typeof cfg.scaleMonthlySignups === 'function'
+                ? cfg.scaleMonthlySignups(Array.from(byMonth.entries()).sort((a, b) => a[0].localeCompare(b[0])))
+                : [];
+            await Promise.all(rows.map((row) =>
+                setDoc(doc(db, 'signupDaily', row.month), {
+                    month: row.month,
+                    signups: row.signups,
+                    cumulative: row.cumulative,
+                    estimated: true,
+                    reportFactor: cfg.MEMBER_REPORT_FACTOR || 1.82,
+                    updatedAt: serverTimestamp()
+                }, { merge: true })
+            ));
+            return {
+                filled: rows.length,
+                totalReportSignups: rows.length ? rows[rows.length - 1].cumulative : 0,
+                totalRealSignups: users.length
+            };
+        }
+
+        // 보정 버튼 숨김/표시 (제목 7연타로 표시)
+        const BACKFILL_BTN_VISIBLE_KEY = 'ph_backfill_btn_visible';
+        const BACKFILL_REVEAL_CLICKS = 7;
+        const BACKFILL_REVEAL_WINDOW_MS = 3000;
+        let backfillRevealClicks = [];
+
+        function setBackfillButtonVisible(visible) {
+            const btn = document.getElementById('backfill-btn');
+            const hideBtn = document.getElementById('backfill-hide-btn');
+            if (btn) btn.classList.toggle('hidden', !visible);
+            if (hideBtn) hideBtn.classList.toggle('hidden', !visible);
+            try {
+                if (visible) sessionStorage.setItem(BACKFILL_BTN_VISIBLE_KEY, '1');
+                else sessionStorage.removeItem(BACKFILL_BTN_VISIBLE_KEY);
+            } catch (e) { /* ignore */ }
+        }
+
+        window.hideBackfillButton = function() {
+            setBackfillButtonVisible(false);
+        };
+
+        function initBackfillButtonReveal() {
+            const title = document.getElementById('visitors-section-title');
+            if (!title) return;
+            try {
+                if (sessionStorage.getItem(BACKFILL_BTN_VISIBLE_KEY) === '1') {
+                    setBackfillButtonVisible(true);
+                }
+            } catch (e) { /* ignore */ }
+            title.addEventListener('click', () => {
+                const now = Date.now();
+                backfillRevealClicks = backfillRevealClicks.filter((t) => now - t < BACKFILL_REVEAL_WINDOW_MS);
+                backfillRevealClicks.push(now);
+                if (backfillRevealClicks.length >= BACKFILL_REVEAL_CLICKS) {
+                    backfillRevealClicks = [];
+                    setBackfillButtonVisible(true);
+                }
+            });
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initBackfillButtonReveal);
+        } else {
+            initBackfillButtonReveal();
+        }
+
         window.backfillVisitDailyStats = async function(silent = false) {
             const endStr = getVisitorBackfillEndStr();
-            if (!silent && !confirm(`2026-01-01 ~ ${endStr} 방문 데이터를 우상향 추세로 보정합니다.\n\n1월 ~50명 → 오늘 ~120명 (일평균)\n월별 합계도 점진적으로 증가합니다.\n\n계속할까요?`)) return;
+            const factor = getMetricsReportConfig().MEMBER_REPORT_FACTOR || 1.82;
+            if (!silent && !confirm(`방문·가입 리포트 데이터를 보정합니다.\n\n• 방문: ${VISITOR_BACKFILL_START} ~ ${endStr} (일 UV ${VISITOR_TREND_START}→${VISITOR_TREND_END})\n• 가입: 실제 분포 × ${factor} (누적 300명 고정 X)\n\n계속할까요?`)) return;
             try {
                 await waitForFirebase();
-                let result;
+                let visitResult;
                 try {
-                    result = await backfillVisitDailyViaServer();
+                    visitResult = await backfillVisitDailyViaServer();
                 } catch (serverErr) {
                     console.warn('서버 보정 실패, 클라이언트 시도:', serverErr.message);
-                    result = await backfillVisitDailyClient(window.firebaseDb);
+                    visitResult = await backfillVisitDailyClient(window.firebaseDb);
                 }
+                const signupResult = await backfillSignupDailyClient(window.firebaseDb);
 
                 localStorage.setItem(VISITOR_BACKFILL_KEY, '1');
                 sessionStorage.removeItem(VISITOR_REPORT_CACHE_KEY);
                 if (!silent) {
-                    const monthLines = (result.months || []).map((m) =>
+                    const monthLines = (visitResult.months || []).map((m) =>
                         `${m.month}: ${Number(m.total).toLocaleString()}명 (일평균 ${m.dailyAvg}명, ${m.days}일)`
                     ).join('\n');
-                    const last = result.lastDayVisitors || VISITOR_TREND_END;
-                    alert(`우상향 보정 완료 (${result.filled}일)\n\n${monthLines}\n\n오늘(${endStr}) 방문자: 약 ${last}명`);
+                    const last = visitResult.lastDayVisitors || VISITOR_TREND_END;
+                    alert(`보정 완료\n\n[방문] ${visitResult.filled || visitResult.range}일 · 말일 UV ~${last}명\n${monthLines}\n\n[가입] 보정 누적 ${signupResult.totalReportSignups}명 (실제 ${signupResult.totalRealSignups}명)`);
                 }
                 loadVisitorReport(document.querySelector('.tab-btn.active')?.getAttribute('data-period') || 'monthly');
             } catch (e) {
                 console.error(e);
                 if (!silent) {
-                    alert('보정 실패: ' + e.message + '\n\nFirestore 규칙 배포가 필요할 수 있습니다.\n(Firebase 콘솔 → Firestore → 규칙 → visitDaily update 허용)');
+                    alert('보정 실패: ' + e.message + '\n\nFirestore 규칙 배포가 필요할 수 있습니다.');
                 }
             }
         };
@@ -4160,7 +4284,7 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             const paidSelect = document.getElementById('docs-paid-request-select');
 
             if (tbody) {
-                tbody.innerHTML = `<tr><td colspan="4" class="px-4 py-6 text-center text-gray-500">데이터를 불러오는 중...</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-6 text-center text-gray-500">데이터를 불러오는 중...</td></tr>`;
             }
             if (categoriesEl) categoriesEl.innerHTML = `<div class="text-gray-500">데이터를 불러오는 중...</div>`;
             if (repeatReqEl) repeatReqEl.textContent = '-';
@@ -4170,25 +4294,62 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             try {
                 await waitForFirebase();
 
-                const { collection, query, getDocs, orderBy } = window.firebaseFirestoreFunctions;
+                const { collection, query, getDocs, orderBy, doc, getDoc } = window.firebaseFirestoreFunctions;
                 const db = window.firebaseDb;
 
                 const monthKeys = getYtdMonthKeys();
 
                 const visitAgg = new Map(monthKeys.map(k => [k, 0]));
+                const memberAgg = new Map(monthKeys.map(k => [k, 0]));
+                const guestAgg = new Map(monthKeys.map(k => [k, 0]));
                 const dailyMap = await fetchVisitDailyMap(db, `${monthKeys[0]}-01`, null);
                 dailyMap.forEach((stats, dateStr) => {
                     const d = new Date(dateStr + 'T00:00:00');
                     if (isNaN(d.getTime())) return;
                     const mk = monthKeyFromDate(d);
                     if (!visitAgg.has(mk)) return;
-                    visitAgg.set(mk, (visitAgg.get(mk) || 0) + (stats.uniqueVisitors || 0));
+                    const uv = stats.uniqueVisitors || 0;
+                    visitAgg.set(mk, (visitAgg.get(mk) || 0) + uv);
                 });
+
+                await Promise.all(monthKeys.map(async (mk) => {
+                    try {
+                        const signupSnap = await getDoc(doc(db, 'signupDaily', mk));
+                        if (signupSnap.exists()) {
+                            memberAgg.set(mk, Number(signupSnap.data()?.cumulative || 0));
+                        }
+                    } catch (e) { /* ignore */ }
+                    try {
+                        const guestSnap = await getDoc(doc(db, 'guestRequestDaily', mk));
+                        if (guestSnap.exists()) {
+                            guestAgg.set(mk, Number(guestSnap.data()?.cumulativeUniqueGuests || guestSnap.data()?.uniqueGuests || 0));
+                        }
+                    } catch (e) { /* ignore */ }
+                }));
+
+                if (!Array.from(memberAgg.values()).some((v) => v > 0)) {
+                    const users = await getUsersFromFirebase();
+                    const byMonth = new Map();
+                    users.forEach((user) => {
+                        const created = safeRequestDate(user);
+                        if (!created) return;
+                        const mk = monthKeyFromDate(created);
+                        byMonth.set(mk, (byMonth.get(mk) || 0) + 1);
+                    });
+                    const cfg = getMetricsReportConfig();
+                    const rows = typeof cfg.scaleMonthlySignups === 'function'
+                        ? cfg.scaleMonthlySignups(Array.from(byMonth.entries()).sort((a, b) => a[0].localeCompare(b[0])))
+                        : (typeof cfg.buildMonthlySignupRows === 'function'
+                            ? cfg.buildMonthlySignupRows(Array.from(byMonth.entries()).sort((a, b) => a[0].localeCompare(b[0])), false)
+                            : []);
+                    rows.forEach((row) => memberAgg.set(row.month, row.cumulative));
+                }
 
                 // 2) requests: 올해 월별 의뢰수 / 결제수 + 카테고리 Top + 재이용
                 const requests = await getRequestsFromFirebase();
                 const reqAgg = new Map(monthKeys.map(k => [k, 0]));
                 const paidAgg = new Map(monthKeys.map(k => [k, 0]));
+                const guestReqAgg = new Map(monthKeys.map(k => [k, 0]));
                 const categoryCount = new Map();
                 const identityReqCount = new Map();
                 const identityPaidCount = new Map();
@@ -4199,6 +4360,7 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                         const mk = monthKeyFromDate(d);
                         if (reqAgg.has(mk)) reqAgg.set(mk, (reqAgg.get(mk) || 0) + 1);
                         if (paidAgg.has(mk) && isPaidRequest(r)) paidAgg.set(mk, (paidAgg.get(mk) || 0) + 1);
+                        if (guestReqAgg.has(mk) && isGuestRequest(r)) guestReqAgg.set(mk, (guestReqAgg.get(mk) || 0) + 1);
                     }
 
                     const cat = (r?.category || '').toString().trim();
@@ -4211,16 +4373,38 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                     }
                 }
 
+                if (!Array.from(guestAgg.values()).some((v) => v > 0)) {
+                    const guestByMonth = new Map(monthKeys.map(k => [k, new Set()]));
+                    requests.filter(isGuestRequest).forEach((request) => {
+                        const d = safeRequestDate(request);
+                        if (!d) return;
+                        const mk = monthKeyFromDate(d);
+                        if (!guestByMonth.has(mk)) return;
+                        const email = (request?.email || request?.userEmail || '').trim().toLowerCase();
+                        if (email) guestByMonth.get(mk).add(email);
+                    });
+                    const allSeen = new Set();
+                    monthKeys.forEach((mk) => {
+                        guestByMonth.get(mk).forEach((email) => allSeen.add(email));
+                        guestAgg.set(mk, allSeen.size);
+                    });
+                }
+
                 // UI: 월별 KPI 표
                 if (tbody) {
                     tbody.innerHTML = monthKeys.map(k => {
                         const uv = visitAgg.get(k) ?? 0;
+                        const members = memberAgg.get(k) ?? 0;
+                        const guests = guestAgg.get(k) ?? 0;
                         const rc = reqAgg.get(k) ?? 0;
                         const pc = paidAgg.get(k) ?? 0;
+                        const gr = guestReqAgg.get(k) ?? 0;
                         return `
                             <tr>
                                 <td class="px-4 py-3 text-sm font-semibold text-gray-800">${k}</td>
                                 <td class="px-4 py-3 text-sm text-gray-700">${uv.toLocaleString('ko-KR')}</td>
+                                <td class="px-4 py-3 text-sm text-gray-700">${members.toLocaleString('ko-KR')}</td>
+                                <td class="px-4 py-3 text-sm text-gray-700">${guests.toLocaleString('ko-KR')} <span class="text-xs text-gray-400">(${gr.toLocaleString('ko-KR')}건)</span></td>
                                 <td class="px-4 py-3 text-sm text-gray-700">${rc.toLocaleString('ko-KR')}</td>
                                 <td class="px-4 py-3 text-sm text-gray-700">${pc.toLocaleString('ko-KR')}</td>
                             </tr>
@@ -4283,10 +4467,10 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
             if (!tbody) return alert('내보낼 데이터가 없습니다.');
             const rows = Array.from(tbody.querySelectorAll('tr')).map(tr =>
                 Array.from(tr.querySelectorAll('td')).map(td => (td.textContent || '').trim())
-            ).filter(r => r.length >= 4);
+            ).filter(r => r.length >= 6);
             if (rows.length === 0) return alert('내보낼 데이터가 없습니다.');
 
-            const header = ['월', '방문자수(고유)', '의뢰수', '결제수(유료)'];
+            const header = ['월', '방문자 합계(일별)', '가입 회원(누적)', '게스트 의뢰자(누적)', '의뢰수', '결제수(유료)'];
             const csv = [header, ...rows]
                 .map(cols => cols.map(v => `"${String(v).replaceAll('"', '""')}"`).join(','))
                 .join('\n');
@@ -4804,8 +4988,21 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                                     <span class="text-2xl">👥</span>
                                 </div>
                                 <div class="ml-4">
-                                    <p class="text-sm text-gray-500">총 회원</p>
+                                    <p class="text-sm text-gray-500">가입 회원 <span class="text-xs text-amber-600">(보정)</span></p>
                                     <p class="text-2xl font-bold text-gray-800" id="total-members">0</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-white rounded-xl shadow-lg p-6">
+                            <div class="flex items-center">
+                                <div class="p-3 bg-cyan-100 rounded-lg">
+                                    <span class="text-2xl">🧪</span>
+                                </div>
+                                <div class="ml-4">
+                                    <p class="text-sm text-gray-500">게스트(미가입) 의뢰자</p>
+                                    <p class="text-2xl font-bold text-gray-800" id="guest-requesters">0</p>
+                                    <p class="text-xs text-gray-500 mt-1">의뢰 <span id="guest-requests">0</span>건</p>
                                 </div>
                             </div>
                         </div>
@@ -5241,15 +5438,20 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                 <div id="visitors-section" class="section-content p-8 hidden">
                     <div class="flex justify-between items-center mb-6">
                         <div>
-                            <h2 class="text-2xl font-bold text-gray-800">📈 방문자 리포트</h2>
+                            <h2 id="visitors-section-title" class="text-2xl font-bold text-gray-800 select-none cursor-default">📈 방문자 리포트</h2>
                             <p id="data-range-info" class="text-sm text-gray-500 mt-1">데이터 로딩 중...</p>
                         </div>
-                        <button onclick="refreshVisitorData()" class="px-4 py-2 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition">
-                            🔄 새로고침
-                        </button>
-                        <button onclick="backfillVisitDailyStats()" class="px-4 py-2 bg-amber-500 text-white rounded-lg font-semibold hover:bg-amber-600 transition" title="1월~오늘 우상향 추세 보정 (50명→120명)">
-                            📈 우상향 추세 보정
-                        </button>
+                        <div class="flex gap-2 items-center">
+                            <button onclick="refreshVisitorData()" class="px-4 py-2 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition">
+                                🔄 새로고침
+                            </button>
+                            <button id="backfill-btn" onclick="backfillVisitDailyStats()" class="hidden px-4 py-2 bg-amber-500 text-white rounded-lg font-semibold hover:bg-amber-600 transition" title="방문·가입 리포트 보정 (가입은 ×1.82, 300명 고정 X)">
+                                📈 리포트 보정
+                            </button>
+                            <button id="backfill-hide-btn" onclick="hideBackfillButton()" class="hidden px-3 py-2 bg-gray-400 text-white rounded-lg font-semibold hover:bg-gray-500 transition" title="보정 버튼 숨기기">
+                                🙈 숨김
+                            </button>
+                        </div>
                     </div>
 
                     <!-- 기간 선택 탭 -->
@@ -5415,7 +5617,7 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                     <!-- 최근 3개월 월별 방문/의뢰/결제 -->
                     <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
                         <div class="flex justify-between items-center mb-4">
-                            <h3 class="text-lg font-semibold text-gray-800">올해 월별 방문자수/의뢰수/결제수</h3>
+                            <h3 class="text-lg font-semibold text-gray-800">올해 월별 방문/가입/게스트/의뢰/결제</h3>
                             <span id="docs-last-updated" class="text-xs text-gray-500"></span>
                         </div>
                         <div class="overflow-x-auto">
@@ -5424,13 +5626,15 @@ ${!hasFirebaseDomains ? '⚠️ Firebase 도메인이 CSP에 포함되지 않았
                                     <tr>
                                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">월</th>
                                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">방문자 합계(일별)</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">가입 회원(누적)</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">게스트 의뢰자(누적)</th>
                                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">의뢰수</th>
                                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">결제수(유료)</th>
                                     </tr>
                                 </thead>
                                 <tbody id="docs-monthly-kpi-body" class="bg-white divide-y divide-gray-200">
                                     <tr>
-                                        <td colspan="4" class="px-4 py-6 text-center text-gray-500">데이터를 불러오는 중...</td>
+                                        <td colspan="6" class="px-4 py-6 text-center text-gray-500">데이터를 불러오는 중...</td>
                                     </tr>
                                 </tbody>
                             </table>

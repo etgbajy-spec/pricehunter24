@@ -1,8 +1,9 @@
 /**
  * Netlify Function: visitDaily 우상향 추세 보정 (Firebase Admin SDK)
- * 2026-01-01 ~ 오늘: 50명대 → 120명대 선형 상승
+ * 2026-01-01 ~ 오늘: 10명대 → 24명대 (로드맵 대비 ~20%)
  */
 const admin = require('firebase-admin');
+const metricsConfig = require('../../metrics-report-config');
 
 const headers = {
   'Access-Control-Allow-Origin': '*',
@@ -11,9 +12,9 @@ const headers = {
   'Content-Type': 'application/json'
 };
 
-const VISITOR_BACKFILL_START = '2026-01-01';
-const VISITOR_TREND_START = 50;
-const VISITOR_TREND_END = 120;
+const VISITOR_BACKFILL_START = metricsConfig.VISITOR_BACKFILL_START;
+const VISITOR_TREND_START = metricsConfig.VISITOR_TREND_START;
+const VISITOR_TREND_END = metricsConfig.VISITOR_TREND_END;
 const ADMIN_EMAILS = [
   'admin@pricehunter.com',
   'manager@pricehunter.com',
