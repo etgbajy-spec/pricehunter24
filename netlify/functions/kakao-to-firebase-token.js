@@ -34,7 +34,14 @@ async function exchangeCodeForToken(code, redirectUri) {
 
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(`카카오 토큰 교환 실패 (${response.status}): ${text}`);
+    let friendly = '';
+    try {
+      const parsed = JSON.parse(text);
+      if (parsed.error_code === 'KOE010' || parsed.error === 'invalid_client') {
+        friendly = '카카오 Client Secret 설정이 필요합니다. 카카오 콘솔(REST API 키)에서 Client Secret을 OFF로 바꾸거나, Netlify에 KAKAO_CLIENT_SECRET 환경변수를 등록해주세요.';
+      }
+    } catch (e) { /* ignore */ }
+    throw new Error(friendly || `카카오 토큰 교환 실패 (${response.status}): ${text}`);
   }
 
   return response.json();
