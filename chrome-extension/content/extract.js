@@ -2053,6 +2053,16 @@
   var NAVER_UI_NOISE_RE =
     /상품\s*바로가기|이\s*상품담기|장바구니|찜하기|톡톡|선물하기|바로구매|네이버페이|구매하기|쿠폰|배송비|무료배송|상품\s*정보|리뷰\s*\d|적립\s*포인트|포인트\s*적립|최대\s*적립|자세히\s*보기|멤버십|할인\s*혜택/i;
 
+  function normalizeNaverOptionItemName(name) {
+    name = shortenNaverOptionName(name);
+    if (!name) return '';
+    if (/^사이즈\s*[:：]/i.test(name)) return name;
+    if (isLikelyNaverSizeValue(name)) return formatNaverSizeOption(name);
+    var leading = cleanNaverOptionLine(name).match(/^(\d{2,3})\b/);
+    if (leading && isLikelyNaverSizeValue(leading[1])) return formatNaverSizeOption(leading[1]);
+    return name;
+  }
+
   function looksLikeNaverOptionName(name) {
     if (!name || name.length < 2 || isNaverOptionNoise(name)) return false;
     if (/^\(옵션\d+\)/.test(name) && /[가-힣A-Za-z0-9]/.test(name)) return true;
@@ -2135,7 +2145,7 @@
     var seen = {};
 
     function addItem(name, price) {
-      name = shortenNaverOptionName(name);
+      name = normalizeNaverOptionItemName(name);
       if (!looksLikeNaverOptionName(name)) return;
       if (seen[name]) return;
       seen[name] = true;
@@ -2167,7 +2177,7 @@
     var seen = {};
 
     function addItem(name, price) {
-      name = shortenNaverOptionName(name);
+      name = normalizeNaverOptionItemName(name);
       if (!looksLikeNaverOptionName(name)) return;
       if (seen[name]) return;
       seen[name] = true;
@@ -2204,7 +2214,8 @@
 
     var parts = fromDropdowns.split(' / ').map(function (p) { return p.trim(); }).filter(Boolean);
     parts.forEach(function (part) {
-      if (isNaverOptionNoise(part)) return;
+      if (isNaverColorDesignUiNoise(part)) return;
+      if (!isLikelyNaverSizeValue(part) && isNaverOptionNoise(part)) return;
       if (/^(추가\s*부품|추가\s*옵션|필수\s*옵션)$/i.test(part)) return;
       if (/선택해\s*주세요|선택하세요/i.test(part)) return;
       var formatted = part;
@@ -2298,6 +2309,11 @@
     if (modelInRow && looksLikeNaverOptionName(modelInRow[1])) return modelInRow[1];
 
     var cleanedLine = cleanNaverOptionLine(rowText);
+    var leadingSize = cleanedLine.match(/^(\d{2,3})\b/);
+    if (leadingSize && isLikelyNaverSizeValue(leadingSize[1])) {
+      return formatNaverSizeOption(leadingSize[1]);
+    }
+
     var addonMatch = cleanedLine.match(/\(옵션\d+\)[^0-9]+/);
     if (addonMatch) {
       var addonName = addonMatch[0].trim();
@@ -2331,8 +2347,9 @@
     var seen = {};
 
     function addItem(name, price) {
-      name = shortenNaverOptionName(name);
+      name = normalizeNaverOptionItemName(name);
       if (!looksLikeNaverOptionName(name)) return;
+      if (isNaverWidgetUiNoise(name)) return;
       if (seen[name]) return;
       seen[name] = true;
       items.push({ name: name, price: price || null });
@@ -2490,8 +2507,34 @@
     return title;
   }
 
+  function isNaverWidgetUiNoise(text) {
+    if (!text) return false;
+    var t = cleanNaverOptionLine(text);
+    if (/다른\s*컬러\s*[&＆]?\s*디자인\s*상품?\s*\d+/i.test(t)) return true;
+    if (/^컬러\s*[&＆]?\s*디자인\s*상품?\s*\d+/i.test(t)) return true;
+    if (/^다른\s*컬러/i.test(t) && /상품/i.test(t)) return true;
+    if (/이\s*상품과\s*비슷한\s*상품?\s*\d+/i.test(t)) return true;
+    if (/비슷한\s*상품?\s*\d+/i.test(t)) return true;
+    if (/^비슷한\s*상품$/i.test(t)) return true;
+    if (/추천\s*상품?\s*\d+/i.test(t)) return true;
+    if (/함께\s*본\s*상품?\s*\d+/i.test(t)) return true;
+    if (/^\d+\s*\/\s*\d+$/.test(t)) return true;
+    return false;
+  }
+
+  function isNaverColorDesignUiNoise(text) {
+    return isNaverWidgetUiNoise(text);
+  }
+
+  function sanitizeNaverColorDesignLabel(label) {
+    label = cleanNaverOptionLine(label);
+    if (!label || isNaverColorDesignUiNoise(label)) return '';
+    return label;
+  }
+
   function isNaverOptionNoise(text) {
     if (!text) return true;
+    if (isNaverWidgetUiNoise(text)) return true;
     if (NAVER_UI_NOISE_RE.test(text)) return true;
     if (/^(선택|옵션|수량|색상|사이즈|필수|추가|옵션\s*선택)/i.test(text)) return true;
     if (/선택해\s*주세요|선택하세요|필수\s*옵션|추가\s*옵션/i.test(text)) return true;
@@ -2575,9 +2618,13 @@
             var prefix = longestCommonPrefix(names);
             if (prefix && direct.indexOf(prefix) === 0) {
               var suffix = direct.slice(prefix.length).replace(/^[\s,，/|-]+/, '').trim();
+              suffix = sanitizeNaverColorDesignLabel(suffix);
               if (suffix && suffix.length >= 2 && suffix.length <= 80) return suffix;
             }
-            if (direct.length <= 80) return direct;
+            if (direct.length <= 80) {
+              direct = sanitizeNaverColorDesignLabel(direct);
+              if (direct) return direct;
+            }
           }
         }
       }
@@ -2585,10 +2632,10 @@
 
     var counter = parseNaverColorDesignCounter();
     if (counter && counter.index >= 0 && counter.index < products.length && products[counter.index].name) {
-      return cleanNaverOptionLine(products[counter.index].name);
+      return sanitizeNaverColorDesignLabel(products[counter.index].name);
     }
 
-    return extractColorPartFromCommaTitle(title);
+    return sanitizeNaverColorDesignLabel(extractColorPartFromCommaTitle(title));
   }
 
   function walkNaverJsonForGroupProducts(node, depth, out, seen) {
@@ -2654,7 +2701,7 @@
       while ((im = itemRe.exec(html)) !== null) {
         var no = im[1];
         var name = cleanNaverOptionLine(unescapeJsonString(im[2]));
-        if (!no || !name || seen[no] || isBadTitle(name)) continue;
+        if (!no || !name || seen[no] || isBadTitle(name) || isNaverWidgetUiNoise(name)) continue;
         seen[no] = true;
         products.push({ productNo: no, name: name });
         if (products.length >= 24) break;
@@ -2696,9 +2743,10 @@
 
   function formatNaverSizeOption(value) {
     var v = cleanNaverOptionLine(value);
-    if (!v || isNaverOptionNoise(v)) return '';
+    if (!v) return '';
     if (/^사이즈\s*[:：]/i.test(v)) return v;
     if (isLikelyNaverSizeValue(v)) return '사이즈: ' + v;
+    if (isNaverOptionNoise(v)) return '';
     return v;
   }
 
@@ -2740,6 +2788,7 @@
     root.querySelectorAll('h2, h3, h4, h5, strong, span, p, dt, div, label, button').forEach(function (el) {
       if (heading) return;
       var ht = (el.textContent || '').replace(/\s+/g, ' ').trim();
+      if (/비슷한\s*상품|이\s*상품과\s*비슷|추천\s*상품|함께\s*본\s*상품/i.test(ht)) return;
       if (/다른\s*컬러|컬러\s*[&＆]\s*디자인\s*상품|색상\s*\/\s*디자인|컬러\s*선택|디자인\s*선택/i.test(ht)) {
         heading = el;
       }
@@ -2780,12 +2829,12 @@
       if (isNaverOptionNoise(label)) continue;
       if (/^image$/i.test(label)) continue;
       if (/^\d+\s*\/\s*\d+$/.test(label)) continue;
-      if (/다른\s*컬러|컬러\s*[&＆]\s*디자인\s*상품/i.test(label)) continue;
+      if (isNaverColorDesignUiNoise(label)) continue;
       return label;
     }
 
     var text = cleanNaverOptionLine(el.textContent);
-    if (text && text.length >= 2 && text.length <= 80 && !isNaverOptionNoise(text) && !/^\d+\s*\/\s*\d+$/.test(text)) {
+    if (text && text.length >= 2 && text.length <= 80 && !isNaverOptionNoise(text) && !isNaverColorDesignUiNoise(text)) {
       return text;
     }
     return '';
@@ -2878,9 +2927,10 @@
       var match = html.match(patterns[i]);
       if (!match || !match[1]) continue;
       var label = cleanNaverOptionLine(unescapeJsonString(match[1]));
-      if (!label || isNaverOptionNoise(label) || label.length < 2) continue;
+      if (!label || label.length < 2) continue;
       if (/^image$/i.test(label)) continue;
-      return label;
+      label = sanitizeNaverColorDesignLabel(label);
+      if (label) return label;
     }
     return '';
   }
@@ -2893,7 +2943,8 @@
     function addPart(groupName, value) {
       groupName = cleanNaverOptionLine(groupName);
       value = cleanNaverOptionLine(value);
-      if (!value || isNaverOptionNoise(value)) return;
+      if (!value || isNaverColorDesignUiNoise(value)) return;
+      if (!isLikelyNaverSizeValue(value) && isNaverOptionNoise(value)) return;
       if (/^image$/i.test(value)) return;
 
       var formatted = value;
@@ -2976,7 +3027,7 @@
       score += Math.min(t.length, 60);
       if (el.children.length <= 2) score += 15;
 
-      if (score > bestScore && !isNaverOptionNoise(t)) {
+      if (score > bestScore && !isNaverOptionNoise(t) && !isNaverColorDesignUiNoise(t)) {
         bestScore = score;
         best = t;
       }
@@ -2992,7 +3043,8 @@
 
     function addPart(part) {
       part = cleanNaverOptionLine(part);
-      if (!part || isNaverOptionNoise(part)) return;
+      if (!part || isNaverColorDesignUiNoise(part)) return;
+      if (!/^사이즈\s*[:：]/i.test(part) && !isLikelyNaverSizeValue(part) && isNaverOptionNoise(part)) return;
       if (/선택|필수|추가\s*옵션|옵션\s*선택/i.test(part) && part.length < 20) return;
       if (seen[part]) return;
       seen[part] = true;
@@ -3008,7 +3060,7 @@
       if (!sel.value || sel.selectedIndex < 0) return;
       var opt = sel.options[sel.selectedIndex];
       var label = cleanNaverOptionLine(opt && opt.textContent);
-      if (!label || isNaverOptionNoise(label)) return;
+      if (!label || (!isLikelyNaverSizeValue(label) && isNaverOptionNoise(label))) return;
       if (/선택|필수|추가\s*옵션|옵션\s*선택/i.test(label) && label.length < 20) return;
 
       var groupLabel = getNaverSelectGroupLabel(sel);
@@ -3078,41 +3130,110 @@
     }).join('  ').slice(0, 600);
   }
 
+  function extractNaverAllSelectedSizeOptions() {
+    var sizes = [];
+    var seen = {};
+
+    function pushSize(val) {
+      val = formatNaverSizeOption(String(val || '').replace(/^사이즈\s*[:：]\s*/i, ''));
+      if (!val || seen[val]) return;
+      seen[val] = true;
+      sizes.push(val);
+    }
+
+    var buyRoot = getNaverBuyPanel();
+    var rows = buyRoot.querySelectorAll(
+      '[class*="product_item"], [class*="ProductItem"], [class*="option_result"] li, [class*="selected_option"] li, li, div'
+    );
+    for (var j = 0; j < rows.length; j++) {
+      if (!isNaverCartLineRow(rows[j])) continue;
+      var name = extractNameFromNaverRow(rows[j]);
+      if (name && (/^사이즈\s*[:：]/i.test(name) || isLikelyNaverSizeValue(name.replace(/^사이즈\s*[:：]\s*/i, '')))) {
+        pushSize(name);
+        continue;
+      }
+      var rowText = cleanNaverOptionLine(rows[j].textContent);
+      var sizeMatch = rowText.match(/^(\d{2,3})\b/);
+      if (sizeMatch && isLikelyNaverSizeValue(sizeMatch[1])) {
+        pushSize(sizeMatch[1]);
+      }
+    }
+
+    var fromDropdowns = extractNaverFromDropdowns();
+    if (fromDropdowns) {
+      fromDropdowns.split(/\s*\/\s*/).forEach(function (part) {
+        part = cleanNaverOptionLine(part);
+        if (!part || isNaverWidgetUiNoise(part)) return;
+        if (/^사이즈\s*[:：]/i.test(part)) pushSize(part);
+        else if (isLikelyNaverSizeValue(part)) pushSize(part);
+      });
+    }
+
+    return sizes;
+  }
+
+  function formatNaverSizeOptionList(sizes) {
+    if (!sizes || !sizes.length) return '';
+    if (sizes.length === 1) return sizes[0];
+    return sizes.map(function (size, idx) {
+      return '(' + (idx + 1) + ') ' + size;
+    }).join('  ').slice(0, 300);
+  }
+
   function finalizeNaverExtractedOption(raw, colorPart) {
     raw = cleanNaverOptionLine(raw);
-    if (!raw) return colorPart || '';
-    if (/컬러\s*[&＆]?\s*디자인/i.test(raw)) return raw;
+    colorPart = sanitizeNaverColorDesignLabel(
+      String(colorPart || '').replace(/^컬러\s*[&＆]?\s*디자인\s*[:：]\s*/i, '')
+    );
+
+    if (isNaverWidgetUiNoise(raw)) raw = '';
+
+    var sizes = extractNaverAllSelectedSizeOptions();
+    if (sizes.length > 1) {
+      raw = formatNaverSizeOptionList(sizes);
+    } else if (sizes.length === 1 && (!raw || isNaverWidgetUiNoise(raw))) {
+      raw = sizes[0];
+    } else if (!raw && sizes.length === 1) {
+      raw = sizes[0];
+    }
+
+    if (!raw) {
+      return colorPart ? ('컬러&디자인: ' + colorPart) : '';
+    }
+
+    if (/컬러\s*[&＆]?\s*디자인/i.test(raw) && !isNaverWidgetUiNoise(raw)) return raw;
 
     if (isLikelyNaverSizeValue(raw)) raw = formatNaverSizeOption(raw);
     else if (/^\d+$/.test(raw)) raw = formatNaverSizeOption(raw);
 
-    if (colorPart) return mergeNaverOptionParts(colorPart, raw);
-
-    if (hasNaverColorDesignPicker()) {
-      var colorDesign = extractNaverColorDesignFromDom();
-      if (colorDesign) {
-        var cp = /^컬러\s*[&＆]?\s*디자인\s*[:：]/i.test(colorDesign)
-          ? colorDesign
-          : '컬러&디자인: ' + colorDesign;
-        return mergeNaverOptionParts(cp, raw);
-      }
-    }
-
+    if (colorPart) return mergeNaverOptionParts('컬러&디자인: ' + colorPart, raw);
     return raw;
   }
 
   function extractNaverOptions() {
-    var colorDesign = extractNaverColorDesignFromDom();
-    var colorPart = colorDesign
-      ? (/^컬러\s*[&＆]?\s*디자인\s*[:：]/i.test(colorDesign) ? colorDesign : '컬러&디자인: ' + colorDesign)
-      : '';
     var scriptParts = extractNaverSelectedOptionsFromScripts();
+    var items = extractNaverSelectedItemRows().filter(function (item) {
+      return item.name && !isNaverWidgetUiNoise(item.name);
+    });
 
-    var items = extractNaverSelectedItemRows();
-    var merged = items.length
-      ? mergeNaverOptionParts(formatNaverOptionList(items), scriptParts)
-      : mergeNaverOptionParts(extractNaverSelectedSummaryRow(), extractNaverFromDropdowns(), scriptParts);
+    if (items.length) {
+      return finalizeNaverExtractedOption(formatNaverOptionList(items), '');
+    }
 
+    var sizes = extractNaverAllSelectedSizeOptions();
+    if (sizes.length) {
+      return finalizeNaverExtractedOption(formatNaverSizeOptionList(sizes), '');
+    }
+
+    var merged = mergeNaverOptionParts(
+      extractNaverSelectedSummaryRow(),
+      extractNaverFromDropdowns(),
+      scriptParts
+    );
+    if (isNaverWidgetUiNoise(merged)) merged = '';
+
+    var colorDesign = sanitizeNaverColorDesignLabel(extractNaverColorDesignFromDom());
+    var colorPart = colorDesign ? ('컬러&디자인: ' + colorDesign) : '';
     return finalizeNaverExtractedOption(merged, colorPart);
   }
 

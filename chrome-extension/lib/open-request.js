@@ -29,29 +29,8 @@
   }
 
   function openRequestPage(product, member) {
-    var fallbackUrl = PH.buildRequestUrl(product, { siteBase: PH.DEFAULT_SITE, member: !!member });
-
-    if (!PH.isExtensionContextValid()) {
-      PH.showContextInvalidNotice();
-      window.open(fallbackUrl, '_blank', 'noopener');
-      return;
-    }
-
-    try {
-      chrome.storage.sync.get(['siteMode'], function (data) {
-        if (chrome.runtime.lastError) {
-          PH.showContextInvalidNotice();
-          openUrlFromPage(fallbackUrl, product);
-          return;
-        }
-        var siteBase = data.siteMode === 'local' ? PH.LOCAL_SITE : PH.DEFAULT_SITE;
-        var url = PH.buildRequestUrl(product, { siteBase: siteBase, member: !!member });
-        openUrlFromPage(url, product);
-      });
-    } catch (e) {
-      PH.showContextInvalidNotice();
-      openUrlFromPage(fallbackUrl, product);
-    }
+    var url = PH.buildRequestUrl(product, { siteBase: PH.DEFAULT_SITE, member: !!member });
+    openUrlFromPage(url, product);
   }
 
   global.PHOpenRequest = { openRequestPage: openRequestPage };

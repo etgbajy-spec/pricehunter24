@@ -19,24 +19,38 @@
       <div class="ph-row"><span class="ph-label">판매처</span><span id="pv-marketplace" class="ph-value">—</span></div>
       <div class="ph-row"><span class="ph-label">상품명</span><span id="pv-name" class="ph-value">—</span></div>
       <div class="ph-row"><span class="ph-label">가격</span><span id="pv-price" class="ph-value">—</span></div>
-      <div class="ph-row"><span class="ph-label">옵션</span><span id="pv-option" class="ph-value">—</span></div>
+      <div class="ph-row ph-row--option">
+        <span class="ph-label-wrap">
+          <span class="ph-label">옵션</span>
+          <button type="button" class="ph-tip-btn" id="option-tip-btn" aria-describedby="option-tip" aria-label="옵션 안내">?</button>
+          <span id="option-tip" class="ph-tip" role="tooltip">
+            옵션이 이상하게 보이나요?<br>
+            상품 페이지에서 <strong>옵션을 선택하지 않았거나</strong>, 쇼핑몰 화면 구조 때문에 잘못 읽힐 수 있습니다.<br>
+            의뢰 페이지에서 직접 수정해 주세요.
+          </span>
+        </span>
+        <span id="pv-option" class="ph-value">—</span>
+      </div>
+      <div id="option-warning" class="ph-option-warning hidden" role="status">
+        옵션이 정확하지 않을 수 있습니다. 상품 페이지에서 옵션을 선택했는지 확인하시고, 의뢰 페이지에서 직접 입력·수정해 주세요.
+      </div>
+      <div id="option-collect-hint" class="ph-collect-hint hidden" role="status">
+        상품 페이지에서 <strong>옵션을 선택</strong>한 뒤 아래 「다시 읽기」를 눌러 주세요.
+      </div>
     </div>
 
-    <div class="ph-actions">
+    <section id="manual-fallback" class="ph-fallback hidden">
+      <p id="fallback-hint" class="ph-fallback-hint">
+        이 페이지에서는 상품 정보를 자동으로 읽을 수 없습니다.
+      </p>
+      <button type="button" id="btn-manual-entry" class="ph-btn ph-btn-primary">직접 입력하러 가기</button>
+    </section>
+
+    <div id="collect-actions" class="ph-actions">
+      <button type="button" id="btn-refresh" class="ph-btn ph-btn-refresh hidden">다시 읽기</button>
       <button type="button" id="btn-guest" class="ph-btn ph-btn-primary" disabled>무료 의뢰 (게스트)</button>
       <button type="button" id="btn-member" class="ph-btn ph-btn-secondary" disabled>회원 의뢰</button>
     </div>
-
-    <details class="ph-settings">
-      <summary>설정</summary>
-      <label class="ph-setting-row">
-        <span>연결 사이트</span>
-        <select id="site-mode">
-          <option value="production">pricehunt24.com (운영)</option>
-          <option value="local">localhost:1000 (로컬)</option>
-        </select>
-      </label>
-    </details>
   </main>
 
   <script src="lib/config.js"></script>

@@ -50,6 +50,34 @@
     if (!host || host.dataset.phExtBanner === '1') return;
     host.dataset.phExtBanner = '1';
     host.classList.remove('hidden');
+    host.setAttribute('role', 'status');
+  }
+
+  function isSuspiciousPrefillOption(option) {
+    if (!option) return false;
+    var t = String(option).trim();
+    if (!t || t === '단일옵션') return false;
+    return /다른\s*컬러|비슷한\s*상품|이\s*상품과\s*비슷|추천\s*상품|함께\s*본|컬러\s*[&＆]\s*디자인\s*상품|상품\s*바로가기|이\s*상품담기|선택해\s*주세요|옵션\s*선택|필수\s*옵션|상품\s*\d+\s*\/\s*\d+|\d+\s*\/\s*\d+$/i.test(t);
+  }
+
+  function showOptionPrefillWarning(option) {
+    if (!isSuspiciousPrefillOption(option)) return;
+    var input = document.getElementById('productOption') || document.getElementById('option');
+    if (!input) return;
+    var host = document.getElementById('option-prefill-warning');
+    if (!host) {
+      host = document.createElement('div');
+      host.id = 'option-prefill-warning';
+      host.className = 'ph-option-help-note mt-2';
+      host.setAttribute('role', 'status');
+      input.insertAdjacentElement('afterend', host);
+    }
+    host.classList.remove('hidden');
+    host.textContent =
+      '옵션이 이상하게 채워졌을 수 있습니다. 상품 페이지에서 옵션을 선택하지 않았거나 쇼핑몰 화면 오류일 수 있으니, 직접 확인 후 수정해 주세요.';
+    input.classList.add('border-amber-300');
+    input.focus();
+    input.select();
   }
 
   function isBadPrefillName(name) {
@@ -72,7 +100,10 @@
 
     if (setInputValue(fields.url || 'productUrl', data.url, force)) applied.push('url');
     if (setInputValue(fields.name || 'productName', name, force)) applied.push('name');
-    if (setInputValue(fields.option || 'productOption', option, force)) applied.push('option');
+    if (setInputValue(fields.option || 'productOption', option, force)) {
+      applied.push('option');
+      showOptionPrefillWarning(option);
+    }
     if (data.price != null && data.price !== '') {
       var priceDisplay = formatDisplayPrice(data.price);
       if (priceDisplay && setInputValue(fields.price || 'productPrice', priceDisplay, force)) {
@@ -91,7 +122,7 @@
     global.__PH_EXTENSION_PREFILL__ = null;
     return applyData(queued, fields, {
       force: true,
-      defaultOption: '단일옵션',
+      defaultOption: '',
       showBanner: true,
       bannerHostId: (fields && fields.bannerHostId) || (opts && opts.bannerHostId)
     });
@@ -115,7 +146,7 @@
 
     var result = applyData(data, fields, {
       force: fromExtension,
-      defaultOption: fromExtension ? '단일옵션' : '',
+      defaultOption: '',
       showBanner: fromExtension,
       bannerHostId: fields.bannerHostId || opts.bannerHostId
     });
@@ -136,7 +167,7 @@
       var detail = (e && e.detail) || {};
       applyData(detail, fields, {
         force: true,
-        defaultOption: '단일옵션',
+        defaultOption: '',
         showBanner: true,
         bannerHostId: fields.bannerHostId || opts.bannerHostId
       });

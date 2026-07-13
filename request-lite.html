@@ -16,6 +16,9 @@
   <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
   <script src="url-safety.js"></script>
   <script src="request-url-prefill.js"></script>
+  <script src="request-form-validate.js"></script>
+  <link rel="stylesheet" href="request-option-help.css" />
+  <script src="request-option-help.js"></script>
   <script>
     (function () {
       window.__PH_PREFILL_FIELDS__ = {
@@ -81,7 +84,7 @@
         </div>
 
         <div id="extension-prefill-banner" class="hidden mb-5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 leading-relaxed">
-          <strong>확장 프로그램</strong>에서 상품 정보를 불러왔습니다. 내용을 확인한 뒤 의뢰해 주세요.
+          <strong>자동 입력됨</strong> — 확장 프로그램에서 상품 정보를 불러왔습니다. <strong>링크·옵션</strong>을 꼭 확인한 뒤 의뢰해 주세요.
         </div>
 
         <form id="guest-request-form" class="space-y-5">
@@ -109,13 +112,25 @@
           </div>
 
           <div>
-            <label for="productOption" class="block text-sm font-semibold text-gray-800 mb-1.5">
-              옵션 <span class="text-red-500">*</span>
-            </label>
+            <div class="ph-option-label-row">
+              <label for="productOption" class="text-sm font-semibold text-gray-800">
+                옵션 <span class="text-red-500">*</span>
+              </label>
+              <div class="ph-option-help-wrap">
+                <button type="button" class="ph-option-help-btn" data-ph-option-help aria-label="옵션 입력 안내" aria-expanded="false">?</button>
+                <div class="ph-option-help-tip" role="tooltip">
+                  옵션이 이상하게 자동 입력되었나요?<br>
+                  상품 페이지에서 <strong>옵션을 선택하지 않았거나</strong>, 쇼핑몰 화면 구조 때문에 잘못 읽힐 수 있습니다.<br>
+                  선택하신 옵션(색상·사이즈·구성 등)을 <strong>직접 입력하거나 수정</strong>해 주세요.<br>
+                  옵션이 없으면 <strong>단일옵션</strong>이라고 적어 주세요.
+                </div>
+              </div>
+            </div>
             <input type="text" id="productOption" name="option" required
               placeholder="예: (1) 블랙 / 256GB  (2) 급속충전기 48V 5A"
               class="w-full rounded-xl border-2 border-gray-200 px-4 py-3 text-sm sm:text-base focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 outline-none transition" />
-            <p class="text-xs text-gray-500 mt-1.5">옵션이 없으면 <strong>단일옵션</strong>이라고 적어주세요.</p>
+            <p class="text-xs text-gray-500 mt-1.5">확장 프로그램·자동 입력 값이 이상하면 위 <strong>?</strong> 안내를 참고해 직접 수정해 주세요.</p>
+            <div id="option-prefill-warning" class="hidden ph-option-help-note mt-2" role="status"></div>
           </div>
 
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -308,7 +323,15 @@
           return;
         }
 
-        if (!optionName) {
+        if (window.RequestFormValidate && RequestFormValidate.validateOption) {
+          var optionCheck = RequestFormValidate.validateOption(optionName);
+          if (!optionCheck.ok) {
+            alert(optionCheck.error);
+            document.getElementById('productOption').focus();
+            return;
+          }
+          optionName = optionCheck.value;
+        } else if (!optionName) {
           alert('옵션을 입력해주세요. 옵션이 없으면 "단일옵션"이라고 적어주세요.');
           return;
         }
@@ -321,7 +344,9 @@
           }
           url = urlCheck.normalized;
           productUrlInput.value = url;
-          if (urlCheck.flagged) {
+          if (urlCheck.flagged && window.RequestFormValidate && RequestFormValidate.confirmFlaggedUrl) {
+            if (!RequestFormValidate.confirmFlaggedUrl(urlCheck)) return;
+          } else if (urlCheck.flagged) {
             var proceed = confirm(
               '등록되지 않은 쇼핑몰 링크입니다.\n' +
               '악성 사이트일 수 있으니 주소를 한번 더 확인해 주세요.\n\n' +
