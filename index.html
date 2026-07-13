@@ -7288,11 +7288,21 @@
       let kakaoCallbackProcessing = false;
 
       function getKakaoRedirectUri() {
-        const path = window.location.pathname;
+        const host = window.location.hostname;
+        const origin = (host === 'localhost' || host === '127.0.0.1')
+          ? window.location.origin
+          : 'https://pricehunt24.com';
+        const path = window.location.pathname || '/';
         if (path === '/' || path === '/index.html' || path.endsWith('/index.html')) {
-          return window.location.origin + '/index.html';
+          return origin + '/index.html';
         }
-        return window.location.origin + path;
+        if (path.endsWith('/register.html')) {
+          return origin + '/register.html';
+        }
+        if (path.endsWith('/login.html')) {
+          return origin + '/login.html';
+        }
+        return origin + path;
       }
 
       function stripKakaoCodeFromUrl() {

@@ -828,7 +828,11 @@
       let kakaoCallbackProcessing = false;
 
       function getKakaoRedirectUri() {
-        return window.location.origin + window.location.pathname;
+        const host = window.location.hostname;
+        const origin = (host === 'localhost' || host === '127.0.0.1')
+          ? window.location.origin
+          : 'https://pricehunt24.com';
+        return origin + '/register.html';
       }
 
       function stripKakaoCodeFromUrl() {
