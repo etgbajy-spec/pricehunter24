@@ -4721,7 +4721,7 @@
         <div class="ph-header-actions">
           <button id="header-login-btn" class="ph-btn-ghost ph-header-auth-btn" type="button">로그인</button>
           <a href="register.html" id="header-signup-btn" class="ph-btn-primary ph-header-auth-btn">회원가입</a>
-          <a href="member-dashboard.html" id="header-mypage-btn" class="ph-btn-ghost hidden">내 정보</a>
+          <a href="member-dashboard.html" id="header-mypage-btn" class="ph-btn-primary ph-header-auth-btn ph-header-auth-hidden">내 정보</a>
         </div>
       </div>
     </header>
@@ -7078,6 +7078,16 @@
         });
       }
 
+      function inferLoginMethod(userData, extra = {}) {
+        if (extra.loginMethod) return extra.loginMethod;
+        if (userData.loginMethod) return userData.loginMethod;
+        const uid = userData.uid || '';
+        if (uid.startsWith('kakao_')) return 'kakao';
+        const providerId = (userData.providerId || '').toLowerCase();
+        if (providerId.includes('google')) return 'google';
+        return 'email';
+      }
+
       // 사용자 데이터 upsert 함수 (모든 로그인 경로에서 공통 사용)
       async function upsertUser(userData, extra = {}) {
         try {
@@ -7115,7 +7125,7 @@
             email: userData.email || currentAuthUser.email,
             displayName: userData.displayName || userData.name || userData.nickname || currentAuthUser.displayName || '',
             photoURL: userData.photoURL || userData.profileImage || currentAuthUser.photoURL || '',
-            loginMethod: userData.loginMethod || 'email',
+            loginMethod: inferLoginMethod(userData, extra),
             createdAt: userData.createdAt || new Date(),
             updatedAt: new Date(),
             isActive: true,
@@ -7260,6 +7270,7 @@
         // 프로필이 이미 완성된 경우에만 upsertUser 호출
         const upsertResult = await upsertUser(userData, {
           lastLogin: new Date(),
+          loginMethod: options.loginMethod || userData.loginMethod,
           providerId: additionalInfo.providerId || providerData.providerId || 'google',
           isNewUser: additionalInfo.isNewUser ?? options.isNewUser ?? isNewUserBeforeUpsert
         });
@@ -7476,16 +7487,12 @@
           safeSetDisplay('signup-btn', 'none');
           safeSetDisplay('mypage-btn', 'inline-block');
           safeSetDisplay('logout-btn', 'inline-block');
-          // 헤더 로그인/회원가입/내 정보 버튼 제어
           const headerLoginBtn = document.getElementById('header-login-btn');
           const headerSignupBtn = document.getElementById('header-signup-btn');
           const headerMypageBtn = document.getElementById('header-mypage-btn');
-          if (headerLoginBtn) headerLoginBtn.style.display = 'none';
-          if (headerSignupBtn) headerSignupBtn.style.display = 'none';
-          if (headerMypageBtn) {
-            headerMypageBtn.classList.remove('hidden');
-            headerMypageBtn.style.display = 'block';
-          }
+          if (headerLoginBtn) headerLoginBtn.classList.add('ph-header-auth-hidden');
+          if (headerSignupBtn) headerSignupBtn.classList.add('ph-header-auth-hidden');
+          if (headerMypageBtn) headerMypageBtn.classList.remove('ph-header-auth-hidden');
 
           
           if (isAdmin) {
@@ -7503,20 +7510,12 @@
           safeSetDisplay('signup-btn', 'inline-block');
           safeSetDisplay('mypage-btn', 'none');
           safeSetDisplay('logout-btn', 'none');
-          // 헤더 로그인/회원가입/내 정보 버튼 제어
           const headerLoginBtn = document.getElementById('header-login-btn');
           const headerSignupBtn = document.getElementById('header-signup-btn');
           const headerMypageBtn = document.getElementById('header-mypage-btn');
-          if (headerLoginBtn) {
-            headerLoginBtn.style.display = 'block';
-          }
-          if (headerSignupBtn) {
-            headerSignupBtn.style.display = 'block';
-          }
-          if (headerMypageBtn) {
-            headerMypageBtn.classList.add('hidden');
-            headerMypageBtn.style.display = 'none';
-          }
+          if (headerLoginBtn) headerLoginBtn.classList.remove('ph-header-auth-hidden');
+          if (headerSignupBtn) headerSignupBtn.classList.remove('ph-header-auth-hidden');
+          if (headerMypageBtn) headerMypageBtn.classList.add('ph-header-auth-hidden');
 
           // 로그아웃 상태에서도 관리자 모드가 활성화되어 있으면 유지
           const currentAdminMode = localStorage.getItem('adminMode') === 'true';

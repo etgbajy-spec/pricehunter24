@@ -252,6 +252,11 @@
           const existingDoc = await getDoc(userRef);
           const existingData = existingDoc.exists() ? existingDoc.data() : {};
           const storedUser = JSON.parse(localStorage.getItem('currentUser') || localStorage.getItem('user') || '{}');
+          const providerId = currentUser.providerData?.[0]?.providerId || '';
+          let loginMethod = existingData.loginMethod || storedUser.loginMethod || '';
+          if (!loginMethod && currentUser.uid.startsWith('kakao_')) loginMethod = 'kakao';
+          if (!loginMethod && providerId.includes('google')) loginMethod = 'google';
+          if (!loginMethod) loginMethod = 'email';
 
           // 사용자 정보 업데이트
           await setDoc(userRef, {
@@ -261,7 +266,7 @@
             phone: phone,
             phoneNumber: phone,
             email: email,
-            loginMethod: existingData.loginMethod || storedUser.loginMethod || 'kakao',
+            loginMethod: loginMethod,
             photoURL: existingData.photoURL || storedUser.photoURL || currentUser.photoURL || '',
             isActive: true,
             profileIncomplete: false,
@@ -278,7 +283,8 @@
             name: name,
             displayName: name,
             phone: phone,
-            phoneNumber: phone
+            phoneNumber: phone,
+            loginMethod: loginMethod
           };
           localStorage.setItem('currentUser', JSON.stringify(userData));
           localStorage.setItem('user', JSON.stringify(userData));

@@ -129,6 +129,20 @@
             return null;
         }
 
+        function resolveLoginMethod(user) {
+            const raw = String(user?.loginMethod || user?.loginType || user?.providerId || '').toLowerCase();
+            const uid = String(user?.id || user?.uid || '');
+            if (raw.includes('kakao') || uid.startsWith('kakao_')) return 'kakao';
+            if (raw.includes('google') || raw === 'google.com') return 'google';
+            return 'email';
+        }
+
+        function getLoginMethodBadge(method) {
+            if (method === 'kakao') return { label: '카카오톡', className: 'bg-yellow-100 text-yellow-800' };
+            if (method === 'google') return { label: '구글', className: 'bg-red-100 text-red-800' };
+            return { label: '이메일', className: 'bg-blue-100 text-blue-800' };
+        }
+
         function getAdminDocCreatedAtMs(item) {
             const v = item && (item.createdAt || item.date || item.reqDate);
             if (!v) return 0;
@@ -1139,8 +1153,8 @@
         // 회원 통계 업데이트 함수
         function updateMemberStats(users) {
             try {
-                const kakaoUsers = users.filter(user => (user.loginMethod || user.loginType) === 'kakao').length;
-                const emailUsers = users.filter(user => (user.loginMethod || user.loginType) === 'email').length;
+                const kakaoUsers = users.filter(user => resolveLoginMethod(user) === 'kakao').length;
+                const emailUsers = users.filter(user => resolveLoginMethod(user) === 'email').length;
                 const firebaseUsers = users.length; // 모든 사용자가 Firebase 사용자
                 const localStorageUsers = 0; // Firebase 전용이므로 0
                 
@@ -1202,10 +1216,10 @@
                 ].filter(Boolean).join(' ').toLowerCase();
                 const matchSearch = !membersListView.search || hay.includes(membersListView.search);
                 const matchMonth = membersListView.month === 'all' || getAdminMonthKey(getMemberListDate(user)) === membersListView.month;
-                const method = (user.loginMethod || user.loginType || 'email').toLowerCase();
+                const method = resolveLoginMethod(user);
                 const matchLogin = membersListView.loginMethod === 'all' ||
-                    (membersListView.loginMethod === 'kakao' && method.includes('kakao')) ||
-                    (membersListView.loginMethod === 'email' && !method.includes('kakao'));
+                    (membersListView.loginMethod === 'kakao' && method === 'kakao') ||
+                    (membersListView.loginMethod === 'email' && method === 'email');
                 return matchSearch && matchMonth && matchLogin;
             });
 
@@ -1230,7 +1244,8 @@
                 meta.pageItems.forEach((user) => {
                     const row = document.createElement('tr');
                     row.className = 'hover:bg-gray-50';
-                    const loginMethod = user.loginMethod || user.loginType || 'email';
+                    const loginMethod = resolveLoginMethod(user);
+                    const loginBadge = getLoginMethodBadge(loginMethod);
                     const joinDateObj = parseAdminListDate(getMemberListDate(user));
                     const joinDate = joinDateObj ? joinDateObj.toLocaleDateString('ko-KR') : '알 수 없음';
                     const updateDateObj = parseAdminListDate(user.updatedAt);
@@ -1244,7 +1259,7 @@
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap"><div class="text-sm font-medium text-gray-900">${userName}</div></td>
                         <td class="px-6 py-4 whitespace-nowrap">
-                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${loginMethod === 'kakao' ? 'bg-yellow-100 text-yellow-800' : 'bg-blue-100 text-blue-800'}">${loginMethod === 'kakao' ? '카카오톡' : '이메일'}</span>
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${loginBadge.className}">${loginBadge.label}</span>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${userEmail}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${userPhone}</td>

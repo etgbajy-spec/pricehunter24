@@ -26,7 +26,7 @@
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
     import { getAuth, onAuthStateChanged, GoogleAuthProvider, reauthenticateWithPopup, reauthenticateWithRedirect, deleteUser, signOut, signInWithEmailAndPassword } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
-    import { getFirestore, collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, getDocs, where, doc, updateDoc, deleteDoc, arrayUnion, limit } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
+    import { getFirestore, collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, getDocs, getDoc, where, doc, updateDoc, deleteDoc, arrayUnion, limit } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
     
     // Firebase 설정
     const firebaseConfig = {
@@ -69,6 +69,7 @@
       orderBy, 
       onSnapshot, 
       getDocs, 
+      getDoc,
       where, 
       doc, 
       updateDoc, 
@@ -253,7 +254,10 @@
           <!-- 내 정보 표시 -->
           <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 p-4 bg-blue-50 rounded-xl">
             <div>
-              <div class="font-bold text-lg text-gray-800" id="mypage-name">이름</div>
+              <div class="flex items-center gap-2 flex-wrap">
+                <div class="font-bold text-lg text-gray-800" id="mypage-name">이름</div>
+                <span id="mypage-login-method" class="hidden px-2.5 py-0.5 text-xs font-semibold rounded-full"></span>
+              </div>
               <div class="text-gray-500 text-sm" id="mypage-email">이메일</div>
             </div>
             <div class="flex gap-2">
@@ -768,17 +772,64 @@
       console.log('=== switchTab 완료 ===');
     }
 
+    function resolveLoginMethod(user, uid) {
+      const raw = String(user?.loginMethod || user?.loginType || user?.providerId || '').toLowerCase();
+      const userId = String(uid || user?.uid || user?.id || '');
+      if (raw.includes('kakao') || userId.startsWith('kakao_')) return 'kakao';
+      if (raw.includes('google') || raw === 'google.com') return 'google';
+      return 'email';
+    }
+
+    function renderLoginMethodBadge(method) {
+      const badge = document.getElementById('mypage-login-method');
+      if (!badge) return;
+      const map = {
+        kakao: { label: '카카오 가입', className: 'bg-yellow-100 text-yellow-800' },
+        google: { label: '구글 가입', className: 'bg-red-100 text-red-800' },
+        email: { label: '이메일 가입', className: 'bg-blue-100 text-blue-800' }
+      };
+      const info = map[method] || map.email;
+      badge.textContent = info.label;
+      badge.className = `px-2.5 py-0.5 text-xs font-semibold rounded-full ${info.className}`;
+      badge.classList.remove('hidden');
+    }
+
+    async function getCurrentUserUid() {
+      await waitForFirebase();
+      if (window.firebaseAuth?.currentUser?.uid) {
+        return window.firebaseAuth.currentUser.uid;
+      }
+      const stored = JSON.parse(localStorage.getItem('currentUser') || localStorage.getItem('user') || '{}');
+      return stored.uid || null;
+    }
+
     // 내 정보 표시 (Firebase에서 사용자 정보 가져오기)
     async function renderMyInfo() {
       try {
         await waitForFirebase();
-        const { collection, query, where, getDocs } = window.firebaseFirestoreFunctions;
+        const { collection, query, where, getDocs, doc, getDoc } = window.firebaseFirestoreFunctions;
         const db = window.firebaseDb;
-        
-        // 현재 로그인된 사용자 이메일 가져오기
+        const uid = await getCurrentUserUid();
         const loggedInEmail = getUserEmail();
+        let userData = null;
+
+        if (uid) {
+          const userDoc = await getDoc(doc(db, 'users', uid));
+          if (userDoc.exists()) {
+            userData = userDoc.data();
+          }
+        }
+
+        if (!userData && loggedInEmail) {
+          const usersRef = collection(db, 'users');
+          const q = query(usersRef, where('email', '==', loggedInEmail));
+          const querySnapshot = await getDocs(q);
+          if (!querySnapshot.empty) {
+            userData = querySnapshot.docs[0].data();
+          }
+        }
         
-        if (!loggedInEmail) {
+        if (!loggedInEmail && !uid) {
           console.error('❌ 로그인된 사용자 정보를 찾을 수 없습니다.');
           return;
         }
@@ -787,34 +838,29 @@
         try {
           const testEl = document.getElementById('pg-review-test-checkout');
           if (testEl) {
-            const show = String(loggedInEmail).toLowerCase() === 'test1@pricehunt24.com';
+            const show = String(loggedInEmail || userData?.email || '').toLowerCase() === 'test1@pricehunt24.com';
             testEl.classList.toggle('hidden', !show);
           }
         } catch (e) {}
         
-        // Firebase에서 사용자 정보 조회
-        const usersRef = collection(db, 'users');
-        const q = query(usersRef, where('email', '==', loggedInEmail));
-        const querySnapshot = await getDocs(q);
-        
-        if (!querySnapshot.empty) {
-          const userDoc = querySnapshot.docs[0];
-          const userData = userDoc.data();
-          
-          document.getElementById('mypage-name').textContent = userData.name || '이름 없음';
+        if (userData) {
+          document.getElementById('mypage-name').textContent = userData.name || userData.displayName || '이름 없음';
           document.getElementById('mypage-email').textContent = userData.email || '이메일 없음';
-          document.getElementById('info-name').value = userData.name || '';
+          renderLoginMethodBadge(resolveLoginMethod(userData, uid));
+          document.getElementById('info-name').value = userData.name || userData.displayName || '';
           document.getElementById('info-email').value = userData.email || '';
-          document.getElementById('info-phone').value = userData.phone || '';
-          document.getElementById('info-kakao').value = userData.kakao || '';
+          document.getElementById('info-phone').value = userData.phone || userData.phoneNumber || '';
+          document.getElementById('info-kakao').value = userData.kakao || userData.kakaoId || '';
           
           // 문의 폼에도 사용자 정보 자동 입력
-          document.getElementById('contact-name').value = userData.name || '';
+          document.getElementById('contact-name').value = userData.name || userData.displayName || '';
           document.getElementById('contact-email').value = userData.email || '';
         } else {
           console.error('Firebase에서 사용자 정보를 찾을 수 없습니다.');
           document.getElementById('mypage-name').textContent = '사용자 정보 없음';
-          document.getElementById('mypage-email').textContent = '이메일 없음';
+          document.getElementById('mypage-email').textContent = loggedInEmail || '이메일 없음';
+          const badge = document.getElementById('mypage-login-method');
+          if (badge) badge.classList.add('hidden');
           document.getElementById('info-name').value = '';
           document.getElementById('info-email').value = '';
           document.getElementById('info-phone').value = '';
