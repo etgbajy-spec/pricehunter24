@@ -4719,8 +4719,8 @@
         </nav>
 
         <div class="ph-header-actions">
-          <button id="header-login-btn" class="ph-btn-ghost" type="button">로그인</button>
-          <a href="register.html" id="header-signup-btn" class="ph-btn-primary">시작하기</a>
+          <button id="header-login-btn" class="ph-btn-ghost ph-header-auth-btn" type="button">로그인</button>
+          <a href="register.html" id="header-signup-btn" class="ph-btn-primary ph-header-auth-btn">회원가입</a>
           <a href="member-dashboard.html" id="header-mypage-btn" class="ph-btn-ghost hidden">내 정보</a>
         </div>
       </div>
@@ -6790,14 +6790,17 @@
             <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="구글 로그인 아이콘" class="w-5 h-5" loading="lazy">
             <span class="text-sm font-semibold text-gray-700">Google 계정으로 간편 로그인/가입</span>
           </button>
-          <p class="mt-2 text-xs text-center text-gray-500">기존 회원도 구글 계정을 연동하면 자동으로 연결됩니다.</p>
+          <button type="button" id="kakao-login-btn" class="w-full flex items-center justify-center gap-3 py-2 mt-2 rounded-xl shadow-sm hover:shadow transition bg-[#FEE500] hover:bg-[#FDD835]" aria-label="카카오 계정으로 로그인" title="카카오 계정으로 로그인">
+            <span id="kakao-login-text" class="text-sm font-semibold text-gray-900">카카오로 간편 로그인/가입</span>
+          </button>
+          <p class="mt-2 text-xs text-center text-gray-500">구글·카카오 계정으로 빠르게 시작할 수 있습니다.</p>
         </div>
         
         <!-- 회원가입 링크 -->
         <div class="mt-4 text-center">
           <p class="text-sm text-gray-600 mb-2">계정이 없으신가요?</p>
           <a href="register.html" class="inline-block w-full py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition text-sm">
-            이메일로 회원가입
+            회원가입 페이지로 이동
           </a>
         </div>
         
@@ -7189,14 +7192,15 @@
 
       async function finalizeSocialLogin(firebaseUser, options = {}) {
         if (!firebaseUser) return;
-        
+
+        const profileOverride = options.profile || {};
         const additionalInfo = options.additionalInfo || {};
         const providerData = firebaseUser.providerData?.[0] || {};
         const userData = {
           uid: firebaseUser.uid,
-          email: firebaseUser.email || '',
-          displayName: firebaseUser.displayName || providerData.displayName || firebaseUser.email?.split('@')[0] || '',
-          photoURL: firebaseUser.photoURL || providerData.photoURL || '',
+          email: profileOverride.email || firebaseUser.email || '',
+          displayName: profileOverride.displayName || firebaseUser.displayName || providerData.displayName || firebaseUser.email?.split('@')[0] || '',
+          photoURL: profileOverride.photoURL || firebaseUser.photoURL || providerData.photoURL || '',
           phoneNumber: firebaseUser.phoneNumber || providerData.phoneNumber || '',
           loginMethod: options.loginMethod || providerData.providerId || 'google',
           emailVerified: firebaseUser.emailVerified,
@@ -7211,24 +7215,22 @@
         const userDocBeforeUpsert = await getDoc(userRefBeforeUpsert);
         const isNewUserBeforeUpsert = !userDocBeforeUpsert.exists();
         
-        // 구글 로그인 사용자의 경우 이름과 핸드폰번호 확인 (upsertUser 전에)
+        // 소셜 로그인 사용자의 경우 이름과 핸드폰번호 확인 (upsertUser 전에)
         let needsProfile = false;
-        if (options.loginMethod === 'google' || providerData.providerId === 'google.com') {
+        const socialMethod = options.loginMethod || providerData.providerId;
+        if (socialMethod === 'google' || socialMethod === 'google.com' || socialMethod === 'kakao') {
           if (userDocBeforeUpsert.exists()) {
             const existingData = userDocBeforeUpsert.data();
-            // 이름이나 핸드폰번호가 없으면 프로필 완성 페이지로 이동
             if (!existingData.name || !existingData.phone) {
               needsProfile = true;
             }
           } else {
-            // 새 사용자는 무조건 프로필 완성 필요
             needsProfile = true;
           }
         }
         
         // 프로필 완성이 필요한 경우 upsertUser 호출하지 않고 바로 이동
         if (needsProfile) {
-          // 최소한의 사용자 정보만 localStorage에 저장 (프로필 완성 페이지에서 사용)
           localStorage.setItem('loggedIn', 'true');
           localStorage.setItem('currentUser', JSON.stringify(userData));
           localStorage.setItem('user', JSON.stringify(userData));
@@ -7243,7 +7245,8 @@
           document.body.style.overflow = '';
           updateAuthUI();
           
-          alert('구글 로그인 회원가입이 완료되었습니다!\n\n추가 정보를 입력해주세요.');
+          const providerLabel = socialMethod === 'kakao' ? '카카오' : '구글';
+          alert(providerLabel + ' 로그인 회원가입이 완료되었습니다!\n\n추가 정보를 입력해주세요.');
           window.location.href = 'complete-profile.html';
           return;
         }
@@ -7274,11 +7277,94 @@
         
         // 새 사용자면 회원가입 완료 메시지, 기존 사용자면 이미 가입된 계정 메시지
         if (isNewUser) {
-          showToast('구글 로그인 회원가입이 완료되었습니다!', 'success');
+          const providerLabel = (options.loginMethod === 'kakao') ? '카카오' : '구글';
+          showToast(providerLabel + ' 로그인 회원가입이 완료되었습니다!', 'success');
         } else {
           showToast('이미 가입된 계정입니다. 로그인되었습니다.', 'success');
         }
       }
+
+      const KAKAO_REST_API_KEY = '1d998d95218190a7ee03d06314b49951';
+      let kakaoCallbackProcessing = false;
+
+      function getKakaoRedirectUri() {
+        const path = window.location.pathname;
+        if (path === '/' || path === '/index.html' || path.endsWith('/index.html')) {
+          return window.location.origin + '/index.html';
+        }
+        return window.location.origin + path;
+      }
+
+      function stripKakaoCodeFromUrl() {
+        try {
+          const params = new URLSearchParams(window.location.search);
+          params.delete('code');
+          params.delete('state');
+          const query = params.toString();
+          const nextUrl = window.location.pathname + (query ? '?' + query : '');
+          window.history.replaceState({}, document.title, nextUrl);
+        } catch (error) {
+          console.warn('카카오 URL 정리 실패:', error);
+        }
+      }
+
+      function loginWithKakao() {
+        const button = document.getElementById('kakao-login-btn');
+        const text = document.getElementById('kakao-login-text');
+        if (button) button.disabled = true;
+        if (text) text.textContent = '카카오로 이동 중...';
+
+        const authParams = new URLSearchParams({
+          client_id: KAKAO_REST_API_KEY,
+          redirect_uri: getKakaoRedirectUri(),
+          response_type: 'code',
+          scope: 'profile_nickname,account_email,profile_image',
+        });
+        window.location.href = 'https://kauth.kakao.com/oauth/authorize?' + authParams.toString();
+      }
+
+      async function handleKakaoAuthCallback(code) {
+        if (!code || kakaoCallbackProcessing) return;
+        kakaoCallbackProcessing = true;
+
+        const button = document.getElementById('kakao-login-btn');
+        const text = document.getElementById('kakao-login-text');
+        if (button) button.disabled = true;
+        if (text) text.textContent = '카카오 로그인 처리 중...';
+        stripKakaoCodeFromUrl();
+
+        try {
+          await waitForFirebase();
+          const response = await fetch('/api/kakao-to-firebase-token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code, redirectUri: getKakaoRedirectUri() }),
+          });
+          const data = await response.json();
+          if (!response.ok) {
+            throw new Error(data.error || '카카오 로그인에 실패했습니다.');
+          }
+
+          const { signInWithCustomToken } = window.firebaseAuthFunctions;
+          const credential = await signInWithCustomToken(window.firebaseAuth, data.customToken || data.token);
+          await finalizeSocialLogin(credential.user, {
+            loginMethod: 'kakao',
+            isNewUser: data.isNewUser,
+            profile: data.user,
+            additionalInfo: { isNewUser: data.isNewUser },
+          });
+        } catch (error) {
+          console.error('❌ 카카오 로그인 실패:', error);
+          if (button) button.disabled = false;
+          if (text) text.textContent = '카카오로 간편 로그인/가입';
+          showToast(error.message || '카카오 로그인에 실패했습니다.', 'error');
+        } finally {
+          kakaoCallbackProcessing = false;
+        }
+      }
+
+      window.loginWithKakao = loginWithKakao;
+      window.handleKakaoAuthCallback = handleKakaoAuthCallback;
 
       async function loginWithGoogle() {
         try {
@@ -7838,6 +7924,19 @@
         googleLoginBtn.addEventListener('click', () => {
           loginWithGoogle();
         });
+      }
+
+      const kakaoLoginBtn = document.getElementById('kakao-login-btn');
+      if (kakaoLoginBtn) {
+        kakaoLoginBtn.addEventListener('click', () => {
+          loginWithKakao();
+        });
+      }
+
+      const urlParams = new URLSearchParams(window.location.search);
+      const kakaoAuthCode = urlParams.get('code');
+      if (kakaoAuthCode && typeof handleKakaoAuthCallback === 'function') {
+        handleKakaoAuthCallback(kakaoAuthCode);
       }
       
       if (window.pendingGoogleResult?.user) {
@@ -9102,16 +9201,6 @@
           adminDashboardBtn.onclick = function() {
             window.location.href = 'admin-dashboard.html';
           };
-        }
-
-        // 카카오 인가 코드 처리 (KOE205 에러 방지)
-        const urlParams = new URLSearchParams(window.location.search);
-        const authCode = urlParams.get('code');
-        
-        if (authCode) {
-          console.log('카카오 인가 코드 감지 — register.html로 전달');
-          window.location.replace('register.html?code=' + encodeURIComponent(authCode));
-          return;
         }
         
         // 브라우저 뒤로가기/앞으로가기 이벤트 처리 (KOE205 에러 방지)
