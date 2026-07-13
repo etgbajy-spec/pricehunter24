@@ -836,18 +836,11 @@
             }
             
             try {
-                const { collection, query, orderBy, onSnapshot, limit } = window.firebaseFirestoreFunctions;
+                const { collection, query, onSnapshot, limit } = window.firebaseFirestoreFunctions;
                 const usersRef = collection(window.firebaseDb, 'users');
                 
-                // createdAt 필드가 없을 수 있으므로 기본 쿼리 사용
-                // 쿼리 최적화: 최신 1000명 (리포트 시드 포함)
-                let usersQuery;
-                try {
-                    usersQuery = query(usersRef, orderBy('createdAt', 'desc'), limit(1000));
-                } catch (error) {
-                    console.warn('⚠️ createdAt 필드로 정렬 실패, 기본 쿼리 사용:', error);
-                    usersQuery = query(usersRef, limit(1000));
-                }
+                // createdAt 없는 신규 카카오 회원도 포함되도록 orderBy 없이 조회
+                const usersQuery = query(usersRef, limit(2000));
 
                 usersUnsubscribe = onSnapshot(usersQuery, (snapshot) => {
                     const firebaseUsers = [];
@@ -943,13 +936,14 @@
             // Firebase 사용자에서 중복 제거 (이메일 기준)
             const firebaseUserMap = new Map();
             firebaseUsers.forEach(user => {
-                if (user.email) {
-                    // 같은 이메일이 있으면 더 최신 데이터를 유지
-                    if (!firebaseUserMap.has(user.email) || 
-                        (user.createdAt && firebaseUserMap.get(user.email).createdAt && 
-                         user.createdAt > firebaseUserMap.get(user.email).createdAt)) {
-                        firebaseUserMap.set(user.email, user);
-                    }
+                const key = user.email || user.id;
+                if (!key) return;
+                if (!firebaseUserMap.has(key) ||
+                    (user.updatedAt && firebaseUserMap.get(key).updatedAt &&
+                     user.updatedAt > firebaseUserMap.get(key).updatedAt) ||
+                    (user.createdAt && firebaseUserMap.get(key).createdAt &&
+                     user.createdAt > firebaseUserMap.get(key).createdAt)) {
+                    firebaseUserMap.set(key, user);
                 }
             });
             
@@ -965,10 +959,10 @@
             const finalEmailSet = new Set();
             const finalUsers = [];
             allUsers.forEach(user => {
-                if (user.email && !finalEmailSet.has(user.email)) {
-                    finalUsers.push(user);
-                    finalEmailSet.add(user.email);
-                }
+                const key = user.email || user.id;
+                if (!key || finalEmailSet.has(key)) return;
+                finalUsers.push(user);
+                finalEmailSet.add(key);
             });
             
             console.log('✅ 사용자 데이터 병합 완료:', finalUsers.length, '명');
@@ -1188,7 +1182,7 @@
         }
 
         function getMemberListDate(user) {
-            return user.createdAt || user.joinDate;
+            return user.createdAt || user.updatedAt || user.joinDate;
         }
 
         function applyMembersListFilters() {
@@ -2490,18 +2484,13 @@
             }
         }
         
-        // Firebase에서 사용자 데이터 가져오기 (최신 1000명)
+        // Firebase에서 사용자 데이터 가져오기 (createdAt 없는 회원 포함)
         async function getUsersFromFirebase() {
             try {
-                const { collection, getDocs, query, orderBy, limit } = window.firebaseFirestoreFunctions;
+                const { collection, getDocs, query, limit } = window.firebaseFirestoreFunctions;
                 const db = window.firebaseDb;
                 const usersRef = collection(db, 'users');
-                let querySnapshot;
-                try {
-                    querySnapshot = await getDocs(query(usersRef, orderBy('createdAt', 'desc'), limit(1000)));
-                } catch (error) {
-                    querySnapshot = await getDocs(query(usersRef, limit(1000)));
-                }
+                const querySnapshot = await getDocs(query(usersRef, limit(2000)));
                 const users = [];
                 querySnapshot.forEach((docSnap) => {
                     users.push({ id: docSnap.id, ...docSnap.data() });

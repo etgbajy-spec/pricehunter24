@@ -247,16 +247,25 @@
             return;
           }
           
-          const { doc, setDoc } = window.firebaseFirestoreFunctions;
+          const { doc, setDoc, getDoc } = window.firebaseFirestoreFunctions;
           const userRef = doc(window.firebaseDb, 'users', currentUser.uid);
-          
+          const existingDoc = await getDoc(userRef);
+          const existingData = existingDoc.exists() ? existingDoc.data() : {};
+          const storedUser = JSON.parse(localStorage.getItem('currentUser') || localStorage.getItem('user') || '{}');
+
           // 사용자 정보 업데이트
           await setDoc(userRef, {
+            uid: currentUser.uid,
             name: name,
             displayName: name,
             phone: phone,
             phoneNumber: phone,
             email: email,
+            loginMethod: existingData.loginMethod || storedUser.loginMethod || 'kakao',
+            photoURL: existingData.photoURL || storedUser.photoURL || currentUser.photoURL || '',
+            isActive: true,
+            profileIncomplete: false,
+            createdAt: existingData.createdAt || new Date(),
             updatedAt: new Date()
           }, { merge: true });
           

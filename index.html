@@ -7229,8 +7229,14 @@
           }
         }
         
-        // 프로필 완성이 필요한 경우 upsertUser 호출하지 않고 바로 이동
+        // 프로필 완성이 필요한 경우에도 최소 정보는 Firestore에 저장 (관리자 대시보드 표시용)
         if (needsProfile) {
+          await upsertUser(userData, {
+            loginMethod: options.loginMethod || userData.loginMethod,
+            isNewUser: isNewUserBeforeUpsert,
+            profileIncomplete: true
+          });
+
           localStorage.setItem('loggedIn', 'true');
           localStorage.setItem('currentUser', JSON.stringify(userData));
           localStorage.setItem('user', JSON.stringify(userData));
