@@ -361,7 +361,8 @@
                     loginOptions: [
                         { value: 'all', label: '전체' },
                         { value: 'email', label: '이메일' },
-                        { value: 'kakao', label: '카카오' }
+                        { value: 'kakao', label: '카카오' },
+                        { value: 'google', label: '구글' }
                     ],
                     resetFn: 'resetMembersListFilters'
                 });
@@ -1217,9 +1218,7 @@
                 const matchSearch = !membersListView.search || hay.includes(membersListView.search);
                 const matchMonth = membersListView.month === 'all' || getAdminMonthKey(getMemberListDate(user)) === membersListView.month;
                 const method = resolveLoginMethod(user);
-                const matchLogin = membersListView.loginMethod === 'all' ||
-                    (membersListView.loginMethod === 'kakao' && method === 'kakao') ||
-                    (membersListView.loginMethod === 'email' && method === 'email');
+                const matchLogin = membersListView.loginMethod === 'all' || method === membersListView.loginMethod;
                 return matchSearch && matchMonth && matchLogin;
             });
 

@@ -512,12 +512,15 @@
         stripKakaoCodeFromUrl();
 
         try {
-          await waitForFirebase();
-          const response = await fetch('/api/kakao-to-firebase-token', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ code, redirectUri: getKakaoRedirectUri() }),
-          });
+          // 토큰 교환 API 호출과 Firebase 초기화를 병렬 진행해 지연 최소화
+          const [response] = await Promise.all([
+            fetch('/api/kakao-to-firebase-token', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ code, redirectUri: getKakaoRedirectUri() }),
+            }),
+            waitForFirebase(),
+          ]);
           const data = await response.json();
           if (!response.ok) {
             throw new Error(data.error || '카카오 로그인에 실패했습니다.');

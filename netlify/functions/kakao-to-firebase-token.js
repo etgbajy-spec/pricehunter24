@@ -104,12 +104,16 @@ async function checkExistingUser(user) {
   }
 
   const db = admin.firestore();
-  const uidDoc = await db.collection('users').doc(user.uid).get();
+  // 두 조회를 병렬 실행해 응답 지연 최소화
+  const [uidDoc, emailSnap] = await Promise.all([
+    db.collection('users').doc(user.uid).get(),
+    db.collection('users').where('email', '==', user.email).limit(1).get(),
+  ]);
+
   if (uidDoc.exists) {
     return { isNewUser: false };
   }
 
-  const emailSnap = await db.collection('users').where('email', '==', user.email).limit(1).get();
   if (!emailSnap.empty && emailSnap.docs[0].id !== user.uid) {
     const conflict = new Error('이 이메일은 이미 다른 방법으로 가입되어 있습니다. 해당 방법으로 로그인해주세요.');
     conflict.statusCode = 409;
@@ -174,7 +178,6 @@ exports.handler = async (event) => {
     const accessToken = await resolveAccessToken(body);
     const kakaoUser = await fetchKakaoUser(accessToken);
     const user = buildUserFromKakao(kakaoUser);
-    const { isNewUser } = await checkExistingUser(user);
 
     if (!initAdmin()) {
       return {
@@ -184,13 +187,17 @@ exports.handler = async (event) => {
       };
     }
 
-    const customToken = await admin.auth().createCustomToken(user.uid, {
-      email: user.email,
-      name: user.displayName,
-      picture: user.photoURL,
-      loginMethod: 'kakao',
-      kakaoId: user.kakaoId,
-    });
+    // 기존 회원 확인과 토큰 발급을 병렬 실행
+    const [{ isNewUser }, customToken] = await Promise.all([
+      checkExistingUser(user),
+      admin.auth().createCustomToken(user.uid, {
+        email: user.email,
+        name: user.displayName,
+        picture: user.photoURL,
+        loginMethod: 'kakao',
+        kakaoId: user.kakaoId,
+      }),
+    ]);
 
     return {
       statusCode: 200,
