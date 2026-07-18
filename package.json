@@ -8,7 +8,9 @@
     "start:1000": "node start-1000.js",
     "dev": "nodemon server.js",
     "build": "npx tailwindcss -c tailwind.config.js -i ./styles/tailwind-input.css -o ./styles/tailwind.build.css --minify",
-    "build:css": "npm run build"
+    "build:css": "npm run build",
+    "test:payment": "node scripts/self-test-security-payment.js",
+    "deploy:firestore-rules": "firebase deploy --only firestore:rules --project pricehunter-99a1b --non-interactive"
   },
   "keywords": [
     "pricehunter",
