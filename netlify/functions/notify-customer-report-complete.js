@@ -67,11 +67,11 @@ exports.handler = async (event) => {
       notifyParams = Object.assign({}, body, { toEmail: body.toEmail });
     }
 
-    if (!notifyParams || !notifyParams.toEmail) {
+    if (!notifyParams || (!notifyParams.toEmail && !notifyParams.toPhone)) {
       return {
         statusCode: 400,
         headers,
-        body: JSON.stringify({ success: false, error: '의뢰 또는 회원 정보에 유효한 이메일이 없습니다.' })
+        body: JSON.stringify({ success: false, error: '의뢰 또는 회원 정보에 유효한 이메일/휴대폰이 없습니다.' })
       };
     }
 

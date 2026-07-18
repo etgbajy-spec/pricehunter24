@@ -8161,80 +8161,8 @@
         // --- 관리자 모드/사례 이미지 변경 기능 ---
         // 사례 카드 텍스트 인라인 수정 기능 (관리자 모드에서만)
         function tryAdminLogin() {
-          if (!checkLoginLimit()) return;
-          
-          const password = prompt('관리자 비밀번호를 입력하세요:');
-          if (!password) return;
-          
-          // 향상된 보안 검증
-          const hashedInput = btoa(password + 'PriceHunter2024!');
-          const correctHash = 'YXNkYXNkOTEyMyFAUHJpY2VIdW50ZXIyMDI0IQ=='; // asdasd9123!@ + salt
-          
-          // 디버깅용
-          
-          
-          // 추가 보안: 입력값 검증
-          if (password.length < 8 || password.length > 50) {
-            showToast('비밀번호 길이가 올바르지 않습니다.', 'error');
-            return;
-          }
-          
-          // 특수문자 포함 여부 확인
-          if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
-            showToast('비밀번호에 특수문자를 포함해주세요.', 'error');
-            return;
-          }
-          
-          if (hashedInput === correctHash) {
-            localStorage.setItem('isAdmin', 'true');
-            localStorage.setItem('adminMode', 'true');
-            localStorage.setItem('adminLoginTime', Date.now().toString());
-            adminModeProtected = true; // 관리자 모드 보호 활성화
-    
-            console.log('관리자 로그인 성공 - setAdminMode 호출');
-            setAdminMode(true); // 즉시 관리자 모드 활성화
-            adminModeLocked = true; // 관리자 모드 잠금 활성화 (setAdminMode 호출 후)
-            updateAuthUI();
-            recordLoginAttempt(true);
-            showToast('관리자 로그인 성공!', 'success');
-            
-            // 강제로 UI 업데이트 (여러 번 시도)
-            setTimeout(() => {
-              setAdminMode(true);
-              console.log('관리자 모드 재설정 완료 (1차)');
-            }, 100);
-            
-            setTimeout(() => {
-              setAdminMode(true);
-              console.log('관리자 모드 재설정 완료 (2차)');
-            }, 500);
-            
-            setTimeout(() => {
-              setAdminMode(true);
-              console.log('관리자 모드 재설정 완료 (3차)');
-            }, 1000);
-            
-            // 지속적인 관리자 모드 유지
-            const adminModeKeeper = setInterval(() => {
-              const adminMode = localStorage.getItem('adminMode') === 'true';
-              const isAdmin = localStorage.getItem('isAdmin') === 'true';
-              if (!adminMode || !isAdmin) {
-                console.log('🔄 관리자 모드 유지: 상태 복원 중...');
-                localStorage.setItem('adminMode', 'true');
-                localStorage.setItem('isAdmin', 'true');
-                setAdminMode(true);
-              }
-            }, 1000); // 1초마다 확인
-            
-            // 무한 관리자 모드 유지 (로그아웃까지)
-            // setTimeout(() => {
-            //   clearInterval(adminModeKeeper);
-            //   console.log('관리자 모드 유지 종료');
-            // }, 30000);
-          } else {
-            recordLoginAttempt(false);
-            showToast('비밀번호가 올바르지 않습니다.', 'error');
-          }
+          // 클라이언트에 관리자 비밀번호를 두지 않음 — Firebase Auth 관리자 대시보드 사용
+          window.location.href = 'admin-dashboard.html';
         }
         
         // 전역 함수로 노출

@@ -2,7 +2,7 @@
 
 ## 준비 완료된 것
 
-- `manifest.json` v1.3.0 (MV3)
+- `manifest.json` v1.8.0 (MV3)
 - 아이콘 `icons/icon16.png`, `icon48.png`, `icon128.png`
 - 개인정보처리방침: https://pricehunt24.com/extension-privacy.html
 - 제출용 ZIP: 프로젝트 루트에서 아래 명령 실행

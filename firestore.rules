@@ -1,13 +1,16 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // 관리자 권한 확인 함수
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
     function isAdmin() {
-      return request.auth != null && (
-        (request.auth.token.email != null && 
-         (request.auth.token.email == 'admin@pricehunter.com' || 
-          request.auth.token.email == 'manager@pricehunter.com' || 
-          request.auth.token.email == 'staff@pricehunter.com' || 
+      return isSignedIn() && (
+        (request.auth.token.email != null &&
+         (request.auth.token.email == 'admin@pricehunter.com' ||
+          request.auth.token.email == 'manager@pricehunter.com' ||
+          request.auth.token.email == 'staff@pricehunter.com' ||
           request.auth.token.email == 'q886654@naver.com' ||
           request.auth.token.email == 'pricehunter.service@gmail.com')) ||
         request.auth.token.role == 'admin' ||
@@ -15,145 +18,163 @@ service cloud.firestore {
          get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.role == 'admin')
       );
     }
-    
-    // users 컬렉션에 대한 규칙 (회원 데이터)
+
+    function isOwnerUid(uid) {
+      return isSignedIn() && uid != null && uid != '' && request.auth.uid == uid;
+    }
+
+    function emailMatches(email) {
+      return isSignedIn() &&
+        request.auth.token.email != null &&
+        email != null &&
+        request.auth.token.email == email;
+    }
+
+    function noPasswordField() {
+      return !('password' in request.resource.data);
+    }
+
+    function ownsRequest() {
+      return isAdmin() ||
+        isOwnerUid(resource.data.userId) ||
+        isOwnerUid(resource.data.uid) ||
+        emailMatches(resource.data.email) ||
+        emailMatches(resource.data.userEmail);
+    }
+
+    function ownsRequestCreate() {
+      return isSignedIn() &&
+        noPasswordField() &&
+        (
+          request.resource.data.userId == request.auth.uid ||
+          request.resource.data.uid == request.auth.uid ||
+          (
+            request.auth.token.email != null &&
+            request.resource.data.email is string &&
+            request.resource.data.email == request.auth.token.email
+          )
+        );
+    }
+
     match /users/{userId} {
-      // 읽기: 모든 사용자 허용 (회원가입 시 중복 확인용)
-      allow read: if true;
-      // 쓰기: 회원가입과 로그인 시에만 허용
-      allow create: if true;
-      allow update: if true;
+      allow get: if isAdmin() || isOwnerUid(userId);
+      allow list: if isAdmin();
+      allow create: if isSignedIn() &&
+        request.auth.uid == userId &&
+        noPasswordField();
+      allow update: if (isAdmin() || isOwnerUid(userId)) &&
+        noPasswordField() &&
+        (!('password' in resource.data) || !('password' in request.resource.data));
       allow delete: if isAdmin();
     }
-    
-    // admins 컬렉션 (관리자 계정)
+
+    match /phoneIndex/{phoneId} {
+      allow get: if isSignedIn();
+      allow list: if isAdmin();
+      allow create: if isSignedIn() &&
+        request.resource.data.uid == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
     match /admins/{adminId} {
       allow read: if isAdmin();
       allow write: if isAdmin();
     }
-    
-    // inquiries 컬렉션에 대한 규칙 (문의 데이터)
+
     match /inquiries/{inquiryId} {
-      // 읽기: 모든 사용자 허용
-      allow read: if true;
-      // 쓰기: 문의 작성만 허용
+      allow get: if isAdmin() ||
+        emailMatches(resource.data.email) ||
+        isOwnerUid(resource.data.userId);
+      allow list: if isAdmin() ||
+        (isSignedIn() &&
+         request.auth.token.email != null &&
+         resource.data.email == request.auth.token.email);
       allow create: if true;
-      // 수정: 관리자만 허용 (답변 작성 및 댓글 관리)
-      allow update: if isAdmin();
-      allow delete: if false; // 문의 삭제는 허용하지 않음
+      allow update: if isAdmin() ||
+        (isSignedIn() && emailMatches(resource.data.email));
+      allow delete: if isAdmin();
     }
-    
-    // inquiryComments 컬렉션에 대한 규칙 (문의 댓글 데이터)
+
     match /inquiryComments/{commentId} {
-      // 읽기: 모든 사용자 허용
-      allow read: if true;
-      // 쓰기: 모든 사용자가 댓글 작성 가능
-      allow create: if true;
-      // 수정: 관리자만 허용
-      allow update: if isAdmin();
-      // 삭제: 관리자만 허용
-      allow delete: if isAdmin();
+      allow read: if isAdmin() || isSignedIn();
+      allow create: if isSignedIn() || true;
+      allow update, delete: if isAdmin();
     }
-    
-    // reviews 컬렉션에 대한 규칙 (후기 데이터)
+
     match /reviews/{reviewId} {
-      // 읽기: 모든 사용자 허용
       allow read: if true;
-      // 쓰기: 후기 작성만 허용
-      allow create: if true;
-      // 수정: 관리자만 허용 (절약왕 수정 기능용)
-      allow update: if isAdmin();
-      // 삭제: 관리자만 허용
-      allow delete: if isAdmin();
+      allow create: if isSignedIn() || true;
+      allow update, delete: if isAdmin();
     }
-    
-    // requests 컬렉션에 대한 규칙 (요청 데이터)
+
     match /requests/{requestId} {
-      // 읽기: 모든 사용자 허용
-      allow read: if true;
-      // 쓰기: 요청 작성만 허용
-      allow create: if true;
-      allow update: if isAdmin(); // 관리자는 의뢰 답변 작성 가능
-      allow delete: if false; // 요청 삭제는 허용하지 않음
+      allow get: if ownsRequest();
+      allow list: if isAdmin() ||
+        (isSignedIn() &&
+         request.auth.token.email != null &&
+         resource.data.email == request.auth.token.email);
+      allow create: if ownsRequestCreate();
+      allow update, delete: if isAdmin();
     }
-    
-    // orders 컬렉션에 대한 규칙 (주문 데이터)
+
     match /orders/{orderId} {
-      // 읽기: 모든 사용자 허용
-      allow read: if true;
-      // 쓰기: 주문 생성만 허용
-      allow create: if true;
-      allow update: if false; // 주문 수정은 허용하지 않음
-      allow delete: if false; // 주문 삭제는 허용하지 않음
+      allow get: if isAdmin() ||
+        isOwnerUid(resource.data.userId) ||
+        emailMatches(resource.data.email);
+      allow list: if isAdmin();
+      allow create: if isSignedIn();
+      allow update, delete: if isAdmin();
     }
-    
-    // payments 컬렉션에 대한 규칙 (결제 데이터)
+
     match /payments/{paymentId} {
-      // 읽기: 모든 사용자 허용
-      allow read: if true;
-      // 쓰기: 결제 정보 생성만 허용
-      allow create: if true;
-      allow update: if false; // 결제 정보 수정은 허용하지 않음
-      allow delete: if false; // 결제 정보 삭제는 허용하지 않음
+      allow get: if isAdmin() ||
+        isOwnerUid(resource.data.userId) ||
+        emailMatches(resource.data.email);
+      allow list: if isAdmin();
+      allow create: if false;
+      allow update, delete: if isAdmin();
     }
-    
-    // 관리자 설정 컬렉션 (절약왕 관리 등)
-    match /adminSettings/{settingId} {
-      // 읽기: 관리자만
+
+    match /pointsLedger/{ledgerId} {
       allow read: if isAdmin();
-      // 쓰기: 관리자만
-      allow write: if isAdmin();
-      // 삭제: 관리자만
-      allow delete: if isAdmin();
+      allow write: if false;
     }
-    
-    // 방문 로그 (페이지별 상세)
+
+    match /adminSettings/{settingId} {
+      allow read, write, delete: if isAdmin();
+    }
+
     match /visits/{visitId} {
-      allow read: if true;
+      allow read: if isAdmin();
       allow create: if true;
       allow update, delete: if false;
     }
 
-    // 일별 방문 집계 (visit-tracker + 관리자 동기화)
+    // 방문 집계: PII 없음. 클라이언트 visit-tracker 유지용으로 생성/갱신 허용
     match /visitDaily/{dateId} {
-      allow read: if true;
-      allow create: if true;
-      allow update: if true;
+      allow read: if isAdmin();
+      allow create, update: if true;
       allow delete: if isAdmin();
     }
 
-    // 월별 가입자 리포트 집계
-    match /signupDaily/{monthId} {
-      allow read: if true;
-      allow create: if true;
-      allow update: if true;
-      allow delete: if isAdmin();
-    }
-
-    // 월별 게스트(미가입) 의뢰자 집계
-    match /guestRequestDaily/{monthId} {
-      allow read: if true;
-      allow create: if true;
-      allow update: if true;
-      allow delete: if isAdmin();
-    }
-
-    // 월별 방문 집계 (리포트 조회 시 읽기 절약)
     match /visitMonthly/{monthId} {
-      allow read: if true;
-      allow create: if true;
-      allow update: if true;
+      allow read: if isAdmin();
+      allow create, update: if isAdmin();
       allow delete: if isAdmin();
     }
 
-    // 다른 모든 컬렉션에 대한 기본 규칙
+    match /signupDaily/{monthId} {
+      allow read: if isAdmin();
+      allow write: if isAdmin();
+    }
+
+    match /guestRequestDaily/{monthId} {
+      allow read: if isAdmin();
+      allow write: if isAdmin();
+    }
+
     match /{document=**} {
-      // 읽기: 모든 사용자 허용
-      allow read: if true;
-      // 쓰기: 생성만 허용
-      allow create: if true;
-      allow update: if false;
-      allow delete: if false;
+      allow read, write: if false;
     }
   }
-} 
+}

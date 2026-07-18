@@ -1,10 +1,10 @@
 /**
  * Netlify Function: 결제(상품) 정보 조회
- * - payment.html 에서 /api/payment-info?req=PH-... 로 호출
- * - Firestore requests 컬렉션에서 reqId 기반으로 조회
  */
 const admin = require('firebase-admin');
- 
+const { computePaymentAmounts, toNumberPrice } = require('../../payment-amount');
+const { loadRequestByReqId, normalizeReqId } = require('./_request-loader');
+
 function initAdmin() {
   if (admin.apps.length) return true;
   try {
@@ -12,7 +12,7 @@ function initAdmin() {
     const privateKey = process.env.FIREBASE_ADMIN_PRIVATE_KEY?.replace(/\\n/g, '\n');
     const clientEmail = process.env.FIREBASE_ADMIN_CLIENT_EMAIL;
     if (!privateKey || !clientEmail) return false;
- 
+
     admin.initializeApp({
       credential: admin.credential.cert({
         type: 'service_account',
@@ -24,9 +24,9 @@ function initAdmin() {
         auth_uri: 'https://accounts.google.com/o/oauth2/auth',
         token_uri: 'https://oauth2.googleapis.com/token',
         auth_provider_x509_cert_url: 'https://www.googleapis.com/oauth2/v1/certs',
-        client_x509_cert_url: process.env.FIREBASE_ADMIN_CLIENT_X509_CERT_URL,
+        client_x509_cert_url: process.env.FIREBASE_ADMIN_CLIENT_X509_CERT_URL
       }),
-      projectId,
+      projectId
     });
     return true;
   } catch (e) {
@@ -34,132 +34,56 @@ function initAdmin() {
     return false;
   }
 }
- 
-function normalizeReqId(input) {
-  let reqId = (input || '').toString().trim();
-  if (reqId) reqId = reqId.replace(/^#+/, '');
-  if (!reqId || reqId.length > 80) return '';
-  return reqId;
-}
- 
-function toNumberPrice(v) {
-  if (v == null) return NaN;
-  if (typeof v === 'number') return v;
-  const s = String(v);
-  const digits = s.replace(/[^0-9]/g, '');
-  if (!digits) return NaN;
-  return Number(digits);
-}
 
-async function loadRequest(db, reqId) {
-  // 1) doc(id) 우선
-  const docSnap = await db.collection('requests').doc(reqId).get();
-  if (docSnap.exists) return docSnap.data() || null;
- 
-  // 2) 필드 호환 (requestNumber / reqNum)
-  const withHash = reqId.startsWith('PH-') ? `#${reqId}` : reqId;
- 
-  let q = await db.collection('requests').where('requestNumber', '==', reqId).limit(1).get();
-  if (!q.empty) return q.docs[0].data() || null;
-  q = await db.collection('requests').where('requestNumber', '==', withHash).limit(1).get();
-  if (!q.empty) return q.docs[0].data() || null;
- 
-  q = await db.collection('requests').where('reqNum', '==', reqId).limit(1).get();
-  if (!q.empty) return q.docs[0].data() || null;
-  q = await db.collection('requests').where('reqNum', '==', withHash).limit(1).get();
-  if (!q.empty) return q.docs[0].data() || null;
- 
-  return null;
-}
- 
 exports.handler = async (event) => {
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
     'Access-Control-Allow-Methods': 'GET, OPTIONS',
-    'Content-Type': 'application/json',
+    'Content-Type': 'application/json'
   };
- 
+
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers, body: '' };
   }
- 
+
   if (event.httpMethod !== 'GET') {
     return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method not allowed' }) };
   }
- 
+
   const reqId = normalizeReqId(event.queryStringParameters?.req);
   if (!reqId) {
     return { statusCode: 400, headers, body: JSON.stringify({ error: '의뢰 번호(req)가 필요합니다.' }) };
   }
- 
-  const ok = initAdmin();
-  if (!ok) {
-    // 배포 환경에서 Admin env가 빠졌을 때의 명확한 메시지
+
+  if (!initAdmin()) {
     return {
       statusCode: 503,
       headers,
-      body: JSON.stringify({ error: '서버 설정이 완료되지 않아 결제 정보를 불러올 수 없습니다. (FIREBASE_ADMIN_*)' }),
+      body: JSON.stringify({ error: '서버 설정이 완료되지 않아 결제 정보를 불러올 수 없습니다. (FIREBASE_ADMIN_*)' })
     };
   }
- 
+
   try {
     const db = admin.firestore();
-    const data = await loadRequest(db, reqId);
-    if (!data) {
+    const loaded = await loadRequestByReqId(db, reqId);
+    if (!loaded) {
       return { statusCode: 404, headers, body: JSON.stringify({ error: '해당 의뢰 정보를 찾을 수 없습니다.' }) };
     }
- 
-    // 검증 최저가 (관리자 답변 / 구매판단 리포트)
-    const basePrice = toNumberPrice(
-      data.purchaseReport?.price ??
-      data.adminResponse?.lowestPrice ??
-      data.adminResponse?.totalCost ??
-      data.totalAmount ??
-      data.finalPrice ??
-      data.finalAmount ??
-      data.productPrice ??
-      0
-    );
+    const data = loaded.data || {};
 
-    const queryMethod = (event.queryStringParameters?.method || '').toString().trim();
-    const method =
-      queryMethod === 'support' ||
-      data.method === 'support' ||
-      data.purchaseMethod === 'support' ||
-      data.purchaseDecision === 'support'
-        ? 'support'
-        : 'direct';
-
-    const requestPrice = toNumberPrice(
-      data.requestPrice ??
-      data.requestedPrice ??
-      data.userPrice ??
-      data.price ??
-      data.productPrice ??
-      0
-    );
-
-    if (!Number.isFinite(basePrice) || basePrice <= 0 || basePrice > 100000000) {
+    const amounts = computePaymentAmounts(data, event.queryStringParameters?.method);
+    if (!Number.isFinite(amounts.basePrice) || amounts.basePrice <= 0 || amounts.basePrice > 100000000) {
       return { statusCode: 400, headers, body: JSON.stringify({ error: '유효한 결제 금액을 확인할 수 없습니다.' }) };
     }
 
-    const SUPPORT_FEE_RATE = 0.01;
-    let supportFee = 0;
-    let finalPrice = basePrice;
-    if (method === 'support') {
-      supportFee = Math.max(1, Math.round(basePrice * SUPPORT_FEE_RATE));
-      finalPrice = basePrice + supportFee;
-    }
-    const earnedPoints = method === 'support' ? supportFee : 0;
+    const requestPrice = toNumberPrice(
+      data.requestPrice ?? data.requestedPrice ?? data.userPrice ?? data.price ?? data.productPrice ?? 0
+    );
 
     const name = String(data.productName ?? data.name ?? '상품').slice(0, 200);
     const origin = String(
-      data.purchaseReport?.origin ??
-      data.adminResponse?.seller ??
-      data.productOrigin ??
-      data.origin ??
-      '정보 없음'
+      data.purchaseReport?.origin ?? data.adminResponse?.seller ?? data.productOrigin ?? data.origin ?? '정보 없음'
     ).slice(0, 100);
     const status = String(data.status || '').slice(0, 40);
 
@@ -169,19 +93,18 @@ exports.handler = async (event) => {
       body: JSON.stringify({
         name,
         origin,
-        method,
+        method: amounts.method,
         status,
         reqId,
-        basePrice,
-        supportFee,
+        basePrice: amounts.basePrice,
+        supportFee: amounts.supportFee,
         requestPrice: Number.isFinite(requestPrice) && requestPrice > 0 ? requestPrice : null,
-        finalPrice,
-        earnedPoints,
-      }),
+        finalPrice: amounts.finalPrice,
+        earnedPoints: amounts.earnedPoints
+      })
     };
   } catch (e) {
     console.error('❌ payment-info error:', e);
     return { statusCode: 500, headers, body: JSON.stringify({ error: '결제 정보를 불러오는 중 오류가 발생했습니다.' }) };
   }
 };
-

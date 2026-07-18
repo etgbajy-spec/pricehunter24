@@ -89,31 +89,29 @@
 
   <script>
     (function () {
-      function isLoggedIn() {
-        if (localStorage.getItem('loggedIn') === 'true') return true;
-        if (localStorage.getItem('loggedInEmail')) return true;
-        if (localStorage.getItem('currentUser')) return true;
-        try {
-          if (window.firebaseAuth && window.firebaseAuth.currentUser) return true;
-        } catch (e) { /* ignore */ }
-        return false;
-      }
-
       function redirectToRegister() {
         var next = encodeURIComponent('request-v2.html');
         window.location.replace('register.html?next=' + next + '&reason=member_request');
       }
 
+      function hasFirebaseUser() {
+        try {
+          return !!(window.firebaseAuth && window.firebaseAuth.currentUser);
+        } catch (e) {
+          return false;
+        }
+      }
+
       function guardMemberPage() {
-        if (isLoggedIn()) return;
+        if (hasFirebaseUser()) return;
         var waited = 0;
         var timer = setInterval(function () {
           waited += 100;
-          if (isLoggedIn()) {
+          if (hasFirebaseUser()) {
             clearInterval(timer);
             return;
           }
-          if (waited >= 2500) {
+          if (waited >= 3500) {
             clearInterval(timer);
             redirectToRegister();
           }
@@ -1328,25 +1326,34 @@
         return;
       }
       
-      // 이름 일치 검증 (Firebase에서 사용자 정보 가져오기)
+      // 이름 일치 검증 (Firebase Auth + 본인 users 문서)
       let user = null;
       try {
         await waitForFirebase();
-        const { collection, query, where, getDocs } = window.firebaseFirestoreFunctions;
+        const authUser = window.firebaseAuth && window.firebaseAuth.currentUser;
+        if (!authUser) {
+          alert('로그인이 필요합니다. 다시 로그인해 주세요.');
+          window.location.replace('login.html?next=' + encodeURIComponent('request-v2.html'));
+          return;
+        }
+        const { doc, getDoc } = window.firebaseFirestoreFunctions;
         const db = window.firebaseDb;
-        
-        const loggedInEmail = localStorage.getItem('loggedInEmail');
-        if (loggedInEmail) {
-          const usersRef = collection(db, 'users');
-          const q = query(usersRef, where('email', '==', loggedInEmail));
-          const querySnapshot = await getDocs(q);
-          
-          if (!querySnapshot.empty) {
-            user = querySnapshot.docs[0].data();
-          }
+        const userSnap = await getDoc(doc(db, 'users', authUser.uid));
+        if (userSnap.exists()) {
+          user = userSnap.data();
+          user.uid = authUser.uid;
+          user.email = user.email || authUser.email;
+        } else {
+          user = {
+            uid: authUser.uid,
+            email: authUser.email,
+            name: authUser.displayName || ''
+          };
         }
       } catch (error) {
         console.error('사용자 정보 로드 실패:', error);
+        alert('회원 정보를 불러오지 못했습니다. 다시 로그인해 주세요.');
+        return;
       }
       
       const userName = document.getElementById('userName').value.trim();
@@ -1561,11 +1568,18 @@
         const { collection, addDoc, serverTimestamp } = window.firebaseFirestoreFunctions;
         const db = window.firebaseDb;
         
+        const authUser = window.firebaseAuth && window.firebaseAuth.currentUser;
+        if (!authUser) {
+          throw new Error('로그인이 필요합니다.');
+        }
         const firebaseData = {
           ...reqData,
+          userId: authUser.uid,
+          uid: authUser.uid,
+          email: reqData.email || authUser.email || '',
           requestNumber: reqNum,
           createdAt: serverTimestamp(),
-          status: 'pending',
+          status: reqData.status || 'pending',
           source: 'web_form'
         };
         

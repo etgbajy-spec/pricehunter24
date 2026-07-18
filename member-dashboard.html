@@ -301,8 +301,8 @@
                 <div class="font-bold text-gray-900 text-lg">🧪 PG 심사 테스트 결제</div>
                 <div class="text-sm text-gray-600 mt-1">테스트 계정 전용(10원 카드결제) 페이지입니다.</div>
               </div>
-              <a href="test-checkout.html" class="px-4 py-3 rounded-xl bg-indigo-600 text-white font-extrabold hover:bg-indigo-700 transition whitespace-nowrap">
-                테스트 결제하기 (10원)
+              <a href="payment.html" class="hidden px-4 py-3 rounded-xl bg-indigo-600 text-white font-extrabold hover:bg-indigo-700 transition whitespace-nowrap">
+                결제하기
               </a>
             </div>
             <div class="mt-3 text-xs text-gray-600">
@@ -914,22 +914,15 @@
         
         let querySnapshot;
         try {
-          // 먼저 orderBy 없이 조회해보기
           const requestsQuery = query(
             collection(db, 'requests'),
             where('email', '==', userEmail)
           );
-          
           querySnapshot = await getDocs(requestsQuery);
           console.log('🔍 쿼리 결과:', querySnapshot.size, '개 문서 발견');
         } catch (queryError) {
-          console.warn('⚠️ where 쿼리 실패, 모든 데이터를 가져와서 필터링:', queryError);
-          
-          // 쿼리 실패시 최신 500개만 가져와서 클라이언트에서 필터링 (쿼리 최적화)
-          const { limit } = window.firebaseFirestoreFunctions;
-          const allRequestsQuery = query(collection(db, 'requests'), limit(500));
-          querySnapshot = await getDocs(allRequestsQuery);
-          console.log('🔍 전체 의뢰 데이터 (최신 500개):', querySnapshot.size, '개 문서 발견');
+          console.error('⚠️ 의뢰 조회 실패 (전체 목록 fallback 제거됨):', queryError);
+          return [];
         }
         
         const requests = [];
@@ -2051,8 +2044,14 @@
       });
     }
 
-  // 공통 함수: 사용자 이메일 가져오기 (여러 방법으로 시도)
+  // 공통 함수: 사용자 이메일 가져오기 (Firebase Auth 우선)
   function getUserEmail() {
+    try {
+      if (window.firebaseAuth && window.firebaseAuth.currentUser && window.firebaseAuth.currentUser.email) {
+        return window.firebaseAuth.currentUser.email;
+      }
+    } catch (e) { /* ignore */ }
+
     let userEmail = localStorage.getItem('loggedInEmail');
     
     // loggedInEmail이 없으면 다른 방법으로 시도
@@ -2062,64 +2061,42 @@
       
       if (currentUser.email) {
         userEmail = currentUser.email;
-        console.log('🔍 currentUser에서 이메일 가져옴:', userEmail);
       } else if (user.email) {
         userEmail = user.email;
-        console.log('🔍 user에서 이메일 가져옴:', userEmail);
       }
     }
     
     return userEmail;
   }
 
-  // Firebase Auth 로그인 확인 및 자동 로그인
+  // Firebase Auth 로그인 확인 (비밀번호를 localStorage에 두지 않음)
   async function ensureFirebaseAuth() {
     await waitForFirebase();
-    
-    // 이미 로그인되어 있으면 반환
+
     if (window.firebaseAuth && window.firebaseAuth.currentUser) {
       console.log('✅ Firebase Auth에 이미 로그인되어 있음:', window.firebaseAuth.currentUser.email);
       return true;
     }
-    
-    // localStorage에서 사용자 정보 가져오기
-    const userEmail = getUserEmail();
-    if (!userEmail) {
-      console.warn('⚠️ 사용자 이메일을 찾을 수 없어서 Firebase Auth 로그인을 할 수 없습니다.');
-      return false;
-    }
-    
-    // localStorage에서 비밀번호 가져오기 시도
-    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-    const password = currentUser.password || user.password;
-    
-    if (!password) {
-      console.warn('⚠️ 비밀번호를 찾을 수 없어서 Firebase Auth 로그인을 할 수 없습니다.');
-      return false;
-    }
-    
-    // Firebase Auth로 로그인 시도
-    try {
-      if (!window.firebaseAuthFunctions?.signInWithEmailAndPassword) {
-        console.error('❌ signInWithEmailAndPassword 함수를 사용할 수 없습니다.');
-        return false;
+
+    return new Promise(function (resolve) {
+      if (!window.firebaseAuthFunctions?.onAuthStateChanged || !window.firebaseAuth) {
+        resolve(false);
+        return;
       }
-      
-      console.log('🔄 Firebase Auth 로그인 시도:', userEmail);
-      const userCredential = await window.firebaseAuthFunctions.signInWithEmailAndPassword(
-        window.firebaseAuth,
-        userEmail,
-        password
-      );
-      
-      console.log('✅ Firebase Auth 로그인 성공:', userCredential.user.email);
-      return true;
-    } catch (error) {
-      console.error('❌ Firebase Auth 로그인 실패:', error);
-      // 로그인 실패해도 계속 진행 (일부 기능만 제한될 수 있음)
-      return false;
-    }
+      var settled = false;
+      var unsub = window.firebaseAuthFunctions.onAuthStateChanged(window.firebaseAuth, function (user) {
+        if (settled) return;
+        settled = true;
+        try { unsub(); } catch (e) { /* ignore */ }
+        resolve(!!user);
+      });
+      setTimeout(function () {
+        if (settled) return;
+        settled = true;
+        try { unsub(); } catch (e) { /* ignore */ }
+        resolve(!!(window.firebaseAuth && window.firebaseAuth.currentUser));
+      }, 2500);
+    });
   }
 
   // 디버깅용 함수 - 현재 상태 확인
@@ -3692,12 +3669,21 @@
             btnDirect.href = directLink;
             btnDirect.onclick = function (e) {
               e.preventDefault();
-              fetch('/api/purchase-decision', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ reqId, decision: 'direct' })
-              }).catch(function () {});
-              window.open(directLink, '_blank', 'noopener,noreferrer');
+              (async function () {
+                try {
+                  const user = window.firebaseAuth && window.firebaseAuth.currentUser;
+                  const token = user ? await user.getIdToken(true) : '';
+                  await fetch('/api/purchase-decision', {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      ...(token ? { Authorization: 'Bearer ' + token } : {})
+                    },
+                    body: JSON.stringify({ reqId, decision: 'direct' })
+                  });
+                } catch (err) { /* ignore */ }
+                window.open(directLink, '_blank', 'noopener,noreferrer');
+              })();
             };
           }
           if (btnSupport) {
@@ -3705,12 +3691,21 @@
             btnSupport.href = payUrl;
             btnSupport.onclick = function (e) {
               e.preventDefault();
-              fetch('/api/purchase-decision', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ reqId, decision: 'support' })
-              }).catch(function () {});
-              window.location.href = payUrl;
+              (async function () {
+                try {
+                  const user = window.firebaseAuth && window.firebaseAuth.currentUser;
+                  const token = user ? await user.getIdToken(true) : '';
+                  await fetch('/api/purchase-decision', {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      ...(token ? { Authorization: 'Bearer ' + token } : {})
+                    },
+                    body: JSON.stringify({ reqId, decision: 'support' })
+                  });
+                } catch (err) { /* ignore */ }
+                window.location.href = payUrl;
+              })();
             };
           }
         } else if (actionsEl) {
