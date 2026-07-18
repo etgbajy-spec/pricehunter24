@@ -132,11 +132,11 @@ Windows: `Win + Shift + S`로 영역 캡처 후 그림판에서 1280px 너비로
 ## 7단계 — 승인 후 사이트 연동
 
 1. 웹스토어에서 확장 **상세 URL** 복사  
-   예: `https://chrome.google.com/webstore/detail/pricehunter/xxxxxxxx`
-2. `extension-store-config.js` 수정:
+   예: `https://chromewebstore.google.com/detail/ladlnjgdboeacihmdloegaclfjkdcjnf`
+2. `extension-store-config.js` 수정 (현재 반영됨):
 
 ```javascript
-chromeWebStoreUrl: 'https://chrome.google.com/webstore/detail/pricehunter/xxxxxxxx',
+chromeWebStoreUrl: 'https://chromewebstore.google.com/detail/ladlnjgdboeacihmdloegaclfjkdcjnf',
 ```
 
 3. 사이트 배포 (Netlify push) → 랜딩 「크롬 확장 설치」 링크가 웹스토어로 자동 전환
